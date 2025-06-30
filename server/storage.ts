@@ -15,8 +15,8 @@ import type {
   ReviewWithActivity,
 } from "../shared/schema";
 
-// MongoDB connection string - ensure proper format
-const DATABASE_URL = process.env.DATABASE_URL || 'mongodb+srv://hamzacharafeddine77:FxUfGGZ8VRyflrGW@marrakechtours-cluster.cvyntkb.mongodb.net/marrakech-tours';
+// MongoDB connection string
+const DATABASE_URL = process.env.DATABASE_URL || '';
 
 // In-memory storage for fallback when MongoDB is unavailable
 const inMemoryData = {

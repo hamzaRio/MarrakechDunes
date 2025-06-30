@@ -192,11 +192,11 @@ export const adminAuditLog = (req: Request, res: Response, next: NextFunction) =
 // Session security configuration
 export const sessionSecurity = {
   name: 'marrakech.session',
-  secret: process.env.SESSION_SECRET || 'FeU8jTYGmCars6u3qUX8uyMF5SkLxhkH9HrXv0rx162dcFGrf8TmfXEP27unxj0525rqj8w1uk',
+  secret: process.env.SESSION_SECRET || '',
   resave: false,
   saveUninitialized: false,
   store: MongoStore.create({
-    mongoUrl: process.env.MONGO_URI || 'mongodb+srv://hamzacharafeddine77:FxUfGGZ8VRyflrGW@marrakechtours-cluster.cvyntkb.mongodb.net/',
+    mongoUrl: process.env.MONGO_URI || '',
     dbName: 'marrakech-tours',
     touchAfter: 24 * 3600,
     ttl: 24 * 60 * 60 // 24 hours
