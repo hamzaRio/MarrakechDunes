@@ -44,19 +44,27 @@ export default function CEODashboard() {
   const [editingPrice, setEditingPrice] = useState<{ id: string; price: number } | null>(null);
 
   // Fetch analytics data
-  const { data: earnings } = useQuery({
+  interface EarningsData {
+    monthlyEarnings: Record<string, number>;
+    totalEarnings: number;
+    totalBookings: number;
+    averageBookingValue: number;
+    topActivities?: { name: string; earnings: number }[];
+  }
+
+  const { data: earnings } = useQuery<EarningsData>({
     queryKey: ["/api/admin/analytics/earnings"],
   });
 
-  const { data: activities } = useQuery({
+  const { data: activities } = useQuery<any>({
     queryKey: ["/api/admin/analytics/activities"],
   });
 
-  const { data: bookings } = useQuery({
+  const { data: bookings } = useQuery<any>({
     queryKey: ["/api/admin/analytics/bookings"],
   });
 
-  const { data: priceComparison } = useQuery({
+  const { data: priceComparison } = useQuery<any>({
     queryKey: ["/api/admin/getyourguide/comparison"],
   });
 
@@ -295,7 +303,7 @@ export default function CEODashboard() {
                           <div className="flex items-center gap-2">
                             <Input
                               type="number"
-                              value={editingPrice.price}
+                              value={editingPrice?.price ?? 0}
                               onChange={(e) => setEditingPrice({
                                 id: activity.id,
                                 price: Number(e.target.value)
@@ -305,7 +313,7 @@ export default function CEODashboard() {
                             />
                             <Button
                               size="sm"
-                              onClick={() => handlePriceUpdate(activity.id, editingPrice.price)}
+                              onClick={() => editingPrice && handlePriceUpdate(activity.id, editingPrice.price)}
                               disabled={updatePriceMutation.isPending}
                             >
                               Save

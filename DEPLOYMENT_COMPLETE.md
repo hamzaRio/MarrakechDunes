@@ -91,9 +91,9 @@ MarrakechDunes/
 ### Environment Variables
 ```bash
 # Production Configuration
-DATABASE_URL=mongodb+srv://hamzacharafeddine77:FxUfGGZ8VRyflrGW@marrakechtours-cluster.cvyntkb.mongodb.net/marrakech-tours
-JWT_SECRET=ct8B36w2JW68WY6ofFLarloQJxCXVQNcBofS0tM78767E69782944DABB
-SESSION_SECRET=FeU8jTYGmCars6u3qUX8uyMF5SkLxhkH9HrXv0rx162dcFGrf8TmfXEP27unxj0525rqj8w1uk
+DATABASE_URL=<YOUR_MONGO_URI>
+JWT_SECRET=<YOUR_JWT_SECRET>
+SESSION_SECRET=<YOUR_SESSION_SECRET>
 NODE_ENV=production
 PORT=5000
 ```
