@@ -231,13 +231,13 @@ export default function Booking() {
                                     </SelectTrigger>
                                   </FormControl>
                                   <SelectContent>
-                                    {activities.map((activity) => (
-                                      <SelectItem key={activity.id} value={activity.id}>
-                                        <div className="flex items-center space-x-3">
-                                          <div>
-                                            <p className="font-medium">{activity.name}</p>
-                                            <p className="text-sm text-gray-600">{activity.duration} • {activity.price} MAD</p>
-                                          </div>
+                                      {activities.map((activity) => (
+                                        <SelectItem key={activity.id} value={activity.id ?? ''}>
+                                          <div className="flex items-center space-x-3">
+                                            <div>
+                                              <p className="font-medium">{activity.name}</p>
+                                              <p className="text-sm text-gray-600">{activity.duration} • {activity.price} MAD</p>
+                                            </div>
                                         </div>
                                       </SelectItem>
                                     ))}
@@ -272,9 +272,9 @@ export default function Booking() {
                           </div>
 
                           <AvailabilityCalendar
-                            activityId={currentActivity.id}
+                            activityId={currentActivity.id ?? ''}
                             activityName={currentActivity.name}
-                            basePrice={currentActivity.price}
+                            basePrice={Number(currentActivity.price)}
                             selectedDate={selectedDate}
                             selectedTimeSlot={selectedTimeSlot}
                             onDateTimeSelect={(date, timeSlot) => {

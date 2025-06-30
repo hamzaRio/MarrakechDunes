@@ -64,7 +64,7 @@ export default function Booking() {
       try {
         const activity = JSON.parse(storedActivity);
         setSelectedActivity(activity);
-        form.setValue('activityId', activity.id);
+        form.setValue('activityId', activity.id ?? '');
         localStorage.removeItem('selectedActivity'); // Clean up
       } catch (error) {
         console.error('Error parsing stored activity:', error);
@@ -261,7 +261,7 @@ export default function Booking() {
                             ) : (
                               <Select
                                 onValueChange={(value) => {
-                                  const activityId = parseInt(value);
+                                  const activityId = value;
                                   field.onChange(activityId);
                                   const activity = activities.find(a => a.id === activityId);
                                   if (activity) setSelectedActivity(activity);
@@ -275,7 +275,7 @@ export default function Booking() {
                                 </FormControl>
                                 <SelectContent>
                                   {activities.map((activity) => (
-                                    <SelectItem key={activity.id} value={activity.id.toString()}>
+                                    <SelectItem key={activity.id} value={(activity.id ?? '').toString()}>
                                       {activity.name} - {activity.price} {activity.currency}
                                     </SelectItem>
                                   ))}

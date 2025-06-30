@@ -66,12 +66,12 @@ export default function PaymentManagement({ booking }: PaymentManagementProps) {
     let newPaidAmount: number;
     let depositAmount: number | undefined;
 
-    const currentPaid = booking.paidAmount || 0;
+    const currentPaid = Number(booking.paidAmount) || 0;
 
     switch (paymentType) {
       case 'full':
         newPaymentStatus = 'fully_paid';
-        newPaidAmount = booking.totalAmount;
+        newPaidAmount = Number(booking.totalAmount);
         break;
       case 'deposit':
         newPaymentStatus = 'deposit_paid';
@@ -86,13 +86,13 @@ export default function PaymentManagement({ booking }: PaymentManagementProps) {
         return;
     }
 
-    updatePaymentMutation.mutate({
-      bookingId: booking.id,
-      paymentStatus: newPaymentStatus,
-      paidAmount: newPaidAmount,
-      paymentMethod: paymentType === 'deposit' ? 'cash_deposit' : 'cash',
-      depositAmount,
-    });
+      updatePaymentMutation.mutate({
+        bookingId: booking.id!,
+        paymentStatus: newPaymentStatus,
+        paidAmount: newPaidAmount,
+        paymentMethod: paymentType === 'deposit' ? 'cash_deposit' : 'cash',
+        depositAmount,
+      });
   };
 
   const getPaymentStatusColor = (status: string) => {
@@ -121,8 +121,9 @@ export default function PaymentManagement({ booking }: PaymentManagementProps) {
     }
   };
 
-  const currentPaid = booking.paidAmount || 0;
-  const remainingAmount = booking.totalAmount - currentPaid;
+  const currentPaid = Number(booking.paidAmount) || 0;
+  const totalAmount = Number(booking.totalAmount);
+  const remainingAmount = totalAmount - currentPaid;
   const isFullyPaid = booking.paymentStatus === 'fully_paid';
   const isDepositPaid = booking.paymentStatus === 'deposit_paid';
 
@@ -164,7 +165,7 @@ export default function PaymentManagement({ booking }: PaymentManagementProps) {
                   <div className="text-sm space-y-1">
                     <div className="flex justify-between">
                       <span>Total Amount:</span>
-                      <span className="font-medium">{booking.totalAmount} MAD</span>
+                      <span className="font-medium">{totalAmount} MAD</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Paid Amount:</span>
@@ -189,7 +190,7 @@ export default function PaymentManagement({ booking }: PaymentManagementProps) {
                           <SelectItem value="full">
                             <div className="flex items-center gap-2">
                               <CreditCard className="w-4 h-4" />
-                              Full Payment ({booking.totalAmount} MAD)
+                              Full Payment ({totalAmount} MAD)
                             </div>
                           </SelectItem>
                         )}
@@ -220,14 +221,14 @@ export default function PaymentManagement({ booking }: PaymentManagementProps) {
                         id="amount"
                         type="number"
                         min="1"
-                        max={paymentType === 'deposit' ? booking.totalAmount : remainingAmount}
+                        max={paymentType === 'deposit' ? totalAmount : remainingAmount}
                         value={paymentAmount}
                         onChange={(e) => setPaymentAmount(parseInt(e.target.value) || 0)}
                         placeholder={`Enter amount`}
                       />
                       {paymentType === 'deposit' && (
                         <p className="text-xs text-gray-500 mt-1">
-                          Recommended: {Math.round(booking.totalAmount * 0.3)} MAD (30%)
+                          Recommended: {Math.round(totalAmount * 0.3)} MAD (30%)
                         </p>
                       )}
                     </div>
@@ -262,7 +263,7 @@ export default function PaymentManagement({ booking }: PaymentManagementProps) {
           <div className="space-y-2">
             <div className="flex justify-between">
               <span className="text-gray-600">Total Amount:</span>
-              <span className="font-medium">{booking.totalAmount} MAD</span>
+              <span className="font-medium">{totalAmount} MAD</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-600">Payment Method:</span>
@@ -288,12 +289,12 @@ export default function PaymentManagement({ booking }: PaymentManagementProps) {
         <div className="space-y-2">
           <div className="flex justify-between text-xs text-gray-600">
             <span>Payment Progress</span>
-            <span>{Math.round((currentPaid / booking.totalAmount) * 100)}%</span>
+            <span>{Math.round((currentPaid / totalAmount) * 100)}%</span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2">
             <div
               className="bg-gradient-to-r from-moroccan-blue to-moroccan-red h-2 rounded-full transition-all duration-300"
-              style={{ width: `${(currentPaid / booking.totalAmount) * 100}%` }}
+              style={{ width: `${(currentPaid / totalAmount) * 100}%` }}
             />
           </div>
         </div>
@@ -312,7 +313,7 @@ export default function PaymentManagement({ booking }: PaymentManagementProps) {
               </div>
               <div className="flex justify-between">
                 <span>Balance Due:</span>
-                <span className="font-medium">{booking.totalAmount - booking.depositAmount} MAD</span>
+                <span className="font-medium">{totalAmount - Number(booking.depositAmount)} MAD</span>
               </div>
             </div>
           </div>
