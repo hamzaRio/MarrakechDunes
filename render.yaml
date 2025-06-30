@@ -13,11 +13,11 @@ services:
       - key: PORT
         value: 10000
       - key: MONGO_URI
-        value: mongodb+srv://hamzacharafeddine77:FxUfGGZ8VRyflrGW@marrakechtours-cluster.cvyntkb.mongodb.net/marrakech-tours
+        value: <YOUR_MONGO_URI>
       - key: SESSION_SECRET
-        value: FeU8jTYGmCars6u3qUX8uyMF5SkLxhkH9HrXv0rx162dcFGrf8TmfXEP27unxj0525rqj8w1uk
+        value: <YOUR_SESSION_SECRET>
       - key: JWT_SECRET
-        value: ct8B36w2JW68WY6ofFLarloQJxCXVQNcBofS0tM78767E69782944DABB
+        value: <YOUR_JWT_SECRET>
     disk:
       name: marrakech-assets
       mountPath: /app/attached_assets
