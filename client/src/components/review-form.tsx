@@ -45,10 +45,7 @@ export default function ReviewForm({ activityId, activityName, bookingId, onSucc
 
   const createReviewMutation = useMutation({
     mutationFn: async (data: ReviewFormData) => {
-      return await apiRequest("/api/reviews", {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
+      return await apiRequest("POST", "/api/reviews", data);
     },
     onSuccess: () => {
       toast({

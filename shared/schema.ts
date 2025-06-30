@@ -66,6 +66,8 @@ export interface ReviewType {
   customerEmail: string;
   activityId: string;
   rating: number;
+  title: string;
+  verified: boolean;
   comment: string;
   approved: boolean;
   createdAt: Date;
