@@ -195,7 +195,7 @@ Preferred communication style: Simple, everyday language.
   - **TypeScript Configuration**: Separate tsconfig.json files for client and server with proper path mapping
 - **Production-Ready Fallback System**: Implemented robust MongoDB Atlas connectivity with development fallback
   - **Authentic Data Preservation**: Maintained all 5 Moroccan activities with real photography in fallback system
-  - **Admin User Management**: Preserved nadia (superadmin), ahmed, yahia (admin) with Marrakech@2025 credentials
+  - **Admin User Management**: Preserved nadia (superadmin), ahmed, yahia (admin) with <REDACTED> credentials
   - **Circuit Breaker Pattern**: Smart connection retry with automatic fallback to in-memory storage
   - **Performance Optimization**: Activities API responding in 2ms with authentic data
 - **Deployment Architecture Finalized**: Clean separation optimized for production platforms
@@ -248,7 +248,7 @@ Preferred communication style: Simple, everyday language.
   - Customer communication includes confirmation details, contact information, and next steps
 - **Comprehensive Admin System**: Implemented role-based authentication with specific user credentials
   - Created three admin users: nadia (superadmin), ahmed (admin), yahia (admin)
-  - All users use "Marrakech@2025" password with bcrypt hashing
+  - All users use "<REDACTED>" password with bcrypt hashing
   - Superadmin has full access including CEO dashboard and admin oversight
   - Regular admins have standard booking and activity management access
 - **Enhanced CEO Dashboard**: Built comprehensive business analytics with MAD currency integration

@@ -87,8 +87,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Configure secure sessions
   app.use(session(sessionSecurity));
 
-  // Initialize database
-  await storage.seedInitialData();
+  // Initialize database when using MongoDB
+  if (!storage.isUsingMemory()) {
+    await storage.seedInitialData();
+  }
 
   // Public API routes with general rate limiting
   app.use('/api/activities', generalApiRateLimit);

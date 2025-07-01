@@ -62,7 +62,7 @@ MarrakechDunes/
 ### Authentic Data Verified
 - **5 Moroccan Activities**: All with authentic photography
 - **Admin Users**: nadia (superadmin), ahmed, yahia (admin)
-- **Password**: `Marrakech@2025` for all admin accounts
+- **Password**: `<REDACTED>` for all admin accounts
 - **Response Time**: Activities API responding in 2ms
 
 ### Feature Verification

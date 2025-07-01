@@ -118,9 +118,9 @@ npm start
 
 ## 👥 Default Admin Users
 
-- **CEO/Superadmin**: `nadia` / `Marrakech@2025`
-- **Admin**: `ahmed` / `Marrakech@2025`
-- **Admin**: `yahia` / `Marrakech@2025`
+- **CEO/Superadmin**: `nadia` / `<REDACTED>`
+- **Admin**: `ahmed` / `<REDACTED>`
+- **Admin**: `yahia` / `<REDACTED>`
 
 ## 🎯 Key Features
 
