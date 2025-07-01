@@ -1,3 +1,4 @@
+// @ts-ignore defineConfig is provided by vite typings
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";

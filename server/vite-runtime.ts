@@ -2,12 +2,12 @@ import express, { type Express } from "express";
 import fs from "fs";
 import path from "path";
 import { type Server } from "http";
-let createViteServer: typeof import("vite").createServer;
-let createLogger: typeof import("vite").createLogger;
+let createViteServer: any;
+let createLogger: any;
 let viteConfig: any;
 import { nanoid } from "nanoid";
 
-let viteLogger: ReturnType<typeof createLogger>;
+let viteLogger: any = null;
 
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
@@ -22,9 +22,10 @@ export function log(message: string, source = "express") {
 
 export async function setupVite(app: Express, server: Server) {
   if (!createViteServer || !createLogger) {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const vite = await import("vite");
-    createViteServer = vite.createServer;
-    createLogger = vite.createLogger;
+    createViteServer = (vite as any).createServer;
+    createLogger = (vite as any).createLogger;
   }
 
   if (!viteLogger) {
@@ -38,19 +39,20 @@ export async function setupVite(app: Express, server: Server) {
   };
 
   if (!viteConfig) {
-    viteConfig = (await import("../vite.config")).default;
+    // Skip loading full vite config when running in Node
+    viteConfig = {};
   }
 
-  const vite = await createViteServer({
+    const vite = await createViteServer({
     ...viteConfig,
     configFile: false,
-    customLogger: {
-      ...viteLogger,
-      error: (msg, options) => {
-        viteLogger.error(msg, options);
-        process.exit(1);
+      customLogger: {
+        ...viteLogger,
+        error: (msg: string, options?: any) => {
+          viteLogger.error(msg, options);
+          process.exit(1);
+        },
       },
-    },
     server: serverOptions,
     appType: "custom",
   });

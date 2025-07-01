@@ -27,7 +27,7 @@ PORT=5000
 - Database: `marrakech-tours`
 - Connection verified and stable
 - Admin users configured: nadia (superadmin), ahmed, yahia (admin)
-- Password: `Marrakech@2025`
+ - Password: `<REDACTED>`
 
 ### 3. Application Features Verified
 - 5 authentic Moroccan activities with real photography
@@ -149,7 +149,7 @@ curl https://marrakech-backend.onrender.com/api/health
 ### Admin Access
 ```
 Username: nadia (superadmin)
-Password: Marrakech@2025
+Password: <REDACTED>
 URL: https://your-domain.vercel.app/admin/login
 ```
 
