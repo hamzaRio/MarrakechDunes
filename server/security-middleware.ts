@@ -190,11 +190,33 @@ export const adminAuditLog = (req: Request, res: Response, next: NextFunction) =
 };
 
 // Session security configuration
+// Session security configuration
 export const sessionSecurity = (() => {
   const mongoUrl = process.env.DATABASE_URL || process.env.MONGO_URI || '';
   if (!mongoUrl) {
     throw new Error('Missing DATABASE_URL or MONGO_URI for session store');
   }
+
+  return {
+    name: 'marrakech.session',
+    secret: process.env.SESSION_SECRET || '',
+    resave: false,
+    saveUninitialized: false,
+    store: MongoStore.create({
+      mongoUrl,
+      dbName: 'marrakech-tours',
+      touchAfter: 24 * 3600,
+      ttl: 24 * 60 * 60, // 24 hours
+    }),
+    cookie: {
+      secure: process.env.NODE_ENV === 'production', // HTTPS only in production
+      httpOnly: true, // Prevent XSS
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      sameSite: 'strict' as const, // CSRF protection
+    }
+  };
+})();
+
 
   return {
     name: 'marrakech.session',
