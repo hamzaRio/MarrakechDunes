@@ -17,6 +17,7 @@ import type {
 
 // MongoDB connection string
 const DATABASE_URL = process.env.DATABASE_URL || '';
+const USE_MEMORY_DB = DATABASE_URL === 'memory';
 
 // In-memory storage for fallback when MongoDB is unavailable
 const inMemoryData = {
@@ -126,11 +127,25 @@ class MongoStorage implements IStorage {
   private useFallback = false;
 
   constructor() {
-    this.connect();
+    if (USE_MEMORY_DB) {
+      this.useFallback = true;
+      this.seedFallbackData();
+    } else {
+      this.connect();
+    }
+  }
+
+  isUsingMemory(): boolean {
+    return this.useFallback;
   }
 
   private async connect() {
     try {
+      if (USE_MEMORY_DB) {
+        this.useFallback = true;
+        await this.seedFallbackData();
+        return;
+      }
       // Clear any existing connections
       if (mongoose.connection.readyState !== 0) {
         await mongoose.disconnect();
@@ -327,7 +342,7 @@ class MongoStorage implements IStorage {
       {
         _id: '686000f2f5c4d141c7e87101',
         username: 'nadia',
-        password: await bcrypt.hash('Marrakech@2025', 10),
+        password: await bcrypt.hash(process.env.DEFAULT_ADMIN_PASSWORD || 'changeme', 10),
         role: 'superadmin',
         createdAt: new Date(),
         updatedAt: new Date()
@@ -335,7 +350,7 @@ class MongoStorage implements IStorage {
       {
         _id: '686000f2f5c4d141c7e87102',
         username: 'ahmed',
-        password: await bcrypt.hash('Marrakech@2025', 10),
+        password: await bcrypt.hash(process.env.DEFAULT_ADMIN_PASSWORD || 'changeme', 10),
         role: 'admin',
         createdAt: new Date(),
         updatedAt: new Date()
@@ -343,7 +358,7 @@ class MongoStorage implements IStorage {
       {
         _id: '686000f2f5c4d141c7e87103',
         username: 'yahia',
-        password: await bcrypt.hash('Marrakech@2025', 10),
+        password: await bcrypt.hash(process.env.DEFAULT_ADMIN_PASSWORD || 'changeme', 10),
         role: 'admin',
         createdAt: new Date(),
         updatedAt: new Date()
@@ -563,9 +578,9 @@ class MongoStorage implements IStorage {
     try {
       // Create admin users if they don't exist
       const adminUsers = [
-        { username: 'nadia', password: 'Marrakech@2025', role: 'superadmin' },
-        { username: 'ahmed', password: 'Marrakech@2025', role: 'admin' },
-        { username: 'yahia', password: 'Marrakech@2025', role: 'admin' },
+        { username: 'nadia', password: process.env.DEFAULT_ADMIN_PASSWORD || 'changeme', role: 'superadmin' },
+        { username: 'ahmed', password: process.env.DEFAULT_ADMIN_PASSWORD || 'changeme', role: 'admin' },
+        { username: 'yahia', password: process.env.DEFAULT_ADMIN_PASSWORD || 'changeme', role: 'admin' },
       ];
 
       for (const userData of adminUsers) {
