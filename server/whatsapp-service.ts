@@ -23,11 +23,16 @@ export interface BookingNotificationData {
 }
 
 export class WhatsAppService {
-  private adminContacts: WhatsAppContact[] = [
-    { name: "Ahmed", phone: "+212600623630", role: "admin" },
-    { name: "Yahia", phone: "+212693323368", role: "admin" },
-    { name: "Nadia", phone: "+212654497354", role: "superadmin" }
-  ];
+  private adminContacts: WhatsAppContact[] = [];
+
+  constructor() {
+    const numbers = process.env.WHATSAPP_ADMIN_NUMBERS?.split(',') || [];
+    this.adminContacts = numbers.map((phone, idx) => ({
+      name: `Admin${idx + 1}`,
+      phone: phone.trim(),
+      role: 'admin'
+    }));
+  }
 
   async sendBookingNotification(booking: BookingNotificationData): Promise<{
     success: boolean;
