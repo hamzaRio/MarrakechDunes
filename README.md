@@ -1,5 +1,7 @@
 # MarrakechDunes - Moroccan Adventure Booking Platform
 
+![CI/CD](https://github.com/hamzaRio/MarrakechDunes/actions/workflows/deploy.yml/badge.svg)
+
 A comprehensive full-stack web application for booking authentic Moroccan desert adventures and experiences. Built with React frontend and Node.js backend, featuring real-time booking management and admin dashboard.
 
 ## 🌟 Features
