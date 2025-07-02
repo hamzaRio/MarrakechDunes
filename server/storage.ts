@@ -97,6 +97,7 @@ export interface IStorage {
   deleteActivity(id: string): Promise<void>;
   getBookings(): Promise<BookingWithActivity[]>;
   getBooking(id: string): Promise<BookingWithActivity | null>;
+  findBookingByDetails(activityId: string, customerPhone: string, preferredDate: Date): Promise<BookingType | null>;
   createBooking(booking: InsertBooking): Promise<BookingType>;
   updateBookingStatus(id: string, status: string): Promise<BookingType | null>;
   updateBookingPayment(id: string, paymentData: {
@@ -488,6 +489,11 @@ class MongoStorage implements IStorage {
       bookingObj.activityId = bookingObj.activity._id;
     }
     return bookingObj;
+  }
+
+  async findBookingByDetails(activityId: string, customerPhone: string, preferredDate: Date): Promise<BookingType | null> {
+    const booking = await Booking.findOne({ activityId, customerPhone, preferredDate });
+    return booking ? this.transformDocument(booking) : null;
   }
 
   async createBooking(bookingData: InsertBooking): Promise<BookingType> {

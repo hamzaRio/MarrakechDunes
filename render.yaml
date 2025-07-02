@@ -13,11 +13,11 @@ services:
       - key: PORT
         value: 10000
       - key: MONGO_URI
-        value: <YOUR_MONGO_URI>
+        fromEnv: MONGO_URI
       - key: SESSION_SECRET
-        value: <YOUR_SESSION_SECRET>
+        fromEnv: SESSION_SECRET
       - key: JWT_SECRET
-        value: <YOUR_JWT_SECRET>
+        fromEnv: JWT_SECRET
     disk:
       name: marrakech-assets
       mountPath: /app/attached_assets

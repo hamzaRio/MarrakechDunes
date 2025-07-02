@@ -177,7 +177,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/bookings", async (req: Request, res) => {
     try {
       const data = req.body;
-      
+
+      const existing = await storage.findBookingByDetails(
+        data.activityId,
+        data.customerPhone,
+        new Date(data.preferredDate)
+      );
+      if (existing) {
+        return res.status(400).json({ message: "Booking already exists" });
+      }
+
       const booking = await storage.createBooking({
         customerName: data.customerName,
         customerPhone: data.customerPhone,
