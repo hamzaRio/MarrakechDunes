@@ -1,0 +1,42 @@
+name: CI/CD
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main, dev]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+      - run: npm install
+      - run: npm --workspace client run check
+      - run: npm --workspace client run build
+      - run: npm --workspace server run check
+      - run: npm --workspace server run build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: client-dist-${{ matrix.node-version }}
+          path: client/dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: server-dist-${{ matrix.node-version }}
+          path: server/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'
+    steps:
+      - name: Deploy to Vercel
+        run: echo "Deploying to Vercel (placeholder)"
+      - name: Deploy to Railway
+        run: echo "Deploying to Railway (placeholder)"
