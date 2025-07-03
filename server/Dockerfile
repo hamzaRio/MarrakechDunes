@@ -9,6 +9,7 @@ FROM node:18-alpine AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+COPY ../shared ./shared
 RUN npm run build
 
 # Development image with hot reload
@@ -25,6 +26,7 @@ FROM node:18-alpine AS production
 WORKDIR /app
 ENV NODE_ENV=production
 COPY --from=builder /app/dist ./dist
+COPY ../shared ./shared
 COPY package*.json ./
 RUN npm install --omit=dev
 EXPOSE 5000
