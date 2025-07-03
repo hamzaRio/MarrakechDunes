@@ -1,3 +1,4 @@
+import "tsconfig-paths/register";
 import "dotenv/config";
 import 'tsconfig-paths/register';
 import express, { type Request, Response, NextFunction } from "express";
