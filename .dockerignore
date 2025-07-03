@@ -1,8 +1,6 @@
 node_modules
 dist
-client/dist
-server/dist
-*.log
-.git
+npm-debug.log*
 Dockerfile
 docker-compose.yml
+.git
