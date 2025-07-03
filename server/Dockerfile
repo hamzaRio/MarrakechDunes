@@ -27,6 +27,7 @@ FROM node:18-alpine AS production
 WORKDIR /app
 ENV NODE_ENV=production
 COPY --from=builder /app/dist ./dist
+COPY ../shared ./shared
 COPY package*.json ./
 COPY shared ./shared
 RUN npm install --omit=dev
