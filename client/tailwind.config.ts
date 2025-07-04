@@ -1,4 +1,5 @@
 import type { Config } from "tailwindcss";
+[require('@tailwindcss/typography')]
 
 const config: Config = {
   darkMode: ["class"],
