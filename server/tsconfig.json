@@ -15,8 +15,8 @@
     "noEmit": true,
     "baseUrl": ".",
     "paths": {
-      "@shared/*": ["./shared/*"]
-    }
+  "@shared/*": ["../shared/*"]
+}
   },
   "include": [
     "**/*.ts",
