@@ -12,7 +12,8 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "noEmit": true,
+    "noEmit": false,
+    "outDir": "./dist",
     "baseUrl": ".",
     "paths": {
   "@shared/*": ["../shared/*"]
@@ -20,7 +21,7 @@
   },
   "include": [
     "**/*.ts",
-    "./shared/**/*.ts"
+    "../shared/**/*.ts"
   ],
   "exclude": [
     "node_modules",
