@@ -244,7 +244,7 @@ export type Language = 'en' | 'fr' | 'ar';
 export function getTranslation(lang: Language, key: string): string {
   const keys = key.split('.');
   let current: any = translations[lang];
-  
+
   for (const k of keys) {
     if (current && typeof current === 'object' && k in current) {
       current = current[k];
@@ -261,6 +261,6 @@ export function getTranslation(lang: Language, key: string): string {
       return current;
     }
   }
-  
+
   return typeof current === 'string' ? current : key;
 }
