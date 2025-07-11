@@ -6,7 +6,7 @@
     "moduleResolution": "bundler",
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
-    "allowJs": true,
+    "allowJs": false,
     "strict": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
@@ -14,15 +14,16 @@
     "isolatedModules": true,
     "noEmit": false,
     "outDir": "./dist",
-    "rootDir": "../",
+    "rootDir": "./src",
+    "rootDirs": ["./src", "../shared"],
     "baseUrl": ".",
     "paths": {
-  "@shared/*": ["../shared/*"]
-}
+      "@shared/*": ["./src/types/*", "../shared/*"]
+    }
   },
   "include": [
-    "**/*.ts",
-    "../shared/**/*.ts"
+    "src/**/*.ts",
+    "src/**/*.d.ts"
   ],
   "exclude": [
     "node_modules",

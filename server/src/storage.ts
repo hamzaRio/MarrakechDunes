@@ -13,7 +13,7 @@ import type {
   InsertReview,
   BookingWithActivity,
   ReviewWithActivity,
-} from "@shared/schema";
+} from "@shared/schema.js";
 
 // MongoDB connection string
 const DATABASE_URL = process.env.DATABASE_URL || '';
