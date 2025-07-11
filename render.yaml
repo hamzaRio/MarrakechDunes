@@ -10,7 +10,7 @@ services:
       - key: PORT
         value: 10000
       - key: MONGO_URI
-        value: mongodb+srv://hamzacharafeddine77:gkqg3NGobTZhqbZE@marrakechtours-cluster.cvyntkb.mongodb.net/
+        value: mongodb+srv://hamzacharafeddine77:uw2bmfMaO3aEDerS@marrakechtours-cluster.cvyntkb.mongodb.net/
       - key: SESSION_SECRET
         value: FeU8jTYGmCars6u3qUX8uyMF5SkLxhkH9HrXv0rx162dcFGrf8TmfXEP27unxj0525rqj8w1uk
       - key: JWT_SECRET
