@@ -1,6 +1,7 @@
 import "dotenv/config";
 import express, { type Request, Response, NextFunction } from "express";
-import { registerRoutes } from "./routes";
+import { registerRoutes } from "./routes.js";
+// import router from "./router.js"; // Removed unused import
 import { setupVite, serveStatic, log } from "./vite-runtime";
 // Initialize application with MongoDB
 console.log('Initializing MarrakechDunes with MongoDB Atlas...');
