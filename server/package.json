@@ -4,8 +4,8 @@
   "type": "module",
   "scripts": {
     "dev": "NODE_ENV=development tsx src/index.ts",
-   "build": "tsc --outDir dist && tscpaths -p tsconfig.json -s ./src -o ./dist",
-    "start": "NODE_ENV=production node dist/index.js",
+    "build": "tsc --outDir dist && tscpaths -p tsconfig.json -s ../ -o ./dist",
+    "start": "NODE_ENV=production node dist/server/src/index.js",
     "check": "tsc --noEmit",
     "main": "dist/index.js"
   },

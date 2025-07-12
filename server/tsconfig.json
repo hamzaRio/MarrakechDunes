@@ -11,14 +11,16 @@
     "isolatedModules": true,
     "baseUrl": ".",
     "outDir": "./dist",
-    "rootDirs": ["./src", "../shared"],         // ✅ Multiple roots (avoids TS6059)
+    "rootDir": "../",
+    "rootDirs": ["./src", "../shared"],
     "paths": {
-      "@shared/*": ["../shared/*"]              // ✅ Match actual structure
-    }
+      "@shared/*": ["../shared/*"]
+    },
+    "types": ["node"],
+    "skipLibCheck": true
   },
   "include": [
-    "src/**/*",
-    "../shared/**/*"                            // ✅ Correct include for shared code
+    "src/**/*"
   ],
   "exclude": ["node_modules", "dist"]
 }
