@@ -4,29 +4,21 @@
     "lib": ["ES2022"],
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "allowSyntheticDefaultImports": true,
-    "esModuleInterop": true,
-    "allowJs": false,
     "strict": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "noEmit": false,
-    "outDir": "./dist",
-    "rootDir": "./src",
-    "rootDirs": ["./src", "../shared"],
     "baseUrl": ".",
+    "outDir": "./dist",
+    "rootDirs": ["./src", "../shared"],         // ✅ Multiple roots (avoids TS6059)
     "paths": {
-      "@shared/*": ["./src/types/*", "../shared/*"]
+      "@shared/*": ["../shared/*"]              // ✅ Match actual structure
     }
   },
   "include": [
-    "src/**/*.ts",
-    "src/**/*.d.ts"
+    "src/**/*",
+    "../shared/**/*"                            // ✅ Correct include for shared code
   ],
-  "exclude": [
-    "node_modules",
-    "dist"
-  ]
+  "exclude": ["node_modules", "dist"]
 }
