@@ -1,4 +1,4 @@
-declare module "@shared/schema.js" {
+declare module "@shared/schema" {
   export interface UserType { [key: string]: any }
   export interface ActivityType { [key: string]: any }
   export interface BookingType { [key: string]: any }
@@ -16,4 +16,8 @@ declare module "@shared/schema.js" {
   export type InsertBooking = any;
   export type InsertAuditLog = any;
   export type InsertReview = any;
+}
+
+declare module "@shared/schema.js" {
+  export * from "@shared/schema";
 }
