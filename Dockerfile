@@ -14,8 +14,11 @@ COPY server/package*.json ./
 RUN npm ci
 COPY server .
 COPY shared ../shared
+# include frontend assets before build for TypeScript paths
 COPY --from=frontend-build /app/client/dist ./src/public
 RUN npm run build
+# copy assets into compiled output
+COPY --from=frontend-build /app/client/dist ./dist/server/src/public
 
 # Production image
 FROM node:18-alpine
@@ -26,4 +29,4 @@ RUN npm ci --omit=dev
 COPY --from=backend-build /app/server/dist ./dist
 COPY --from=backend-build /app/shared ../shared
 EXPOSE 10000
-CMD ["node", "dist/index.js"]
+CMD ["node", "dist/server/src/index.js"]
