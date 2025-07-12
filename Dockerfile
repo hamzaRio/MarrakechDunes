@@ -41,4 +41,4 @@ RUN npm install --omit=dev
 
 # Set port and command
 EXPOSE 10000
-CMD ["node", "dist/index.js"]
+CMD ["node", "dist/server/src/index.js"]
