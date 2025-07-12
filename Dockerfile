@@ -1,35 +1,32 @@
-# === Base build image ===
-FROM node:18-alpine AS base
-WORKDIR /app
-COPY package*.json ./
-RUN npm install
-
-# === Build frontend ===
-FROM node:18-alpine AS frontend
+# Build frontend
+FROM node:18 AS frontend-build
 WORKDIR /app/client
-COPY client ./client
-COPY shared ./shared
-RUN npm install
+COPY client/package*.json ./
+RUN npm ci
+COPY client .
+COPY shared ../shared
 RUN npm run build
 
-# === Build backend ===
-FROM node:18-alpine AS backend
-WORKDIR /app
-COPY --from=base /app /app
-COPY server ./server
-COPY shared ./shared
-COPY --from=frontend /app/client/dist ./server/src/public
+# Build backend
+FROM node:18 AS backend-build
 WORKDIR /app/server
-RUN npm install
-RUN npm run build
-
-# === Production image ===
-FROM node:18-alpine
-WORKDIR /app
-ENV NODE_ENV=production
-COPY --from=backend /app/server/dist ./dist
-COPY --from=backend /app/shared ./shared
 COPY server/package*.json ./
-RUN npm install --omit=dev
+RUN npm ci
+COPY server .
+COPY shared ../shared
+# include frontend assets before build for TypeScript paths
+COPY --from=frontend-build /app/client/dist ./src/public
+RUN npm run build
+# copy assets into compiled output
+COPY --from=frontend-build /app/client/dist ./dist/server/src/public
+
+# Production image
+FROM node:18-alpine
+WORKDIR /app/server
+ENV NODE_ENV=production
+COPY server/package*.json ./
+RUN npm ci --omit=dev
+COPY --from=backend-build /app/server/dist ./dist
+COPY --from=backend-build /app/shared ../shared
 EXPOSE 10000
-CMD ["node", "dist/index.js"]
+CMD ["node", "dist/server/src/index.js"]
