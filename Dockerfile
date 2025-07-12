@@ -1,44 +1,35 @@
-# ========== Base dependencies layer ==========
-FROM node:18-alpine AS deps
+# === Base build image ===
+FROM node:18-alpine AS base
 WORKDIR /app
-
-# Copy root and server package files
 COPY package*.json ./
-COPY server/package*.json ./server/
-
-# Copy shared and server source files
-COPY shared ./shared
-COPY server ./server
-
-# Install all dependencies from the root (includes server + shared)
 RUN npm install
 
-# ========== Build layer ==========
-FROM node:18-alpine AS builder
-WORKDIR /app
-
-# Copy everything from the deps layer
-COPY --from=deps /app /app
-
-# Build the server code
-WORKDIR /app/server
+# === Build frontend ===
+FROM node:18-alpine AS frontend
+WORKDIR /app/client
+COPY client ./client
+COPY shared ./shared
+RUN npm install
 RUN npm run build
 
-# ========== Production layer ==========
-FROM node:18-alpine AS production
+# === Build backend ===
+FROM node:18-alpine AS backend
+WORKDIR /app
+COPY --from=base /app /app
+COPY server ./server
+COPY shared ./shared
+COPY --from=frontend /app/client/dist ./server/src/public
+WORKDIR /app/server
+RUN npm install
+RUN npm run build
+
+# === Production image ===
+FROM node:18-alpine
 WORKDIR /app
 ENV NODE_ENV=production
-
-# Copy the built backend code
-COPY --from=builder /app/server/dist ./dist
-
-# ✅ Include shared files (used at runtime)
-COPY --from=builder /app/shared ./shared
-
-# Copy only production dependencies
+COPY --from=backend /app/server/dist ./dist
+COPY --from=backend /app/shared ./shared
 COPY server/package*.json ./
 RUN npm install --omit=dev
-
-# Set port and command
 EXPOSE 10000
-CMD ["node", "dist/server/src/index.js"]
+CMD ["node", "dist/index.js"]
