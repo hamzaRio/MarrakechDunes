@@ -1,4 +1,4 @@
-# Build frontend
+########## Build frontend ##########
 FROM node:18 AS frontend-build
 WORKDIR /app/client
 COPY client/package*.json ./
@@ -7,20 +7,18 @@ COPY client .
 COPY shared ../shared
 RUN npm run build
 
-# Build backend
+########## Build backend ##########
 FROM node:18 AS backend-build
 WORKDIR /app/server
 COPY server/package*.json ./
 RUN npm ci
 COPY server .
 COPY shared ../shared
-# include frontend assets before build for TypeScript paths
+# Include frontend assets before building the server
 COPY --from=frontend-build /app/client/dist ./src/public
 RUN npm run build
-# copy assets into compiled output
-COPY --from=frontend-build /app/client/dist ./dist/server/src/public
 
-# Production image
+########## Production image ##########
 FROM node:18-alpine
 WORKDIR /app/server
 ENV NODE_ENV=production

@@ -3,8 +3,13 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes.js";
 // import router from "./router.js"; // Removed unused import
 import { setupVite, serveStatic, log } from "./vite-runtime.js";
+import { dirname, join } from "path";
+import { fileURLToPath } from "url";
 // Initialize application with MongoDB
 console.log('Initializing MarrakechDunes with MongoDB Atlas...');
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const app = express();
 // Configure trust proxy for rate limiting
@@ -14,6 +19,8 @@ app.use(express.urlencoded({ extended: false }));
 
 // Serve static files from attached_assets directory
 app.use('/attached_assets', express.static('attached_assets'));
+// Serve compiled frontend assets
+app.use(express.static(join(__dirname, 'public')));
 
 app.use((req, res, next) => {
   const start = Date.now();

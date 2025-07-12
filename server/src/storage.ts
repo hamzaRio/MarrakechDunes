@@ -15,8 +15,8 @@ import type {
   ReviewWithActivity,
 } from "@shared/schema.js";
 
-// MongoDB connection string
-const DATABASE_URL = process.env.DATABASE_URL || '';
+// MongoDB connection string. Support both DATABASE_URL and MONGO_URI
+const DATABASE_URL = process.env.DATABASE_URL || process.env.MONGO_URI || '';
 const USE_MEMORY_DB = DATABASE_URL === 'memory';
 
 // In-memory storage for fallback when MongoDB is unavailable
