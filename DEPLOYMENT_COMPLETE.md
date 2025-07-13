@@ -20,7 +20,7 @@ MarrakechDunes/
 │   ├── storage.ts            # MongoDB Atlas + fallback
 │   └── *.ts                  # Server modules
 ├── shared/                   # Common types and schemas
-├── attached_assets/          # Authentic Moroccan photos
+├── client/assets/            # Authentic Moroccan photos
 ├── vercel.json              # Frontend deployment config
 ├── render.yaml              # Backend deployment config
 └── .env                     # Environment variables
