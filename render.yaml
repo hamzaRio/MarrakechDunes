@@ -11,7 +11,7 @@ services:
         value: production
       - key: PORT
         value: 10000
-      - key: MONGO_URI
+      - key: MONGODB_URI
         value: ***REMOVED***
       - key: SESSION_SECRET
         value: FeU8jTYGmCars6u3qUX8uyMF5SkLxhkH9HrXv0rx162dcFGrf8TmfXEP27unxj0525rqj8w1uk
