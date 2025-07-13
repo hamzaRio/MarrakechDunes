@@ -192,11 +192,15 @@ export const adminAuditLog = (req: Request, res: Response, next: NextFunction) =
 // Session security configuration
 // Session security configuration
 export const sessionSecurity = (() => {
-  const mongoUrl = process.env.DATABASE_URL || process.env.MONGO_URI || '';
+  const mongoUrl =
+    process.env.DATABASE_URL ||
+    process.env.MONGODB_URI ||
+    process.env.MONGO_URI ||
+    '';
   const useMemory = mongoUrl === 'memory' || mongoUrl === '';
-  
+
   if (!mongoUrl && !useMemory) {
-    throw new Error('Missing DATABASE_URL or MONGO_URI for session store');
+    throw new Error('Missing DATABASE_URL, MONGODB_URI, or MONGO_URI for session store');
   }
 
   return {

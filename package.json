@@ -27,7 +27,7 @@
     "build:backend": "npm --workspace server run build",
     "copy-client-build": "copyfiles -u 2 client/dist/**/* server/src/public",
     "build": "npm run build:client && npm run copy-client-build && npm run build:backend",
-    "start": "npm --workspace server run start",
+    "start": "npm --workspace server start",
     "cleanup:assets": "node scripts/delete-unused-images.js"
   }
 }
