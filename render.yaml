@@ -1,7 +1,9 @@
 services:
   - type: web
     name: marrakech-dunes-backend
-    runtime: docker
+    runtime: node
+    buildCommand: npm run build
+    startCommand: npm start
     plan: starter
     region: frankfurt
     envVars:
