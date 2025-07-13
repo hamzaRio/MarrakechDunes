@@ -13,7 +13,7 @@ import { Mountain, Star, Award, MapPin, Play, Calendar } from "lucide-react";
 import { useLanguage } from "@/hooks/useLanguage";
 import { useWelcomeAnimation } from "@/hooks/useWelcomeAnimation";
 import riadKheirredineImg from "@assets/montgofliere_a_marrakech_1751127701687.jpg";
-import marrakechPlazaImg from "@assets/montgolfiere-marrakech_1751127701687.jpg";
+import marrakechPlazaImg from "@assets/montgofliere_a_marrakech_1751127701687.jpg";
 
 export default function Home() {
   const { data: activities = [], isLoading } = useQuery<ActivityType[]>({
