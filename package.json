@@ -22,12 +22,12 @@
     "typescript": "^5.3.0"
   },
   "scripts": {
-    "dev": "npm --workspace server run dev",
-    "build:client": "npm --workspace client run build",
-    "build:backend": "npm --workspace server run build",
-    "copy-client-build": "copyfiles -u 2 client/dist/**/* server/src/public",
-    "build": "npm run build:client && npm run copy-client-build && npm run build:backend",
-    "start": "npm --workspace server start",
-    "cleanup:assets": "node scripts/delete-unused-images.js"
-  }
+  "dev": "npm --workspace server run dev",
+  "build:client": "npm --workspace client run build",
+  "build:server": "npm --workspace server run build",
+  "copy-client-build": "copyfiles -u 2 client/dist/**/* server/src/public",
+  "build": "npm run build:client && npm run copy-client-build && npm run build:server",
+  "start": "npm --workspace server start",
+  "cleanup:assets": "node scripts/delete-unused-images.js"
+}
 }
