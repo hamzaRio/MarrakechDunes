@@ -7,7 +7,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
-      '@assets': path.resolve(__dirname, '../attached_assets'),
+      '@assets': path.resolve(__dirname, './assets'),
       '@shared': path.resolve(__dirname, '../shared'),
     },
   },
@@ -28,10 +28,6 @@ export default defineConfig({
     port: 3000,
     proxy: {
       '/api': {
-        target: process.env.VITE_API_URL || 'http://localhost:5000',
-        changeOrigin: true,
-      },
-      '/attached_assets': {
         target: process.env.VITE_API_URL || 'http://localhost:5000',
         changeOrigin: true,
       },
