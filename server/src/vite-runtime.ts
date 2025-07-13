@@ -6,13 +6,6 @@ import { dirname } from "path";
 import { type Server } from "http";
 import { nanoid } from "nanoid";
 
-let createViteServer: any;
-let createLogger: any;
-let viteConfig: any;
-
-let viteLogger: any = null;
-
-// Fix for __dirname in ES modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
@@ -23,42 +16,17 @@ export function log(message: string, source = "express") {
     second: "2-digit",
     hour12: true,
   });
-
   console.log(`${formattedTime} [${source}] ${message}`);
 }
 
 export async function setupVite(app: Express, server: Server) {
-  if (!createViteServer || !createLogger) {
-    const vite = await import("vite");
-    createViteServer = vite.createServer;
-    createLogger = vite.createLogger;
-  }
-
-  if (!viteLogger) {
-    viteLogger = createLogger();
-  }
-
-  const serverOptions = {
-    middlewareMode: true,
-    hmr: { server },
-    allowedHosts: true as const,
-  };
-
-  if (!viteConfig) {
-    viteConfig = {};
-  }
-
-  const vite = await createViteServer({
-    ...viteConfig,
-    configFile: false,
-    customLogger: {
-      ...viteLogger,
-      error: (msg: string, options?: any) => {
-        viteLogger.error(msg, options);
-        process.exit(1);
-      },
+  const vite = await (await import("vite")).createServer({
+    server: {
+      middlewareMode: true,
+      hmr: { server },
+      allowedHosts: true as const,
     },
-    server: serverOptions,
+    configFile: false,
     appType: "custom",
   });
 
@@ -68,9 +36,9 @@ export async function setupVite(app: Express, server: Server) {
     const url = req.originalUrl;
 
     try {
-      const clientTemplate = path.resolve(__dirname, "..", "client", "index.html");
-
+      const clientTemplate = path.resolve(__dirname, "../../../../client/index.html");
       let template = await fs.promises.readFile(clientTemplate, "utf-8");
+
       template = template.replace(
         `src="/src/main.tsx"`,
         `src="/src/main.tsx?v=${nanoid()}"`,
@@ -86,7 +54,7 @@ export async function setupVite(app: Express, server: Server) {
 }
 
 export function serveStatic(app: Express) {
-  const distPath = path.resolve(__dirname, "public");
+  const distPath = path.resolve(__dirname, "public"); 
 
   if (!fs.existsSync(distPath)) {
     throw new Error(
@@ -100,3 +68,4 @@ export function serveStatic(app: Express) {
     res.sendFile(path.resolve(distPath, "index.html"));
   });
 }
+

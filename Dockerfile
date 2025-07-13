@@ -2,7 +2,7 @@
 FROM node:18 AS frontend-build
 WORKDIR /app
 
-# Copy root dependencies and client workspace
+# Copy root and client dependencies
 COPY package.json package-lock.json ./
 COPY client/package*.json ./client/
 COPY client ./client
@@ -16,7 +16,7 @@ RUN npm run build:client
 FROM node:18 AS backend-build
 WORKDIR /app
 
-# Copy root and server workspace
+# Copy root and server dependencies
 COPY package.json package-lock.json ./
 COPY server/package*.json ./server/
 COPY server ./server
@@ -31,20 +31,21 @@ RUN npm run build:server
 
 ########## Final production image ##########
 FROM node:18-alpine
-WORKDIR /app
+WORKDIR /app/server
 
-# Copy only what's needed for runtime
-COPY package.json package-lock.json ./
-COPY server ./server
-COPY shared ./shared
-COPY --from=backend-build /app/server/dist ./server/dist
+# Copy only necessary files
+COPY package.json package-lock.json ../
+COPY server ./
+COPY shared ../shared
+COPY --from=backend-build /app/server/dist ./dist
 
 # Install only production dependencies
-RUN npm ci --omit=dev --workspace=server
+WORKDIR /app
+RUN npm ci --omit=dev
 
-# Set working directory to server and expose port
+# Back to server directory for CMD and serving
 WORKDIR /app/server
 EXPOSE 10000
 
-# Run the backend server
+# Start backend
 CMD ["node", "dist/server/src/index.js"]
