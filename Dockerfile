@@ -3,7 +3,7 @@ FROM node:18-alpine AS client-build
 WORKDIR /app/client
 COPY client/package*.json ./
 RUN npm install
-COPY client .
+COPY client ./
 RUN npm run build
 
 # Stage 2: Build Server
@@ -11,22 +11,21 @@ FROM node:18-alpine AS server-build
 WORKDIR /app/server
 COPY server/package*.json ./
 RUN npm install
-COPY server .
-COPY ../shared ../shared
+COPY server ./
+COPY shared ../shared                
 RUN npm run build
 
 # Stage 3: Final Production Image
 FROM node:18-alpine AS production
 WORKDIR /app
 
-# Copy client build
+# Copy built client
 COPY --from=client-build /app/client/dist ./client/dist
 
-# Copy server build
+# Copy built server
 COPY --from=server-build /app/server/dist ./server/dist
 COPY --from=server-build /app/server/node_modules ./server/node_modules
 COPY --from=server-build /app/server/package.json ./server/package.json
 
 ENV NODE_ENV=production
-
 CMD ["node", "server/dist/index.js"]

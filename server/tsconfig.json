@@ -10,16 +10,14 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "baseUrl": ".",
-     "outDir": "./dist",
-    "rootDir": "./src",
+    "outDir": "./dist",
+    "rootDir": ".",                            // includes src + shared
     "paths": {
       "@shared/*": ["../shared/*"]
     },
     "types": ["node"],
     "skipLibCheck": true
   },
-  "include": [
-    "src/**/*"
-  ],
+  "include": ["src/**/*", "../shared/**/*"],
   "exclude": ["node_modules", "dist"]
 }
