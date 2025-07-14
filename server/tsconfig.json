@@ -11,13 +11,13 @@
     "isolatedModules": true,
     "baseUrl": ".",
     "outDir": "./dist",
-    "rootDir": ".",                            // includes src + shared
+    "rootDir": ".",                          // ✅ Must include `../shared`
     "paths": {
       "@shared/*": ["../shared/*"]
     },
     "types": ["node"],
     "skipLibCheck": true
   },
-  "include": ["src/**/*", "../shared/**/*"],
+  "include": ["src/**/*", "../shared/**/*"],  // ✅ explicitly include shared
   "exclude": ["node_modules", "dist"]
 }
