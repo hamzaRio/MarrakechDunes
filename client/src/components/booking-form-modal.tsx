@@ -31,6 +31,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { Plus, Calendar, Users } from "lucide-react";
+import { ZodType } from "zod";
 
 const bookingFormSchema = z.object({
   customerName: z.string().min(2, "Customer name is required"),
@@ -71,7 +72,7 @@ export default function BookingFormModal({
   const modalOpen = isControlled ? isOpen : open;
 
   const form = useForm<BookingFormData>({
-    resolver: zodResolver(bookingFormSchema),
+  resolver: zodResolver(bookingFormSchema as ZodType<BookingFormData>),
     defaultValues: {
       customerName: "",
       customerPhone: "",

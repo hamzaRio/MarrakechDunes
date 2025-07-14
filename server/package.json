@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "type": "module",
  "scripts": {
-  "dev": "NODE_ENV=development tsx src/index.ts",
+  "dev": "cross-env NODE_ENV=development tsx src/index.ts",
   "build": "tsc --outDir dist && tscpaths -p tsconfig.json -s ./src -o ./dist",
   "start": "NODE_ENV=production node dist/index.js",
   "check": "tsc --noEmit",
@@ -23,8 +23,8 @@
     "helmet": "^8.1.0",
     "mongoose": "^8.16.1",
     "nanoid": "^5.1.5",
-    "tsconfig-paths": "^4.2.0",
-    "zod": "^3.25.76"
+    "tsconfig-paths": "^4.2.0"
+   
   },
   "devDependencies": {
     "@types/node": "20.16.11",

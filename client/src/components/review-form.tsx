@@ -13,6 +13,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Star, Send } from "lucide-react";
+import { ZodType } from "zod";
 
 type ReviewFormData = z.infer<typeof insertReviewSchema>;
 
@@ -30,8 +31,8 @@ export default function ReviewForm({ activityId, activityName, bookingId, onSucc
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
 
-  const form = useForm<ReviewFormData>({
-    resolver: zodResolver(insertReviewSchema),
+ const form = useForm<ReviewFormData>({
+  resolver: zodResolver(insertReviewSchema as ZodType<ReviewFormData>),
     defaultValues: {
       customerName: "",
       customerEmail: "",
