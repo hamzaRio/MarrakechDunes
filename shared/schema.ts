@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z, ZodType } from 'zod';
 
 // TypeScript interfaces for the application data models
 export interface UserType {
@@ -82,14 +82,14 @@ export interface ReviewWithActivity extends ReviewType {
   activity?: ActivityType;
 }
 
-// Zod validation schemas
-export const insertUserSchema = z.object({
+// Zod validation schemas (with explicit typing)
+export const insertUserSchema: ZodType<InsertUser> = z.object({
   username: z.string().min(1),
   password: z.string().min(1),
   role: z.enum(['admin', 'superadmin']),
 });
 
-export const insertActivitySchema = z.object({
+export const insertActivitySchema: ZodType<InsertActivity> = z.object({
   name: z.string().min(1),
   description: z.string().min(1),
   price: z.string().min(1),
@@ -103,7 +103,7 @@ export const insertActivitySchema = z.object({
   availability: z.string().optional(),
 });
 
-export const insertBookingSchema = z.object({
+export const insertBookingSchema: ZodType<InsertBooking> = z.object({
   customerName: z.string().min(1),
   customerPhone: z.string().min(1),
   activityId: z.string().min(1),
@@ -118,13 +118,13 @@ export const insertBookingSchema = z.object({
   depositAmount: z.number().optional(),
 });
 
-export const insertAuditLogSchema = z.object({
+export const insertAuditLogSchema: ZodType<InsertAuditLog> = z.object({
   userId: z.string().min(1),
   action: z.string().min(1),
   details: z.string().optional(),
 });
 
-export const insertReviewSchema = z.object({
+export const insertReviewSchema: ZodType<InsertReview> = z.object({
   customerName: z.string().min(1),
   customerEmail: z.string().email(),
   activityId: z.string().min(1),
@@ -137,8 +137,15 @@ export const insertReviewSchema = z.object({
 });
 
 // Insert types for database operations
-export type InsertUser = z.infer<typeof insertUserSchema>;
-export type InsertActivity = z.infer<typeof insertActivitySchema>;
-export type InsertBooking = z.infer<typeof insertBookingSchema>;
-export type InsertAuditLog = z.infer<typeof insertAuditLogSchema>;
-export type InsertReview = z.infer<typeof insertReviewSchema>;
+export type InsertUser = z.infer<typeof rawUserSchema>;
+export type InsertActivity = z.infer<typeof rawActivitySchema>;
+export type InsertBooking = z.infer<typeof rawBookingSchema>;
+export type InsertAuditLog = z.infer<typeof rawAuditSchema>;
+export type InsertReview = z.infer<typeof rawReviewSchema>;
+
+// Internal raw schemas for inference
+const rawUserSchema = insertUserSchema;
+const rawActivitySchema = insertActivitySchema;
+const rawBookingSchema = insertBookingSchema;
+const rawAuditSchema = insertAuditLogSchema;
+const rawReviewSchema = insertReviewSchema;
