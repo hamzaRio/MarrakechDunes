@@ -1,6 +1,6 @@
-import { z, ZodType } from 'zod';
+import { z } from 'zod';
 
-// TypeScript interfaces for the application data models
+/* ------------------------ Interfaces ------------------------ */
 export interface UserType {
   _id: string;
   id?: string;
@@ -82,14 +82,14 @@ export interface ReviewWithActivity extends ReviewType {
   activity?: ActivityType;
 }
 
-// Zod validation schemas (with explicit typing)
-export const insertUserSchema: ZodType<InsertUser> = z.object({
+/* ------------------------ Zod Schemas ------------------------ */
+export const insertUserSchema = z.object({
   username: z.string().min(1),
   password: z.string().min(1),
   role: z.enum(['admin', 'superadmin']),
 });
 
-export const insertActivitySchema: ZodType<InsertActivity> = z.object({
+export const insertActivitySchema = z.object({
   name: z.string().min(1),
   description: z.string().min(1),
   price: z.string().min(1),
@@ -103,12 +103,12 @@ export const insertActivitySchema: ZodType<InsertActivity> = z.object({
   availability: z.string().optional(),
 });
 
-export const insertBookingSchema: ZodType<InsertBooking> = z.object({
+export const insertBookingSchema = z.object({
   customerName: z.string().min(1),
   customerPhone: z.string().min(1),
   activityId: z.string().min(1),
   numberOfPeople: z.number().min(1),
-  preferredDate: z.date(),
+  preferredDate: z.union([z.date(), z.string()]),
   status: z.string().default('pending'),
   totalAmount: z.string().min(1),
   notes: z.string().optional(),
@@ -118,13 +118,13 @@ export const insertBookingSchema: ZodType<InsertBooking> = z.object({
   depositAmount: z.number().optional(),
 });
 
-export const insertAuditLogSchema: ZodType<InsertAuditLog> = z.object({
+export const insertAuditLogSchema = z.object({
   userId: z.string().min(1),
   action: z.string().min(1),
   details: z.string().optional(),
 });
 
-export const insertReviewSchema: ZodType<InsertReview> = z.object({
+export const insertReviewSchema = z.object({
   customerName: z.string().min(1),
   customerEmail: z.string().email(),
   activityId: z.string().min(1),
@@ -136,16 +136,9 @@ export const insertReviewSchema: ZodType<InsertReview> = z.object({
   approved: z.boolean().default(false),
 });
 
-// Insert types for database operations
-export type InsertUser = z.infer<typeof rawUserSchema>;
-export type InsertActivity = z.infer<typeof rawActivitySchema>;
-export type InsertBooking = z.infer<typeof rawBookingSchema>;
-export type InsertAuditLog = z.infer<typeof rawAuditSchema>;
-export type InsertReview = z.infer<typeof rawReviewSchema>;
-
-// Internal raw schemas for inference
-const rawUserSchema = insertUserSchema;
-const rawActivitySchema = insertActivitySchema;
-const rawBookingSchema = insertBookingSchema;
-const rawAuditSchema = insertAuditLogSchema;
-const rawReviewSchema = insertReviewSchema;
+/* ------------------------ Inferred Types ------------------------ */
+export type InsertUser = z.infer<typeof insertUserSchema>;
+export type InsertActivity = z.infer<typeof insertActivitySchema>;
+export type InsertBooking = z.infer<typeof insertBookingSchema>;
+export type InsertAuditLog = z.infer<typeof insertAuditLogSchema>;
+export type InsertReview = z.infer<typeof insertReviewSchema>;
