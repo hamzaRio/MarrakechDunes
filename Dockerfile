@@ -1,22 +1,23 @@
 # Stage 1: Build Client
-FROM node:18-alpine AS client-build
+FROM node:20-alpine AS client-build
 WORKDIR /app/client
 COPY client/package*.json ./
 RUN npm install
-COPY client ./
-RUN npm run build
+COPY client .                         
+COPY shared ../shared                 
+RUN npm run build                     
 
 # Stage 2: Build Server
-FROM node:18-alpine AS server-build
+FROM node:20-alpine AS server-build
 WORKDIR /app/server
 COPY server/package*.json ./
 RUN npm install
-COPY server ./
-COPY shared ./shared                
+COPY server .                         
+COPY shared ./shared                  
 RUN npm run build
 
 # Stage 3: Final Production Image
-FROM node:18-alpine AS production
+FROM node:20-alpine AS production
 WORKDIR /app
 
 # Copy built client
