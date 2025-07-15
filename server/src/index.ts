@@ -7,6 +7,7 @@ import { fileURLToPath } from "url";
 // Initialize application with MongoDB
 console.log('Initializing MarrakechDunes with MongoDB Atlas...');
 
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -15,6 +16,7 @@ const app = express();
 app.set('trust proxy', true);
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+app.get('/healthz', (req, res) => res.send('OK'));
 
 // Serve static files from attached_assets directory
 app.use('/attached_assets', express.static('attached_assets'));
