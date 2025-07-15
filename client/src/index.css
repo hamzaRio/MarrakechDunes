@@ -64,10 +64,6 @@
 }
 
 @layer base {
-  * {
-    @apply border border-border;
-  }
-
   body {
     @apply font-sans antialiased bg-background text-foreground;
     font-weight: 400;
@@ -103,6 +99,12 @@
   nav a {
     font-weight: 500;
     color: var(--text-high-contrast);
+  }
+}
+
+@layer components {
+  * {
+    @apply border border-border;
   }
 }
 
