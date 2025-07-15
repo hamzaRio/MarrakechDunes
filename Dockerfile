@@ -4,6 +4,8 @@
 FROM node:20-alpine AS deps
 WORKDIR /app
 COPY package*.json ./
+COPY client/package*.json ./client/
+COPY server/package*.json ./server/
 RUN npm install
 
 # ==========================
