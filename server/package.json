@@ -2,11 +2,11 @@
   "name": "marrakech-dunes-backend",
   "version": "1.0.0",
   "type": "module",
-  "main": "dist/index.js",
+  "main": "dist/server/src/index.js",
   "scripts": {
     "dev": "cross-env NODE_ENV=development tsx watch src/index.ts",
-    "build": "tsc --outDir dist && tscpaths -p tsconfig.json -s ./src -o ./dist",
-    "start": "NODE_ENV=production node dist/index.js",
+    "build": "tsc --outDir dist && tscpaths -p tsconfig.json -s .. -o ./dist",
+    "start": "NODE_ENV=production node dist/server/src/index.js",
     "check": "tsc --noEmit"
   },
   "dependencies": {
