@@ -1,5 +1,5 @@
 import { z } from 'zod';
-// Zod validation schemas
+/* ------------------------ Zod Schemas ------------------------ */
 export const insertUserSchema = z.object({
     username: z.string().min(1),
     password: z.string().min(1),
@@ -23,7 +23,7 @@ export const insertBookingSchema = z.object({
     customerPhone: z.string().min(1),
     activityId: z.string().min(1),
     numberOfPeople: z.number().min(1),
-    preferredDate: z.date(),
+    preferredDate: z.union([z.date(), z.string()]),
     status: z.string().default('pending'),
     totalAmount: z.string().min(1),
     notes: z.string().optional(),
