@@ -3,9 +3,9 @@ import { createServer, type Server } from "http";
 import session from "express-session";
 import MongoStore from "connect-mongo";
 import bcrypt from "bcrypt";
-import { storage } from "./storage.js";
-import { insertBookingSchema, insertReviewSchema } from "@shared/schema.js";
-import { whatsappService } from "./whatsapp-service.js";
+import { storage } from "./storage";
+import { insertBookingSchema, insertReviewSchema } from "@shared/schema";
+import { whatsappService } from "./whatsapp-service";
 import { z } from "zod";
 import {
   authRateLimit,
@@ -18,7 +18,7 @@ import {
   securityHeaders,
   adminAuditLog,
   sessionSecurity
-} from "./security-middleware.js";
+} from "./security-middleware";
 
 // Types for session data
 declare module 'express-session' {

@@ -1,8 +1,8 @@
 import "dotenv/config";
 import path from "path";
 import express, { type Request, Response, NextFunction } from "express";
-import { registerRoutes } from "./routes.js";
-import { setupVite, serveStatic, log } from "./vite-runtime.js";
+import { registerRoutes } from "./routes";
+import { setupVite, serveStatic, log } from "./vite-runtime";
 import { fileURLToPath } from "url";
 // Initialize application with MongoDB
 console.log('Initializing MarrakechDunes with MongoDB Atlas...');
