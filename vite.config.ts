@@ -26,9 +26,16 @@ export default defineConfig({
   },
   root: path.resolve(import.meta.dirname, "client"),
   build: {
-  outDir: path.resolve(__dirname, "dist/client/dist"),
-  emptyOutDir: true,
-},
+    outDir: path.resolve(__dirname, "dist/client/dist"),
+    emptyOutDir: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          "react-vendor": ["react", "react-dom"]
+        }
+      }
+    }
+  },
   server: {
     fs: {
       strict: true,

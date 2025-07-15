@@ -24,4 +24,4 @@ COPY --from=server-build /app/server/dist ./server/dist
 COPY --from=server-build /app/server/node_modules ./server/node_modules
 COPY --from=server-build /app/server/package.json ./server/package.json
 ENV NODE_ENV=production
-CMD ["node", "server/dist/index.js"]
+CMD ["node", "server/dist/server/src/index.js"]
