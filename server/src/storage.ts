@@ -13,7 +13,7 @@ import type {
   InsertReview,
   BookingWithActivity,
   ReviewWithActivity,
-} from "@shared/schema.js";
+} from "@shared/schema";
 
 // MongoDB connection string. Support DATABASE_URL, MONGODB_URI, or legacy MONGO_URI
 const DATABASE_URL =
