@@ -13,7 +13,7 @@ WORKDIR /app/server
 COPY server/package*.json ./
 RUN npm install
 COPY server .                         
-COPY shared ./shared                  
+COPY shared ../shared                 
 RUN npm run build
 
 # Stage 3: Final Production Image
