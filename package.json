@@ -19,6 +19,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.11",
+    "autoprefixer": "^10.4.21",
     "@types/node": "^20.10.0",
     "concurrently": "^8.2.2",
     "copyfiles": "^2.4.1",

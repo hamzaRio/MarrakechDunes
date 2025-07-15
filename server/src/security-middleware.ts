@@ -13,7 +13,7 @@ export const authRateLimit = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
-  skip: (req) => {
+  skip: (req: Request) => {
     // Skip rate limiting in development
     return process.env.NODE_ENV === 'development';
   }
@@ -29,7 +29,7 @@ export const adminApiRateLimit = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
-  skip: (req) => {
+  skip: (req: Request) => {
     // Skip rate limiting in development
     return process.env.NODE_ENV === 'development';
   }
@@ -45,7 +45,7 @@ export const generalApiRateLimit = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
-  skip: (req) => {
+  skip: (req: Request) => {
     // Skip rate limiting in development
     return process.env.NODE_ENV === 'development';
   }
