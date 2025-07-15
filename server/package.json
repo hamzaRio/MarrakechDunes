@@ -23,8 +23,7 @@
     "helmet": "^8.1.0",
     "mongoose": "^8.16.1",
     "nanoid": "^5.1.5",
-    "tsconfig-paths": "^4.2.0",
-    "zod": "^3.25.76"
+    "tsconfig-paths": "^4.2.0"
   },
   "devDependencies": {
     "@types/node": "20.16.11",
