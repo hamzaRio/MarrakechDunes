@@ -18,7 +18,13 @@ function fixImports(dir) {
       let content = fs.readFileSync(fullPath, 'utf8');
 
       content = content.replace(/from\s+['"]([^'"]+)['"]/g, (match, importPath) => {
-        if (CORE_MODULES.has(importPath) || importPath.endsWith('.js') || importPath.startsWith('http')) {
+        const isRelative = importPath.startsWith('./') || importPath.startsWith('../');
+        if (
+          !isRelative ||
+          CORE_MODULES.has(importPath) ||
+          importPath.endsWith('.js') ||
+          importPath.startsWith('http')
+        ) {
           return match; // do not touch
         }
         return `from "${importPath}.js"`;

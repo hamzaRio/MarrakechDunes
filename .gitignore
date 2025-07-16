@@ -95,3 +95,4 @@ Thumbs.db
 # Replit specific
 .replit
 replit.nix.env
+server/src/public/

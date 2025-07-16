@@ -55,6 +55,7 @@
     "react-resizable-panels": "^2.1.7",
     "recharts": "^2.15.2",
     "tailwind-merge": "^2.6.0",
+    "zod": "^3.25.76",
     "vaul": "^1.1.2",
     "vite": "^4.3.5",
     "wouter": "^3.3.5"
