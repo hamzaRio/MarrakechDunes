@@ -27,9 +27,10 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY server ./server
 COPY shared ./shared
+COPY scripts ./scripts        
 WORKDIR /app/server
-COPY scripts ./scripts
 RUN npm run build
+
 
 # ==========================
 # Stage 3: Final Production Image
