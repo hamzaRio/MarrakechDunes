@@ -28,6 +28,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY server ./server
 COPY shared ./shared
 WORKDIR /app/server
+COPY scripts ./scripts
 RUN npm run build
 
 # ==========================
