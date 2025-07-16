@@ -1,33 +1,23 @@
+// scripts/fix-import-extensions.js
 const fs = require('fs');
 const path = require('path');
 
-const distDir = path.join(__dirname, '../server/dist');
+function fixImports(dir) {
+  const entries = fs.readdirSync(dir, { withFileTypes: true });
 
-function walk(dir) {
-  for (const entry of fs.readdirSync(dir)) {
-    const full = path.join(dir, entry);
-    if (fs.statSync(full).isDirectory()) {
-      walk(full);
-    } else if (entry.endsWith('.js')) {
-      fixFile(full);
+  for (const entry of entries) {
+    const fullPath = path.join(dir, entry.name);
+
+    if (entry.isDirectory()) {
+      fixImports(fullPath);
+    } else if (entry.isFile() && entry.name.endsWith('.js')) {
+      let content = fs.readFileSync(fullPath, 'utf8');
+      const updated = content.replace(/(from\s+['"][^'"]+?)(?<!\.js)(['"])/g, '$1.js$2');
+      fs.writeFileSync(fullPath, updated, 'utf8');
     }
   }
 }
 
-function fixFile(file) {
-  let content = fs.readFileSync(file, 'utf8');
-  // Replace static imports
-  content = content.replace(/(from\s+['"])(\.\.?(?:\/[^'";]+)+?)(?:(?:\.ts)?)(['"])/g, (m, p1, p2, p3) => {
-    if (p2.endsWith('.js') || p2.endsWith('.json')) return m;
-    return `${p1}${p2}.js${p3}`;
-  });
-  // Replace dynamic imports
-  content = content.replace(/(import\(\s*['"])(\.\.?(?:\/[^'";]+)+?)(?:(?:\.ts)?)(['"]\s*\))/g, (m, p1, p2, p3) => {
-    if (p2.endsWith('.js') || p2.endsWith('.json')) return m;
-    return `${p1}${p2}.js${p3}`;
-  });
-  fs.writeFileSync(file, content);
-}
-
-walk(distDir);
-
+const distDir = path.resolve(__dirname, '../server/dist');
+fixImports(distDir);
+console.log('✅ All .js extensions fixed in dist directory.');
