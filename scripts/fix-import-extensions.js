@@ -2,6 +2,10 @@
 const fs = require('fs');
 const path = require('path');
 
+const CORE_MODULES = new Set([
+  'path', 'fs', 'url', 'os', 'util', 'http', 'https', 'stream', 'events', 'buffer', 'crypto', 'zlib'
+]);
+
 function fixImports(dir) {
   const entries = fs.readdirSync(dir, { withFileTypes: true });
 
@@ -12,8 +16,15 @@ function fixImports(dir) {
       fixImports(fullPath);
     } else if (entry.isFile() && entry.name.endsWith('.js')) {
       let content = fs.readFileSync(fullPath, 'utf8');
-      const updated = content.replace(/(from\s+['"][^'"]+?)(?<!\.js)(['"])/g, '$1.js$2');
-      fs.writeFileSync(fullPath, updated, 'utf8');
+
+      content = content.replace(/from\s+['"]([^'"]+)['"]/g, (match, importPath) => {
+        if (CORE_MODULES.has(importPath) || importPath.endsWith('.js') || importPath.startsWith('http')) {
+          return match; // do not touch
+        }
+        return `from "${importPath}.js"`;
+      });
+
+      fs.writeFileSync(fullPath, content, 'utf8');
     }
   }
 }
