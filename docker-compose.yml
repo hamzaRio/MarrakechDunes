@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  marrakech-app:
+    build: .
+    ports:
+      - "5000:5000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=${DATABASE_URL}
+      - SESSION_SECRET=${SESSION_SECRET}
+      - MONGODB_URI=${MONGODB_URI}
+      - WHATSAPP_API_KEY=${WHATSAPP_API_KEY}
+    volumes:
+      - ./attached_assets:/app/attached_assets:ro
+    depends_on:
+      - mongodb
+    restart: unless-stopped
+    networks:
+      - marrakech-network
+
+  mongodb:
+    image: mongo:7
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_ROOT_USERNAME}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD}
+      - MONGO_INITDB_DATABASE=marrakech-tours
+    volumes:
+      - mongodb_data:/data/db
+      - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    ports:
+      - "27017:27017"
+    restart: unless-stopped
+    networks:
+      - marrakech-network
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - marrakech-app
+    restart: unless-stopped
+    networks:
+      - marrakech-network
+
+volumes:
+  mongodb_data:
+
+networks:
+  marrakech-network:
+    driver: bridge

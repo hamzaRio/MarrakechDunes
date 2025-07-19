@@ -1,0 +1,69 @@
+The booking system still does not meet the expected requirements. Read this carefully and apply all the fixes exactly:
+
+🟢 1. Fix Activity Selection → Form Step
+When selecting an activity, only the activity name, price, and duration should be passed.
+
+On the "Your Details" screen, the selected activity must remain visible and correctly styled in the summary.
+
+The transition between steps must be smooth and without text overlaps.
+
+🗓 2. Fix the Calendar – Only Select Date
+The calendar should allow users to select only the DATE, not the time.
+
+Remove all hour/time slots from the UI and form submission.
+
+The admin will handle the time later via WhatsApp — do not collect or display any times anymore.
+
+📋 3. Fix List View Dropdown
+The “List View” or “Calendar” dropdown must toggle properly.
+
+Ensure both views render the correct data and are visually consistent (responsive, styled correctly).
+
+If only one view is needed (e.g. Calendar only), remove the dropdown entirely.
+
+👥 4. Fix Number of People Field
+When user selects a number (1, 2, etc.), automatically show text fields for the full names.
+
+1 person → 1 text box
+
+2 people → 2 full name boxes, etc.
+
+These fields must be required and clearly labeled (e.g. “Full Name of Person 1”).
+
+📞 5. Fix Phone Number Input
+Phone number field must:
+
+Always start with country code +212 by default.
+
+Not be editable at the country code level.
+
+Only allow 9 Moroccan digits (6xxxxxxxx, 7xxxxxxxx, etc.) after +212.
+
+📝 6. Fix Additional Notes Field
+Use a full-width text area (min height: 100px)
+
+Placeholder should say: "Write any special requests or information here"
+
+Make it optional (but validate max length).
+
+🔁 7. WhatsApp Message Formatting
+Final data (booking summary) must:
+
+Include date, activity, number of people, and full names.
+
+NOT include time (that’s for admin).
+
+Be sent cleanly to WhatsApp in this format:
+
+vbnet
+Copy
+Edit
+📌 New Booking
+Activity: Agafay Desert Combo Experience
+Date: July 26, 2025
+People: 3
+Names: Ahmed, Salma, Youssef
+Phone: +212 6XXXXXXXX
+Notes: Client requests vegetarian meal.
+⏳ Final Note:
+Fix all these points in one commit, test the full booking flow from step 1 to WhatsApp message, and only confirm when it’s 100% functional.
