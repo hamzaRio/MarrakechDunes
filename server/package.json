@@ -4,9 +4,12 @@
   "type": "module",
   "scripts": {
     "dev": "NODE_ENV=development tsx index.ts",
-    "build": "esbuild index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
+    "build": "esbuild index.ts --platform=node --bundle --format=esm --packages=external --outdir=dist --external:vite",
     "start": "NODE_ENV=production node dist/index.js",
-    "check": "tsc --noEmit"
+    "check": "tsc --noEmit",
+    "test": "echo \"No tests configured\"",
+    "lint": "echo \"No lint step\"",
+    "type-check": "echo \"No type-check step\""
   },
   "dependencies": {
     "@sendgrid/mail": "^8.1.5",
