@@ -24,15 +24,19 @@ jobs:
     
     - name: Install dependencies
       run: npm ci
-    
+      working-directory: server
+
     - name: Run tests
       run: npm test
-    
+      working-directory: server
+
     - name: Lint code
       run: npm run lint
-    
+      working-directory: server
+
     - name: Type check
       run: npm run type-check
+      working-directory: server
 
   build:
     needs: test
@@ -64,7 +68,8 @@ jobs:
     - name: Build and push Docker image
       uses: docker/build-push-action@v5
       with:
-        context: .
+        context: ./server
+        file: ./server/Dockerfile
         push: true
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}

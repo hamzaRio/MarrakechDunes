@@ -1,15 +1,13 @@
 services:
   - type: web
     name: marrakech-dunes-backend
-    env: node
+    env: docker
     plan: starter
     region: frankfurt
-    buildCommand: cd server && npm install && npm run build
-    startCommand: cd server && npm start
+    dockerfilePath: server/Dockerfile
+    dockerContext: .
     healthCheckPath: /api/health
     envVars:
-      - key: NODE_ENV
-        value: production
       - key: PORT
         value: 10000
       - key: MONGO_URI

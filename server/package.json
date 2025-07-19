@@ -6,7 +6,10 @@
     "dev": "NODE_ENV=development tsx index.ts",
     "build": "esbuild index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
     "start": "NODE_ENV=production node dist/index.js",
-    "check": "tsc --noEmit"
+    "check": "tsc --noEmit",
+    "type-check": "echo \"No type check\"",
+    "lint": "echo \"No lint script defined\"",
+    "test": "echo \"No tests defined\""
   },
   "dependencies": {
     "@sendgrid/mail": "^8.1.5",
@@ -30,6 +33,7 @@
     "nanoid": "^5.1.5",
     "openai": "^5.8.1",
     "openid-client": "^6.6.1",
+    "dotenv": "^16.4.5",
     "passport": "^0.7.0",
     "passport-local": "^1.0.0",
     "stripe": "^18.2.1",
