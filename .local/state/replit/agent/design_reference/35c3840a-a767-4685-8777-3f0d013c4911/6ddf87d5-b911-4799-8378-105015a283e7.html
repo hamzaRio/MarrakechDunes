@@ -1,0 +1,537 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MarrakechDeserts - Authentic Desert Adventures</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        moroccan: {
+                            red: '#B91C1C',
+                            'red-light': '#DC2626',
+                            blue: '#1E40AF',
+                            'blue-light': '#2563EB',
+                            gold: '#F59E0B',
+                            'gold-light': '#EAB308',
+                            sand: '#F5F5DC',
+                            'sand-dark': '#E5E7EB'
+                        }
+                    },
+                    fontFamily: {
+                        'playfair': ['Playfair Display', 'serif'],
+                        'inter': ['Inter', 'sans-serif']
+                    },
+                    backgroundImage: {
+                        'moroccan-pattern': "url('data:image/svg+xml,<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"60\" height=\"60\" viewBox=\"0 0 60 60\"><rect width=\"60\" height=\"60\" fill=\"%23F59E0B\" opacity=\"0.1\"/><path d=\"M30 0L45 15L30 30L15 15Z\" fill=\"%23F59E0B\" opacity=\"0.2\"/><path d=\"M30 30L45 45L30 60L15 45Z\" fill=\"%23F59E0B\" opacity=\"0.2\"/></svg>')"
+                    }
+                }
+            }
+        };
+    </script>
+</head>
+<body class="font-inter bg-moroccan-sand">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-lg sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <i class="fas fa-mountain text-moroccan-red text-2xl mr-2"></i>
+                    <span class="font-playfair text-xl font-bold text-moroccan-blue">MarrakechDeserts</span>
+                </div>
+                <div class="hidden md:flex space-x-6">
+                    <a href="#home" class="text-gray-700 hover:text-moroccan-red transition-colors">Home</a>
+                    <a href="#activities" class="text-gray-700 hover:text-moroccan-red transition-colors">Activities</a>
+                    <a href="#booking" class="text-gray-700 hover:text-moroccan-red transition-colors">Book Now</a>
+                    <a href="#contact" class="text-gray-700 hover:text-moroccan-red transition-colors">Contact</a>
+                </div>
+                <div class="md:hidden">
+                    <button class="text-gray-700 hover:text-moroccan-red">
+                        <i class="fas fa-bars text-xl"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section id="home" class="relative h-screen">
+        <!-- Moroccan desert landscape with golden sand dunes and dramatic sky -->
+        <div class="absolute inset-0 bg-cover bg-center bg-no-repeat" 
+             style="background-image: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url('https://pixabay.com/get/g7855c76eb56655ecbae86dcc39f3891c0527e99c5aee1a17a8985a98c1810b93e2d1a0a84f757d4fcb611742ea9389286d8684a7c7dd07a565ad40b8f5863292_1280.jpg')">
+        </div>
+        <div class="relative z-10 flex items-center justify-center h-full text-center text-white px-4">
+            <div class="max-w-4xl">
+                <h1 class="font-playfair text-5xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight">
+                    Discover the Magic of
+                    <span class="text-moroccan-gold">Moroccan Deserts</span>
+                </h1>
+                <p class="text-xl md:text-2xl mb-8 text-gray-200 max-w-2xl mx-auto">
+                    Experience authentic desert adventures with local guides. From balloon flights to waterfall excursions.
+                </p>
+                <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                    <button class="bg-moroccan-red hover:bg-moroccan-red-light text-white px-8 py-4 rounded-lg text-lg font-semibold transition-colors shadow-xl">
+                        <i class="fas fa-calendar-alt mr-2"></i>Book Your Adventure
+                    </button>
+                    <button class="border-2 border-white hover:bg-white hover:text-gray-900 text-white px-8 py-4 rounded-lg text-lg font-semibold transition-colors">
+                        <i class="fas fa-play mr-2"></i>Watch Video
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="absolute bottom-0 left-0 right-0 bg-moroccan-pattern h-20 bg-repeat-x"></div>
+    </section>
+
+    <!-- Featured Activities -->
+    <section id="activities" class="py-20 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="font-playfair text-4xl md:text-5xl font-bold text-moroccan-blue mb-4">
+                    Featured Desert Adventures
+                </h2>
+                <p class="text-xl text-gray-600 max-w-2xl mx-auto">
+                    Carefully curated experiences that showcase the best of Morocco's natural wonders
+                </p>
+                <div class="w-24 h-1 bg-moroccan-gold mx-auto mt-6"></div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- Activity Card 1: Montgolfière -->
+                <div class="bg-white rounded-2xl shadow-xl overflow-hidden hover:shadow-2xl transition-shadow duration-300 border border-gray-100">
+                    <!-- Hot air balloon floating over desert landscape at sunrise -->
+                    <img src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=800&h=600" 
+                         alt="Hot air balloon over desert at sunrise" 
+                         class="w-full h-64 object-cover">
+                    <div class="p-6">
+                        <div class="flex items-center justify-between mb-3">
+                            <h3 class="font-playfair text-2xl font-bold text-gray-900">Montgolfière</h3>
+                            <div class="bg-moroccan-gold text-white px-3 py-1 rounded-full text-sm font-semibold">
+                                Premium
+                            </div>
+                        </div>
+                        <p class="text-gray-600 mb-4">
+                            Soar above the Atlas Mountains and desert valleys in a hot air balloon at sunrise.
+                        </p>
+                        <div class="flex items-center justify-between">
+                            <div class="text-moroccan-red">
+                                <span class="text-3xl font-bold">1100</span>
+                                <span class="text-lg ml-1">MAD</span>
+                            </div>
+                            <button class="bg-moroccan-blue hover:bg-moroccan-blue-light text-white px-6 py-2 rounded-lg font-semibold transition-colors">
+                                Book Now
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Activity Card 2: Agafay Combo -->
+                <div class="bg-white rounded-2xl shadow-xl overflow-hidden hover:shadow-2xl transition-shadow duration-300 border border-gray-100">
+                    <!-- Desert camp with traditional Berber tents and mountain backdrop -->
+                    <img src="https://images.unsplash.com/photo-1578662996442-48f60103fc96?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=800&h=600" 
+                         alt="Agafay desert camp with traditional tents" 
+                         class="w-full h-64 object-cover">
+                    <div class="p-6">
+                        <div class="flex items-center justify-between mb-3">
+                            <h3 class="font-playfair text-2xl font-bold text-gray-900">Agafay Combo</h3>
+                            <div class="bg-emerald-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
+                                Popular
+                            </div>
+                        </div>
+                        <p class="text-gray-600 mb-4">
+                            Complete desert experience with camel riding, traditional dinner, and stargazing.
+                        </p>
+                        <div class="flex items-center justify-between">
+                            <div class="text-moroccan-red">
+                                <span class="text-3xl font-bold">450</span>
+                                <span class="text-lg ml-1">MAD</span>
+                            </div>
+                            <button class="bg-moroccan-blue hover:bg-moroccan-blue-light text-white px-6 py-2 rounded-lg font-semibold transition-colors">
+                                Book Now
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Activity Card 3: Essaouira Day Trip -->
+                <div class="bg-white rounded-2xl shadow-xl overflow-hidden hover:shadow-2xl transition-shadow duration-300 border border-gray-100">
+                    <!-- Essaouira coastal city with blue and white buildings and fishing boats -->
+                    <img src="https://pixabay.com/get/g4285c5b33328d8acfedf822994b64af726ee59ec580292104125a16fa1a5db0d998e30de4dd4294feb5fd335981bc825c17304b5a41f72ac726c12d7a19ac079_1280.jpg" 
+                         alt="Essaouira coastal city with blue buildings and harbor" 
+                         class="w-full h-64 object-cover">
+                    <div class="p-6">
+                        <div class="flex items-center justify-between mb-3">
+                            <h3 class="font-playfair text-2xl font-bold text-gray-900">Essaouira Day Trip</h3>
+                            <div class="bg-moroccan-blue text-white px-3 py-1 rounded-full text-sm font-semibold">
+                                Coastal
+                            </div>
+                        </div>
+                        <p class="text-gray-600 mb-4">
+                            Explore the charming coastal city with its blue and white medina and Atlantic coast.
+                        </p>
+                        <div class="flex items-center justify-between">
+                            <div class="text-moroccan-red">
+                                <span class="text-3xl font-bold">200</span>
+                                <span class="text-lg ml-1">MAD</span>
+                            </div>
+                            <button class="bg-moroccan-blue hover:bg-moroccan-blue-light text-white px-6 py-2 rounded-lg font-semibold transition-colors">
+                                Book Now
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Activity Card 4: Ouzoud Waterfalls -->
+                <div class="bg-white rounded-2xl shadow-xl overflow-hidden hover:shadow-2xl transition-shadow duration-300 border border-gray-100">
+                    <!-- Spectacular waterfalls cascading down rocky cliffs with lush greenery -->
+                    <img src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=800&h=600" 
+                         alt="Ouzoud waterfalls with cascading water and green landscape" 
+                         class="w-full h-64 object-cover">
+                    <div class="p-6">
+                        <div class="flex items-center justify-between mb-3">
+                            <h3 class="font-playfair text-2xl font-bold text-gray-900">Ouzoud Waterfalls</h3>
+                            <div class="bg-emerald-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
+                                Nature
+                            </div>
+                        </div>
+                        <p class="text-gray-600 mb-4">
+                            Visit Morocco's most spectacular waterfalls and spot Barbary macaques in their habitat.
+                        </p>
+                        <div class="flex items-center justify-between">
+                            <div class="text-moroccan-red">
+                                <span class="text-3xl font-bold">200</span>
+                                <span class="text-lg ml-1">MAD</span>
+                            </div>
+                            <button class="bg-moroccan-blue hover:bg-moroccan-blue-light text-white px-6 py-2 rounded-lg font-semibold transition-colors">
+                                Book Now
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Activity Card 5: Ourika Valley -->
+                <div class="bg-white rounded-2xl shadow-xl overflow-hidden hover:shadow-2xl transition-shadow duration-300 border border-gray-100">
+                    <!-- Mountain valley with traditional Berber villages and Atlas Mountains -->
+                    <img src="https://images.unsplash.com/photo-1469474968028-56623f02e42e?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=800&h=600" 
+                         alt="Ourika Valley with Atlas Mountains and traditional villages" 
+                         class="w-full h-64 object-cover">
+                    <div class="p-6">
+                        <div class="flex items-center justify-between mb-3">
+                            <h3 class="font-playfair text-2xl font-bold text-gray-900">Ourika Valley</h3>
+                            <div class="bg-amber-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
+                                Cultural
+                            </div>
+                        </div>
+                        <p class="text-gray-600 mb-4">
+                            Discover authentic Berber culture in the Atlas Mountains with traditional markets.
+                        </p>
+                        <div class="flex items-center justify-between">
+                            <div class="text-moroccan-red">
+                                <span class="text-3xl font-bold">150</span>
+                                <span class="text-lg ml-1">MAD</span>
+                            </div>
+                            <button class="bg-moroccan-blue hover:bg-moroccan-blue-light text-white px-6 py-2 rounded-lg font-semibold transition-colors">
+                                Book Now
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Special Package Card -->
+                <div class="bg-gradient-to-br from-moroccan-gold to-moroccan-red rounded-2xl shadow-xl overflow-hidden hover:shadow-2xl transition-shadow duration-300 text-white">
+                    <div class="p-8 text-center">
+                        <i class="fas fa-crown text-4xl mb-4"></i>
+                        <h3 class="font-playfair text-2xl font-bold mb-4">Custom Package</h3>
+                        <p class="mb-6 text-gray-100">
+                            Create your perfect Morocco adventure with our personalized tour packages.
+                        </p>
+                        <button class="bg-white text-moroccan-red hover:bg-gray-100 px-6 py-3 rounded-lg font-semibold transition-colors">
+                            Contact Us
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section class="py-20 bg-moroccan-sand">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                <div>
+                    <h2 class="font-playfair text-4xl font-bold text-moroccan-blue mb-6">
+                        Your Gateway to Authentic Morocco
+                    </h2>
+                    <p class="text-lg text-gray-700 mb-6">
+                        Located in the heart of Marrakech's historic medina, we offer authentic desert experiences 
+                        guided by local experts who know every hidden gem of Morocco's diverse landscapes.
+                    </p>
+                    <div class="bg-white rounded-lg p-6 shadow-lg mb-6">
+                        <div class="flex items-start">
+                            <i class="fas fa-map-marker-alt text-moroccan-red text-xl mr-4 mt-1"></i>
+                            <div>
+                                <h4 class="font-semibold text-moroccan-blue mb-2">Visit Our Office</h4>
+                                <p class="text-gray-600">54 Riad Zitoun Lakdim, Marrakech 40000</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex flex-wrap gap-4">
+                        <div class="flex items-center text-moroccan-blue">
+                            <i class="fas fa-star text-moroccan-gold mr-2"></i>
+                            <span class="font-semibold">500+ Happy Travelers</span>
+                        </div>
+                        <div class="flex items-center text-moroccan-blue">
+                            <i class="fas fa-award text-moroccan-gold mr-2"></i>
+                            <span class="font-semibold">15 Years Experience</span>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <!-- Traditional Moroccan riad courtyard with ornate architecture and fountain -->
+                    <img src="https://pixabay.com/get/ged6ba6e13da095d2b0b9bb36a3951053ca41e0d754bb35f42971e07e919c75d06d44afe2ae5db4ed41b7f409eb967ffe70bfe5199ecf89fde33c3cb60539d919_1280.jpg" 
+                         alt="Traditional Moroccan riad courtyard with ornate tilework" 
+                         class="rounded-2xl shadow-xl w-full h-auto">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Instagram Section -->
+    <section class="py-20 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h2 class="font-playfair text-4xl font-bold text-moroccan-blue mb-4">
+                Follow Our Adventures
+            </h2>
+            <p class="text-xl text-gray-600 mb-8">
+                Stay connected with @medina_expeditions for daily inspiration from Morocco
+            </p>
+            
+            <!-- Instagram Feed Placeholder -->
+            <div class="bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 rounded-2xl p-8 text-white mb-8">
+                <div class="flex items-center justify-center mb-6">
+                    <i class="fab fa-instagram text-6xl"></i>
+                </div>
+                <h3 class="text-2xl font-bold mb-4">@medina_expeditions</h3>
+                <p class="text-lg mb-6">See our latest desert adventures and customer experiences</p>
+                <button class="bg-white text-purple-600 hover:bg-gray-100 px-8 py-3 rounded-lg font-semibold transition-colors">
+                    <i class="fab fa-instagram mr-2"></i>Follow Us
+                </button>
+                <!-- TODO: Implement Instagram feed integration -->
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section id="contact" class="py-20 bg-moroccan-blue text-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="font-playfair text-4xl font-bold mb-4">Ready to Book Your Adventure?</h2>
+                <p class="text-xl text-blue-100">Contact our expert guides directly via WhatsApp</p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <!-- Ahmed Contact -->
+                <div class="bg-white bg-opacity-10 backdrop-blur-sm rounded-2xl p-8 text-center hover:bg-opacity-20 transition-all duration-300">
+                    <div class="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fab fa-whatsapp text-3xl text-white"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold mb-2">Ahmed</h3>
+                    <p class="text-blue-100 mb-4">Desert Specialist</p>
+                    <button class="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg font-semibold transition-colors w-full" onclick="openWhatsApp('ahmed')">
+                        <i class="fab fa-whatsapp mr-2"></i>Chat with Ahmed
+                    </button>
+                </div>
+
+                <!-- Yahia Contact -->
+                <div class="bg-white bg-opacity-10 backdrop-blur-sm rounded-2xl p-8 text-center hover:bg-opacity-20 transition-all duration-300">
+                    <div class="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fab fa-whatsapp text-3xl text-white"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold mb-2">Yahia</h3>
+                    <p class="text-blue-100 mb-4">Mountain Guide</p>
+                    <button class="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg font-semibold transition-colors w-full" onclick="openWhatsApp('yahia')">
+                        <i class="fab fa-whatsapp mr-2"></i>Chat with Yahia
+                    </button>
+                </div>
+
+                <!-- Nadia Contact -->
+                <div class="bg-white bg-opacity-10 backdrop-blur-sm rounded-2xl p-8 text-center hover:bg-opacity-20 transition-all duration-300">
+                    <div class="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fab fa-whatsapp text-3xl text-white"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold mb-2">Nadia</h3>
+                    <p class="text-blue-100 mb-4">Cultural Expert</p>
+                    <button class="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg font-semibold transition-colors w-full" onclick="openWhatsApp('nadia')">
+                        <i class="fab fa-whatsapp mr-2"></i>Chat with Nadia
+                    </button>
+                </div>
+            </div>
+
+            <!-- Quick Booking Form -->
+            <div class="max-w-2xl mx-auto mt-16 bg-white bg-opacity-10 backdrop-blur-sm rounded-2xl p-8">
+                <h3 class="font-playfair text-2xl font-bold text-center mb-6">Quick Booking Request</h3>
+                <form class="space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-semibold mb-2">Full Name</label>
+                            <input type="text" class="w-full px-4 py-3 rounded-lg bg-white bg-opacity-20 border border-white border-opacity-30 text-white placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-moroccan-gold" placeholder="Enter your name">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold mb-2">Phone Number</label>
+                            <input type="tel" class="w-full px-4 py-3 rounded-lg bg-white bg-opacity-20 border border-white border-opacity-30 text-white placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-moroccan-gold" placeholder="+212 xxx xxx xxx">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-semibold mb-2">Preferred Date</label>
+                            <input type="date" class="w-full px-4 py-3 rounded-lg bg-white bg-opacity-20 border border-white border-opacity-30 text-white focus:outline-none focus:ring-2 focus:ring-moroccan-gold">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold mb-2">Number of People</label>
+                            <select class="w-full px-4 py-3 rounded-lg bg-white bg-opacity-20 border border-white border-opacity-30 text-white focus:outline-none focus:ring-2 focus:ring-moroccan-gold">
+                                <option value="">Select...</option>
+                                <option value="1">1 Person</option>
+                                <option value="2">2 People</option>
+                                <option value="3">3 People</option>
+                                <option value="4">4 People</option>
+                                <option value="5+">5+ People</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold mb-2">Activity</label>
+                        <select class="w-full px-4 py-3 rounded-lg bg-white bg-opacity-20 border border-white border-opacity-30 text-white focus:outline-none focus:ring-2 focus:ring-moroccan-gold">
+                            <option value="">Choose an activity...</option>
+                            <option value="montgolfière">Montgolfière (1100 MAD)</option>
+                            <option value="agafay">Agafay Combo (450 MAD)</option>
+                            <option value="essaouira">Essaouira Day Trip (200 MAD)</option>
+                            <option value="ouzoud">Ouzoud Waterfalls (200 MAD)</option>
+                            <option value="ourika">Ourika Valley (150 MAD)</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="w-full bg-moroccan-gold hover:bg-moroccan-gold-light text-white px-8 py-4 rounded-lg text-lg font-semibold transition-colors">
+                        <i class="fab fa-whatsapp mr-2"></i>Send WhatsApp Message
+                    </button>
+                    <p class="text-center text-blue-200 text-sm">
+                        Payment: Cash on arrival • Free cancellation up to 24h before
+                    </p>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-white py-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div>
+                    <div class="flex items-center mb-4">
+                        <i class="fas fa-mountain text-moroccan-red text-2xl mr-2"></i>
+                        <span class="font-playfair text-xl font-bold">MarrakechDeserts</span>
+                    </div>
+                    <p class="text-gray-400 mb-4">
+                        Authentic desert adventures in the heart of Morocco since 2009.
+                    </p>
+                    <div class="flex space-x-4">
+                        <a href="#" class="text-gray-400 hover:text-moroccan-gold transition-colors">
+                            <i class="fab fa-facebook text-xl"></i>
+                        </a>
+                        <a href="#" class="text-gray-400 hover:text-moroccan-gold transition-colors">
+                            <i class="fab fa-instagram text-xl"></i>
+                        </a>
+                        <a href="#" class="text-gray-400 hover:text-moroccan-gold transition-colors">
+                            <i class="fab fa-tripadvisor text-xl"></i>
+                        </a>
+                    </div>
+                </div>
+                <div>
+                    <h4 class="font-semibold text-lg mb-4">Activities</h4>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="#" class="hover:text-white transition-colors">Desert Tours</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Hot Air Balloon</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Waterfall Trips</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Cultural Tours</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-semibold text-lg mb-4">Information</h4>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="#" class="hover:text-white transition-colors">About Us</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Safety Guidelines</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Terms & Conditions</a></li>
+                        <li><a href="#" class="hover:text-white transition-colors">Privacy Policy</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-semibold text-lg mb-4">Contact</h4>
+                    <div class="space-y-2 text-gray-400">
+                        <p><i class="fas fa-map-marker-alt mr-2"></i>54 Riad Zitoun Lakdim, Marrakech</p>
+                        <p><i class="fas fa-phone mr-2"></i>+212 xxx xxx xxx</p>
+                        <p><i class="fas fa-envelope mr-2"></i>info@marrakechdeserts.com</p>
+                    </div>
+                </div>
+            </div>
+            <div class="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
+                <p>&copy; 2024 MarrakechDeserts. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // WhatsApp functionality
+        function openWhatsApp(guide) {
+            // TODO: Replace with actual phone numbers
+            const phoneNumbers = {
+                'ahmed': '+212xxxxxxxxx',
+                'yahia': '+212xxxxxxxxx',
+                'nadia': '+212xxxxxxxxx'
+            };
+            
+            const message = `Hello ${guide.charAt(0).toUpperCase() + guide.slice(1)}, I'm interested in booking a desert adventure. Can you help me?`;
+            const whatsappUrl = `https://wa.me/${phoneNumbers[guide]}?text=${encodeURIComponent(message)}`;
+            window.open(whatsappUrl, '_blank');
+        }
+
+        // Smooth scrolling for navigation links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // Form submission handler
+        document.querySelector('form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            // TODO: Implement form submission logic
+            // This would collect form data and send WhatsApp messages to all three guides
+            alert('Booking request submitted! We will contact you shortly via WhatsApp.');
+        });
+
+        // Mobile menu toggle (basic implementation)
+        (function() {
+            const mobileMenuButton = document.querySelector('.md\\:hidden button');
+            let isMenuOpen = false;
+            
+            if (mobileMenuButton) {
+                mobileMenuButton.addEventListener('click', function() {
+                    isMenuOpen = !isMenuOpen;
+                    // TODO: Implement mobile menu dropdown
+                    console.log('Mobile menu toggled:', isMenuOpen);
+                });
+            }
+        })();
+    </script>
+</body>
+</html>
