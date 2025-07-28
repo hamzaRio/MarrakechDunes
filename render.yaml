@@ -12,12 +12,20 @@ services:
         value: production
       - key: PORT
         value: 10000
-      - key: MONGO_URI
-        value: mongodb+srv://hamzacharafeddine77:FxUfGGZ8VRyflrGW@marrakechtours-cluster.cvyntkb.mongodb.net/marrakech-tours
+      - key: MONGODB_URI
+        sync: false
       - key: SESSION_SECRET
-        value: FeU8jTYGmCars6u3qUX8uyMF5SkLxhkH9HrXv0rx162dcFGrf8TmfXEP27unxj0525rqj8w1uk
+        sync: false
       - key: JWT_SECRET
-        value: ct8B36w2JW68WY6ofFLarloQJxCXVQNcBofS0tM78767E69782944DABB
+        sync: false
+      - key: ADMIN_DEFAULT_PASSWORD
+        sync: false
+      - key: ADMIN_PHONE_AHMED
+        sync: false
+      - key: ADMIN_PHONE_YAHIA
+        sync: false
+      - key: ADMIN_PHONE_NADIA
+        sync: false
     disk:
       name: marrakech-assets
       mountPath: /app/attached_assets
