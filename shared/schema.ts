@@ -79,6 +79,7 @@ export interface ReviewType {
 
 export interface BookingWithActivity extends BookingType {
   activity?: ActivityType;
+  preferredTime?: string;
 }
 
 export interface ReviewWithActivity extends ReviewType {

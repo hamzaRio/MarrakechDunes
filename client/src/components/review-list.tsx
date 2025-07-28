@@ -41,8 +41,8 @@ export default function ReviewList({ activityId, showActivityName = false, limit
     );
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
+  const formatDate = (dateInput: string | Date) => {
+    const date = new Date(dateInput);
     return date.toString() !== 'Invalid Date' ? date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
