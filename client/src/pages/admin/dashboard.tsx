@@ -13,11 +13,7 @@ import PaymentManagement from "@/components/payment-management";
 import { WhatsAppNotificationPanel } from "@/components/whatsapp-notification-panel";
 import SystemHealthMonitor from "@/components/system-health-monitor";
 import { useState } from "react";
-import type { BookingType, ActivityType, AuditLogType } from "@shared/schema";
-
-interface BookingWithActivity extends BookingType {
-  activity: ActivityType;
-}
+import type { BookingWithActivity, ActivityType, AuditLogType } from "@shared/schema";
 
 export default function AdminDashboard() {
   const { user } = useAuth();
@@ -68,7 +64,7 @@ export default function AdminDashboard() {
     alert(`Booking Details:
 Customer: ${booking.customerName}
 Phone: ${booking.customerPhone}
-Activity: ${booking.activity.name}
+Activity: ${booking.activity?.name ?? ''}
 People: ${booking.numberOfPeople}
 Total: ${booking.totalAmount} MAD
 Status: ${booking.status}
@@ -78,7 +74,7 @@ Notes: ${booking.notes || 'None'}`);
   };
 
   const handleSendWhatsApp = (booking: BookingWithActivity) => {
-    const message = `Hello ${booking.customerName}, regarding your booking for ${booking.activity.name} for ${booking.numberOfPeople} people. Status: ${booking.status}. Total: ${booking.totalAmount} MAD.`;
+    const message = `Hello ${booking.customerName}, regarding your booking for ${booking.activity?.name ?? ''} for ${booking.numberOfPeople} people. Status: ${booking.status}. Total: ${booking.totalAmount} MAD.`;
     const phone = booking.customerPhone.replace(/[^0-9]/g, '');
     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
   };
@@ -93,16 +89,16 @@ Notes: ${booking.notes || 'None'}`);
   };
 
   const handleUpdateGetYourGuidePrice = (activity: ActivityType) => {
-    const currentCompetitorPrice = activity.getyourguidePrice || activity.price + 150;
+    const currentCompetitorPrice = activity.getyourguidePrice || Number(activity.price) + 150;
     const newPrice = prompt(`Update GetYourGuide competitor price for ${activity.name} (current: ${currentCompetitorPrice} MAD):`, currentCompetitorPrice.toString());
     if (newPrice && !isNaN(Number(newPrice))) {
       // Update GetYourGuide price
-      alert(`GetYourGuide price updated to ${newPrice} MAD for ${activity.name}. New profit margin: ${Number(newPrice) - activity.price} MAD per booking.`);
+      alert(`GetYourGuide price updated to ${newPrice} MAD for ${activity.name}. New profit margin: ${Number(newPrice) - Number(activity.price)} MAD per booking.`);
     }
   };
 
   const handleViewActivityBookings = (activity: ActivityType) => {
-    const activityBookings = bookings.filter(b => b.activity.id === activity.id);
+    const activityBookings = bookings.filter(b => b.activity?.id === activity.id);
     const totalRevenue = activityBookings.filter(b => b.status === 'confirmed').reduce((sum, b) => sum + Number(b.totalAmount), 0);
     alert(`Activity: ${activity.name}
 Total Bookings: ${activityBookings.length}
@@ -231,7 +227,7 @@ Average per booking: ${activityBookings.length ? Math.round(totalRevenue / activ
                             <div className="flex items-center gap-4 mb-3">
                               <div>
                                 <h3 className="font-semibold text-lg">{booking.customerName}</h3>
-                                <p className="text-sm text-gray-600">{booking.activity.name}</p>
+                                <p className="text-sm text-gray-600">{booking.activity?.name ?? ''}</p>
                                 <p className="text-sm text-gray-500">{booking.customerPhone}</p>
                               </div>
                               <Badge variant={booking.status === 'pending' ? 'destructive' : booking.status === 'confirmed' ? 'default' : 'secondary'}>
@@ -251,18 +247,18 @@ Average per booking: ${activityBookings.length ? Math.round(totalRevenue / activ
                           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
                             <div className="bg-white p-3 rounded border">
                               <div className="text-green-700 font-medium">Our Price</div>
-                              <div className="text-lg font-bold text-green-600">{booking.activity.price} MAD</div>
+                              <div className="text-lg font-bold text-green-600">{booking.activity?.price ?? ''} MAD</div>
                               <div className="text-xs text-gray-600">Per person</div>
                             </div>
                             <div className="bg-white p-3 rounded border">
                               <div className="text-orange-700 font-medium">GetYourGuide</div>
-                              <div className="text-lg font-bold text-orange-600">{booking.activity.getyourguidePrice || booking.activity.price + 150} MAD</div>
+                              <div className="text-lg font-bold text-orange-600">{booking.activity?.getyourguidePrice || (booking.activity ? Number(booking.activity.price) + 150 : 150)} MAD</div>
                               <div className="text-xs text-red-600">Competitor rate</div>
                             </div>
                             <div className="bg-white p-3 rounded border">
                               <div className="text-blue-700 font-medium">Customer Saved</div>
                               <div className="text-lg font-bold text-blue-600">
-                                {((booking.activity.getyourguidePrice || booking.activity.price + 150) - booking.activity.price) * booking.numberOfPeople} MAD
+                                {( (booking.activity?.getyourguidePrice || (booking.activity ? Number(booking.activity.price) + 150 : 150)) - Number(booking.activity?.price || 0) ) * booking.numberOfPeople} MAD
                               </div>
                               <div className="text-xs text-green-600">Total savings</div>
                             </div>
@@ -285,7 +281,7 @@ Average per booking: ${activityBookings.length ? Math.round(totalRevenue / activ
                               <Button 
                                 size="sm" 
                                 className="bg-green-600 hover:bg-green-700"
-                                onClick={() => handleBookingStatusUpdate(booking.id, 'confirmed')}
+                                onClick={() => handleBookingStatusUpdate(booking.id || booking._id, 'confirmed')}
                               >
                                 Confirm Booking
                               </Button>
@@ -353,14 +349,14 @@ Average per booking: ${activityBookings.length ? Math.round(totalRevenue / activ
                             </div>
                             <div className="bg-white p-3 rounded border">
                               <div className="text-sm font-medium text-orange-700">GetYourGuide</div>
-                              <div className="text-xl font-bold text-orange-600">{activity.getyourguidePrice || activity.price + 150} MAD</div>
+                              <div className="text-xl font-bold text-orange-600">{activity.getyourguidePrice || Number(activity.price) + 150} MAD</div>
                               <div className="text-xs text-red-600">
-                                +{Math.round(((activity.getyourguidePrice || activity.price + 150) - activity.price) / activity.price * 100)}% higher
+                                +{Math.round(((activity.getyourguidePrice || Number(activity.price) + 150) - Number(activity.price)) / Number(activity.price) * 100)}% higher
                               </div>
                             </div>
                             <div className="bg-white p-3 rounded border">
                               <div className="text-sm font-medium text-blue-700">Profit Margin</div>
-                              <div className="text-xl font-bold text-blue-600">{((activity.getyourguidePrice || activity.price + 150) - activity.price)} MAD</div>
+                              <div className="text-xl font-bold text-blue-600">{((activity.getyourguidePrice || Number(activity.price) + 150) - Number(activity.price))} MAD</div>
                               <div className="text-xs text-green-600">Per booking</div>
                             </div>
                             <div className="bg-white p-3 rounded border">
@@ -377,7 +373,7 @@ Average per booking: ${activityBookings.length ? Math.round(totalRevenue / activ
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                             <div className="bg-white p-3 rounded border">
                               <div className="text-sm font-medium text-blue-700">Low Season</div>
-                              <div className="text-lg font-bold text-blue-600">{Math.round(activity.price * 0.85)} MAD</div>
+                              <div className="text-lg font-bold text-blue-600">{Math.round(Number(activity.price) * 0.85)} MAD</div>
                               <div className="text-xs text-gray-600">Nov-Feb (-15%)</div>
                             </div>
                             <div className="bg-white p-3 rounded border border-green-300">
@@ -387,7 +383,7 @@ Average per booking: ${activityBookings.length ? Math.round(totalRevenue / activ
                             </div>
                             <div className="bg-white p-3 rounded border">
                               <div className="text-sm font-medium text-red-700">High Season</div>
-                              <div className="text-lg font-bold text-red-600">{Math.round(activity.price * 1.25)} MAD</div>
+                              <div className="text-lg font-bold text-red-600">{Math.round(Number(activity.price) * 1.25)} MAD</div>
                               <div className="text-xs text-gray-600">Jun-Aug (+25%)</div>
                             </div>
                           </div>

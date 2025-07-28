@@ -106,26 +106,24 @@ export default function BookingFixed() {
     }
   }, [activities.length]);
 
-  const { fields, replace } = useFieldArray({
+  const { fields, replace } = useFieldArray<any>({
     control: form.control,
-    name: "participantNames",
+    name: "participantNames" as const,
   });
 
   const numberOfPeople = form.watch("numberOfPeople");
   useEffect(() => {
     const names = Array(numberOfPeople).fill("").map((_, i) => {
       const currentValue = form.getValues(`participantNames.${i}`);
-      return currentValue || "";
+      return { value: currentValue || "" };
     });
-    replace(names);
+    // @ts-ignore - react-hook-form expects field objects
+    replace(names as any);
   }, [numberOfPeople, replace, form]);
 
   const createBookingMutation = useMutation({
     mutationFn: async (data: BookingFormData) => {
-      const response = await apiRequest("/api/bookings", {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
+      const response = await apiRequest("POST", "/api/bookings", data);
       return response;
     },
     onSuccess: () => {
@@ -327,9 +325,9 @@ export default function BookingFixed() {
                                   }
                                 }}
                                 disabled={(date) => date < new Date()}
-                                modifiers={{
-                                  selected: selectedDate,
-                                }}
+                                  modifiers={{
+                                    selected: selectedDate as any,
+                                  }}
                                 modifiersStyles={{
                                   selected: {
                                     backgroundColor: '#2563eb',
@@ -345,7 +343,7 @@ export default function BookingFixed() {
                                   '--rdp-outline': '2px solid #1e40af',
                                   '--rdp-outline-selected': '2px solid #1e40af',
                                   '--rdp-selected-color': 'white',
-                                }}
+                                } as React.CSSProperties}
                                 className="rdp-custom morocco-calendar"
                               />
                             </div>
@@ -758,7 +756,7 @@ export default function BookingFixed() {
           numberOfPeople={pendingBookingData.numberOfPeople}
           customerName={pendingBookingData.customerName}
           customerPhone={pendingBookingData.customerPhone}
-          preferredDate={new Date(pendingBookingData.preferredDate)}
+            preferredDate={new Date(pendingBookingData.preferredDate).toISOString().split('T')[0]}
           onConfirm={handlePaymentConfirm}
           onCancel={handlePaymentCancel}
         />

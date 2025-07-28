@@ -114,7 +114,7 @@ export default function Booking() {
 
   const watchedActivityId = form.watch("activityId");
   const watchedActivity = activities.find(a => a.id === watchedActivityId);
-  const totalAmount = watchedActivity ? parseInt(watchedActivity.price) * form.watch("numberOfPeople") : 0;
+  const totalAmount = watchedActivity ? Number(watchedActivity.price) * form.watch("numberOfPeople") : 0;
 
   if (isLoading) {
     return (
@@ -156,12 +156,12 @@ export default function Booking() {
                   {/* Step Indicator */}
                   <div className="mb-8">
                     <div className="flex items-center justify-between">
-                      {[
+                      {([
                         { key: 'activity', label: 'Select Activity', icon: MapPin },
                         { key: 'date', label: 'Select Date', icon: Calendar },
                         { key: 'details', label: 'Your Details', icon: User },
                         { key: 'confirmation', label: 'Confirmation', icon: CheckCircle }
-                      ].map((step, index) => {
+                      ] as const).map((step, index) => {
                         const Icon = step.icon;
                         const isActive = currentStep === step.key;
                         const isCompleted = ['activity', 'date', 'details', 'confirmation'].indexOf(currentStep) > index;
@@ -309,17 +309,17 @@ export default function Booking() {
                           </div>
 
                           <AvailabilityCalendar
-                            activityId={currentActivity.id}
+                            activityId={currentActivity.id!}
                             activityName={currentActivity.name}
-                            basePrice={currentActivity.price}
+                            basePrice={Number(currentActivity.price)}
                             selectedDate={selectedDate}
                             selectedTimeSlot={selectedTimeSlot}
                             onDateTimeSelect={(date, timeSlot) => {
                               setSelectedDate(date);
                               setSelectedTimeSlot(timeSlot);
                               form.setValue("preferredDate", date.toISOString().split('T')[0]);
-                              form.setValue("preferredTime", timeSlot.time);
-                              form.setValue("slotId", timeSlot.id);
+                              form.setValue("preferredTime" as any, timeSlot.time);
+                              form.setValue("slotId" as any, timeSlot.id);
                             }}
                           />
 

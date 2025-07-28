@@ -47,6 +47,7 @@ const activitySchema = new mongoose.Schema({
   seasonalPricing: { type: mongoose.Schema.Types.Mixed },
   getyourguidePrice: { type: Number },
   availability: { type: String },
+  duration: { type: String },
 }, { timestamps: true });
 
 const bookingSchema = new mongoose.Schema({
@@ -77,7 +78,10 @@ const reviewSchema = new mongoose.Schema({
   customerEmail: { type: String, required: true },
   activityId: { type: mongoose.Schema.Types.ObjectId, ref: 'Activity', required: true },
   rating: { type: Number, required: true, min: 1, max: 5 },
+  title: { type: String },
   comment: { type: String, required: true },
+  verified: { type: Boolean, default: false },
+  bookingId: { type: mongoose.Schema.Types.ObjectId, ref: 'Booking' },
   approved: { type: Boolean, default: false },
 }, { timestamps: true });
 
@@ -102,9 +106,9 @@ export interface IStorage {
   createBooking(booking: InsertBooking): Promise<BookingType>;
   updateBookingStatus(id: string, status: string): Promise<BookingType | null>;
   updateBookingPayment(id: string, paymentData: {
-    paymentStatus: string;
+    paymentStatus: BookingType['paymentStatus'];
     paidAmount: number;
-    paymentMethod: string;
+    paymentMethod: NonNullable<BookingType['paymentMethod']>;
     depositAmount?: number;
   }): Promise<BookingType | null>;
   createAuditLog(log: InsertAuditLog): Promise<AuditLogType>;
@@ -602,7 +606,9 @@ class MongoStorage implements IStorage {
         customerPhone: bookingData.customerPhone,
         activityId: bookingData.activityId,
         numberOfPeople: bookingData.numberOfPeople,
-        preferredDate: bookingData.preferredDate,
+        preferredDate: bookingData.preferredDate instanceof Date
+          ? bookingData.preferredDate
+          : new Date(bookingData.preferredDate),
         status: bookingData.status || 'pending',
         totalAmount: bookingData.totalAmount,
         notes: bookingData.notes,
@@ -617,7 +623,12 @@ class MongoStorage implements IStorage {
       return newBooking;
     }
     
-    const booking = new Booking(bookingData);
+    const booking = new Booking({
+      ...bookingData,
+      preferredDate: bookingData.preferredDate instanceof Date
+        ? bookingData.preferredDate
+        : new Date(bookingData.preferredDate),
+    });
     const savedBooking = await booking.save();
     return this.transformDocument(savedBooking);
   }
@@ -637,9 +648,9 @@ class MongoStorage implements IStorage {
   }
 
   async updateBookingPayment(id: string, paymentData: {
-    paymentStatus: string;
+    paymentStatus: BookingType['paymentStatus'];
     paidAmount: number;
-    paymentMethod: string;
+    paymentMethod: NonNullable<BookingType['paymentMethod']>;
     depositAmount?: number;
   }): Promise<BookingType | null> {
     if (this.useFallback) {
@@ -747,8 +758,11 @@ class MongoStorage implements IStorage {
         customerName: reviewData.customerName,
         customerEmail: reviewData.customerEmail,
         activityId: reviewData.activityId,
+        bookingId: reviewData.bookingId,
         rating: reviewData.rating,
+        title: reviewData.title,
         comment: reviewData.comment,
+        verified: reviewData.verified ?? false,
         approved: reviewData.approved ?? false,
         createdAt: new Date(),
         updatedAt: new Date()

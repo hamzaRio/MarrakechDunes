@@ -1,4 +1,4 @@
-import { Booking, Activity } from "@shared/schema";
+import { BookingType, ActivityType } from "@shared/schema";
 
 interface WhatsAppContact {
   name: string;
@@ -11,7 +11,7 @@ const whatsappContacts: WhatsAppContact[] = [
   { name: "Nadia", phone: "+212654497354" },
 ];
 
-export async function sendWhatsAppBooking(booking: Booking, activity: Activity) {
+export async function sendWhatsAppBooking(booking: BookingType, activity: ActivityType) {
   const message = `🌟 NEW BOOKING ALERT 🌟
 
 Customer: ${booking.customerName}

@@ -57,11 +57,11 @@ export default function Reviews() {
                 <h3 className="font-semibold text-moroccan-blue mb-2 truncate">
                   {activity.name}
                 </h3>
-                <ActivityRating 
-                  activityId={activity.id} 
-                  className="mb-3" 
-                  showReviewCount={true}
-                />
+                  <ActivityRating
+                    activityId={activity.id ?? activity._id}
+                    className="mb-3"
+                    showReviewCount={true}
+                  />
                 <Button
                   variant="outline"
                   size="sm"
@@ -86,11 +86,14 @@ export default function Reviews() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Activities</SelectItem>
-                {activities.map((activity) => (
-                  <SelectItem key={activity.id} value={activity.id}>
-                    {activity.name}
-                  </SelectItem>
-                ))}
+                  {activities.map((activity) => (
+                    <SelectItem
+                      key={activity.id ?? activity._id}
+                      value={activity.id ?? activity._id}
+                    >
+                      {activity.name}
+                    </SelectItem>
+                  ))}
               </SelectContent>
             </Select>
           </div>
@@ -122,7 +125,7 @@ export default function Reviews() {
                 
                 {selectedActivityForReview ? (
                   <ReviewForm
-                    activityId={selectedActivityForReview.id}
+                    activityId={selectedActivityForReview.id ?? selectedActivityForReview._id}
                     activityName={selectedActivityForReview.name}
                     onSuccess={handleReviewSubmitted}
                   />
