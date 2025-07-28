@@ -34,20 +34,18 @@ jobs:
           echo "Skipping tests/lint/type-check (if not configured)"
           npm run build || echo "⚠️ No build script configured"
 
-  deploy-staging:
-    if: github.ref == 'refs/heads/main'
-    needs: build
-    runs-on: ubuntu-latest
-    environment: staging
-    steps:
-      - name: Deploy to Render Staging
-        run: echo "🔁 Render staging deploy (auto/manual on main branch)"
-
   deploy-production:
     if: github.ref == 'refs/heads/production'
     needs: build
     runs-on: ubuntu-latest
-    environment: production
     steps:
       - name: Deploy to Production
-        run: echo "🚀 Production deployment managed by Render/Vercel auto-deploy"
+        run: echo "🚀 Production deploy triggered by pushing to 'production' branch"
+
+  deploy-staging:
+    if: github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to Staging
+        run: echo "🔁 Staging deploy triggered by pushing to 'main' branch"
