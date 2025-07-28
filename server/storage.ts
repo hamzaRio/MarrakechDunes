@@ -16,7 +16,8 @@ import type {
 } from "../shared/schema";
 
 // MongoDB connection string - ensure proper format
-const DATABASE_URL = process.env.MONGODB_URI || process.env.MONGO_URL;
+const MONGODB_URI = process.env.MONGODB_URI;
+const DEFAULT_ADMIN_PASSWORD = process.env.ADMIN_DEFAULT_PASSWORD;
 
 // In-memory storage for fallback when MongoDB is unavailable
 const inMemoryData = {
@@ -132,9 +133,9 @@ class MongoStorage implements IStorage {
   }
 
   private async connect() {
-    // Check if DATABASE_URL is available
-    if (!DATABASE_URL) {
-      console.log('DATABASE_URL not found. Using fallback mode for development.');
+    // Check if MONGODB_URI is available
+    if (!MONGODB_URI) {
+      console.log('MONGODB_URI not found. Using fallback mode for development.');
       this.useFallback = true;
       await this.seedFallbackData();
       return;
@@ -153,7 +154,7 @@ class MongoStorage implements IStorage {
         this.seedFallbackData();
       }, 10000); // 10 second timeout
 
-      await mongoose.connect(DATABASE_URL, {
+      await mongoose.connect(MONGODB_URI, {
         retryWrites: true,
         w: 'majority',
         maxPoolSize: 10,
@@ -371,33 +372,38 @@ class MongoStorage implements IStorage {
       }
     ];
 
-    // Seed admin users
-    inMemoryData.users = [
-      {
-        _id: '686000f2f5c4d141c7e87101',
-        username: 'nadia',
-        password: await bcrypt.hash('Marrakech@2025', 10),
-        role: 'superadmin',
-        createdAt: new Date(),
-        updatedAt: new Date()
-      },
-      {
-        _id: '686000f2f5c4d141c7e87102',
-        username: 'ahmed',
-        password: await bcrypt.hash('Marrakech@2025', 10),
-        role: 'admin',
-        createdAt: new Date(),
-        updatedAt: new Date()
-      },
-      {
-        _id: '686000f2f5c4d141c7e87103',
-        username: 'yahia',
-        password: await bcrypt.hash('Marrakech@2025', 10),
-        role: 'admin',
-        createdAt: new Date(),
-        updatedAt: new Date()
-      }
-    ];
+    // Seed admin users if password is provided
+    if (DEFAULT_ADMIN_PASSWORD) {
+      const hashedPassword = await bcrypt.hash(DEFAULT_ADMIN_PASSWORD, 10);
+      inMemoryData.users = [
+        {
+          _id: '686000f2f5c4d141c7e87101',
+          username: 'nadia',
+          password: hashedPassword,
+          role: 'superadmin',
+          createdAt: new Date(),
+          updatedAt: new Date()
+        },
+        {
+          _id: '686000f2f5c4d141c7e87102',
+          username: 'ahmed',
+          password: hashedPassword,
+          role: 'admin',
+          createdAt: new Date(),
+          updatedAt: new Date()
+        },
+        {
+          _id: '686000f2f5c4d141c7e87103',
+          username: 'yahia',
+          password: hashedPassword,
+          role: 'admin',
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }
+      ];
+    } else {
+      console.warn('ADMIN_DEFAULT_PASSWORD not set. No fallback admin users seeded.');
+    }
   }
 
   async getActivities(): Promise<ActivityType[]> {
@@ -805,23 +811,27 @@ class MongoStorage implements IStorage {
         return;
       }
 
-      // Create admin users if they don't exist
-      const adminUsers = [
-        { username: 'nadia', password: 'Marrakech@2025', role: 'superadmin' },
-        { username: 'ahmed', password: 'Marrakech@2025', role: 'admin' },
-        { username: 'yahia', password: 'Marrakech@2025', role: 'admin' },
-      ];
+      if (DEFAULT_ADMIN_PASSWORD) {
+        const adminUsers = [
+          { username: 'nadia', role: 'superadmin' },
+          { username: 'ahmed', role: 'admin' },
+          { username: 'yahia', role: 'admin' },
+        ];
 
-      for (const userData of adminUsers) {
-        const existingUser = await User.findOne({ username: userData.username });
-        if (!existingUser) {
-          const hashedPassword = await bcrypt.hash(userData.password, 10);
-          await User.create({
-            ...userData,
-            password: hashedPassword,
-          });
-          console.log(`✅ Created admin user: ${userData.username}`);
+        const hashedPassword = await bcrypt.hash(DEFAULT_ADMIN_PASSWORD, 10);
+
+        for (const userData of adminUsers) {
+          const existingUser = await User.findOne({ username: userData.username });
+          if (!existingUser) {
+            await User.create({
+              ...userData,
+              password: hashedPassword,
+            });
+            console.log(`✅ Created admin user: ${userData.username}`);
+          }
         }
+      } else {
+        console.warn('ADMIN_DEFAULT_PASSWORD not set. Skipping admin user seeding.');
       }
 
       // Skip activity seeding - use existing database with authentic photos

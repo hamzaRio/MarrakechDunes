@@ -193,7 +193,7 @@ export const adminAuditLog = (req: Request, res: Response, next: NextFunction) =
 
 // Create session store with fallback to memory store
 const createSessionStore = () => {
-  const mongoUrl = process.env.MONGODB_URI || process.env.MONGO_URI;
+  const mongoUrl = process.env.MONGODB_URI;
   
   if (!mongoUrl) {
     console.log('MongoDB URL not found. Using memory store for sessions.');
@@ -215,10 +215,15 @@ const createSessionStore = () => {
   });
 };
 
+const SESSION_SECRET = process.env.SESSION_SECRET;
+if (!SESSION_SECRET) {
+  throw new Error('SESSION_SECRET environment variable is required');
+}
+
 // Session security configuration
 export const sessionSecurity = {
   name: 'marrakech.session',
-  secret: process.env.SESSION_SECRET || 'FeU8jTYGmCars6u3qUX8uyMF5SkLxhkH9HrXv0rx162dcFGrf8TmfXEP27unxj0525rqj8w1uk',
+  secret: SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
   store: createSessionStore(),

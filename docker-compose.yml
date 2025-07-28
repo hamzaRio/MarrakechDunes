@@ -7,7 +7,6 @@ services:
       - "5000:5000"
     environment:
       - NODE_ENV=production
-      - DATABASE_URL=${DATABASE_URL}
       - SESSION_SECRET=${SESSION_SECRET}
       - MONGODB_URI=${MONGODB_URI}
       - WHATSAPP_API_KEY=${WHATSAPP_API_KEY}

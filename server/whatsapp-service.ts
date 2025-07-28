@@ -24,10 +24,10 @@ export interface BookingNotificationData {
 
 export class WhatsAppService {
   private adminContacts: WhatsAppContact[] = [
-    { name: "Ahmed", phone: "+212600623630", role: "admin" },
-    { name: "Yahia", phone: "+212693323368", role: "admin" },
-    { name: "Nadia", phone: "+212654497354", role: "superadmin" }
-  ];
+    { name: "Ahmed", phone: process.env.ADMIN_PHONE_AHMED || "", role: "admin" },
+    { name: "Yahia", phone: process.env.ADMIN_PHONE_YAHIA || "", role: "admin" },
+    { name: "Nadia", phone: process.env.ADMIN_PHONE_NADIA || "", role: "superadmin" }
+  ].filter(c => c.phone);
 
   async sendBookingNotification(booking: BookingNotificationData): Promise<{
     success: boolean;
