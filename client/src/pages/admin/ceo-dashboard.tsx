@@ -295,7 +295,7 @@ export default function CEODashboard() {
                           <div className="flex items-center gap-2">
                             <Input
                               type="number"
-                              value={editingPrice.price}
+                              value={editingPrice?.price ?? 0}
                               onChange={(e) => setEditingPrice({
                                 id: activity.id,
                                 price: Number(e.target.value)
@@ -305,7 +305,7 @@ export default function CEODashboard() {
                             />
                             <Button
                               size="sm"
-                              onClick={() => handlePriceUpdate(activity.id, editingPrice.price)}
+                              onClick={() => handlePriceUpdate(activity.id, editingPrice?.price ?? 0)}
                               disabled={updatePriceMutation.isPending}
                             >
                               Save

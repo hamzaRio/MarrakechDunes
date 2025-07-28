@@ -38,7 +38,7 @@ export interface BookingType {
   customerEmail?: string;
   activityId: string;
   numberOfPeople: number;
-  preferredDate: Date;
+  preferredDate: string | Date;
   participantNames?: string[];
   status: string;
   totalAmount: string;
@@ -67,8 +67,11 @@ export interface ReviewType {
   customerName: string;
   customerEmail: string;
   activityId: string;
+  bookingId?: string;
   rating: number;
+  title: string;
   comment: string;
+  verified: boolean;
   approved: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -101,6 +104,7 @@ export const insertActivitySchema = z.object({
   seasonalPricing: z.any().optional(),
   getyourguidePrice: z.number().optional(),
   availability: z.string().optional(),
+  duration: z.string().optional(),
 });
 
 export const insertBookingSchema = z.object({
@@ -108,7 +112,7 @@ export const insertBookingSchema = z.object({
   customerPhone: z.string().min(1),
   activityId: z.string().min(1),
   numberOfPeople: z.number().min(1),
-  preferredDate: z.date(),
+  preferredDate: z.union([z.string(), z.date()]),
   participantNames: z.array(z.string()).optional(),
   status: z.string().default('pending'),
   totalAmount: z.string().min(1),

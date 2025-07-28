@@ -42,11 +42,12 @@ export default function ReviewList({ activityId, showActivityName = false, limit
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+    const date = new Date(dateString);
+    return date.toString() !== 'Invalid Date' ? date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric'
-    });
+    }) : '';
   };
 
   if (isLoading) {
@@ -100,7 +101,7 @@ export default function ReviewList({ activityId, showActivityName = false, limit
                     <div className="flex items-center space-x-3">
                       <div className="flex items-center space-x-2">
                         <User className="w-4 h-4 text-gray-500" />
-                        <span className="font-medium text-gray-900">{review.customerName}</span>
+                        <span className="font-medium text-gray-900">{review.customerName ?? ""}</span>
                       </div>
                       {review.verified && (
                         <Badge variant="secondary" className="bg-green-100 text-green-800">
@@ -119,15 +120,15 @@ export default function ReviewList({ activityId, showActivityName = false, limit
                   </div>
                   {showActivityName && review.activity && (
                     <Badge variant="outline" className="text-moroccan-blue border-moroccan-blue">
-                      {review.activity.name}
+                      {review.activity?.name ?? ""}
                     </Badge>
                   )}
                 </div>
 
                 {/* Review Content */}
                 <div className="space-y-2">
-                  <h4 className="font-semibold text-gray-900">{review.title}</h4>
-                  <p className="text-gray-700 leading-relaxed">{review.comment}</p>
+                  <h4 className="font-semibold text-gray-900">{review.title ?? ""}</h4>
+                  <p className="text-gray-700 leading-relaxed">{review.comment ?? ""}</p>
                 </div>
               </div>
             </CardContent>

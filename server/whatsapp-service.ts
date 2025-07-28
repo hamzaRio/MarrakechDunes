@@ -24,9 +24,9 @@ export interface BookingNotificationData {
 
 export class WhatsAppService {
   private adminContacts: WhatsAppContact[] = [
-    { name: "Ahmed", phone: process.env.ADMIN_PHONE_AHMED || "", role: "admin" },
-    { name: "Yahia", phone: process.env.ADMIN_PHONE_YAHIA || "", role: "admin" },
-    { name: "Nadia", phone: process.env.ADMIN_PHONE_NADIA || "", role: "superadmin" }
+    { name: "Ahmed", phone: process.env.ADMIN_PHONE_AHMED || "", role: "admin" as const },
+    { name: "Yahia", phone: process.env.ADMIN_PHONE_YAHIA || "", role: "admin" as const },
+    { name: "Nadia", phone: process.env.ADMIN_PHONE_NADIA || "", role: "superadmin" as const }
   ].filter(c => c.phone);
 
   async sendBookingNotification(booking: BookingNotificationData): Promise<{
