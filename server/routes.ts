@@ -4,7 +4,7 @@ import session from "express-session";
 import MongoStore from "connect-mongo";
 import bcrypt from "bcrypt";
 import { storage } from "./storage";
-import { insertBookingSchema, insertReviewSchema } from "@shared/schema";
+import { insertBookingSchema, insertReviewSchema, insertActivitySchema } from "@shared/schema";
 import { whatsappService } from "./whatsapp-service";
 import { z } from "zod";
 import {
@@ -174,24 +174,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/bookings", async (req: Request, res) => {
     try {
-      const data = req.body;
-      
       // Calculate total amount
-      const activity = await storage.getActivity(data.activityId);
-      const totalAmount = activity ? (parseInt(activity.price) * data.numberOfPeople).toString() : '0';
-      
-      const booking = await storage.createBooking({
-        customerName: data.customerName,
-        customerPhone: data.customerPhone,
-        activityId: data.activityId,
-        numberOfPeople: data.numberOfPeople,
-        preferredDate: new Date(data.preferredDate),
-        participantNames: data.participantNames || [data.customerName],
-        notes: data.notes,
+      const activity = await storage.getActivity(req.body.activityId);
+      const totalAmount = activity ? (parseInt(activity.price) * req.body.numberOfPeople).toString() : '0';
+
+      const validatedData = insertBookingSchema.parse({
+        ...req.body,
+        totalAmount,
         status: 'pending',
-        totalAmount: totalAmount,
         paymentStatus: 'unpaid',
         paidAmount: 0,
+      });
+
+      const booking = await storage.createBooking({
+        ...validatedData,
+        preferredDate: new Date(validatedData.preferredDate),
       });
 
       // Send WhatsApp notifications to all admins
@@ -216,6 +213,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       res.status(201).json(booking);
     } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error" });
+      }
       console.error("Error creating booking:", error);
       res.status(500).json({ message: "Failed to create booking" });
     }
@@ -551,7 +551,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/admin/activities", adminSecurityMiddleware, async (req: Request, res) => {
     const authReq = req as AuthenticatedRequest;
     try {
-      const activityData = req.body;
+      const activityData = insertActivitySchema.parse(req.body);
       const activity = await storage.createActivity(activityData);
       
       // Create audit log
@@ -563,6 +563,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.status(201).json(activity);
     } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error" });
+      }
       console.error("Error creating activity:", error);
       res.status(500).json({ message: "Failed to create activity" });
     }
@@ -572,7 +575,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const authReq = req as AuthenticatedRequest;
     try {
       const { id } = req.params;
-      const updateData = req.body;
+      const updateData = insertActivitySchema.partial().parse(req.body);
       const activity = await storage.updateActivity(id, updateData);
       
       // Create audit log
@@ -584,6 +587,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(activity);
     } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error" });
+      }
       console.error("Error updating activity:", error);
       res.status(500).json({ message: "Failed to update activity" });
     }
