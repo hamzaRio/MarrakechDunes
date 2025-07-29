@@ -7,6 +7,7 @@ WORKDIR /app/client
 COPY client/package*.json ./
 RUN npm install --legacy-peer-deps
 COPY client/ ./
+COPY attached_assets /app/attached_assets
 RUN npm run build
 
 # Stage 2: Build the server
