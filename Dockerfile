@@ -22,16 +22,16 @@ RUN npm run build
 FROM node:20-alpine AS production
 WORKDIR /app
 
-# Install production dependencies
+# Install only production dependencies for root project
 COPY package*.json ./
 RUN npm ci --omit=dev && npm cache clean --force
 
-# Copy built assets
+# Copy built client and server output
 COPY --from=client-builder /app/client/dist ./dist/public
 COPY --from=server-builder /app/server/dist ./dist
 COPY --from=server-builder /app/shared ./shared
 
-# Copy assets and configuration
+# Copy persistent assets and configuration placeholders
 COPY attached_assets ./attached_assets
 
 # Create non-root user for security
@@ -40,9 +40,9 @@ RUN addgroup -g 1001 -S nodejs && \
     chown -R marrakech:nodejs /app
 USER marrakech
 
-# Health check
+# Health check (use PORT from environment)
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD bash -c "node -e \"const http=require('http');const port=process.env.PORT||5000;http.get('http://localhost:'+port+'/api/health',res=>process.exit(res.statusCode===200?0:1)).on('error',()=>process.exit(1));\""
 
-EXPOSE 5000
+# Start the server
 CMD ["node", "dist/index.js"]
