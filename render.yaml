@@ -1,11 +1,10 @@
 services:
   - type: web
     name: marrakech-dunes-backend
-    env: node
+    env: docker
     plan: starter
     region: frankfurt
-    buildCommand: cd server && npm install && npm run build
-    startCommand: cd server && npm start
+    dockerfilePath: Dockerfile
     healthCheckPath: /api/health
     envVars:
       - key: NODE_ENV
@@ -13,7 +12,7 @@ services:
       - key: PORT
         value: 10000
       - key: MONGODB_URI
-        sync: false
+        value: <your-mongo-uri>
       - key: SESSION_SECRET
         sync: false
       - key: JWT_SECRET
