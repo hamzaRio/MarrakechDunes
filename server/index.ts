@@ -1,4 +1,4 @@
-import express, { type Request, Response, NextFunction, Application } from "express";
+import express, { type Request, Response, NextFunction, Express } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import dotenv from "dotenv";
@@ -13,7 +13,7 @@ if (!process.env.SESSION_SECRET) {
   process.exit(1);
 }
 
-const app: Application = express();
+const app: Express = express();
 
 // Configure trust proxy for rate limiting
 app.set("trust proxy", true);
@@ -30,9 +30,9 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   let capturedJsonResponse: Record<string, any> | undefined;
 
   const originalResJson = res.json.bind(res);
-  res.json = function (bodyJson: any, ...args: any[]) {
+  res.json = function (bodyJson: any) {
     capturedJsonResponse = bodyJson;
-    return originalResJson(bodyJson, ...args);
+    return originalResJson(bodyJson);
   };
 
   res.on("finish", () => {
@@ -72,11 +72,5 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 
   // Use PORT environment variable if provided (default 5000)
   const port = Number(process.env.PORT) || 5000;
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-  }, () => {
-    log(`serving on port ${port}`);
-  });
+  server.listen(port, "0.0.0.0", () => log(`🚀 Server running on port ${port}`));
 })();
