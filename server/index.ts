@@ -1,27 +1,38 @@
-import express, { type Request, Response, NextFunction } from "express";
+import express, { type Request, Response, NextFunction, Application } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
-// Initialize application with MongoDB
-console.log('Initializing MarrakechDunes with MongoDB Atlas...');
+import dotenv from "dotenv";
 
-const app = express();
+dotenv.config();
+
+console.log("Initializing MarrakechDunes with MongoDB Atlas...");
+
+// Warn if SESSION_SECRET is missing
+if (!process.env.SESSION_SECRET) {
+  console.error("❌ SESSION_SECRET is missing from environment variables.");
+  process.exit(1);
+}
+
+const app: Application = express();
+
 // Configure trust proxy for rate limiting
-app.set('trust proxy', true);
+app.set("trust proxy", true);
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Serve static files from attached_assets directory
-app.use('/attached_assets', express.static('attached_assets'));
+// Serve static files
+app.use("/attached_assets", express.static("attached_assets"));
 
-app.use((req, res, next) => {
+// Logging middleware
+app.use((req: Request, res: Response, next: NextFunction) => {
   const start = Date.now();
   const path = req.path;
-  let capturedJsonResponse: Record<string, any> | undefined = undefined;
+  let capturedJsonResponse: Record<string, any> | undefined;
 
-  const originalResJson = res.json;
-  res.json = function (bodyJson, ...args) {
+  const originalResJson = res.json.bind(res);
+  res.json = function (bodyJson: any, ...args: any[]) {
     capturedJsonResponse = bodyJson;
-    return originalResJson.apply(res, [bodyJson, ...args]);
+    return originalResJson(bodyJson, ...args);
   };
 
   res.on("finish", () => {
@@ -31,11 +42,9 @@ app.use((req, res, next) => {
       if (capturedJsonResponse) {
         logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
       }
-
       if (logLine.length > 80) {
         logLine = logLine.slice(0, 79) + "…";
       }
-
       log(logLine);
     }
   });
@@ -46,17 +55,15 @@ app.use((req, res, next) => {
 (async () => {
   const server = await registerRoutes(app);
 
+  // Global error handler
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
-
     res.status(status).json({ message });
     throw err;
   });
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
+  // Setup Vite dev server or serve production build
   if (app.get("env") === "development") {
     await setupVite(app, server);
   } else {

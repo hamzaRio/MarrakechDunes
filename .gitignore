@@ -1,97 +1,63 @@
-# Dependencies
+# === Dependencies ===
 node_modules/
+jspm_packages/
+
+# === Build outputs ===
+dist/
+build/
+client/dist/
+.next/
+.nuxt/
+.vuepress/dist
+
+# === Logs ===
+logs/
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Environment variables
+# === Environment variables ===
 .env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.*
+!.env.example
 
-# Build outputs
-dist/
-build/
-client/dist/
-
-# Logs
-*.log
-logs/
-
-# Runtime data
+# === Runtime data ===
 pids/
 *.pid
-*.seed
 *.pid.lock
+*.seed
 
-# Coverage directory used by tools like istanbul
+# === Testing ===
 coverage/
-
-# nyc test coverage
 .nyc_output/
 
-# Dependency directories
-jspm_packages/
-
-# Optional npm cache directory
-.npm
-
-# Optional eslint cache
+# === Caches ===
+.cache/
+.parcel-cache/
+.npm/
 .eslintcache
 
-# Optional REPL history
-.node_repl_history
-
-# Output of 'npm pack'
+# === Package output ===
 *.tgz
 
-# Yarn Integrity file
-.yarn-integrity
-
-# parcel-bundler cache (https://parceljs.org/)
-.cache
-.parcel-cache
-
-# next.js build output
-.next
-
-# nuxt.js build output
-.nuxt
-
-# vuepress build output
-.vuepress/dist
-
-# Serverless directories
-.serverless
-
-# FuseBox cache
-.fusebox/
-
-# DynamoDB Local files
-.dynamodb/
-
-# IDE files
+# === Editor/IDE ===
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
 
-# OS generated files
+# === OS Files ===
 .DS_Store
-.DS_Store?
-._*
 .Spotlight-V100
 .Trashes
 ehthumbs.db
 Thumbs.db
 
-# Temporary files
-*.tmp
-*.temp
-
-# Replit specific
+# === Replit ===
 .replit
 replit.nix.env
+
+# === Docker (optional) ===
+docker-data/
