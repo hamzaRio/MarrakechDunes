@@ -7,6 +7,7 @@ WORKDIR /app/client
 COPY client/package*.json ./
 RUN npm install --legacy-peer-deps
 COPY client/ ./
+COPY shared/ ../shared/
 COPY attached_assets /app/attached_assets
 RUN npm run build
 
