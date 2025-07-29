@@ -1,7 +1,7 @@
 services:
   - type: web
     name: marrakech-dunes-backend
-    env: docker
+    runtime: docker
     plan: starter
     region: frankfurt
     dockerfilePath: Dockerfile
