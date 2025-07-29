@@ -16,6 +16,7 @@ COPY server/package*.json ./
 RUN npm install --legacy-peer-deps
 COPY server/ ./
 COPY shared/ ../shared/
+COPY vite.config.* ../
 RUN npm run build
 
 # Stage 3: Production runtime
