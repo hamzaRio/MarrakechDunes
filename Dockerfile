@@ -4,20 +4,28 @@
 # Stage 1: Build the client
 FROM node:20-alpine AS client-builder
 WORKDIR /app/client
+
+# Install dependencies first for better caching
 COPY client/package*.json ./
 RUN npm install --legacy-peer-deps
-COPY client/ ./
+
+# Copy application code and shared utilities before building
 COPY shared/ ../shared/
 COPY attached_assets /app/attached_assets
+COPY client/ ./
 RUN npm run build
 
 # Stage 2: Build the server
 FROM node:20-alpine AS server-builder
 WORKDIR /app/server
+
+# Install dependencies first for better caching
 COPY server/package*.json ./
 RUN npm install --legacy-peer-deps
-COPY server/ ./
+
+# Copy server source and shared utilities before building
 COPY shared/ ../shared/
+COPY server/ ./
 COPY vite.config.* ../
 RUN npm run build
 
