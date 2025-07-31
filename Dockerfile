@@ -4,6 +4,7 @@ WORKDIR /app/client
 
 COPY client/package*.json ./
 RUN npm install --legacy-peer-deps
+RUN npm install zod --legacy-peer-deps
 
 COPY shared/ ../shared/
 COPY scripts/ ../scripts/
@@ -16,6 +17,7 @@ WORKDIR /app/server
 
 COPY server/package*.json ./
 RUN npm install --legacy-peer-deps
+
 
 COPY shared/ ../shared/
 COPY server/ ./
