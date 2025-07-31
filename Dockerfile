@@ -1,17 +1,11 @@
-# MarrakechDunes - Production Dockerfile
-# Multi-stage build for optimal deployment
-
 # Stage 1: Build the client
 FROM node:20-alpine AS client-builder
 WORKDIR /app/client
 
-# Install dependencies first for better caching
 COPY client/package*.json ./
 RUN npm install --legacy-peer-deps
 
-# Copy application code and shared utilities before building
 COPY shared/ ../shared/
-COPY attached_assets /app/attached_assets
 COPY client/ ./
 RUN npm run build
 
@@ -19,11 +13,9 @@ RUN npm run build
 FROM node:20-alpine AS server-builder
 WORKDIR /app/server
 
-# Install dependencies first for better caching
 COPY server/package*.json ./
 RUN npm install --legacy-peer-deps
 
-# Copy server source and shared utilities before building
 COPY shared/ ../shared/
 COPY server/ ./
 COPY vite.config.* ../
@@ -33,27 +25,22 @@ RUN npm run build
 FROM node:20-alpine AS production
 WORKDIR /app
 
-# Install only production dependencies for root project
 COPY package*.json ./
 RUN npm install --legacy-peer-deps --omit=dev && npm cache clean --force
 
-# Copy built client and server output
 COPY --from=client-builder /app/client/dist ./dist/public
 COPY --from=server-builder /app/server/dist ./dist
 COPY --from=server-builder /app/shared ./shared
 
-# Copy persistent assets and configuration placeholders
-COPY attached_assets ./attached_assets
+# Persistent assets: Render will mount /attached_assets at runtime
+RUN mkdir -p /attached_assets
 
-# Create non-root user for security
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S marrakech -u 1001 && \
     chown -R marrakech:nodejs /app
 USER marrakech
 
-# Health check (use PORT from environment)
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD bash -c "node -e \"const http=require('http');const port=process.env.PORT||5000;http.get('http://localhost:'+port+'/api/health',res=>process.exit(res.statusCode===200?0:1)).on('error',()=>process.exit(1));\""
+  CMD node -e "const http=require('http');const port=process.env.PORT||5000;http.get('http://localhost:'+port+'/api/health',res=>process.exit(res.statusCode===200?0:1)).on('error',()=>process.exit(1));"
 
-# Start the server
 CMD ["node", "dist/index.js"]
