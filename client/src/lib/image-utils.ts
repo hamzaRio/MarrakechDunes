@@ -4,13 +4,13 @@ export const getAssetUrl = (filename: string): string => {
   // Force cache-busting for all authentic images
   const cacheBuster = `?v=${Date.now()}`;
   
-  // Always serve directly from attached_assets with cache busting
-  if (filename.startsWith('/attached_assets/')) {
+  // If already an absolute path (e.g., uploaded assets)
+  if (filename.startsWith('/attached_assets/') || filename.startsWith('/assets/')) {
     return filename + cacheBuster;
   }
   
-  // Add cache busting to all image URLs
-  return `/attached_assets/${filename}` + cacheBuster;
+ // Default to assets folder
+  return `/assets/${filename}` + cacheBuster;
 };
 
 export const getActivityFallbackImage = (activityName: string): string => {
@@ -23,7 +23,7 @@ export const getActivityFallbackImage = (activityName: string): string => {
   } else if (name.includes('essaouira')) {
     return "https://images.unsplash.com/photo-1539650116574-75c0c6d73d0e?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600";
   } else if (name.includes('ourika')) {
-    return "/attached_assets/Ourika Valley Day Trip1_1751114166831.jpg";
+     return "/assets/Ourika Valley Day Trip1_1751114166831.jpg";
   } else if (name.includes('ouzoud')) {
     return "https://images.unsplash.com/photo-1518837695005-2083093ee35b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600";
   }

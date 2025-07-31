@@ -8,9 +8,9 @@ export function cn(...inputs: ClassValue[]) {
 export function getAssetUrl(path: string): string {
   if (!path) return "/assets/placeholder.jpg";
   
-  // Handle attached_assets paths
-  if (path.startsWith('/attached_assets/')) {
-    return path;
+  
+ // Already an absolute asset path
+  if (path.startsWith('/attached_assets/') || path.startsWith('/assets/')) {
   }
   
   // Handle other asset paths

@@ -6,6 +6,7 @@ COPY client/package*.json ./
 RUN npm install --legacy-peer-deps
 
 COPY shared/ ../shared/
+COPY scripts/ ../scripts/
 COPY client/ ./
 RUN npm run build
 

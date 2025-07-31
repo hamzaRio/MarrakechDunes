@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "node ../scripts/check-attached-assets.cjs && vite build",
     "preview": "vite preview",
     "check": "tsc --noEmit"
   },
