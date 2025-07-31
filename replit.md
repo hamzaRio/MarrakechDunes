@@ -208,7 +208,7 @@ Preferred communication style: Simple, everyday language.
 - **MongoDB Atlas Integration**: Implemented pure MongoDB-only storage system for MarrakechDunes booking platform
   - Removed all PostgreSQL dependencies and fallback systems per user requirement
   - Configured Mongoose with proper schema definitions for Users, Activities, Bookings, Reviews, and Audit Logs
-  - MongoDB connection string: mongodb+srv://hamzacharafeddine77:FxUfGGZ8VRyflrGW@marrakechtours-cluster.cvyntkb.mongodb.net/marrakech-tours
+  - MongoDB connection string: <REDACTED>
   - Session management updated to use connect-mongo for MongoDB session storage
   - Application successfully serving on port 5000 with pure MongoDB architecture
   - **IP Whitelisting Required**: Replit server IP 35.247.74.178 must be added to MongoDB Atlas Network Access for full connectivity
