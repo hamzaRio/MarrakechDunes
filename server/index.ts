@@ -64,22 +64,26 @@ app.use((req: Request, res: Response, next: NextFunction) => {
     throw err;
   });
 
-  if (process.env.NODE_ENV === "development") {
-    // Only import vite in dev mode
-    const { setupVite } = await import("./vite");
-    await setupVite(app, server);
+if (process.env.NODE_ENV === "development") {
+  const loadVite = async () => {
+    const mod = await import(`./vite`);
+    return mod.setupVite;
+  };
+  (await loadVite())(app, server);
+} else {
+  // Serve built client in production
+  const clientDist = path.resolve(__dirname, "../client/dist");
+  if (fs.existsSync(clientDist)) {
+    app.use(express.static(clientDist));
+    app.get("*", (_req, res) => {
+      res.sendFile(path.join(clientDist, "index.html"));
+    });
   } else {
-    // Serve built static files in production
-    const clientDist = path.resolve(__dirname, "../client/dist");
-    if (fs.existsSync(clientDist)) {
-      app.use(express.static(clientDist));
-      app.get("*", (_req, res) => {
-        res.sendFile(path.join(clientDist, "index.html"));
-      });
-    } else {
-      console.error("❌ No built client found in production.");
-    }
+    console.error("❌ No built client found in production.");
   }
+}
+
+
 
   const port = Number(process.env.PORT) || 5000;
   server.listen(port, "0.0.0.0", () =>
