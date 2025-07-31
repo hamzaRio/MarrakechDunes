@@ -1,7 +1,8 @@
 import express, { type Request, Response, NextFunction, Express } from "express";
 import { registerRoutes } from "./routes";
-import { setupVite, serveStatic, log } from "./vite";
 import dotenv from "dotenv";
+import path from "path";
+import fs from "fs";
 
 dotenv.config();
 
@@ -45,7 +46,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
       if (logLine.length > 80) {
         logLine = logLine.slice(0, 79) + "…";
       }
-      log(logLine);
+      console.log(logLine);
     }
   });
 
@@ -63,14 +64,25 @@ app.use((req: Request, res: Response, next: NextFunction) => {
     throw err;
   });
 
-  // Setup Vite dev server or serve production build
-  if (app.get("env") === "development") {
+  if (process.env.NODE_ENV === "development") {
+    // Only import vite in dev mode
+    const { setupVite } = await import("./vite");
     await setupVite(app, server);
   } else {
-    serveStatic(app);
+    // Serve built static files in production
+    const clientDist = path.resolve(__dirname, "../client/dist");
+    if (fs.existsSync(clientDist)) {
+      app.use(express.static(clientDist));
+      app.get("*", (_req, res) => {
+        res.sendFile(path.join(clientDist, "index.html"));
+      });
+    } else {
+      console.error("❌ No built client found in production.");
+    }
   }
 
-  // Use PORT environment variable if provided (default 5000)
   const port = Number(process.env.PORT) || 5000;
-  server.listen(port, "0.0.0.0", () => log(`🚀 Server running on port ${port}`));
+  server.listen(port, "0.0.0.0", () =>
+    console.log(`🚀 Server running on port ${port}`)
+  );
 })();
