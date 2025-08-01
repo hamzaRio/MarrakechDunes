@@ -64,11 +64,13 @@ app.use((req: Request, res: Response, next: NextFunction) => {
     throw err;
   });
 
-  if (process.env.NODE_ENV === "development") {
-    // Dynamic import so vite is not included in production build
+ if (process.env.NODE_ENV === "development") {
+    // Dynamic import in dev mode only so vite never ends up in prod bundle
     const { setupVite } = await import("./vite");
     await setupVite(app, server);
-  } else {
+} else {
+    // No vite in production — serve built static files
+
     // Serve built client in production
     const clientDist = path.resolve(__dirname, "../client/dist");
     if (fs.existsSync(clientDist)) {
