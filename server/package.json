@@ -27,6 +27,7 @@
     "express-session": "^1.18.1",
     "helmet": "^8.1.0",
     "memoizee": "^0.4.17",
+    "memorystore": "^1.6.7",
     "mongoose": "^8.16.1",
     "nanoid": "^5.1.5",
     "openai": "^5.8.1",
