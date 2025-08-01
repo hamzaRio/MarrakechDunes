@@ -4,32 +4,33 @@ import dotenv from "dotenv";
 import path from "path";
 import fs from "fs";
 
-// ✅ Ensure .env is loaded in production and dev
+// ✅ Load .env for both development and production
 dotenv.config({ path: path.resolve(process.cwd(), ".env") });
 
 console.log("Initializing MarrakechDunes with MongoDB Atlas...");
 
-// ✅ Basic /api/health route for Render health check
 const app: Express = express();
+
+// ✅ Render Health Check Route
 app.get("/api/health", (_req: Request, res: Response) => {
   res.status(200).json({ status: "ok" });
 });
 
-// Warn if SESSION_SECRET is missing
+// ✅ Check for SESSION_SECRET at runtime
 if (!process.env.SESSION_SECRET) {
   console.error("❌ SESSION_SECRET is missing from environment variables.");
   process.exit(1);
 }
 
-// Configure trust proxy for rate limiting
+// Middleware setup
 app.set("trust proxy", true);
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Serve static files
+// Serve static assets
 app.use("/attached_assets", express.static("attached_assets"));
 
-// Logging middleware
+// Request logging middleware
 app.use((req: Request, res: Response, next: NextFunction) => {
   const start = Date.now();
   const requestPath = req.path;
@@ -48,9 +49,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
       if (capturedJsonResponse) {
         logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
       }
-      if (logLine.length > 80) {
-        logLine = logLine.slice(0, 79) + "…";
-      }
+      if (logLine.length > 80) logLine = logLine.slice(0, 79) + "…";
       console.log(logLine);
     }
   });
@@ -69,12 +68,13 @@ app.use((req: Request, res: Response, next: NextFunction) => {
     throw err;
   });
 
+  // Development vs Production handling
   if (process.env.NODE_ENV === "development") {
-    // Dynamic import in dev mode only so vite never ends up in prod bundle
+    // Only load Vite in development
     const { setupVite } = await import("./vite.dev.js");
     await setupVite(app, server);
   } else {
-    // Serve built client in production
+    // Serve client build in production
     const clientDist = path.resolve(__dirname, "../client/dist");
     if (fs.existsSync(clientDist)) {
       app.use(express.static(clientDist));
@@ -86,6 +86,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
     }
   }
 
+  // ✅ Use Render's PORT environment variable
   const port = Number(process.env.PORT) || 5000;
   server.listen(port, "0.0.0.0", () =>
     console.log(`🚀 Server running on port ${port}`)
