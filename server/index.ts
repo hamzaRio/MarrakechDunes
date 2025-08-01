@@ -65,8 +65,8 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   });
 
   if (process.env.NODE_ENV === "development") {
-    // Only import vite in dev mode (dynamic import so it's not bundled in prod)
-    const { setupVite } = await import("./vite.js");
+    // Dynamic import so vite is not included in production build
+    const { setupVite } = await import("./vite");
     await setupVite(app, server);
   } else {
     // Serve built client in production
