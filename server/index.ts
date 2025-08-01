@@ -3,6 +3,11 @@ import { registerRoutes } from "./routes";
 import dotenv from "dotenv";
 import path from "path";
 import fs from "fs";
+import { fileURLToPath } from "url"; // ✅ Needed for __dirname in ES modules
+
+// ✅ Recreate __dirname for ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // ✅ Load .env for both development and production
 dotenv.config({ path: path.resolve(process.cwd(), ".env") });
