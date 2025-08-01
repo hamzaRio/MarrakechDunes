@@ -66,7 +66,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 
 if (process.env.NODE_ENV === "development") {
   const loadVite = async () => {
-    const mod = await import(`./vite`);
+    const mod = await import("./vite");
     return mod.setupVite;
   };
   (await loadVite())(app, server);
@@ -82,6 +82,7 @@ if (process.env.NODE_ENV === "development") {
     console.error("❌ No built client found in production.");
   }
 }
+
 
 
 
