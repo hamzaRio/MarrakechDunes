@@ -17,11 +17,11 @@ RUN npm run build
 FROM node:20-alpine AS server-builder
 WORKDIR /app/server
 
-# Install server dependencies (include dev deps here for build tools)
+# Install server dependencies (include dev deps for build)
 COPY server/package*.json ./
 RUN npm install --legacy-peer-deps
 
-# Copy and build server
+# Copy server code & build
 COPY shared/ ../shared/
 COPY server/ ./
 COPY vite.config.* ../
@@ -31,8 +31,10 @@ RUN npm run build
 FROM node:20-alpine AS production
 WORKDIR /app
 
-# Install only production dependencies (no vite, no dev deps)
-COPY package*.json ./
+# Copy ONLY server's package.json so production dependencies match build
+COPY server/package*.json ./
+
+# Install production dependencies (includes dotenv now)
 RUN npm install --legacy-peer-deps --omit=dev && npm cache clean --force
 
 # Copy build artifacts
@@ -49,7 +51,7 @@ RUN addgroup -g 1001 -S nodejs && \
     chown -R marrakech:nodejs /app
 USER marrakech
 
-# Health check
+# Health check (matches /api/health in index.ts)
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD node -e "const http=require('http');const port=process.env.PORT||5000;http.get('http://localhost:'+port+'/api/health',res=>process.exit(res.statusCode===200?0:1)).on('error',()=>process.exit(1));"
 

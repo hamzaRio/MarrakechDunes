@@ -4,17 +4,22 @@ import dotenv from "dotenv";
 import path from "path";
 import fs from "fs";
 
-dotenv.config();
+// ✅ Ensure .env is loaded in production and dev
+dotenv.config({ path: path.resolve(process.cwd(), ".env") });
 
 console.log("Initializing MarrakechDunes with MongoDB Atlas...");
+
+// ✅ Basic /api/health route for Render health check
+const app: Express = express();
+app.get("/api/health", (_req: Request, res: Response) => {
+  res.status(200).json({ status: "ok" });
+});
 
 // Warn if SESSION_SECRET is missing
 if (!process.env.SESSION_SECRET) {
   console.error("❌ SESSION_SECRET is missing from environment variables.");
   process.exit(1);
 }
-
-const app: Express = express();
 
 // Configure trust proxy for rate limiting
 app.set("trust proxy", true);
@@ -64,13 +69,11 @@ app.use((req: Request, res: Response, next: NextFunction) => {
     throw err;
   });
 
- if (process.env.NODE_ENV === "development") {
+  if (process.env.NODE_ENV === "development") {
     // Dynamic import in dev mode only so vite never ends up in prod bundle
     const { setupVite } = await import("./vite.dev.js");
     await setupVite(app, server);
-} else {
-    // No vite in production — serve built static files
-
+  } else {
     // Serve built client in production
     const clientDist = path.resolve(__dirname, "../client/dist");
     if (fs.existsSync(clientDist)) {
