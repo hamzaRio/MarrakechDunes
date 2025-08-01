@@ -27,7 +27,7 @@ app.use("/attached_assets", express.static("attached_assets"));
 // Logging middleware
 app.use((req: Request, res: Response, next: NextFunction) => {
   const start = Date.now();
-  const path = req.path;
+  const requestPath = req.path;
   let capturedJsonResponse: Record<string, any> | undefined;
 
   const originalResJson = res.json.bind(res);
@@ -38,8 +38,8 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 
   res.on("finish", () => {
     const duration = Date.now() - start;
-    if (path.startsWith("/api")) {
-      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
+    if (requestPath.startsWith("/api")) {
+      let logLine = `${req.method} ${requestPath} ${res.statusCode} in ${duration}ms`;
       if (capturedJsonResponse) {
         logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
       }
@@ -64,27 +64,22 @@ app.use((req: Request, res: Response, next: NextFunction) => {
     throw err;
   });
 
-if (process.env.NODE_ENV === "development") {
-  const loadVite = async () => {
-    const mod = await import("./vite");
-    return mod.setupVite;
-  };
-  (await loadVite())(app, server);
-} else {
-  // Serve built client in production
-  const clientDist = path.resolve(__dirname, "../client/dist");
-  if (fs.existsSync(clientDist)) {
-    app.use(express.static(clientDist));
-    app.get("*", (_req, res) => {
-      res.sendFile(path.join(clientDist, "index.html"));
-    });
+  if (process.env.NODE_ENV === "development") {
+    // Only import vite in dev mode (dynamic import so it's not bundled in prod)
+    const { setupVite } = await import("./vite.js");
+    await setupVite(app, server);
   } else {
-    console.error("❌ No built client found in production.");
+    // Serve built client in production
+    const clientDist = path.resolve(__dirname, "../client/dist");
+    if (fs.existsSync(clientDist)) {
+      app.use(express.static(clientDist));
+      app.get("*", (_req, res) => {
+        res.sendFile(path.join(clientDist, "index.html"));
+      });
+    } else {
+      console.error("❌ No built client found in production.");
+    }
   }
-}
-
-
-
 
   const port = Number(process.env.PORT) || 5000;
   server.listen(port, "0.0.0.0", () =>
