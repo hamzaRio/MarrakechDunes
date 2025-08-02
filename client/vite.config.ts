@@ -12,16 +12,18 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, './src'),
       '@assets': path.resolve(__dirname, './public/assets'),
+      '@assets': path.resolve(__dirname, './public/assets'),
       '@shared': path.resolve(__dirname, '../shared'),
     },
   },
   optimizeDeps: {
-    include: ['zod'],
+    include: ['zod'], // ✅ Pre-bundle zod
   },
   build: {
     outDir: 'dist',
     sourcemap: false,
     rollupOptions: {
+      external: [], // ✅ Do NOT exclude zod
       output: {
         manualChunks: {
           vendor: ['react', 'react-dom'],
@@ -37,7 +39,7 @@ export default defineConfig({
       '/api': {
         target: process.env.VITE_API_URL || 'http://localhost:5000',
         changeOrigin: true,
-      }, 
+      },
     },
   },
   define: {
