@@ -1,21 +1,27 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
+import { fileURLToPath } from 'url';
+
+// __dirname is not available in ESM, recreate it for use in aliases below
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
-       '@assets': path.resolve(__dirname, './public/assets'),
+      '@assets': path.resolve(__dirname, './public/assets'),
       '@shared': path.resolve(__dirname, '../shared'),
     },
+  },
+  optimizeDeps: {
+    include: ['zod'],
   },
   build: {
     outDir: 'dist',
     sourcemap: false,
     rollupOptions: {
-       external: ['zod'], 
       output: {
         manualChunks: {
           vendor: ['react', 'react-dom'],
