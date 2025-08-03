@@ -3,6 +3,7 @@ import { registerRoutes } from "./routes";
 import dotenv from "dotenv";
 import path from "path";
 import fs from "fs";
+import cors from "cors";
 import { fileURLToPath } from "url"; // ✅ Needed for __dirname in ES modules
 
 // ✅ Recreate __dirname for ES modules
@@ -15,6 +16,13 @@ dotenv.config({ path: path.resolve(process.cwd(), ".env") });
 console.log("Initializing MarrakechDunes with MongoDB Atlas...");
 
 const app: Express = express();
+
+app.use(
+  cors({
+    origin: process.env.CLIENT_URL,
+    credentials: true,
+  })
+);
 
 // ✅ Render Health Check Route
 app.get("/api/health", (_req: Request, res: Response) => {

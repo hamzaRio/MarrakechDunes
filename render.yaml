@@ -17,11 +17,15 @@ services:
         sync: false
       - key: ADMIN_DEFAULT_PASSWORD
         sync: false
+      - key: CLIENT_URL
+        sync: false
       - key: ADMIN_PHONE_AHMED
         sync: false
       - key: ADMIN_PHONE_YAHIA
         sync: false
       - key: ADMIN_PHONE_NADIA
+        sync: false
+      - key: WHATSAPP_RECEIVERS
         sync: false
     disk:
       name: marrakech-assets

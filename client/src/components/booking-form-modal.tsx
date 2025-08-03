@@ -85,22 +85,10 @@ export default function BookingFormModal({
 
   const createBookingMutation = useMutation({
     mutationFn: async (data: BookingFormData) => {
-      const response = await fetch("/api/bookings", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          ...data,
-          preferredDate: data.preferredDate ? new Date(data.preferredDate) : undefined,
-        }),
-        credentials: "include",
+      const response = await apiRequest("POST", "/api/bookings", {
+        ...data,
+        preferredDate: data.preferredDate ? new Date(data.preferredDate) : undefined,
       });
-
-      if (!response.ok) {
-        const errorData = await response.text();
-        throw new Error(errorData || "Failed to create booking");
-      }
 
       return await response.json();
     },
