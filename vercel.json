@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "buildCommand": "cd client && npm install --legacy-peer-deps && npm run build",
+  "buildCommand": "npm run build --workspace=client",
   "outputDirectory": "client/dist",
-  "installCommand": "cd client && npm install --legacy-peer-deps",
+  "installCommand": "npm install",
   "framework": "vite",
   "rewrites": [
     {
