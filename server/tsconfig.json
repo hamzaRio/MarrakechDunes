@@ -13,6 +13,7 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "outDir": "./dist",
+    "rootDir": "..",
     "baseUrl": ".",
     "paths": {
       "@shared/*": ["../shared/*"]
@@ -20,10 +21,12 @@
   },
   "include": [
     "**/*.ts",
-    "../shared"
+    "../shared/**/*.ts"
   ],
   "exclude": [
     "node_modules",
-    "dist"
+    "dist",
+    "vite.dev.ts",
+    "../vite.config.ts"
   ]
 }

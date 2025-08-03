@@ -6,7 +6,7 @@ import bcrypt from "bcrypt";
 import { storage } from "./storage";
 import { insertBookingSchema, insertReviewSchema, insertActivitySchema } from "@shared/schema";
 import { whatsappService } from "./whatsapp-service";
-import { z } from "zod";
+import { z, ZodError } from "zod";
 import {
   authRateLimit,
   adminApiRateLimit,
@@ -212,8 +212,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       res.status(201).json(booking);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
+    } catch (error: unknown) {
+      if (error instanceof ZodError) {
         return res.status(400).json({ message: "Validation error" });
       }
       console.error("Error creating booking:", error);
@@ -562,8 +562,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       res.status(201).json(activity);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
+    } catch (error: unknown) {
+      if (error instanceof ZodError) {
         return res.status(400).json({ message: "Validation error" });
       }
       console.error("Error creating activity:", error);
@@ -586,8 +586,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       res.json(activity);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
+    } catch (error: unknown) {
+      if (error instanceof ZodError) {
         return res.status(400).json({ message: "Validation error" });
       }
       console.error("Error updating activity:", error);
@@ -643,8 +643,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validatedData = insertReviewSchema.parse(req.body);
       const review = await storage.createReview(validatedData);
       res.status(201).json(review);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
+    } catch (error: unknown) {
+      if (error instanceof ZodError) {
         return res.status(400).json({ 
           message: "Validation error", 
           errors: error.errors 
