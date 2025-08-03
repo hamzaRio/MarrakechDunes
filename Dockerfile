@@ -1,52 +1,36 @@
-# ===============================
-# Stage 1: Build the client
-# ===============================
-FROM node:20-alpine AS client-builder
-WORKDIR /app/client
+# Stage 1: install dependencies and build workspaces
+FROM node:20-alpine AS builder
+WORKDIR /app
 
-# Install client dependencies
-COPY client/package*.json ./
-RUN npm install --legacy-peer-deps
-RUN npm install zod --legacy-peer-deps
+# Copy package manifests for root and workspaces
+COPY package*.json ./
+COPY client/package*.json ./client/
+COPY server/package*.json ./server/
 
-# Copy and build client
-COPY shared/ ../shared/
-COPY scripts/ ../scripts/
-COPY client/ ./
+# Install all dependencies for the monorepo
+RUN npm install --legacy-peer-deps --workspaces
+
+# Copy source code
+COPY . .
+
+# Build client and server using workspaces
 RUN npm run build
 
-# ===============================
-# Stage 2: Build the server
-# ===============================
-FROM node:20-alpine AS server-builder
-WORKDIR /app/server
-
-# Install ALL server dependencies (including dev for build)
-COPY server/package*.json ./
-RUN npm install --legacy-peer-deps
-
-# Copy server source and build it
-COPY shared/ ../shared/
-COPY server/ ./
-COPY vite.config.* ../
-RUN npm run build
-
-# ===============================
-# Stage 3: Production runtime
-# ===============================
+# Stage 2: production image
 FROM node:20-alpine AS production
 WORKDIR /app
 
-# Copy ONLY server's package.json so production deps match server needs
-COPY server/package*.json ./
+# Copy root and server package manifests
+COPY package*.json ./
+COPY server/package*.json ./server/
 
-# Install production dependencies (includes dotenv + zod now)
-RUN npm install --legacy-peer-deps --omit=dev && npm cache clean --force
+# Install only production dependencies
+RUN npm install --legacy-peer-deps --workspaces --omit=dev && npm cache clean --force
 
-# Copy built artifacts from build stages
-COPY --from=client-builder /app/client/dist ./dist/public
-COPY --from=server-builder /app/server/dist ./dist
-COPY --from=server-builder /app/shared ./shared
+# Copy built artifacts from builder
+COPY --from=builder /app/server/dist ./dist
+COPY --from=builder /app/client/dist ./dist/public
+COPY --from=builder /app/shared ./shared
 
 # Persistent assets folder
 RUN mkdir -p /attached_assets
