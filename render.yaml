@@ -1,11 +1,5 @@
 services:
   - type: web
-    name: marrakech-dunes-backend
-    runtime: docker
-    plan: starter
-    region: frankfurt
-    dockerfilePath: Dockerfile
-    healthCheckPath: /api/health
     envVars:
       - key: NODE_ENV
         value: production
@@ -13,13 +7,15 @@ services:
         value: <your-mongo-uri>
       - key: SESSION_SECRET
         sync: false
-      - key: JWT_SECRET
+
+      # WhatsApp configuration (optional)
+      - key: WHATSAPP_API_KEY
         sync: false
       - key: ADMIN_DEFAULT_PASSWORD
         sync: false
       - key: CLIENT_URL
         sync: false
-      - key: ADMIN_PHONE_AHMED
+      - key: WHATSAPP_RECEIVERS
         sync: false
       - key: ADMIN_PHONE_YAHIA
         sync: false
@@ -31,4 +27,5 @@ services:
       name: marrakech-assets
       mountPath: /app/attached_assets
       sizeGB: 1
+
     autoDeploy: true

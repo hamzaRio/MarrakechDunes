@@ -24,8 +24,5 @@
         }
       ]
     }
-  ],
-  "env": {
-    "VITE_API_URL": "https://marrakech-dunes-backend.onrender.com"
-  }
+  ]
 }

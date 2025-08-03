@@ -1,49 +1,45 @@
-# Stage 1: install dependencies and build workspaces
-FROM node:20-alpine AS builder
-WORKDIR /app
+# ===========================
+# Stage 1: Build the client
+# ===========================
+FROM node:20-alpine AS client-builder
+WORKDIR /app/client
 
-# Copy package manifests for root and workspaces
-COPY package*.json ./
-COPY client/package*.json ./client/
-COPY server/package*.json ./server/
+# Install client dependencies
+COPY client/package*.json ./
+RUN npm install --legacy-peer-deps
+RUN npm install --legacy-peer-deps
 
-# Install all dependencies for the monorepo
-RUN npm install --legacy-peer-deps --workspaces
+# Copy and build client
+COPY shared/ ../shared/
+COPY scripts/ ./scripts/
+COPY client/ ./
 
-# Copy source code
-COPY . .
+# ===========================
+# Stage 2: Build the server
+# ===========================
+FROM node:20-alpine AS server-builder
+WORKDIR /app/server
 
-# Build client and server using workspaces
+# Install server dependencies
+COPY server/package*.json ./
+RUN npm install --legacy-peer-deps
+
+# Copy shared code and server source
+COPY shared/ ../shared/
+COPY server/ ./
+
+# Build server
 RUN npm run build
 
-# Stage 2: production image
-FROM node:20-alpine AS production
+# ===========================
+# Stage 3: Production runtime
+# ===========================
+FROM node:20-alpine AS runtime
 WORKDIR /app
 
-# Copy root and server package manifests
-COPY package*.json ./
-COPY server/package*.json ./server/
-
-# Install only production dependencies
-RUN npm install --legacy-peer-deps --workspaces --omit=dev && npm cache clean --force
-
-# Copy built artifacts from builder
-COPY --from=builder /app/server/dist ./dist
-COPY --from=builder /app/client/dist ./dist/public
-COPY --from=builder /app/shared ./shared
-
-# Persistent assets folder
-RUN mkdir -p /attached_assets
-
-# Set permissions for Render's non-root user
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S marrakech -u 1001 && \
-    chown -R marrakech:nodejs /app
-USER marrakech
-
-# Health check for Render
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD node -e "const http=require('http');const port=process.env.PORT||5000;http.get('http://localhost:'+port+'/api/health',res=>process.exit(res.statusCode===200?0:1)).on('error',()=>process.exit(1));"
+# Copy built server and client
+COPY --from=server-builder /app/server/dist ./server/dist
+COPY --from=client-builder /app/client/dist ./client/dist
 
 # Start server
-CMD ["node", "dist/index.js"]
+CMD ["node", "server/dist/index.js"]
