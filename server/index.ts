@@ -29,10 +29,9 @@ app.get("/api/health", (_req: Request, res: Response) => {
   res.status(200).json({ status: "ok" });
 });
 
-// ✅ Check for SESSION_SECRET at runtime
+// ✅ Check for SESSION_SECRET at runtime but don't crash build
 if (!process.env.SESSION_SECRET) {
-  console.error("❌ SESSION_SECRET is missing from environment variables.");
-  process.exit(1);
+  console.warn("\u26a0\ufe0f SESSION_SECRET is missing from environment variables.");
 }
 
 // Middleware setup

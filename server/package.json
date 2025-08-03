@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "NODE_ENV=development tsx index.ts",
-    "build": "esbuild index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist --external:vite --external:./vite.dev.ts",
+    "build": "tsc",
     "start": "NODE_ENV=production node dist/index.js",
     "check": "tsc --noEmit"
   },
@@ -36,8 +36,7 @@
     "passport": "^0.7.0",
     "passport-local": "^1.0.0",
     "stripe": "^18.2.1",
-    "ws": "^8.18.0",
-    "zod": "^3.25.76"
+    "ws": "^8.18.0"
   },
   "devDependencies": {
     "@types/body-parser": "^1.19.6",
