@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { apiRequest } from "@/lib/queryClient";
 
 interface ActivityRatingProps {
   activityId: string;
@@ -21,8 +22,7 @@ export default function ActivityRating({
   const { data: rating, isLoading } = useQuery<RatingData>({
     queryKey: [`/api/activities/${activityId}/rating`],
     queryFn: async () => {
-      const response = await fetch(`/api/activities/${activityId}/rating`);
-      if (!response.ok) throw new Error("Failed to fetch rating");
+      const response = await apiRequest("GET", `/api/activities/${activityId}/rating`);
       return response.json();
     },
   });

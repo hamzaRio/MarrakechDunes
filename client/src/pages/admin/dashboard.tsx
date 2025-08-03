@@ -14,6 +14,7 @@ import { WhatsAppNotificationPanel } from "@/components/whatsapp-notification-pa
 import SystemHealthMonitor from "@/components/system-health-monitor";
 import { useState } from "react";
 import type { BookingWithActivity, ActivityType, AuditLogType } from "@shared/schema";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function AdminDashboard() {
   const { user } = useAuth();
@@ -43,11 +44,8 @@ export default function AdminDashboard() {
   // Admin booking management functions
   const handleBookingStatusUpdate = async (bookingId: string, status: string) => {
     try {
-      await fetch(`/api/admin/bookings/${bookingId}/status`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status }),
-        credentials: 'include'
+      await apiRequest('PATCH', `/api/admin/bookings/${bookingId}/status`, {
+        status,
       });
       // Refresh bookings data
       window.location.reload();

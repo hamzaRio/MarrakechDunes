@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Star, User, Calendar, CheckCircle } from "lucide-react";
 import { useLanguage } from "@/hooks/useLanguage";
 import type { ReviewWithActivity } from "@shared/schema";
+import { apiRequest } from "@/lib/queryClient";
 
 interface ReviewListProps {
   activityId?: string;
@@ -18,8 +19,7 @@ export default function ReviewList({ activityId, showActivityName = false, limit
     queryKey: activityId ? ["/api/reviews", { activityId }] : ["/api/reviews"],
     queryFn: async () => {
       const url = activityId ? `/api/reviews?activityId=${activityId}` : "/api/reviews";
-      const response = await fetch(url);
-      if (!response.ok) throw new Error("Failed to fetch reviews");
+      const response = await apiRequest("GET", url);
       return response.json();
     },
   });

@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Star, Users, Calendar, MapPin, Clock, Heart } from "lucide-react";
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 interface Recommendation {
   id: string;
   activityId: string;
@@ -55,7 +57,7 @@ export default function SmartRecommendations() {
         score: 95,
         category: 'similar',
         price: 5000,
-        image: '/api/placeholder/300/200',
+        image: `${API_URL}/api/placeholder/300/200`,
         rating: 4.8,
         duration: '3 days'
       },
@@ -67,7 +69,7 @@ export default function SmartRecommendations() {
         score: 88,
         category: 'seasonal',
         price: 1500,
-        image: '/api/placeholder/300/200',
+        image: `${API_URL}/api/placeholder/300/200`,
         rating: 4.7,
         duration: '1 day'
       },
@@ -79,7 +81,7 @@ export default function SmartRecommendations() {
         score: 82,
         category: 'popular',
         price: 1500,
-        image: '/api/placeholder/300/200',
+        image: `${API_URL}/api/placeholder/300/200`,
         rating: 4.6,
         duration: '1 day'
       },
@@ -91,7 +93,7 @@ export default function SmartRecommendations() {
         score: 79,
         category: 'weather',
         price: 1200,
-        image: '/api/placeholder/300/200',
+        image: `${API_URL}/api/placeholder/300/200`,
         rating: 4.5,
         duration: '4 hours'
       }

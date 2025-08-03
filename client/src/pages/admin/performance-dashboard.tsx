@@ -7,17 +7,17 @@ import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { 
-  Activity, 
-  TrendingUp, 
-  TrendingDown, 
-  Users, 
-  Clock, 
-  Server, 
-  Database, 
-  Zap, 
-  AlertTriangle, 
-  CheckCircle, 
+import {
+  Activity,
+  TrendingUp,
+  TrendingDown,
+  Users,
+  Clock,
+  Server,
+  Database,
+  Zap,
+  AlertTriangle,
+  CheckCircle,
   RefreshCw,
   Calendar,
   DollarSign,
@@ -29,6 +29,7 @@ import {
   Settings,
   Wrench
 } from 'lucide-react';
+import { apiRequest } from '@/lib/queryClient';
 
 interface PerformanceMetrics {
   responseTime: {
@@ -80,7 +81,7 @@ export default function PerformanceDashboard() {
   const { data: metrics, isLoading, refetch } = useQuery<PerformanceMetrics>({
     queryKey: ['/api/admin/performance-metrics', timeRange],
     queryFn: async () => {
-      const response = await fetch(`/api/admin/performance-metrics?range=${timeRange}`);
+      const response = await apiRequest('GET', `/api/admin/performance-metrics?range=${timeRange}`);
       return (await response.json()) as PerformanceMetrics;
     },
     refetchInterval: autoRefresh ? 30000 : false, // 30 seconds
