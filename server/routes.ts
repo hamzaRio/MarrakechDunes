@@ -214,7 +214,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json(booking);
     } catch (error: unknown) {
       if (error instanceof ZodError) {
-        return res.status(400).json({ message: "Validation error" });
+        return res.status(400).json({
+          message: "Validation error",
+          issues: error.issues
+        });
       }
       console.error("Error creating booking:", error);
       res.status(500).json({ message: "Failed to create booking" });
@@ -564,7 +567,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json(activity);
     } catch (error: unknown) {
       if (error instanceof ZodError) {
-        return res.status(400).json({ message: "Validation error" });
+        return res.status(400).json({
+          message: "Validation error",
+          issues: error.issues
+        });
       }
       console.error("Error creating activity:", error);
       res.status(500).json({ message: "Failed to create activity" });
@@ -588,7 +594,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(activity);
     } catch (error: unknown) {
       if (error instanceof ZodError) {
-        return res.status(400).json({ message: "Validation error" });
+        return res.status(400).json({
+          message: "Validation error",
+          issues: error.issues
+        });
       }
       console.error("Error updating activity:", error);
       res.status(500).json({ message: "Failed to update activity" });
@@ -645,9 +654,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json(review);
     } catch (error: unknown) {
       if (error instanceof ZodError) {
-        return res.status(400).json({ 
-          message: "Validation error", 
-          errors: error.errors 
+        return res.status(400).json({
+          message: "Validation error",
+          issues: error.issues
         });
       }
       console.error("Error creating review:", error);
