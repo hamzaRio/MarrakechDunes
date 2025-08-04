@@ -1,38 +1,39 @@
-# ===========================
-# Stage 1: Build the client
-# ===========================
-FROM node:20-alpine AS client-builder
-WORKDIR /app/client
+# --- Base Stage ---
+FROM node:20-slim AS base
+WORKDIR /app
+COPY package*.json ./
 
-COPY client/package*.json ./
-RUN npm install --legacy-peer-deps
+# Install only prod deps in production, all deps in development
+ARG NODE_ENV=production
+RUN if [ "$NODE_ENV" = "production" ]; then \
+      npm ci --only=production; \
+    else \
+      npm install; \
+    fi
 
-COPY shared/ ../shared/
-COPY scripts/ ./scripts/
-COPY client/ ./
+# --- Build Stage ---
+FROM base AS build
+WORKDIR /app
+COPY . .
+
+# Compile TypeScript for server and shared
 RUN npm run build
 
-# ===========================
-# Stage 2: Build the server
-# ===========================
-FROM node:20-alpine AS server-builder
-WORKDIR /app/server
-
-COPY server/package*.json ./
-RUN npm install --legacy-peer-deps --only=production
-
-COPY shared/ ../shared/
-COPY server/ ./
-RUN npm run build
-
-# ===========================
-# Stage 3: Production runtime
-# ===========================
-FROM node:20-alpine AS runtime
+# --- Production Stage ---
+FROM node:20-slim AS prod
 WORKDIR /app
 
-COPY --from=server-builder /app/server/dist ./server/dist
-COPY --from=client-builder /app/client/dist ./client/dist
-COPY server/package*.json ./server/
+# Copy only necessary files from build stage
+COPY --from=build /app/dist ./dist
+COPY package*.json ./
 
-CMD ["node", "server/dist/index.js"]
+# Install only production dependencies
+RUN npm ci --only=production
+
+# Use port from environment (Render/Vercel) or default to 3000
+ENV PORT=${PORT:-3000}
+
+EXPOSE ${PORT}
+
+# Command to run server in production
+CMD ["node", "dist/index.js"]
