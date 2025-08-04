@@ -1,9 +1,12 @@
 import express, { type Express } from "express";
 import fs from "fs";
 import path from "path";
-import { fileURLToPath } from "url";
 import { type Server } from "http";
 import { nanoid } from "nanoid";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
@@ -12,7 +15,6 @@ export function log(message: string, source = "express") {
     second: "2-digit",
     hour12: true,
   });
-
   console.log(`${formattedTime} [${source}] ${message}`);
 }
 
@@ -22,7 +24,7 @@ export async function setupVite(app: Express, server: Server) {
     return;
   }
 
-  const viteConfig = (await import("../vite.config.ts")).default;
+  const viteConfig = (await import(path.resolve(__dirname, "../vite.config.ts"))).default;
   const { createServer: createViteServer, createLogger } = await import("vite");
   const viteLogger = createLogger();
 
@@ -49,7 +51,6 @@ export async function setupVite(app: Express, server: Server) {
   app.use(vite.middlewares);
   app.use("*", async (req, res, next) => {
     const url = req.originalUrl;
-    const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
     try {
       const clientTemplate = path.resolve(__dirname, "..", "client", "index.html");
@@ -69,7 +70,6 @@ export async function setupVite(app: Express, server: Server) {
 }
 
 export function serveStatic(app: Express) {
-  const __dirname = path.dirname(fileURLToPath(import.meta.url));
   const distPath = path.resolve(__dirname, "public");
 
   if (!fs.existsSync(distPath)) {

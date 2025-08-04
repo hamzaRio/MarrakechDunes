@@ -4,7 +4,6 @@
     "lib": ["ES2022"],
     "module": "ESNext",
     "moduleResolution": "node",
-    "allowImportingTsExtensions": true,
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "allowJs": true,
@@ -14,11 +13,12 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "outDir": "./dist",
-    "rootDir": "..",
+    "rootDir": ".",
     "baseUrl": ".",
     "paths": {
       "@shared/*": ["../shared/*"]
-    }
+    },
+    "allowImportingTsExtensions": true
   },
   "include": [
     "**/*.ts",
