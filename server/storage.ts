@@ -13,7 +13,7 @@ import type {
   InsertReview,
   BookingWithActivity,
   ReviewWithActivity,
-} from "../shared/schema";
+} from "./shared/schema.js";
 
 // MongoDB connection string - ensure proper format
 const MONGODB_URI = process.env.MONGODB_URI;

@@ -3,7 +3,7 @@
     "target": "ES2022",
     "lib": ["ES2022"],
     "module": "ESNext",
-    "moduleResolution": "node",
+    "moduleResolution": "Bundler",
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "allowJs": true,
@@ -13,15 +13,15 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "outDir": "./dist",
-    "rootDir": "..",
+    "rootDir": ".",
     "baseUrl": ".",
     "paths": {
       "@shared/*": ["../shared/*"]
-    }
+    },
+    "rootDirs": [".", "../shared"]
   },
   "include": [
-    "../server/**/*.ts",
-    "../shared/**/*.ts"
+    "./**/*.ts"
   ],
   "exclude": [
     "node_modules",

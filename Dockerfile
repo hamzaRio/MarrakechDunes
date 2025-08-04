@@ -20,17 +20,16 @@ RUN npm run build --workspace=client && npm run build --workspace=server
 FROM node:20-slim AS prod
 WORKDIR /app
 
-# Copy frontend and backend build output
-COPY --from=build /app/client/dist ./client/dist
-COPY --from=build /app/server/dist/server ./server/dist
-COPY --from=build /app/server/dist/shared ./server/dist/shared
-
-# Copy package files
+# Copy package files for production install
 COPY --from=build /app/package*.json ./
 COPY --from=build /app/server/package*.json ./server/
 
 # Install only production dependencies
-RUN npm ci --only=production --legacy-peer-deps
+RUN npm ci --omit=dev --legacy-peer-deps
+
+# Copy frontend and backend build output
+COPY --from=build /app/server/dist ./server/dist
+COPY --from=build /app/client/dist ./client/dist
 
 # Set default port
 ENV PORT=3000
