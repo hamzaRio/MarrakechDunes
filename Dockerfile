@@ -20,8 +20,10 @@ RUN npm run build --workspace=client && npm run build --workspace=server
 FROM node:20-slim AS prod
 WORKDIR /app
 
-# Copy backend build output
-COPY --from=build /app/server/dist ./server/dist
+# Copy frontend and backend build output
+COPY --from=build /app/client/dist ./client/dist
+COPY --from=build /app/server/dist/server ./server/dist
+COPY --from=build /app/server/dist/shared ./server/dist/shared
 
 # Copy package files
 COPY --from=build /app/package*.json ./

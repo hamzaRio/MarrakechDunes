@@ -20,7 +20,7 @@
     }
   },
   "include": [
-    "./**/*.ts",
+    "../server/**/*.ts",
     "../shared/**/*.ts"
   ],
   "exclude": [
