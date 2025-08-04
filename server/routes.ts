@@ -645,9 +645,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json(review);
     } catch (error: unknown) {
       if (error instanceof ZodError) {
-        return res.status(400).json({ 
-          message: "Validation error", 
-          errors: error.errors 
+        return res.status(400).json({
+          message: "Validation error",
+          issues: error.issues
         });
       }
       console.error("Error creating review:", error);
