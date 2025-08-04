@@ -4,15 +4,13 @@
 FROM node:20-alpine AS client-builder
 WORKDIR /app/client
 
-# Install client dependencies
 COPY client/package*.json ./
 RUN npm install --legacy-peer-deps
-RUN npm install --legacy-peer-deps
 
-# Copy and build client
 COPY shared/ ../shared/
 COPY scripts/ ./scripts/
 COPY client/ ./
+RUN npm run build
 
 # ===========================
 # Stage 2: Build the server
@@ -20,15 +18,11 @@ COPY client/ ./
 FROM node:20-alpine AS server-builder
 WORKDIR /app/server
 
-# Install server dependencies
 COPY server/package*.json ./
-RUN npm install --legacy-peer-deps
+RUN npm install --legacy-peer-deps --only=production
 
-# Copy shared code and server source
 COPY shared/ ../shared/
 COPY server/ ./
-
-# Build server
 RUN npm run build
 
 # ===========================
@@ -37,9 +31,8 @@ RUN npm run build
 FROM node:20-alpine AS runtime
 WORKDIR /app
 
-# Copy built server and client
 COPY --from=server-builder /app/server/dist ./server/dist
 COPY --from=client-builder /app/client/dist ./client/dist
+COPY server/package*.json ./server/
 
-# Start server
 CMD ["node", "server/dist/index.js"]
