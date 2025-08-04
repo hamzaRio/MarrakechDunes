@@ -13,20 +13,21 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "outDir": "./dist",
-    "rootDir": ".",
+    "rootDir": "..",
     "baseUrl": ".",
     "paths": {
       "@shared/*": ["../shared/*"]
     }
-    // Removed: "allowImportingTsExtensions"
   },
   "include": [
-    "**/*.ts",
+    "./**/*.ts",
     "../shared/**/*.ts"
   ],
   "exclude": [
     "node_modules",
-    "dist",
-    "../vite.config.ts"  // Explicitly exclude vite config
+    "../client",
+    "../client/**",
+    "../vite.config.ts",
+    "dist"
   ]
 }
