@@ -12,21 +12,23 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "outDir": "./dist",
-    "rootDir": ".",
-    "baseUrl": ".",
+    "outDir": "../dist",
+    "rootDir": "..",
+    "baseUrl": "..",
     "paths": {
-      "@shared/*": ["../shared/*"]
+      "@shared/*": ["shared/*"]
     }
-    // Removed: "allowImportingTsExtensions"
   },
   "include": [
-    "**/*.ts",
+    "./**/*.ts",
     "../shared/**/*.ts"
   ],
   "exclude": [
     "node_modules",
-    "dist",
-    "../vite.config.ts"  // Explicitly exclude vite config
+    "../client",
+    "../dist",
+    "../client/**",
+    "vite.config.ts",
+    "../vite.config.ts"
   ]
 }

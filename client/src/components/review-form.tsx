@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { insertReviewSchema } from "@shared/schema";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/hooks/useLanguage";
 import { Button } from "@/components/ui/button";

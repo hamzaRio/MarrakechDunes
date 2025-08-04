@@ -29,7 +29,7 @@ import {
   Settings,
   Wrench
 } from 'lucide-react';
-import { apiRequest } from '@/lib/queryClient';
+import { apiRequest } from '@/lib/api';
 
 interface PerformanceMetrics {
   responseTime: {

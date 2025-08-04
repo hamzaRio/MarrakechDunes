@@ -14,7 +14,7 @@ import { WhatsAppNotificationPanel } from "@/components/whatsapp-notification-pa
 import SystemHealthMonitor from "@/components/system-health-monitor";
 import { useState } from "react";
 import type { BookingWithActivity, ActivityType, AuditLogType } from "@shared/schema";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest } from "@/lib/api";
 
 export default function AdminDashboard() {
   const { user } = useAuth();

@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Star, User, Calendar, CheckCircle } from "lucide-react";
 import { useLanguage } from "@/hooks/useLanguage";
 import type { ReviewWithActivity } from "@shared/schema";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest } from "@/lib/api";
 
 interface ReviewListProps {
   activityId?: string;

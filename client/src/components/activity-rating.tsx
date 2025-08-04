@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Star } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest } from "@/lib/api";
 
 interface ActivityRatingProps {
   activityId: string;

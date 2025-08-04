@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { ActivityType, insertBookingSchema } from "@shared/schema";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { sendWhatsAppBooking } from "@/lib/whatsapp";
 import Navbar from "@/components/navbar";
