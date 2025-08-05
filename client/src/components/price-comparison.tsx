@@ -2,8 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { TrendingUp, TrendingDown, Check, Star, MapPin, Clock } from 'lucide-react';
-import { useLanguage } from '@/hooks/useLanguage';
+import { TrendingUp, TrendingDown, Check, Star, Clock } from 'lucide-react';
 import type { ActivityType } from '@shared/schema';
 
 interface CompetitorPrice {
@@ -168,7 +167,6 @@ const getCompetitorPrices = (activityName: string): CompetitorPrice[] => {
 };
 
 export default function PriceComparison({ activity, className = "" }: PriceComparisonProps) {
-  const { t } = useLanguage();
   const [competitors, setCompetitors] = useState<CompetitorPrice[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 

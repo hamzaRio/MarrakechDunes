@@ -6,7 +6,6 @@ import { z } from "zod";
 import { insertReviewSchema } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { useLanguage } from "@/hooks/useLanguage";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -26,7 +25,6 @@ interface ReviewFormProps {
 export default function ReviewForm({ activityId, activityName, bookingId, onSuccess }: ReviewFormProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { t } = useLanguage();
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
 

@@ -385,10 +385,10 @@ export default function Booking() {
                                     <PhoneInput
                                       country={'ma'}
                                       value={field.value}
-                                      onChange={(value, countryData) => {
-                                        const formattedValue = '+' + value;
-                                        field.onChange(formattedValue);
-                                      }}
+                                        onChange={(value) => {
+                                          const formattedValue = '+' + value;
+                                          field.onChange(formattedValue);
+                                        }}
                                       enableSearch={true}
                                       searchPlaceholder="Search countries"
                                       preferredCountries={['ma', 'fr', 'es', 'us', 'gb']}

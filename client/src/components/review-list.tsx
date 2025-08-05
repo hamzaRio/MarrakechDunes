@@ -2,7 +2,6 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Star, User, Calendar, CheckCircle } from "lucide-react";
-import { useLanguage } from "@/hooks/useLanguage";
 import type { ReviewWithActivity } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -13,7 +12,6 @@ interface ReviewListProps {
 }
 
 export default function ReviewList({ activityId, showActivityName = false, limit }: ReviewListProps) {
-  const { t } = useLanguage();
   
   const { data: reviews = [], isLoading } = useQuery<ReviewWithActivity[]>({
     queryKey: activityId ? ["/api/reviews", { activityId }] : ["/api/reviews"],

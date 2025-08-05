@@ -3,20 +3,19 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Shield, 
-  ShieldAlert, 
-  ShieldCheck, 
-  Lock, 
-  Unlock,
-  Eye,
-  EyeOff,
-  AlertTriangle,
-  CheckCircle,
-  Clock,
-  Wifi,
-  WifiOff
-} from 'lucide-react';
+import {
+    Shield,
+    ShieldAlert,
+    ShieldCheck,
+    Lock,
+    Unlock,
+    Eye,
+    EyeOff,
+    AlertTriangle,
+    CheckCircle,
+    Clock,
+    Wifi
+  } from 'lucide-react';
 import { useSecurity } from '@/hooks/use-security';
 import { useToast } from '@/hooks/use-toast';
 
