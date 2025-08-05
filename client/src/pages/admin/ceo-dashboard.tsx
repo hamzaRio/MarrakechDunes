@@ -18,18 +18,18 @@ import {
   LineChart,
   Line
 } from "recharts";
-import { 
-  DollarSign,
-  TrendingUp,
-  Activity,
-  Crown,
-  Target,
-  Percent,
-  ArrowUpRight,
-  ArrowDownRight,
-  Edit,
-  Calendar
-} from "lucide-react";
+import {
+    DollarSign,
+    TrendingUp,
+    Activity,
+    Crown,
+    Target,
+    Percent,
+    ArrowUpRight,
+    ArrowDownRight,
+    Edit,
+    Calendar
+  } from "lucide-react";
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -214,7 +214,7 @@ export default function CEODashboard() {
                   fill="#8884d8"
                   dataKey="value"
                 >
-                  {[0, 1, 2].map((_, index) => (
+                    {[0, 1, 2].map((_, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>

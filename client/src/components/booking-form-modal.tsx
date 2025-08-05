@@ -46,16 +46,12 @@ type BookingFormData = z.infer<typeof bookingFormSchema>;
 
 interface BookingFormModalProps {
   trigger?: React.ReactNode;
-  isOpen?: boolean;
-  onClose?: () => void;
   activities?: any[];
 }
 
-export default function BookingFormModal({ 
-  trigger, 
-  isOpen = false, 
-  onClose, 
-  activities: passedActivities 
+export default function BookingFormModal({
+  trigger,
+  activities: passedActivities
 }: BookingFormModalProps) {
   const [open, setOpen] = useState(false);
   const { toast } = useToast();
@@ -66,9 +62,11 @@ export default function BookingFormModal({
     enabled: !passedActivities,
   });
 
+
   const activities = passedActivities || fetchedActivities || [];
   const isControlled = isOpen !== undefined && onClose !== undefined;
   const openState = isControlled ? isOpen : open;
+
 
   const form = useForm<BookingFormData>({
     resolver: zodResolver(bookingFormSchema),

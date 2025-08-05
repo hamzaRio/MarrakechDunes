@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Truck, Users, AlertTriangle, CheckCircle, Clock } from "lucide-react";
 
-interface Vehicle {
+  interface Vehicle {
   id: string;
   type: 'minibus' | 'suv' | 'bus' | 'camel' | 'balloon';
   name: string;

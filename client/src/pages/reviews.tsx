@@ -16,11 +16,11 @@ export default function Reviews() {
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [selectedActivityForReview, setSelectedActivityForReview] = useState<ActivityType | null>(null);
 
-  const { data: activities = [] } = useQuery<ActivityType[]>({
-    queryKey: ["/api/activities"],
-  });
 
-  const handleWriteReview = (activity?: ActivityType) => {
+    const { data: activities = [] } = useQuery<ActivityType[]>({
+      queryKey: ["/api/activities"],
+    });
+const handleWriteReview = (activity?: ActivityType) => {
     if (activity) {
       setSelectedActivityForReview(activity);
     }

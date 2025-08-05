@@ -12,14 +12,12 @@ import BookingFormModal from "@/components/booking-form-modal";
 import PaymentManagement from "@/components/payment-management";
 import { WhatsAppNotificationPanel } from "@/components/whatsapp-notification-panel";
 import SystemHealthMonitor from "@/components/system-health-monitor";
-import { useState } from "react";
 import type { BookingWithActivity, ActivityType, AuditLogType } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 
 export default function AdminDashboard() {
   const { user } = useAuth();
   const { t } = useLanguage();
-  const [showBookingModal, setShowBookingModal] = useState(false);
   
   const { data: bookings = [] } = useQuery<BookingWithActivity[]>({
     queryKey: ["/api/admin/bookings"],
@@ -199,16 +197,18 @@ Average per booking: ${activityBookings.length ? Math.round(totalRevenue / activ
             </TabsList>
 
             <TabsContent value="bookings" className="space-y-4">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold">Booking Management</h2>
-                <Button 
-                  className="bg-moroccan-blue hover:bg-blue-700"
-                  onClick={() => setShowBookingModal(true)}
-                >
-                  <Users className="w-4 h-4 mr-2" />
-                  Create New Booking
-                </Button>
-              </div>
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-xl font-semibold">Booking Management</h2>
+                  <BookingFormModal
+                    trigger={
+                      <Button className="bg-moroccan-blue hover:bg-blue-700">
+                        <Users className="w-4 h-4 mr-2" />
+                        Create New Booking
+                      </Button>
+                    }
+                    activities={activities}
+                  />
+                </div>
 
 
 
@@ -486,12 +486,6 @@ Average per booking: ${activityBookings.length ? Math.round(totalRevenue / activ
         </div>
       </div>
 
-      {/* Booking Form Modal */}
-      <BookingFormModal 
-        isOpen={showBookingModal}
-        onClose={() => setShowBookingModal(false)}
-        activities={activities}
-      />
-    </AdminRoute>
+      </AdminRoute>
   );
 }

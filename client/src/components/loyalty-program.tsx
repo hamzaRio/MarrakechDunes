@@ -261,7 +261,9 @@ export default function LoyaltyProgram() {
 
       {/* Tier Benefits */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+
         {loyaltyTiers.map((tier) => {
+
           const isCurrentTier = tier.name === userLoyalty.tier;
           const isUnlocked = userLoyalty.points >= tier.minPoints;
           
@@ -278,8 +280,8 @@ export default function LoyaltyProgram() {
               </CardHeader>
               <CardContent>
                 <ul className="space-y-1 text-sm">
-                  {tier.benefits.map((benefit, i) => (
-                    <li key={i} className="flex items-center gap-2">
+                    {tier.benefits.map((benefit, i) => (
+                      <li key={i} className="flex items-center gap-2">
                       <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                       {benefit}
                     </li>

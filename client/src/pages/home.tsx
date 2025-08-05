@@ -10,9 +10,9 @@ const riadKheirredinePath = "/attached_assets/montgofliere_a_marrakech_175112770
 const riadKheirredineFallback = "/assets/montgofliere_a_marrakech_1751127701687.jpg";
 
 export default function Home() {
-  const { t } = useLanguage();
+    const { t } = useLanguage();
 
-  return (
+    return (
     <div className="min-h-screen bg-moroccan-sand">
       <Navbar />
 

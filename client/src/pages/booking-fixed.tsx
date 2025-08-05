@@ -62,11 +62,10 @@ export default function BookingFixed() {
   });
 
   // Phone number validation helper for international numbers
-  const handlePhoneChange = (value: string) => {
-    const formattedValue = '+' + value;
-    form.setValue("customerPhone", formattedValue);
-  };
-
+    const handlePhoneChange = (value: string) => {
+      const formattedValue = '+' + value;
+      form.setValue("customerPhone", formattedValue);
+    };
   // Check for pre-selected activity from localStorage or URL params
   useEffect(() => {
     // Check URL params first

@@ -36,9 +36,8 @@ export default function Booking() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { t } = useLanguage();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedActivity, setSelectedActivity] = useState<ActivityType | null>(null);
-
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [selectedActivity, setSelectedActivity] = useState<ActivityType | null>(null);
   const { data: activities = [], isLoading } = useQuery<ActivityType[]>({
     queryKey: ["/api/activities"],
   });

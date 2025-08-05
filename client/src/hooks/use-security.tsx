@@ -59,8 +59,10 @@ export function SecurityProvider({ children }: { children: ReactNode }) {
 
   // Monitor rate limit headers from API responses
   useEffect(() => {
-    const originalFetch: typeof fetch = window.fetch;
-    window.fetch = async (input, init) => {
+
+    const originalFetch = window.fetch;
+    window.fetch = (async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+
       // Always include credentials with API requests
       const response = await originalFetch(input, { credentials: 'include', ...init });
       const remaining = response.headers.get('X-RateLimit-Remaining');
@@ -75,7 +77,7 @@ export function SecurityProvider({ children }: { children: ReactNode }) {
         }
       }
       return response;
-    };
+    }) as typeof window.fetch;
 
     return () => {
       window.fetch = originalFetch;
