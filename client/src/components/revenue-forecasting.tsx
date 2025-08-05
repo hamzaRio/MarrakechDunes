@@ -119,7 +119,7 @@ export default function RevenueForecastingDashboard() {
         <CardContent>
           <div className="space-y-4">
             {forecast.map((data) => (
-                <div key={data.month} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              <div key={data.month} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                 <div className="flex items-center gap-3">
                   <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
                   <span className="font-medium">{data.month} 2025</span>

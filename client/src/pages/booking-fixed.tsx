@@ -66,7 +66,6 @@ export default function BookingFixed() {
       const formattedValue = '+' + value;
       form.setValue("customerPhone", formattedValue);
     };
-
   // Check for pre-selected activity from localStorage or URL params
   useEffect(() => {
     // Check URL params first

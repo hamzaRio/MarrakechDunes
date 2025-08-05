@@ -1,6 +1,5 @@
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
-
 import PhotoSlideshow from "@/components/photo-slideshow";
 import { Button } from "@/components/ui/button";
 import { Play, Calendar } from "lucide-react";
