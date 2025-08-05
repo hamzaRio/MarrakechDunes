@@ -3,11 +3,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Clock, MapPin } from "lucide-react";
-import { useLanguage } from "@/hooks/useLanguage";
 import { useAuth } from "@/hooks/use-auth";
-import ActivityRating from "./activity-rating";
 import ActivityPreview from "./activity-preview";
-import { getAssetUrl, getActivityFallbackImage } from '@/lib/image-utils';
 import type { ActivityType } from "@shared/schema";
 
 interface ActivityCardProps {
@@ -16,7 +13,6 @@ interface ActivityCardProps {
 }
 
 export default function ActivityCard({ activity, showDescription = false }: ActivityCardProps) {
-  const { t } = useLanguage();
   const { user } = useAuth();
   const [showPreview, setShowPreview] = useState(false);
   

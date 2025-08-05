@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Gift, Crown, Star, Trophy, Heart, Zap } from "lucide-react";
+import { Gift, Crown, Star, Trophy, Zap } from "lucide-react";
 
 interface LoyaltyTier {
   name: string;
@@ -43,7 +43,6 @@ interface PointTransaction {
 
 export default function LoyaltyProgram() {
   const [userLoyalty, setUserLoyalty] = useState<UserLoyalty | null>(null);
-  const [selectedReward, setSelectedReward] = useState<Reward | null>(null);
 
   const loyaltyTiers: LoyaltyTier[] = [
     {
@@ -262,7 +261,7 @@ export default function LoyaltyProgram() {
 
       {/* Tier Benefits */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {loyaltyTiers.map((tier, index) => {
+        {loyaltyTiers.map((tier) => {
           const isCurrentTier = tier.name === userLoyalty.tier;
           const isUnlocked = userLoyalty.points >= tier.minPoints;
           

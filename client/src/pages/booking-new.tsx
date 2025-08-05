@@ -385,7 +385,7 @@ export default function Booking() {
                                     <PhoneInput
                                       country={'ma'}
                                       value={field.value}
-                                      onChange={(value, countryData) => {
+                                      onChange={(value) => {
                                         const formattedValue = '+' + value;
                                         field.onChange(formattedValue);
                                       }}

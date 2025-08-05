@@ -1,11 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
 import { 
   Calendar as CalendarIcon, 
   Clock, 
@@ -19,7 +17,6 @@ import {
   X
 } from "lucide-react";
 import { format, addDays, isSameDay, isAfter, isBefore, startOfDay } from "date-fns";
-import { useLanguage } from "@/hooks/useLanguage";
 
 interface TimeSlot {
   id: string;
@@ -60,7 +57,6 @@ export default function AvailabilityCalendar({
   selectedDate,
   selectedTimeSlot
 }: AvailabilityCalendarProps) {
-  const { t } = useLanguage();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<Date | undefined>(selectedDate);
   const [viewMode, setViewMode] = useState<'calendar' | 'list'>('calendar');

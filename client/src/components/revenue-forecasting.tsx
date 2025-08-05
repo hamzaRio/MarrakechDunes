@@ -118,7 +118,7 @@ export default function RevenueForecastingDashboard() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {forecast.map((data, index) => (
+            {forecast.map((data) => (
               <div key={data.month} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                 <div className="flex items-center gap-3">
                   <div className="w-3 h-3 bg-blue-500 rounded-full"></div>

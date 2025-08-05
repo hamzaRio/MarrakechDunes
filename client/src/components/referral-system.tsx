@@ -29,7 +29,7 @@ interface ReferralStats {
 export default function ReferralSystem() {
   const [referrals, setReferrals] = useState<Referral[]>([]);
   const [stats, setStats] = useState<ReferralStats | null>(null);
-  const [userReferralCode, setUserReferralCode] = useState<string>('ADVENTURE2025');
+  const [userReferralCode] = useState<string>('ADVENTURE2025');
   const [newReferralEmail, setNewReferralEmail] = useState<string>('');
   const [copied, setCopied] = useState<boolean>(false);
 
