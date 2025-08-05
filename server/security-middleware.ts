@@ -227,8 +227,10 @@ export const sessionSecurity = {
   resave: false,
   saveUninitialized: false,
   store: createSessionStore(),
+  // Ensure secure cookies and proper proxy handling in production
+  proxy: process.env.NODE_ENV === 'production',
   cookie: {
-    secure: true,
+    secure: process.env.NODE_ENV === 'production',
     httpOnly: true, // Prevent XSS
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
     sameSite: 'none' as const,

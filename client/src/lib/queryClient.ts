@@ -1,6 +1,7 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "";
+// Base URL for API requests coming from environment
+const API_BASE_URL = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
 
 function withBase(url: string) {
   return url.startsWith("http") ? url : `${API_BASE_URL}${url}`;

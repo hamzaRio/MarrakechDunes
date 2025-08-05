@@ -17,9 +17,17 @@ console.log("Initializing MarrakechDunes with MongoDB Atlas...");
 
 const app: Express = express();
 
+// Allow requests from the configured client domain(s) and include credentials
+const allowedOrigins = (process.env.CLIENT_URL || "").split(",").map(o => o.trim()).filter(Boolean);
 app.use(
   cors({
-    origin: process.env.CLIENT_URL,
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     credentials: true,
   })
 );
@@ -35,7 +43,8 @@ if (!process.env.SESSION_SECRET) {
 }
 
 // Middleware setup
-app.set("trust proxy", true);
+// Trust the first proxy (Render/Vercel) so secure cookies work over HTTPS
+app.set("trust proxy", 1);
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 

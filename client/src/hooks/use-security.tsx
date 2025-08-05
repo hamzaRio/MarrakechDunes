@@ -60,8 +60,9 @@ export function SecurityProvider({ children }: { children: ReactNode }) {
   // Monitor rate limit headers from API responses
   useEffect(() => {
     const originalFetch = window.fetch;
-    window.fetch = async (...args) => {
-      const response = await originalFetch(...args);
+    window.fetch = async (input: RequestInfo, init?: RequestInit) => {
+      // Always include credentials with API requests
+      const response = await originalFetch(input, { credentials: 'include', ...init });
       const remaining = response.headers.get('X-RateLimit-Remaining');
       if (remaining) {
         setRateLimitRemaining(parseInt(remaining));
