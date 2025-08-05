@@ -6,19 +6,17 @@ import ReviewList from "@/components/review-list";
 import ReviewForm from "@/components/review-form";
 import ActivityRating from "@/components/activity-rating";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Star, MessageSquare, Filter, Plus } from "lucide-react";
-import { useLanguage } from "@/hooks/useLanguage";
+import { MessageSquare, Filter, Plus } from "lucide-react";
 import type { ActivityType } from "@shared/schema";
 
 export default function Reviews() {
-  const { t } = useLanguage();
   const [selectedActivity, setSelectedActivity] = useState<string>("all");
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [selectedActivityForReview, setSelectedActivityForReview] = useState<ActivityType | null>(null);
 
-  const { data: activities = [], isLoading: activitiesLoading } = useQuery<ActivityType[]>({
+  const { data: activities = [] } = useQuery<ActivityType[]>({
     queryKey: ["/api/activities"],
   });
 

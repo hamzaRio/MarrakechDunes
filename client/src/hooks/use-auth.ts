@@ -6,10 +6,6 @@ interface User {
   role: string;
 }
 
-interface AuthResponse {
-  user: User;
-}
-
 export function useAuth() {
   const { data, isLoading, error } = useQuery<User>({
     queryKey: ["/api/auth/user"],

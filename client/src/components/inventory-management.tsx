@@ -1,10 +1,9 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Truck, Users, MapPin, AlertTriangle, CheckCircle, Clock } from "lucide-react";
+import { Truck, Users, AlertTriangle, CheckCircle, Clock } from "lucide-react";
 
 interface Vehicle {
   id: string;
@@ -234,17 +233,6 @@ export default function InventoryManagement() {
       case 'minibus': return '🚐';
       default: return '🚗';
     }
-  };
-
-  const assignResource = (assignmentId: string, resourceType: 'vehicle' | 'guide', resourceId: string) => {
-    setAssignments(prev => prev.map(assignment => 
-      assignment.id === assignmentId 
-        ? { 
-            ...assignment, 
-            [resourceType === 'vehicle' ? 'vehicleId' : 'guideId']: resourceId 
-          }
-        : assignment
-    ));
   };
 
   return (

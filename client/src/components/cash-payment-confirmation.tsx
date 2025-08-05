@@ -3,8 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { CheckCircle, Clock, MapPin, Phone, Calendar, Users, Banknote, User } from "lucide-react";
-import { useLanguage } from "@/hooks/useLanguage";
+import { MapPin, Phone, Calendar, Users, Banknote, User, Clock, CheckCircle } from "lucide-react";
 import type { ActivityType } from "@shared/schema";
 
 interface CashPaymentConfirmationProps {
@@ -26,7 +25,6 @@ export default function CashPaymentConfirmation({
   onConfirm,
   onCancel
 }: CashPaymentConfirmationProps) {
-  const { t } = useLanguage();
   const [isConfirming, setIsConfirming] = useState(false);
   
   const price = Number(activity.price);
