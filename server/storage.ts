@@ -15,8 +15,8 @@ import type {
   ReviewWithActivity,
 } from "./shared/schema.js";
 
-// MongoDB connection string - ensure proper format
-const MONGODB_URI = process.env.MONGODB_URI;
+// MongoDB connection string - support both MONGODB_URI and MONGO_URI
+const MONGODB_URI = process.env.MONGODB_URI || process.env.MONGO_URI;
 const DEFAULT_ADMIN_PASSWORD = process.env.ADMIN_DEFAULT_PASSWORD;
 
 // In-memory storage for fallback when MongoDB is unavailable

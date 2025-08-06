@@ -3,6 +3,7 @@ import path from 'path';
 
 const API_BASES = (process.env.API_BASES || 'http://localhost:5000,https://your-render-url').split(',');
 const SITE_BASES = (process.env.SITE_BASES || 'http://localhost:5173,https://your-vercel-url').split(',');
+const REQUIRED_ENV_VARS = ['MONGODB_URI', 'SESSION_SECRET', 'JWT_SECRET', 'CLIENT_URL'];
 
 const API_ENDPOINTS = ['/api/activities', '/api/health'];
 
@@ -33,5 +34,12 @@ async function checkUrl(url) {
     for (const file of assetFiles) {
       await checkUrl(`${base}/attached_assets/${file}`);
     }
+  }
+
+  const missing = REQUIRED_ENV_VARS.filter(v => !process.env[v]);
+  if (missing.length) {
+    console.error(`Missing environment variables: ${missing.join(', ')}`);
+  } else {
+    console.log('All required environment variables are set');
   }
 })();

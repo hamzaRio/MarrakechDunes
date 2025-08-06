@@ -30,10 +30,11 @@ RUN npm ci --omit=dev --legacy-peer-deps
 # Copy frontend and backend build output
 COPY --from=build /app/server/dist ./server/dist
 COPY --from=build /app/client/dist ./client/dist
+COPY attached_assets ./attached_assets
 
 # Set default port
-ENV PORT=3000
-EXPOSE 3000
+ENV PORT=5000
+EXPOSE 5000
 
 # Start backend server
 CMD ["node", "server/dist/index.js"]

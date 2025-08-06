@@ -7,4 +7,3 @@ server/dist
 .gitignore
 Dockerfile
 render.yaml
-attached_assets
