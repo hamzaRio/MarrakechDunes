@@ -193,7 +193,7 @@ export const adminAuditLog = (req: Request, res: Response, next: NextFunction) =
 
 // Create session store with fallback to memory store
 const createSessionStore = () => {
-  const mongoUrl = process.env.MONGODB_URI;
+  const mongoUrl = process.env.MONGODB_URI || process.env.MONGO_URI;
   
   if (!mongoUrl) {
     console.log('MongoDB URL not found. Using memory store for sessions.');
