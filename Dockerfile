@@ -25,9 +25,8 @@ RUN npm ci --omit=dev --legacy-peer-deps
 # Copy build outputs and assets
 COPY --from=build /app/server/dist ./server/dist
 COPY --from=build /app/client/dist ./client/dist
-COPY attached_assets ./attached_assets
+COPY --from=build /app/attached_assets ./attached_assets
 
-# Set default port
 ENV PORT=5000
 EXPOSE 5000
 
