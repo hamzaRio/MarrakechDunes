@@ -48,8 +48,11 @@ app.set("trust proxy", 1);
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Serve static assets
-app.use("/attached_assets", express.static("attached_assets"));
+// Serve static assets from an absolute path so it works in any deployment
+app.use(
+  "/attached_assets",
+  express.static(path.resolve(__dirname, "../attached_assets"))
+);
 
 // Request logging middleware
 app.use((req: Request, res: Response, next: NextFunction) => {

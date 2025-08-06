@@ -7,17 +7,16 @@ export function cn(...inputs: ClassValue[]) {
 
 export function getAssetUrl(path: string): string {
   if (!path) return "/assets/placeholder.jpg";
-  
-  
- // Already an absolute asset path
+  // Already an absolute asset path
   if (path.startsWith('/attached_assets/') || path.startsWith('/assets/')) {
+    return path;
   }
-  
+
   // Handle other asset paths
   if (path.startsWith('/')) {
     return path;
   }
-  
+
   // Default fallback
   return `/assets/${path}`;
 }
