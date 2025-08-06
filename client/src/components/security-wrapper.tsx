@@ -14,8 +14,7 @@ import {
   AlertTriangle,
   CheckCircle,
   Clock,
-  Wifi,
-  WifiOff
+  Wifi
 } from 'lucide-react';
 import { useSecurity } from '@/hooks/use-security';
 import { useToast } from '@/hooks/use-toast';

@@ -3,13 +3,12 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { ActivityType, insertBookingSchema } from "@shared/schema";
+import { ActivityType } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { sendWhatsAppBooking } from "@/lib/whatsapp";
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
-import CashPaymentConfirmation from "@/components/cash-payment-confirmation";
 import PriceComparison from "@/components/price-comparison";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -37,10 +36,8 @@ export default function Booking() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { t } = useLanguage();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedActivity, setSelectedActivity] = useState<ActivityType | null>(null);
-  const [showPaymentConfirmation, setShowPaymentConfirmation] = useState(false);
-
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [selectedActivity, setSelectedActivity] = useState<ActivityType | null>(null);
   const { data: activities = [], isLoading } = useQuery<ActivityType[]>({
     queryKey: ["/api/activities"],
   });

@@ -46,16 +46,12 @@ type BookingFormData = z.infer<typeof bookingFormSchema>;
 
 interface BookingFormModalProps {
   trigger?: React.ReactNode;
-  isOpen?: boolean;
-  onClose?: () => void;
   activities?: any[];
 }
 
-export default function BookingFormModal({ 
-  trigger, 
-  isOpen = false, 
-  onClose, 
-  activities: passedActivities 
+export default function BookingFormModal({
+  trigger,
+  activities: passedActivities
 }: BookingFormModalProps) {
   const [open, setOpen] = useState(false);
   const { toast } = useToast();
@@ -66,9 +62,11 @@ export default function BookingFormModal({
     enabled: !passedActivities,
   });
 
+
   const activities = passedActivities || fetchedActivities || [];
   const isControlled = isOpen !== undefined && onClose !== undefined;
-  const modalOpen = isControlled ? isOpen : open;
+  const openState = isControlled ? isOpen : open;
+
 
   const form = useForm<BookingFormData>({
     resolver: zodResolver(bookingFormSchema),
@@ -121,7 +119,16 @@ export default function BookingFormModal({
   const totalAmount = selectedActivity ? selectedActivity.price * numberOfPeople : 0;
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={openState}
+      onOpenChange={(o) => {
+        if (isControlled) {
+          if (!o && onClose) onClose();
+        } else {
+          setOpen(o);
+        }
+      }}
+    >
       <DialogTrigger asChild>
         {trigger || (
           <Button className="bg-moroccan-blue hover:bg-blue-600 text-white">

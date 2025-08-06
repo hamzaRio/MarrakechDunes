@@ -15,8 +15,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Calendar, Users, Phone, User, MapPin, CheckCircle, ArrowLeft, ArrowRight, CalendarDays } from "lucide-react";
-import { useLanguage } from "@/hooks/use-language";
+import { Calendar, User, MapPin, CheckCircle, ArrowLeft, ArrowRight } from "lucide-react";
 import { DayPicker } from "react-day-picker";
 import "react-day-picker/dist/style.css";
 import PhoneInput from 'react-phone-input-2';
@@ -38,13 +37,11 @@ type BookingFormData = z.infer<typeof bookingFormSchema>;
 export default function BookingFixed() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { t } = useLanguage();
   const [showPaymentConfirmation, setShowPaymentConfirmation] = useState(false);
   const [pendingBookingData, setPendingBookingData] = useState<BookingFormData | null>(null);
   const [currentActivity, setCurrentActivity] = useState<ActivityType | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [currentStep, setCurrentStep] = useState<'activity' | 'date' | 'details' | 'confirmation'>('activity');
-  const [viewMode, setViewMode] = useState<'calendar' | 'list'>('calendar');
 
   const { data: activities = [], isLoading } = useQuery<ActivityType[]>({
     queryKey: ["/api/activities"],
@@ -65,11 +62,10 @@ export default function BookingFixed() {
   });
 
   // Phone number validation helper for international numbers
-  const handlePhoneChange = (value: string, countryData: any) => {
-    const formattedValue = '+' + value;
-    form.setValue("customerPhone", formattedValue);
-  };
-
+    const handlePhoneChange = (value: string) => {
+      const formattedValue = '+' + value;
+      form.setValue("customerPhone", formattedValue);
+    };
   // Check for pre-selected activity from localStorage or URL params
   useEffect(() => {
     // Check URL params first
@@ -395,7 +391,7 @@ export default function BookingFixed() {
                                     <PhoneInput
                                       country={'ma'}
                                       value={field.value}
-                                      onChange={(value, countryData) => handlePhoneChange(value, countryData)}
+                                      onChange={(value) => handlePhoneChange(value)}
                                       enableSearch={true}
                                       searchPlaceholder="Search countries"
                                       preferredCountries={['ma', 'fr', 'es', 'us', 'gb']}

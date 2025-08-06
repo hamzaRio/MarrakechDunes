@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Clock, Users, MapPin, Star, CheckCircle, AlertCircle } from "lucide-react";
+import { Calendar, Clock, Users, Star, CheckCircle, AlertCircle } from "lucide-react";
 
 interface TimeSlot {
   id: string;

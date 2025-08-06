@@ -6,6 +6,7 @@ jspm_packages/
 dist/
 build/
 client/dist/
+client/public/attached_assets/
 .next/
 .nuxt/
 .vuepress/dist

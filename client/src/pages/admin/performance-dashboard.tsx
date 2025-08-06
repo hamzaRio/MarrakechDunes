@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,29 +6,18 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import {
-  Activity,
-  TrendingUp,
-  TrendingDown,
-  Users,
-  Clock,
-  Server,
-  Database,
-  Zap,
-  AlertTriangle,
-  CheckCircle,
-  RefreshCw,
-  Calendar,
-  DollarSign,
-  Target,
-  Gauge,
-  Monitor,
-  BarChart3,
-  PieChart as PieChartIcon,
-  Settings,
-  Wrench
-} from 'lucide-react';
+    Activity,
+    TrendingUp,
+    TrendingDown,
+    Users,
+    Clock,
+    Server,
+    RefreshCw,
+    Target,
+    Wrench
+  } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
 
 interface PerformanceMetrics {
@@ -303,7 +292,7 @@ export default function PerformanceDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {metrics?.bookingFlow.stepConversion.map((step, index) => (
+                    {metrics?.bookingFlow.stepConversion.map((step) => (
                     <div key={step.step} className="space-y-2">
                       <div className="flex justify-between text-sm">
                         <span>{step.step}</span>
@@ -384,9 +373,9 @@ export default function PerformanceDashboard() {
                       dataKey="revenue"
                       nameKey="name"
                     >
-                      {(metrics?.revenue.byActivity || []).map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
+                        {(metrics?.revenue.byActivity || []).map((_, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
                     </Pie>
                     <Tooltip />
                   </PieChart>

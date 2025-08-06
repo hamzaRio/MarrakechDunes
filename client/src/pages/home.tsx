@@ -1,14 +1,8 @@
-import { useQuery } from "@tanstack/react-query";
-import type { ActivityType } from "@shared/schema";
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
-import ActivityCard from "@/components/activity-card";
-import WhatsAppButton from "@/components/whatsapp-button";
-
 import PhotoSlideshow from "@/components/photo-slideshow";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Mountain, Star, Award, MapPin, Play, Calendar } from "lucide-react";
+import { Play, Calendar } from "lucide-react";
 import { useLanguage } from "@/hooks/useLanguage";
 
 // Runtime + fallback paths for hero images
@@ -16,14 +10,9 @@ const riadKheirredinePath = "/attached_assets/montgofliere_a_marrakech_175112770
 const riadKheirredineFallback = "/assets/montgofliere_a_marrakech_1751127701687.jpg";
 
 export default function Home() {
-  const { data: activities = [], isLoading } = useQuery<ActivityType[]>({
-    queryKey: ["/api/activities"],
-  });
-  const { t } = useLanguage();
+    const { t } = useLanguage();
 
-  const featuredActivities = activities.slice(0, 3);
-
-  return (
+    return (
     <div className="min-h-screen bg-moroccan-sand">
       <Navbar />
 
