@@ -4,7 +4,8 @@ import session from "express-session";
 import MongoStore from "connect-mongo";
 import bcrypt from "bcrypt";
 import { storage } from "./storage.js";
-import { insertBookingSchema, insertReviewSchema, insertActivitySchema } from "./shared/schema";
+// Use .js extension so that Node's ESM loader can resolve the compiled file
+import { insertBookingSchema, insertReviewSchema, insertActivitySchema } from "./shared/schema.js";
 import { whatsappService } from "./whatsapp-service.js";
 import { z, ZodError } from "zod";
 import {
