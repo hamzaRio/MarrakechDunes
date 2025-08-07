@@ -7,6 +7,8 @@ services:
         value: <your-mongo-uri>
       - key: SESSION_SECRET
         sync: false
+      - key: JWT_SECRET
+        sync: false
 
       # WhatsApp configuration (optional)
       - key: WHATSAPP_API_KEY
@@ -14,15 +16,15 @@ services:
       - key: ADMIN_DEFAULT_PASSWORD
         sync: false
       - key: CLIENT_URL
-        sync: false
+        value: https://marrakech-dunes.vercel.app,http://localhost:5173
       - key: WHATSAPP_RECEIVERS
         sync: false
       - key: ADMIN_PHONE_YAHIA
         sync: false
       - key: ADMIN_PHONE_NADIA
         sync: false
-      - key: WHATSAPP_RECEIVERS
-        sync: false
+      - key: PORT
+        value: 5000
     disk:
       name: marrakech-assets
       mountPath: /app/attached_assets
