@@ -6,7 +6,6 @@ jspm_packages/
 dist/
 build/
 client/dist/
-client/public/attached_assets/
 .next/
 .nuxt/
 .vuepress/dist
@@ -62,3 +61,6 @@ replit.nix.env
 
 # === Docker (optional) ===
 docker-data/
+
+# ===== FIXED: DO NOT IGNORE ASSETS FOLDERS =====
+# (You can ignore example images if you want, e.g., *.psd or dummy folders, but NOT your production images!)
