@@ -2,20 +2,28 @@ const fs = require('fs');
 const path = require('path');
 
 const projectRoot = path.resolve(__dirname, '..');
-const attachedDir = path.join(projectRoot, 'attached_assets');
-const publicDir = path.join(projectRoot, 'client', 'public', 'attached_assets');
+const publicRoot = path.join(projectRoot, 'client', 'public');
 
-function copyAttachedAssets() {
-  if (!fs.existsSync(attachedDir)) {
-    console.warn('No attached_assets directory found, skipping copy.');
+/**
+ * Copy a directory into client/public preserving all sub-directories
+ * @param {string} dir name of source directory at repo root
+ */
+function copyDir(dir) {
+  const source = path.join(projectRoot, dir);
+  const target = path.join(publicRoot, dir);
+
+  if (!fs.existsSync(source)) {
+    console.warn(`No ${dir} directory found, skipping copy.`);
     return;
   }
 
-  fs.mkdirSync(publicDir, { recursive: true });
-  for (const file of fs.readdirSync(attachedDir)) {
-    fs.copyFileSync(path.join(attachedDir, file), path.join(publicDir, file));
-  }
-  console.log('Copied attached_assets to client/public/attached_assets');
+  fs.mkdirSync(target, { recursive: true });
+  // fs.cpSync is available in Node 16+ and copies recursively
+  fs.cpSync(source, target, { recursive: true });
+  console.log(`Copied ${dir} to client/public/${dir}`);
 }
 
-copyAttachedAssets();
+// Ensure both assets directories are available to the client build
+for (const dir of ['assets', 'attached_assets']) {
+  copyDir(dir);
+}
