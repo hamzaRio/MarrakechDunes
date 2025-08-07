@@ -12,7 +12,8 @@ RUN npm install --legacy-peer-deps
 COPY . .
 
 # Build frontend and backend
-RUN npm run build --workspace=client && npm run build --workspace=server
+RUN npm run build --workspace=client
+RUN npm run build --workspace=server
 
 # --- Production Stage ---
 FROM node:20-slim AS prod
