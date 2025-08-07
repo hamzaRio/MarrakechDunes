@@ -99,10 +99,11 @@ app.use((req: Request, res: Response, next: NextFunction) => {
     await setupVite(app, server);
   } else {
     // Serve client build in production
-    const clientDist = path.resolve(__dirname, "../client/dist");
+    const clientDist = path.resolve(__dirname, "../../client/dist");
     if (fs.existsSync(clientDist)) {
       app.use(express.static(clientDist));
-      app.get("*", (_req, res) => {
+      // Serve index.html for any non-API route (SPA fallback)
+      app.get(/^(?!\/api).*/, (_req, res) => {
         res.sendFile(path.join(clientDist, "index.html"));
       });
     } else {
