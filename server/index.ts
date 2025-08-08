@@ -1,5 +1,6 @@
 import express, { type Request, Response, NextFunction, Express } from "express";
 import { registerRoutes } from "./routes.js";
+import securityRoutes from "./routes/security.js";
 import dotenv from "dotenv";
 import path from "path";
 import fs from "fs";
@@ -47,6 +48,8 @@ if (!process.env.SESSION_SECRET) {
 app.set("trust proxy", 1);
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+app.use("/api", securityRoutes);
 
 // Serve static assets from an absolute path so it works in any deployment
 app.use(

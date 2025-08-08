@@ -109,11 +109,9 @@ export default function BookingFixed() {
 
   const numberOfPeople = form.watch("numberOfPeople");
   useEffect(() => {
-    const names = Array(numberOfPeople).fill("").map((_, i) => {
-      const currentValue = form.getValues(`participantNames.${i}`);
-      return { value: currentValue || "" };
-    });
-    // @ts-ignore - react-hook-form expects field objects
+    const names = Array.from({ length: numberOfPeople }, (_, i) =>
+      form.getValues(`participantNames.${i}`) || ""
+    );
     replace(names as any);
   }, [numberOfPeople, replace, form]);
 
