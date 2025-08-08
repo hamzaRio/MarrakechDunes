@@ -98,8 +98,11 @@ export function SecurityProvider({ children }: { children: ReactNode }) {
       details
     });
 
-    // Send to server for audit logging in production
-    if (process.env.NODE_ENV === 'production') {
+    // Send to server for audit logging when enabled
+    if (
+      process.env.NODE_ENV === 'production' &&
+      process.env.ENABLE_SECURITY_LOGGING === 'true'
+    ) {
       apiRequest('POST', '/api/security-events', {
         event,
         details,

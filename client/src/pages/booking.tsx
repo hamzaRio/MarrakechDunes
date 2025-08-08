@@ -176,9 +176,9 @@ export default function Booking() {
                                   {t('customerName') || 'Full Name'}
                                 </FormLabel>
                                 <FormControl>
-                                  <Input 
-                                    placeholder={t('customerName') || 'Enter your full name'} 
-                                    {...field} 
+                                  <Input
+                                    placeholder={String(t('customerName') as string)}
+                                    {...field}
                                     className="h-12 text-base border-2 border-gray-200 hover:border-moroccan-gold focus:border-moroccan-gold"
                                   />
                                 </FormControl>

@@ -64,3 +64,8 @@ docker-data/
 
 # ===== FIXED: DO NOT IGNORE ASSETS FOLDERS =====
 # (You can ignore example images if you want, e.g., *.psd or dummy folders, but NOT your production images!)
+
+# Ignore build-copied public assets
+client/public/assets/*
+client/public/attached_assets/*
+!client/public/assets/.keep
