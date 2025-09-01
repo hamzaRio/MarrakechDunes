@@ -7,6 +7,7 @@ import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { apiFetch } from '@/lib/api';
 import { 
   Activity, 
   TrendingUp, 
@@ -80,7 +81,7 @@ export default function PerformanceDashboard() {
   const { data: metrics, isLoading, refetch } = useQuery({
     queryKey: ['/api/admin/performance-metrics', timeRange],
     queryFn: async () => {
-      const response = await fetch(`/api/admin/performance-metrics?range=${timeRange}`);
+      const response = await apiFetch(`/api/admin/performance-metrics?range=${timeRange}`);
       return response.json() as PerformanceMetrics;
     },
     refetchInterval: autoRefresh ? 30000 : false, // 30 seconds

@@ -9,6 +9,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { apiFetch } from "@/lib/api";
 import { useLocation } from "wouter";
 import { useLanguage } from "@/hooks/useLanguage";
 
@@ -34,7 +35,7 @@ export default function AdminLogin() {
 
   const mutation = useMutation({
     mutationFn: async (data: LoginFormData) => {
-      const response = await fetch("/api/auth/login", {
+        const response = await apiFetch("/api/auth/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

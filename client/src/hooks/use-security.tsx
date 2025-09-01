@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { apiFetch } from '@/lib/api';
 
 interface SecurityContext {
   isSecureConnection: boolean;
@@ -96,7 +97,7 @@ export function SecurityProvider({ children }: { children: ReactNode }) {
 
     // Send to server for audit logging in production
     if (process.env.NODE_ENV === 'production') {
-      fetch('/api/security-events', {
+        apiFetch('/api/security-events', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

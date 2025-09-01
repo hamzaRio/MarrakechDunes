@@ -1,9 +1,9 @@
 import express, { type Express } from "express";
 import fs from "fs";
 import path from "path";
+// @ts-ignore - vite types may not be available during build
 import { createServer as createViteServer, createLogger } from "vite";
 import { type Server } from "http";
-import viteConfig from "../vite.config";
 import { nanoid } from "nanoid";
 
 const viteLogger = createLogger();
@@ -26,12 +26,20 @@ export async function setupVite(app: Express, server: Server) {
     allowedHosts: true,
   };
 
+  // @ts-ignore - vite config is loaded dynamically at runtime
+  const config = (
+    await import(
+      process.env.NODE_ENV === "production"
+        ? "../client/vite.config.js"
+        : "../client/vite.config.ts"
+    )
+  ).default;
   const vite = await createViteServer({
-    ...viteConfig,
+    ...config,
     configFile: false,
     customLogger: {
       ...viteLogger,
-      error: (msg, options) => {
+      error: (msg: any, options: any) => {
         viteLogger.error(msg, options);
         process.exit(1);
       },

@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { apiFetch } from "@/lib/api";
 import { Plus, Calendar, Users } from "lucide-react";
 
 const bookingFormSchema = z.object({
@@ -85,7 +86,7 @@ export default function BookingFormModal({
 
   const createBookingMutation = useMutation({
     mutationFn: async (data: BookingFormData) => {
-      const response = await fetch("/api/bookings", {
+      const response = await apiFetch("/api/bookings", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
