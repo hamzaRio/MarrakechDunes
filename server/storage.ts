@@ -366,6 +366,22 @@ class MongoStorage implements IStorage {
         duration: '6 hours',
         createdAt: new Date(),
         updatedAt: new Date()
+      },
+      {
+        _id: '686000f2f5c4d141c7e87117',
+        name: 'Marrakech City Tour',
+        description: 'Guided tour of the Marrakech medina including Koutoubia Mosque, Bahia Palace and Jemaa el-Fnaa.',
+        price: '300',
+        currency: 'MAD',
+        image: '/attached_assets/Essaouira Day Trip1_1751124502666.jpg',
+        photos: ['/attached_assets/Essaouira Day Trip1_1751124502666.jpg'],
+        category: 'Cultural',
+        isActive: true,
+        getyourguidePrice: 400,
+        availability: 'Daily',
+        duration: '5 hours',
+        createdAt: new Date(),
+        updatedAt: new Date()
       }
     ];
 

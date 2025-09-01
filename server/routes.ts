@@ -70,8 +70,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     next();
   });
 
-  // Health check endpoint for deployment monitoring
-  app.get('/api/health', async (req: Request, res: Response) => {
+    // Health check endpoint for deployment monitoring
+    app.get('/api/health', async (req: Request, res: Response) => {
     try {
       // Test database connectivity
       const activitiesCount = await storage.getActivities();
@@ -176,6 +176,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(500).json({ message: "Logout failed" });
       }
       res.json({ message: "Logout successful" });
+    });
+
+    // Simple health alias
+    app.get('/health', (_req: Request, res: Response) => {
+      res.status(200).json({ status: 'healthy' });
     });
   });
 

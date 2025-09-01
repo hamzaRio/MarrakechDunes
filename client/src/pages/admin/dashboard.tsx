@@ -11,6 +11,7 @@ import { Link } from "wouter";
 import PaymentManagement from "@/components/payment-management";
 import { WhatsAppNotificationPanel } from "@/components/whatsapp-notification-panel";
 import ActivityManagementModal from "@/components/activity-management-modal";
+import { apiFetch } from "@/lib/api";
 
 // Removed useState import as no longer needed
 import type { BookingType, ActivityType, AuditLogType } from "@shared/schema";
@@ -47,7 +48,7 @@ export default function AdminDashboard() {
   // Admin booking management functions
   const handleBookingStatusUpdate = async (bookingId: string, status: string) => {
     try {
-      await fetch(`/api/admin/bookings/${bookingId}/status`, {
+      await apiFetch(`/api/admin/bookings/${bookingId}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status }),

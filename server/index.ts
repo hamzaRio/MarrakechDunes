@@ -1,13 +1,29 @@
-import dotenv from "dotenv";
 import path from "path";
-dotenv.config({ path: path.resolve(process.cwd(), ".env") });
-
+import { fileURLToPath } from "url";
+import dotenv from "dotenv";
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
-import { setupVite, serveStatic, log } from "./vite";
+// Logging helper similar to Vite's logger
+const log = (message: string, source = "express") => {
+  const formattedTime = new Date().toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true,
+  });
+  console.log(`${formattedTime} [${source}] ${message}`);
+};
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const rootDir =
+  process.env.NODE_ENV === "production"
+    ? path.resolve(__dirname, "..", "..")
+    : path.resolve(__dirname, "..");
+dotenv.config({ path: path.join(rootDir, ".env") });
+
 // Initialize application with MongoDB
-if (process.env.NODE_ENV === 'development') {
-  console.log('Initializing MarrakechDunes with MongoDB Atlas...');
+if (process.env.NODE_ENV === "development") {
+  console.log("Initializing MarrakechDunes with MongoDB Atlas...");
 }
 
 const app = express();
@@ -17,13 +33,13 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 // Static mounts BEFORE routes - serve assets with 7-day cache
-app.use('/attached_assets',
-  express.static(path.join(process.cwd(), 'attached_assets'), { maxAge: '7d' })
+const assetsPath = path.join(rootDir, "attached_assets");
+app.use(
+  "/attached_assets",
+  express.static(assetsPath, { maxAge: "7d" })
 );
 // Alias so frontend can always use /assets/<file>
-app.use('/assets',
-  express.static(path.join(process.cwd(), 'attached_assets'), { maxAge: '7d' })
-);
+app.use("/assets", express.static(assetsPath, { maxAge: "7d" }));
 
 app.use((req, res, next) => {
   const start = Date.now();
@@ -69,20 +85,30 @@ app.use((req, res, next) => {
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route
   // doesn't interfere with the other routes
-  if (app.get("env") === "development") {
-    await setupVite(app, server);
-  } else {
-    serveStatic(app);
-  }
+    if (app.get("env") === "development") {
+      const { setupVite } = await import("./vite");
+      await setupVite(app, server);
+    } else {
+      try {
+        const { serveStatic } = await import("./vite");
+        serveStatic(app);
+      } catch {
+        log("static assets not found, skipping static serve");
+      }
+    }
 
   // Use PORT from environment or default to 5000
   // this serves both the API and the client.
-  const port = parseInt(process.env.PORT || '5000');
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-  }, () => {
-    log(`serving on port ${port}`);
-  });
+  const port = parseInt(process.env.PORT || "5000");
+  const host = process.env.NODE_ENV === "production" ? "0.0.0.0" : "localhost";
+  server.listen(
+    {
+      port,
+      host,
+      reusePort: true,
+    },
+    () => {
+      log(`serving on port ${port}`);
+    },
+  );
 })();
