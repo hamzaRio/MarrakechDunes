@@ -238,8 +238,8 @@ export const sessionSecurity = {
   saveUninitialized: false,
   store: createSessionStore(),
   cookie: {
-    secure: process.env.NODE_ENV === 'production',
+    secure: false, // Set to false for localhost development (no HTTPS)
     httpOnly: true,
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    sameSite: 'lax', // Use 'lax' for localhost development
   }
 };
