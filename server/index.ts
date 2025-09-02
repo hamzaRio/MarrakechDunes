@@ -2,10 +2,16 @@ import path from "path";
 import { fileURLToPath } from "url";
 import dotenv from "dotenv";
 import express, { type Request, Response, NextFunction } from "express";
+import cors from "cors";
 import { registerRoutes } from "./routes";
 import { connectToDatabase } from "./db";
-// Logging helper similar to Vite's logger
-const log = (message: string, source = "express", level: "info" | "warn" | "error" = "info") => {
+
+// Logging helper
+const log = (
+  message: string,
+  source = "express",
+  level: "info" | "warn" | "error" = "info"
+) => {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
     hour: "numeric",
     minute: "2-digit",
@@ -13,7 +19,7 @@ const log = (message: string, source = "express", level: "info" | "warn" | "erro
     hour12: true,
   });
   const logMessage = `${formattedTime} [${source}] ${message}`;
-  
+
   switch (level) {
     case "error":
       console.error(logMessage);
@@ -25,31 +31,59 @@ const log = (message: string, source = "express", level: "info" | "warn" | "erro
       console.log(logMessage);
   }
 };
+
+// Resolve root directory
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const rootDir =
   process.env.NODE_ENV === "production"
     ? path.resolve(__dirname, "..", "..")
     : path.resolve(__dirname, "..");
+
+// Load environment variables
 dotenv.config({ path: path.join(rootDir, ".env") });
 
-// Database connection will be established before starting the server
-
 const app = express();
-// Configure trust proxy for rate limiting  
-app.set('trust proxy', 1);
+
+// Configure trust proxy for rate limiting
+app.set("trust proxy", 1);
+
+// Enable JSON & URL-encoded
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Static mounts BEFORE routes - serve assets with 7-day cache
+// ✅ Enable CORS (API + frontend)
+app.use(
+  cors({
+    origin: ["http://localhost:5173"], // Vite frontend
+    credentials: true,
+  })
+);
+
+// ✅ Static mounts BEFORE routes - serve assets with 7-day cache + CORS headers
 const assetsPath = path.join(rootDir, "attached_assets");
+
 app.use(
   "/attached_assets",
-  express.static(assetsPath, { maxAge: "7d" })
+  express.static(assetsPath, {
+    maxAge: "7d",
+    setHeaders: (res) => {
+      res.setHeader("Access-Control-Allow-Origin", "http://localhost:5173");
+    },
+  })
 );
-// Alias so frontend can always use /assets/<file>
-app.use("/assets", express.static(assetsPath, { maxAge: "7d" }));
 
+app.use(
+  "/assets",
+  express.static(assetsPath, {
+    maxAge: "7d",
+    setHeaders: (res) => {
+      res.setHeader("Access-Control-Allow-Origin", "http://localhost:5173");
+    },
+  })
+);
+
+// Logging middleware
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
@@ -81,33 +115,31 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  // Connect to MongoDB before starting the server
+  // ✅ Connect to MongoDB before starting the server
   await connectToDatabase();
-  
+
   const server = await registerRoutes(app);
 
+  // Global error middleware
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
 
-    // Log the error for debugging
-    console.error('Error middleware caught:', err);
-    
-    // Send error response and end properly
+    console.error("Error middleware caught:", err);
+
     res.status(status).json({ message });
   });
 
-      // Serve static files from client/dist in both development and production
-    try {
-      const { serveStatic } = await import("./vite");
-      serveStatic(app);
-      log("Static file serving setup complete");
-    } catch (error) {
-      log(`Failed to setup static serving: ${error}`, "vite", "error");
-    }
+  // ✅ Serve static files from client/dist in production
+  try {
+    const { serveStatic } = await import("./vite");
+    serveStatic(app);
+    log("Static file serving setup complete");
+  } catch (error) {
+    log(`Failed to setup static serving: ${error}`, "vite", "error");
+  }
 
-  // Use PORT from environment or default to 5000
-  // this serves both the API and the client.
+  // Start server
   const port = parseInt(process.env.PORT || "5000");
   server.listen(port, () => {
     log(`serving on port ${port}`);
