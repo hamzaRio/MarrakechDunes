@@ -60,9 +60,10 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
 // ✅ Enable CORS (API + frontend)
+const clientUrls = (process.env.CLIENT_URL || 'http://localhost:5173').split(',').map(url => url.trim());
 app.use(
   cors({
-    origin: ["http://localhost:5173"], // Vite frontend
+    origin: clientUrls,
     credentials: true,
   })
 );
@@ -75,7 +76,7 @@ app.use(
   express.static(assetsPath, {
     maxAge: "7d",
     setHeaders: (res) => {
-      res.setHeader("Access-Control-Allow-Origin", "http://localhost:5173");
+      res.setHeader("Access-Control-Allow-Credentials", "true");
     },
   })
 );
@@ -85,7 +86,7 @@ app.use(
   express.static(assetsPath, {
     maxAge: "7d",
     setHeaders: (res) => {
-      res.setHeader("Access-Control-Allow-Origin", "http://localhost:5173");
+      res.setHeader("Access-Control-Allow-Credentials", "true");
     },
   })
 );

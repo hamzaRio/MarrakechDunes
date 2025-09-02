@@ -191,9 +191,9 @@ export const adminAuditLog = (req: Request, res: Response, next: NextFunction) =
   next();
 };
 
-// Create session store with fallback to memory store
+// Create session store with MongoDB fallback to memory store
 const createSessionStore = () => {
-      const mongoUrl = process.env.DATABASE_URL;
+  const mongoUrl = process.env.DATABASE_URL;
   
   if (!mongoUrl) {
     console.log('MongoDB URL not found. Using memory store for sessions.');
@@ -205,14 +205,26 @@ const createSessionStore = () => {
     });
   }
   
-  // Always use memory store for now to avoid connection issues
-  console.log('Using memory store for sessions to avoid MongoDB connection blocking.');
-  const MemoryStoreSession = MemoryStore(session);
-  return new MemoryStoreSession({
-    checkPeriod: 24 * 60 * 60 * 1000, // 24 hours
-    ttl: 24 * 60 * 60 * 1000, // 24 hours
-    max: 1000 // Maximum number of sessions
-  });
+  try {
+    console.log('Using MongoDB store for sessions.');
+    return MongoStore.create({
+      mongoUrl: mongoUrl,
+      collectionName: 'sessions',
+      ttl: 24 * 60 * 60, // 24 hours in seconds
+      autoRemove: 'native',
+      crypto: {
+        secret: process.env.SESSION_SECRET || 'dev-session-secret'
+      }
+    });
+  } catch (error) {
+    console.log('MongoDB session store failed, falling back to memory store:', error);
+    const MemoryStoreSession = MemoryStore(session);
+    return new MemoryStoreSession({
+      checkPeriod: 24 * 60 * 60 * 1000, // 24 hours
+      ttl: 24 * 60 * 60 * 1000, // 24 hours
+      max: 1000 // Maximum number of sessions
+    });
+  }
 };
 
 // Session security configuration
@@ -229,6 +241,7 @@ export const sessionSecurity = {
     secure: process.env.NODE_ENV === 'production', // HTTPS only in production
     httpOnly: true, // Prevent XSS
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    sameSite: (process.env.NODE_ENV === 'production' ? 'none' : 'lax') as 'lax' | 'none',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    domain: process.env.NODE_ENV === 'production' ? undefined : undefined, // Let browser set domain
   }
 };
