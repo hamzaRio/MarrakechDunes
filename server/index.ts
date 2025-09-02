@@ -4,14 +4,25 @@ import dotenv from "dotenv";
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 // Logging helper similar to Vite's logger
-const log = (message: string, source = "express") => {
+const log = (message: string, source = "express", level: "info" | "warn" | "error" = "info") => {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
     hour: "numeric",
     minute: "2-digit",
     second: "2-digit",
     hour12: true,
   });
-  console.log(`${formattedTime} [${source}] ${message}`);
+  const logMessage = `${formattedTime} [${source}] ${message}`;
+  
+  switch (level) {
+    case "error":
+      console.error(logMessage);
+      break;
+    case "warn":
+      console.warn(logMessage);
+      break;
+    default:
+      console.log(logMessage);
+  }
 };
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -78,37 +89,26 @@ app.use((req, res, next) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
 
+    // Log the error for debugging
+    console.error('Error middleware caught:', err);
+    
+    // Send error response and end properly
     res.status(status).json({ message });
-    throw err;
   });
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
-    if (app.get("env") === "development") {
-      const { setupVite } = await import("./vite");
-      await setupVite(app, server);
-    } else {
-      try {
-        const { serveStatic } = await import("./vite");
-        serveStatic(app);
-      } catch {
-        log("static assets not found, skipping static serve");
-      }
+      // Serve static files from client/dist in both development and production
+    try {
+      const { serveStatic } = await import("./vite");
+      serveStatic(app);
+      log("Static file serving setup complete");
+    } catch (error) {
+      log(`Failed to setup static serving: ${error}`, "vite", "error");
     }
 
   // Use PORT from environment or default to 5000
   // this serves both the API and the client.
   const port = parseInt(process.env.PORT || "5000");
-  const host = process.env.NODE_ENV === "production" ? "0.0.0.0" : "localhost";
-  server.listen(
-    {
-      port,
-      host,
-      reusePort: true,
-    },
-    () => {
-      log(`serving on port ${port}`);
-    },
-  );
+  server.listen(port, () => {
+    log(`serving on port ${port}`);
+  });
 })();
