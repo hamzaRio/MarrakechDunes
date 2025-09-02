@@ -252,8 +252,22 @@ export const sessionSecurity = {
   cookie: {
     secure: process.env.NODE_ENV === 'production', // Secure in production only
     httpOnly: true,
-    sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // 'none' for cross-domain in production
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
     domain: process.env.NODE_ENV === 'production' ? process.env.COOKIE_DOMAIN : undefined,
   }
 };
+
+// Debug session configuration
+console.log('Session configuration:', {
+  name: sessionSecurity.name,
+  secret: sessionSecurity.secret ? '***SET***' : '***NOT SET***',
+  cookie: {
+    secure: sessionSecurity.cookie.secure,
+    httpOnly: sessionSecurity.cookie.httpOnly,
+    sameSite: sessionSecurity.cookie.sameSite,
+    maxAge: sessionSecurity.cookie.maxAge,
+    domain: sessionSecurity.cookie.domain
+  },
+  environment: process.env.NODE_ENV || 'development'
+});

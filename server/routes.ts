@@ -52,30 +52,8 @@ const requireSuperAdmin = (req: Request, res: Response, next: NextFunction) => {
 };
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // CORS configuration - read CLIENT_URL from environment
-  const clientUrls = (process.env.CLIENT_URL || 'http://localhost:5173').split(',').map(url => url.trim());
-  
-  // Optimized CORS middleware - only set headers if not already set by main CORS middleware
-  app.use((req: Request, res: Response, next: NextFunction) => {
-    const origin = req.headers.origin;
-    if (origin && clientUrls.includes(origin) && !res.getHeader('Access-Control-Allow-Origin')) {
-      res.setHeader('Access-Control-Allow-Origin', origin);
-    }
-    if (!res.getHeader('Access-Control-Allow-Credentials')) {
-      res.setHeader('Access-Control-Allow-Credentials', 'true');
-    }
-    if (!res.getHeader('Access-Control-Allow-Methods')) {
-      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    }
-    if (!res.getHeader('Access-Control-Allow-Headers')) {
-      res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-    }
-    
-    if (req.method === 'OPTIONS') {
-      return res.sendStatus(200);
-    }
-    next();
-  });
+  // Note: CORS is already configured in server/index.ts before routes are registered
+  // This ensures CORS headers are set before session middleware
 
     // Health check endpoint for deployment monitoring
     app.get('/api/health', async (req: Request, res: Response) => {
@@ -126,6 +104,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Auth routes
   app.get('/api/auth/user', (req: Request, res) => {
     const authReq = req as AuthenticatedRequest;
+    
+    // Debug session information
+    console.log('Auth check:', {
+      sessionId: authReq.sessionID,
+      hasSession: !!authReq.session,
+      hasUser: !!authReq.session?.user,
+      user: authReq.session?.user,
+      cookie: authReq.session?.cookie
+    });
+    
     if (authReq.session.user) {
       res.json(authReq.session.user);
     } else {
@@ -157,6 +145,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         username: user.username,
         role: user.role,
       };
+
+      // Debug session information
+      console.log('Session created:', {
+        sessionId: authReq.sessionID,
+        user: authReq.session.user,
+        cookie: authReq.session.cookie
+      });
 
       // Create audit log
       try {
