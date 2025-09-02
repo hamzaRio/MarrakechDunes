@@ -26,5 +26,11 @@ export default {
   server: {
     port: 5173,
     strictPort: true,
+    proxy: {
+      '/assets': {
+        target: 'http://localhost:5000',
+        changeOrigin: true
+      }
+    }
   },
 };

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Clock, MapPin } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import ActivityPreview from "./activity-preview";
+import { asset } from "@/lib/env";
 import type { ActivityType } from "@shared/schema";
 
 interface ActivityCardProps {
@@ -19,27 +20,28 @@ export default function ActivityCard({ activity, showDescription = false }: Acti
   // Only show admin features to authenticated admins
   const isAdmin = user && (user.role === 'admin' || user.role === 'superadmin');
   
-
+  // Process activity image path
+  const getImageSrc = (imagePath: string) => {
+    if (imagePath.startsWith('/attached_assets/')) {
+      const filename = imagePath.replace('/attached_assets/', '');
+      return asset(filename);
+    }
+    return asset(imagePath);
+  };
   
   return (
     <Card className="overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 group bg-white">
       <div className="relative overflow-hidden">
         <img
-          src={activity.image}
+          src={getImageSrc(activity.image)}
           alt={activity.name}
           className="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-500"
           style={{ objectPosition: 'center' }}
           onError={(e) => {
             const img = e.currentTarget;
             console.log('Image failed to load:', activity.image);
-            // Try alternative path without attached_assets prefix
-            if (activity.image.startsWith('/attached_assets/')) {
-              const filename = activity.image.replace('/attached_assets/', '');
-              img.src = '/assets/' + filename;
-            } else {
-              // Fallback to a known working image
-              img.src = '/assets/riad-kheirredine_1756041288677.jpg';
-            }
+            // Fallback to a known working image
+            img.src = asset("riad-kheirredine_1756041288677.jpg");
             img.onerror = null; // Prevent infinite loops
           }}
           loading="lazy"
