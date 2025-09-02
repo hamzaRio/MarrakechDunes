@@ -239,29 +239,82 @@ const createSessionStore = () => {
   }
 };
 
+// Enhanced session store with better error handling
+const createEnhancedSessionStore = () => {
+  const mongoUrl = process.env.DATABASE_URL;
+  
+  if (!mongoUrl) {
+    console.log('⚠️ MongoDB URL not found. Using memory store for sessions.');
+    const MemoryStoreSession = MemoryStore(session);
+    return new MemoryStoreSession({
+      checkPeriod: 24 * 60 * 60 * 1000, // 24 hours
+      ttl: 24 * 60 * 60 * 1000, // 24 hours
+      max: 1000 // Maximum number of sessions
+    });
+  }
+  
+  try {
+    console.log('✅ Using MongoDB store for sessions.');
+    const store = MongoStore.create({
+      mongoUrl: mongoUrl,
+      collectionName: 'sessions',
+      ttl: 24 * 60 * 60, // 24 hours in seconds
+      autoRemove: 'native',
+      crypto: {
+        secret: process.env.SESSION_SECRET || 'dev-session-secret'
+      },
+      // Enhanced options for better reliability
+      touchAfter: 24 * 3600, // Only update session once per day
+      stringify: false, // Use native JSON serialization
+    });
+    
+    // Test the store
+    store.on('connect', () => {
+      console.log('✅ MongoDB session store connected successfully');
+    });
+    
+    store.on('error', (error) => {
+      console.error('❌ MongoDB session store error:', error);
+    });
+    
+    return store;
+  } catch (error) {
+    console.log('❌ MongoDB session store failed, falling back to memory store:', error);
+    const MemoryStoreSession = MemoryStore(session);
+    return new MemoryStoreSession({
+      checkPeriod: 24 * 60 * 60 * 1000, // 24 hours
+      ttl: 24 * 60 * 60 * 1000, // 24 hours
+      max: 1000 // Maximum number of sessions
+    });
+  }
+};
+
 // Session security configuration
 export const sessionSecurity = {
   name: 'marrakech.session',
   secret: process.env.SESSION_SECRET || (() => {
-    console.warn('WARNING: Using default session secret. Set SESSION_SECRET environment variable for production!');
+    console.warn('⚠️ WARNING: Using default session secret. Set SESSION_SECRET environment variable for production!');
     return 'dev-session-secret-change-in-production';
   })(),
-  resave: false,
+  resave: true, // Ensure session is saved
   saveUninitialized: false,
-  store: createSessionStore(),
+  store: createEnhancedSessionStore(),
   cookie: {
     secure: process.env.NODE_ENV === 'production', // Secure in production only
     httpOnly: true,
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // 'none' for cross-domain in production
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // 'lax' for development, 'none' for production
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
     domain: process.env.NODE_ENV === 'production' ? process.env.COOKIE_DOMAIN : undefined,
+    path: '/', // Ensure cookie is available for all paths
   }
 };
 
 // Debug session configuration
-console.log('Session configuration:', {
+console.log('🔧 Session configuration:', {
   name: sessionSecurity.name,
-  secret: sessionSecurity.secret ? '***SET***' : '***NOT SET***',
+  secret: sessionSecurity.secret ? '✅ SET' : '❌ NOT SET',
+  resave: sessionSecurity.resave,
+  saveUninitialized: sessionSecurity.saveUninitialized,
   cookie: {
     secure: sessionSecurity.cookie.secure,
     httpOnly: sessionSecurity.cookie.httpOnly,
@@ -269,5 +322,6 @@ console.log('Session configuration:', {
     maxAge: sessionSecurity.cookie.maxAge,
     domain: sessionSecurity.cookie.domain
   },
-  environment: process.env.NODE_ENV || 'development'
+  environment: process.env.NODE_ENV || 'development',
+  clientUrl: process.env.CLIENT_URL || 'http://localhost:5173'
 });

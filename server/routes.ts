@@ -81,6 +81,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Configure secure sessions FIRST (before other middleware)
   app.use(session(sessionSecurity));
   
+  // Session debug middleware
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    if (req.path.startsWith('/api/auth/')) {
+      console.log('🔧 Session middleware:', {
+        path: req.path,
+        sessionId: req.sessionID,
+        hasSession: !!req.session,
+        hasUser: !!req.session?.user,
+        cookie: req.headers.cookie ? 'present' : 'missing',
+        origin: req.headers.origin,
+        method: req.method
+      });
+    }
+    next();
+  });
+  
   // Apply security headers
   app.use(securityHeaders);
   
@@ -102,21 +118,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/admin', adminApiRateLimit, adminAuditLog);
 
   // Auth routes
-  app.get('/api/auth/user', (req: Request, res) => {
+  app.get('/api/auth/test', (req: Request, res) => {
     const authReq = req as AuthenticatedRequest;
     
-    // Debug session information
-    console.log('Auth check:', {
+    console.log('🧪 Auth test endpoint called:', {
+      sessionId: authReq.sessionID,
+      hasSession: !!authReq.session,
+      hasUser: !!authReq.session?.user,
+      cookie: req.headers.cookie ? 'present' : 'missing',
+      origin: req.headers.origin,
+      referer: req.headers.referer
+    });
+    
+    res.json({
       sessionId: authReq.sessionID,
       hasSession: !!authReq.session,
       hasUser: !!authReq.session?.user,
       user: authReq.session?.user,
-      cookie: authReq.session?.cookie
+      cookie: req.headers.cookie ? 'present' : 'missing',
+      sessionCookie: authReq.session?.cookie,
+      headers: {
+        origin: req.headers.origin,
+        referer: req.headers.referer,
+        'user-agent': req.headers['user-agent']
+      },
+      environment: process.env.NODE_ENV || 'development',
+      timestamp: new Date().toISOString()
+    });
+  });
+
+  app.get('/api/auth/user', (req: Request, res) => {
+    const authReq = req as AuthenticatedRequest;
+    
+    console.log('🔍 Auth check:', {
+      sessionId: authReq.sessionID,
+      hasSession: !!authReq.session,
+      hasUser: !!authReq.session?.user,
+      user: authReq.session?.user,
+      cookie: authReq.session?.cookie,
+      headers: {
+        cookie: req.headers.cookie ? 'present' : 'missing',
+        origin: req.headers.origin,
+        referer: req.headers.referer,
+        'user-agent': req.headers['user-agent']
+      },
+      sessionStore: authReq.session?.store ? 'available' : 'missing'
     });
     
-    if (authReq.session.user) {
+    if (authReq.session?.user) {
+      console.log('✅ User authenticated:', authReq.session.user.username);
       res.json(authReq.session.user);
     } else {
+      console.log('❌ User not authenticated - session details:', {
+        sessionExists: !!authReq.session,
+        sessionId: authReq.sessionID,
+        cookieHeader: req.headers.cookie ? 'present' : 'missing'
+      });
       res.status(401).json({ message: "Not authenticated" });
     }
   });
@@ -124,11 +181,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/auth/login", authRateLimit, async (req: Request, res) => {
     const { username, password } = req.body;
     
+    console.log('🔐 Login attempt:', { 
+      username, 
+      ip: req.ip, 
+      userAgent: req.get('User-Agent'),
+      sessionId: req.sessionID,
+      hasSession: !!req.session
+    });
+    
     try {
       const user = await storage.getUserByUsername(username);
-      console.log('Found user:', user ? { username: user.username, role: user.role } : null);
+      console.log('👤 Found user:', user ? { username: user.username, role: user.role } : null);
       
       if (!user) {
+        console.log('❌ User not found:', username);
         return res.status(401).json({ message: "Invalid credentials" });
       }
 
@@ -136,54 +202,84 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const isPasswordValid = await bcrypt.compare(password, user.password);
       
       if (!isPasswordValid) {
+        console.log('❌ Invalid password for user:', username);
         return res.status(401).json({ message: "Invalid credentials" });
       }
 
       const authReq = req as AuthenticatedRequest;
+      
+      // Set session data
       authReq.session.user = {
         id: user._id,
         username: user.username,
         role: user.role,
       };
 
-      // Debug session information
-      console.log('Session created:', {
+      console.log('📝 Session data set:', {
         sessionId: authReq.sessionID,
         user: authReq.session.user,
         cookie: authReq.session.cookie
       });
 
-      // Create audit log
-      try {
-        await storage.createAuditLog({
+      // Force session save with explicit callback
+      authReq.session.save((err) => {
+        if (err) {
+          console.error('❌ Session save error:', err);
+          return res.status(500).json({ message: "Login failed - session error" });
+        }
+        
+        console.log('✅ Session saved successfully:', {
+          sessionId: authReq.sessionID,
+          user: authReq.session.user,
+          cookie: authReq.session.cookie,
+          cookieName: authReq.session.cookie?.name
+        });
+
+        // Create audit log
+        storage.createAuditLog({
           userId: user._id,
           action: `User ${username} logged in`,
           details: `Login from IP: ${req.ip}`
+        }).catch(error => {
+          console.log('⚠️ Audit logging failed:', error);
         });
-      } catch (error) {
-        console.log('Audit logging failed:', error);
-      }
 
-      res.json({ message: "Login successful", user: authReq.session.user });
+        // Return success response with user data
+        res.json({ 
+          message: "Login successful", 
+          user: authReq.session.user,
+          sessionId: authReq.sessionID
+        });
+      });
     } catch (error) {
-      console.error("Login error:", error);
+      console.error("❌ Login error:", error);
       res.status(500).json({ message: "Login failed" });
     }
   });
 
   app.post("/api/auth/logout", (req: Request, res) => {
     const authReq = req as AuthenticatedRequest;
+    
+    console.log('🚪 Logout attempt:', {
+      sessionId: authReq.sessionID,
+      user: authReq.session?.user,
+      ip: req.ip
+    });
+    
     authReq.session.destroy((err) => {
       if (err) {
+        console.error('❌ Logout error:', err);
         return res.status(500).json({ message: "Logout failed" });
       }
+      
+      console.log('✅ Logout successful - session destroyed');
       res.json({ message: "Logout successful" });
     });
+  });
 
-    // Simple health alias
-    app.get('/health', (_req: Request, res: Response) => {
-      res.status(200).json({ status: 'healthy' });
-    });
+  // Simple health alias
+  app.get('/health', (_req: Request, res: Response) => {
+    res.status(200).json({ status: 'healthy' });
   });
 
   // Public routes

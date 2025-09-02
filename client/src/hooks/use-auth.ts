@@ -20,6 +20,14 @@ export function useAuth() {
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)
+    // Add error logging for debugging
+    onError: (error) => {
+      console.error('Auth query error:', error);
+    },
+    // Add success logging for debugging
+    onSuccess: (data) => {
+      console.log('Auth query success:', data);
+    }
   });
 
   return {
