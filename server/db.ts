@@ -8,42 +8,62 @@ export async function connectToDatabase(): Promise<void> {
     process.exit(1);
   }
 
-  try {
-    // Clear any existing connections
-    if (mongoose.connection.readyState !== 0) {
-      await mongoose.disconnect();
+  const maxRetries = 5;
+  const retryDelay = 5000; // 5 seconds
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      // Clear any existing connections
+      if (mongoose.connection.readyState !== 0) {
+        await mongoose.disconnect();
+      }
+
+      console.log(`🔄 Attempting to connect to MongoDB (attempt ${attempt}/${maxRetries})...`);
+
+      // Connect to MongoDB with proper options
+      await mongoose.connect(process.env.DATABASE_URL, {
+        retryWrites: true,
+        w: 'majority',
+        maxPoolSize: 10,
+        serverSelectionTimeoutMS: 10000,
+        socketTimeoutMS: 15000,
+        connectTimeoutMS: 10000,
+        family: 4, // Force IPv4 resolution
+        // Enhanced options for better reliability
+        bufferCommands: false,
+        autoIndex: true,
+        autoCreate: true
+      });
+
+      console.log('✅ Connected to MongoDB Atlas');
+      
+      // Handle connection events
+      mongoose.connection.on('error', (error) => {
+        console.error('❌ MongoDB connection error:', error);
+        // Don't exit immediately, let the reconnection logic handle it
+      });
+
+      mongoose.connection.on('disconnected', () => {
+        console.log('⚠️ MongoDB disconnected - attempting to reconnect...');
+      });
+
+      mongoose.connection.on('reconnected', () => {
+        console.log('✅ MongoDB reconnected');
+      });
+
+      return; // Success, exit the retry loop
+
+    } catch (error) {
+      console.error(`❌ MongoDB connection attempt ${attempt} failed:`, error);
+      
+      if (attempt === maxRetries) {
+        console.error('❌ Failed after all attempts. Exiting...');
+        process.exit(1);
+      }
+      
+      console.log(`⏳ Retrying in ${retryDelay/1000} seconds...`);
+      await new Promise(resolve => setTimeout(resolve, retryDelay));
     }
-
-    // Connect to MongoDB with proper options
-    await mongoose.connect(process.env.DATABASE_URL, {
-      retryWrites: true,
-      w: 'majority',
-      maxPoolSize: 10,
-      serverSelectionTimeoutMS: 10000,
-      socketTimeoutMS: 15000,
-      connectTimeoutMS: 10000,
-      family: 4
-    });
-
-    console.log('✅ Connected to MongoDB Atlas');
-    
-    // Handle connection events
-    mongoose.connection.on('error', (error) => {
-      console.error('❌ MongoDB connection error:', error);
-      process.exit(1);
-    });
-
-    mongoose.connection.on('disconnected', () => {
-      console.log('⚠️ MongoDB disconnected');
-    });
-
-    mongoose.connection.on('reconnected', () => {
-      console.log('✅ MongoDB reconnected');
-    });
-
-  } catch (error) {
-    console.error('❌ MongoDB connection error:', error);
-    process.exit(1);
   }
 }
 

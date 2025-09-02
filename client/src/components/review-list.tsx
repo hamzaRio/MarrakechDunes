@@ -16,7 +16,9 @@ export default function ReviewList({ activityId, showActivityName = false, limit
     queryKey: activityId ? ["/api/reviews", { activityId }] : ["/api/reviews"],
     queryFn: async () => {
       const url = activityId ? `/api/reviews?activityId=${activityId}` : "/api/reviews";
-      const response = await fetch(url);
+      const response = await fetch(url, {
+        credentials: "include",
+      });
       if (!response.ok) throw new Error("Failed to fetch reviews");
       return response.json();
     },
