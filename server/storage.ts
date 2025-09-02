@@ -15,17 +15,12 @@ import type {
   ReviewWithActivity,
 } from "../shared/schema";
 
-// MongoDB connection string - ensure proper format
-const DATABASE_URL = process.env.MONGODB_URI || process.env.MONGO_URL;
+// MongoDB connection string - must use DATABASE_URL
+const DATABASE_URL = process.env.DATABASE_URL;
 
-// In-memory storage for fallback when MongoDB is unavailable
-const inMemoryData = {
-  users: [] as UserType[],
-  activities: [] as ActivityType[],
-  bookings: [] as BookingType[],
-  auditLogs: [] as AuditLogType[],
-  reviews: [] as ReviewType[]
-};
+if (!DATABASE_URL) {
+  throw new Error('DATABASE_URL environment variable is required');
+}
 
 // Mongoose Schemas
 const userSchema = new mongoose.Schema({
@@ -122,76 +117,9 @@ export interface IStorage {
 }
 
 class MongoStorage implements IStorage {
-  private isConnected = false;
-  private connectionAttempts = 0;
-  private maxConnectionAttempts = 3;
-  private useFallback = false;
-
   constructor() {
-    this.connect();
-  }
-
-  private async connect() {
-    // Check if DATABASE_URL is available
-    if (!DATABASE_URL) {
-      console.log('DATABASE_URL not found. Using fallback mode for development.');
-      this.useFallback = true;
-      await this.seedFallbackData();
-      return;
-    }
-
-    try {
-      // Clear any existing connections
-      if (mongoose.connection.readyState !== 0) {
-        await mongoose.disconnect();
-      }
-
-      // Add timeout protection to prevent hanging
-      const connectionTimeout = setTimeout(() => {
-        console.log('MongoDB connection timeout reached. Switching to fallback mode.');
-        this.useFallback = true;
-        this.seedFallbackData();
-      }, 10000); // 10 second timeout
-
-      await mongoose.connect(DATABASE_URL, {
-        retryWrites: true,
-        w: 'majority',
-        maxPoolSize: 10,
-        serverSelectionTimeoutMS: 10000, // Reduced from 30s
-        socketTimeoutMS: 15000, // Reduced from 45s
-        connectTimeoutMS: 10000, // Reduced from 30s
-        family: 4
-      });
-      
-      clearTimeout(connectionTimeout);
-      this.isConnected = true;
-      console.log('MongoDB Atlas connected successfully');
-      
-      // Seed initial data once connected
-      await this.seedInitialData();
-    } catch (error) {
-      console.error('MongoDB connection failed:', error instanceof Error ? error.message : String(error));
-      this.isConnected = false;
-      this.connectionAttempts++;
-      
-      // Switch to fallback mode immediately in development
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Development mode: switching to fallback mode for faster startup.');
-        this.useFallback = true;
-        await this.seedFallbackData();
-        return;
-      }
-      
-      // Stop retrying after max attempts and switch to fallback mode
-      if (this.connectionAttempts < this.maxConnectionAttempts) {
-        console.log(`Retrying MongoDB connection in 3 seconds... (${this.connectionAttempts}/${this.maxConnectionAttempts})`);
-        setTimeout(() => this.connect(), 3000); // Reduced retry delay
-      } else {
-        console.log('MongoDB Atlas unavailable. Switching to fallback mode for development.');
-        this.useFallback = true;
-        await this.seedFallbackData();
-      }
-    }
+    // Database connection is handled separately in db.ts
+    // This class assumes MongoDB is already connected
   }
 
   private transformDocument(doc: any): any {
@@ -204,10 +132,6 @@ class MongoStorage implements IStorage {
 
   // User operations
   async getUser(id: string): Promise<UserType | null> {
-    if (this.useFallback) {
-      return inMemoryData.users.find(user => user._id === id) || null;
-    }
-    
     try {
       const user = await User.findById(id);
       return this.transformDocument(user);
@@ -218,10 +142,6 @@ class MongoStorage implements IStorage {
   }
 
   async getUserByUsername(username: string): Promise<UserType | null> {
-    if (this.useFallback) {
-      return inMemoryData.users.find(user => user.username === username) || null;
-    }
-    
     try {
       const user = await User.findOne({ username });
       return this.transformDocument(user);
@@ -234,19 +154,6 @@ class MongoStorage implements IStorage {
   async createUser(userData: InsertUser): Promise<UserType> {
     const hashedPassword = await bcrypt.hash(userData.password, 10);
     
-    if (this.useFallback) {
-      const newUser: UserType = {
-        _id: Date.now().toString(),
-        username: userData.username,
-        password: hashedPassword,
-        role: userData.role,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      };
-      inMemoryData.users.push(newUser);
-      return newUser;
-    }
-    
     const user = new User({
       ...userData,
       password: hashedPassword,
@@ -256,320 +163,44 @@ class MongoStorage implements IStorage {
   }
 
   // Activity operations
-  async seedFallbackData(): Promise<void> {
-    console.log('✅ Initializing fallback data with authentic activities');
-    
-    // Seed authentic Moroccan activities
-    inMemoryData.activities = [
-      {
-        _id: '686000f2f5c4d141c7e87112',
-        name: 'Hot Air Balloon Ride Marrakech',
-        description: 'Experience breathtaking sunrise views over Marrakech and the Atlas Mountains from a hot air balloon. Includes hotel pickup, traditional Berber breakfast, and flight certificate.',
-        price: '1100',
-        currency: 'MAD',
-        image: '/attached_assets/Hot Air Balloon Ride2_1751127701686.jpg',
-        photos: [
-          '/attached_assets/Hot Air Balloon Ride2_1751127701686.jpg',
-          '/attached_assets/Hot Air Balloon Ride3_1751127701686.jpg',
-          '/attached_assets/montgofliere_a_marrakech_1751127701687.jpg',
-          '/attached_assets/montgolfiere-marrakech_1751127701687.jpg'
-        ],
-        category: 'Adventure',
-        isActive: true,
-        getyourguidePrice: 1400,
-        availability: 'Daily at sunrise',
-        duration: '4 hours',
-        createdAt: new Date(),
-        updatedAt: new Date()
-      },
-      {
-        _id: '686000f2f5c4d141c7e87113',
-        name: 'Agafay Desert Combo Experience',
-        description: 'Full-day desert adventure combining camel riding, quad biking, and traditional dinner under the stars in the Agafay Desert near Marrakech.',
-        price: '450',
-        currency: 'MAD',
-        image: '/attached_assets/agafaypack1_1751128022717.jpeg',
-        photos: [
-          '/attached_assets/agafaypack1_1751128022717.jpeg',
-          '/attached_assets/agafaypack2_1751128022717.jpeg',
-          '/attached_assets/agafaypack3_1751128022718.jpeg',
-          '/attached_assets/agafaypack5_1751128022718.jpeg',
-          '/attached_assets/agafaypack6_1751128022718.jpeg'
-        ],
-        category: 'Desert',
-        isActive: true,
-        getyourguidePrice: 600,
-        availability: 'Daily',
-        duration: '8 hours',
-        createdAt: new Date(),
-        updatedAt: new Date()
-      },
-      {
-        _id: '686000f2f5c4d141c7e87114',
-        name: 'Essaouira Day Trip',
-        description: 'Discover the coastal charm of Essaouira, the "Windy City" with its Portuguese ramparts, blue fishing boats, and authentic seafood at Casa Vera restaurant.',
-        price: '200',
-        currency: 'MAD',
-        image: '/attached_assets/Essaouira Day Trip1_1751124502666.jpg',
-        photos: [
-          '/attached_assets/Essaouira Day Trip1_1751124502666.jpg',
-          '/attached_assets/Essaouira day trip 3_1751122022832.jpg',
-          '/attached_assets/Essaouira day trip 4_1751122022833.jpg',
-          '/attached_assets/Essaouira Day Trip_1751122022833.jpg',
-          '/attached_assets/Essaouira Day Trip2_1751122022833.jpg'
-        ],
-        category: 'Cultural',
-        isActive: true,
-        getyourguidePrice: 300,
-        availability: 'Daily',
-        duration: '10 hours',
-        createdAt: new Date(),
-        updatedAt: new Date()
-      },
-      {
-        _id: '686000f2f5c4d141c7e87115',
-        name: 'Ouzoud Waterfalls Day Trip',
-        description: 'Visit Morocco\'s highest waterfalls, swim in natural pools, enjoy lunch by the cascades, and spot Barbary apes in their natural habitat.',
-        price: '200',
-        currency: 'MAD',
-        image: '/attached_assets/Ouzoud-Waterfalls_1751126328233.jpg',
-        photos: [
-          '/attached_assets/Ouzoud-Waterfalls_1751126328233.jpg',
-          '/attached_assets/Ouzoud-Waterfalls3_1751126328233.jpg',
-          '/attached_assets/Ouzoud-Waterfalls4_1751126328233.JPG'
-        ],
-        category: 'Nature',
-        isActive: true,
-        getyourguidePrice: 280,
-        availability: 'Daily',
-        createdAt: new Date(),
-        updatedAt: new Date()
-      },
-      {
-        _id: '686000f2f5c4d141c7e87116',
-        name: 'Ourika Valley Day Trip',
-        description: 'Explore traditional Berber villages, terraced fields, and stunning Atlas Mountain landscapes in the beautiful Ourika Valley.',
-        price: '150',
-        currency: 'MAD',
-        image: '/attached_assets/Ourika-Valley-day-trip-from-Marrakech_1756485141180.jpg',
-        photos: [
-          '/attached_assets/Ourika-Valley-day-trip-from-Marrakech_1756485141180.jpg',
-          '/attached_assets/ourika valley3_1756485141179.jpg',
-          '/attached_assets/ourika-valley-marrakech_1756485141180.jpg',
-          '/attached_assets/ourika-valley-1_1756485141180.jpeg',
-          '/attached_assets/Ourika Valley Day Trip1_1751114166831.jpg'
-        ],
-        category: 'Cultural',
-        isActive: true,
-        getyourguidePrice: 220,
-        availability: 'Daily',
-        duration: '6 hours',
-        createdAt: new Date(),
-        updatedAt: new Date()
-      },
-      {
-        _id: '686000f2f5c4d141c7e87117',
-        name: 'Marrakech City Tour',
-        description: 'Guided tour of the Marrakech medina including Koutoubia Mosque, Bahia Palace and Jemaa el-Fnaa.',
-        price: '300',
-        currency: 'MAD',
-        image: '/attached_assets/Essaouira Day Trip1_1751124502666.jpg',
-        photos: ['/attached_assets/Essaouira Day Trip1_1751124502666.jpg'],
-        category: 'Cultural',
-        isActive: true,
-        getyourguidePrice: 400,
-        availability: 'Daily',
-        duration: '5 hours',
-        createdAt: new Date(),
-        updatedAt: new Date()
-      }
-    ];
-
-    // Seed admin users with environment variable passwords
-    const defaultPassword = process.env.NODE_ENV === 'development' ? 'Marrakech@2025' : 'ChangeMe123!';
-    const superadminPassword = process.env.SUPERADMIN_PASSWORD || defaultPassword;
-    const adminPassword = process.env.ADMIN_PASSWORD || defaultPassword;
-    
-    inMemoryData.users = [
-      {
-        _id: '686000f2f5c4d141c7e87101',
-        username: 'nadia',
-        password: await bcrypt.hash(superadminPassword, 10),
-        role: 'superadmin',
-        createdAt: new Date(),
-        updatedAt: new Date()
-      },
-      {
-        _id: '686000f2f5c4d141c7e87102',
-        username: 'ahmed',
-        password: await bcrypt.hash(adminPassword, 10),
-        role: 'admin',
-        createdAt: new Date(),
-        updatedAt: new Date()
-      },
-      {
-        _id: '686000f2f5c4d141c7e87103',
-        username: 'yahia',
-        password: await bcrypt.hash(adminPassword, 10),
-        role: 'admin',
-        createdAt: new Date(),
-        updatedAt: new Date()
-      }
-    ];
-  }
 
   async getActivities(): Promise<ActivityType[]> {
-    if (this.useFallback) {
-      return inMemoryData.activities.filter(a => a.isActive);
-    }
-    
     try {
-      if (!this.isConnected) {
-        return inMemoryData.activities.filter(a => a.isActive);
-      }
       const activities = await Activity.find({ isActive: true });
-      return activities.map(activity => {
-        const transformed = this.transformDocument(activity);
-      
-      // Ensure Essaouira activity has authentic Casa Vera restaurant photo
-      if (transformed.name === 'Essaouira Day Trip') {
-        transformed.image = '/attached_assets/Essaouira Day Trip1_1751124502666.jpg';
-        transformed.photos = [
-          '/attached_assets/Essaouira Day Trip1_1751124502666.jpg',
-          '/attached_assets/Essaouira day trip 3_1751122022832.jpg',
-          '/attached_assets/Essaouira day trip 4_1751122022833.jpg',
-          '/attached_assets/Essaouira Day Trip_1751122022833.jpg',
-          '/attached_assets/Essaouira Day Trip2_1751122022833.jpg'
-        ];
-      }
-      
-      // Ensure Ouzoud Waterfalls has authentic cascade photos
-      if (transformed.name === 'Ouzoud Waterfalls Day Trip') {
-        transformed.image = '/attached_assets/Ouzoud-Waterfalls_1751126328233.jpg';
-        transformed.photos = [
-          '/attached_assets/Ouzoud-Waterfalls_1751126328233.jpg',
-          '/attached_assets/Ouzoud-Waterfalls3_1751126328233.jpg',
-          '/attached_assets/Ouzoud-Waterfalls4_1751126328233.JPG'
-        ];
-      }
-      
-      // Ensure Hot Air Balloon has authentic flight photos
-      if (transformed.name === 'Montgolfière (Hot Air Balloon)') {
-        transformed.image = '/attached_assets/Hot Air Balloon Ride2_1751127701686.jpg';
-        transformed.photos = [
-          '/attached_assets/Hot Air Balloon Ride2_1751127701686.jpg',
-          '/attached_assets/Hot Air Balloon Ride3_1751127701686.jpg',
-          '/attached_assets/montgofliere_a_marrakech_1751127701687.jpg',
-          '/attached_assets/montgolfiere-marrakech_1751127701687.jpg'
-        ];
-      }
-      
-      // Ensure Agafay Combo has authentic desert photos
-      if (transformed.name === 'Agafay Combo') {
-        transformed.image = '/attached_assets/agafaypack1_1751128022717.jpeg';
-        transformed.photos = [
-          '/attached_assets/agafaypack1_1751128022717.jpeg',
-          '/attached_assets/agafaypack2_1751128022717.jpeg',
-          '/attached_assets/agafaypack3_1751128022718.jpeg',
-          '/attached_assets/agafaypack5_1751128022718.jpeg',
-          '/attached_assets/agafaypack6_1751128022718.jpeg'
-        ];
-      }
-      
-        return transformed;
-      });
+      return activities.map(activity => this.transformDocument(activity));
     } catch (error) {
       console.error('Error fetching activities:', error);
-      return inMemoryData.activities.filter(a => a.isActive);
+      throw error;
     }
   }
 
   async getActivity(id: string): Promise<ActivityType | null> {
-    if (this.useFallback) {
-      return inMemoryData.activities.find(a => a._id === id) || null;
-    }
-    
     try {
-      if (!this.isConnected) {
-        return inMemoryData.activities.find(a => a._id === id) || null;
-      }
       const activity = await Activity.findById(id);
       return this.transformDocument(activity);
     } catch (error) {
       console.error('Error fetching activity:', error);
-      return inMemoryData.activities.find(a => a._id === id) || null;
+      throw error;
     }
   }
 
   async createActivity(activityData: InsertActivity): Promise<ActivityType> {
-    if (this.useFallback) {
-      const newActivity: ActivityType = {
-        _id: Date.now().toString(),
-        name: activityData.name,
-        description: activityData.description,
-        price: activityData.price,
-        currency: activityData.currency || 'MAD',
-        image: activityData.image,
-        photos: activityData.photos,
-        category: activityData.category,
-        isActive: activityData.isActive ?? true,
-        seasonalPricing: activityData.seasonalPricing,
-        getyourguidePrice: activityData.getyourguidePrice,
-        availability: activityData.availability,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      };
-      inMemoryData.activities.push(newActivity);
-      return newActivity;
-    }
-    
     const activity = new Activity(activityData);
     const savedActivity = await activity.save();
     return this.transformDocument(savedActivity);
   }
 
   async updateActivity(id: string, activityData: Partial<InsertActivity>): Promise<ActivityType | null> {
-    if (this.useFallback) {
-      const activityIndex = inMemoryData.activities.findIndex(a => a._id === id);
-      if (activityIndex === -1) return null;
-      
-      const updatedActivity = {
-        ...inMemoryData.activities[activityIndex],
-        ...activityData,
-        updatedAt: new Date()
-      };
-      inMemoryData.activities[activityIndex] = updatedActivity;
-      return updatedActivity;
-    }
-    
     const activity = await Activity.findByIdAndUpdate(id, activityData, { new: true });
     return this.transformDocument(activity);
   }
 
   async deleteActivity(id: string): Promise<void> {
-    if (this.useFallback) {
-      const activityIndex = inMemoryData.activities.findIndex(a => a._id === id);
-      if (activityIndex !== -1) {
-        inMemoryData.activities.splice(activityIndex, 1);
-      }
-      return;
-    }
-    
     await Activity.findByIdAndDelete(id);
   }
 
   // Booking operations
   async getBookings(): Promise<BookingWithActivity[]> {
-    if (this.useFallback) {
-      return inMemoryData.bookings.map(booking => {
-        const activity = inMemoryData.activities.find(a => a._id === booking.activityId);
-        return {
-          ...booking,
-          activity: activity || undefined
-        };
-      }).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    }
-    
     const bookings = await Booking.find().populate('activityId').sort({ createdAt: -1 });
     return bookings.map(booking => {
       const bookingObj = this.transformDocument(booking);
@@ -582,17 +213,6 @@ class MongoStorage implements IStorage {
   }
 
   async getBooking(id: string): Promise<BookingWithActivity | null> {
-    if (this.useFallback) {
-      const booking = inMemoryData.bookings.find(b => b._id === id);
-      if (!booking) return null;
-      
-      const activity = inMemoryData.activities.find(a => a._id === booking.activityId);
-      return {
-        ...booking,
-        activity: activity || undefined
-      };
-    }
-    
     const booking = await Booking.findById(id).populate('activityId');
     if (!booking) return null;
     
@@ -605,43 +225,12 @@ class MongoStorage implements IStorage {
   }
 
   async createBooking(bookingData: InsertBooking): Promise<BookingType> {
-    if (this.useFallback) {
-      const newBooking: BookingType = {
-        _id: Date.now().toString(),
-        customerName: bookingData.customerName,
-        customerPhone: bookingData.customerPhone,
-        activityId: bookingData.activityId,
-        numberOfPeople: bookingData.numberOfPeople,
-        preferredDate: bookingData.preferredDate,
-        status: bookingData.status || 'pending',
-        totalAmount: bookingData.totalAmount,
-        notes: bookingData.notes,
-        paymentStatus: bookingData.paymentStatus || 'unpaid',
-        paymentMethod: bookingData.paymentMethod,
-        paidAmount: bookingData.paidAmount || 0,
-        depositAmount: bookingData.depositAmount,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      };
-      inMemoryData.bookings.push(newBooking);
-      return newBooking;
-    }
-    
     const booking = new Booking(bookingData);
     const savedBooking = await booking.save();
     return this.transformDocument(savedBooking);
   }
 
   async updateBookingStatus(id: string, status: string): Promise<BookingType | null> {
-    if (this.useFallback) {
-      const bookingIndex = inMemoryData.bookings.findIndex(b => b._id === id);
-      if (bookingIndex === -1) return null;
-      
-      inMemoryData.bookings[bookingIndex].status = status;
-      inMemoryData.bookings[bookingIndex].updatedAt = new Date();
-      return inMemoryData.bookings[bookingIndex];
-    }
-    
     const booking = await Booking.findByIdAndUpdate(id, { status }, { new: true });
     return this.transformDocument(booking);
   }
@@ -652,72 +241,24 @@ class MongoStorage implements IStorage {
     paymentMethod: string;
     depositAmount?: number;
   }): Promise<BookingType | null> {
-    if (this.useFallback) {
-      const bookingIndex = inMemoryData.bookings.findIndex(b => b._id === id);
-      if (bookingIndex === -1) return null;
-      
-      inMemoryData.bookings[bookingIndex] = {
-        ...inMemoryData.bookings[bookingIndex],
-        paymentStatus: paymentData.paymentStatus as 'unpaid' | 'deposit_paid' | 'fully_paid',
-        paidAmount: paymentData.paidAmount,
-        paymentMethod: paymentData.paymentMethod as 'cash' | 'cash_deposit',
-        depositAmount: paymentData.depositAmount,
-        updatedAt: new Date()
-      };
-      return inMemoryData.bookings[bookingIndex];
-    }
-    
     const booking = await Booking.findByIdAndUpdate(id, paymentData, { new: true });
     return this.transformDocument(booking);
   }
 
   // Audit log operations
   async createAuditLog(logData: InsertAuditLog): Promise<AuditLogType> {
-    if (this.useFallback) {
-      const newLog: AuditLogType = {
-        _id: Date.now().toString(),
-        userId: logData.userId,
-        action: logData.action,
-        details: logData.details,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      };
-      inMemoryData.auditLogs.push(newLog);
-      return newLog;
-    }
-    
     const log = new AuditLog(logData);
     const savedLog = await log.save();
     return this.transformDocument(savedLog);
   }
 
   async getAuditLogs(): Promise<AuditLogType[]> {
-    if (this.useFallback) {
-      return inMemoryData.auditLogs
-        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-        .slice(0, 100);
-    }
-    
     const logs = await AuditLog.find().sort({ createdAt: -1 }).limit(100);
     return logs.map(log => this.transformDocument(log));
   }
 
   // Review operations
   async getReviews(activityId?: string): Promise<ReviewWithActivity[]> {
-    if (this.useFallback) {
-      const filteredReviews = activityId 
-        ? inMemoryData.reviews.filter(r => r.activityId === activityId && r.approved)
-        : inMemoryData.reviews.filter(r => r.approved);
-      
-      return filteredReviews.map(review => {
-        const activity = inMemoryData.activities.find(a => a._id === review.activityId);
-        return {
-          ...review,
-          activity: activity || undefined
-        };
-      }).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    }
-    
     const query = activityId ? { activityId, approved: true } : { approved: true };
     const reviews = await Review.find(query).populate('activityId').sort({ createdAt: -1 });
     return reviews.map(review => {
@@ -731,17 +272,6 @@ class MongoStorage implements IStorage {
   }
 
   async getReview(id: string): Promise<ReviewWithActivity | null> {
-    if (this.useFallback) {
-      const review = inMemoryData.reviews.find(r => r._id === id);
-      if (!review) return null;
-      
-      const activity = inMemoryData.activities.find(a => a._id === review.activityId);
-      return {
-        ...review,
-        activity: activity || undefined
-      };
-    }
-    
     const review = await Review.findById(id).populate('activityId');
     if (!review) return null;
     
@@ -754,56 +284,17 @@ class MongoStorage implements IStorage {
   }
 
   async createReview(reviewData: InsertReview): Promise<ReviewType> {
-    if (this.useFallback) {
-      const newReview: ReviewType = {
-        _id: Date.now().toString(),
-        customerName: reviewData.customerName,
-        customerEmail: reviewData.customerEmail,
-        activityId: reviewData.activityId,
-        rating: reviewData.rating,
-        comment: reviewData.comment,
-        approved: reviewData.approved ?? false,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      };
-      inMemoryData.reviews.push(newReview);
-      return newReview;
-    }
-    
     const review = new Review(reviewData);
     const savedReview = await review.save();
     return this.transformDocument(savedReview);
   }
 
   async updateReviewApproval(id: string, approved: boolean): Promise<ReviewType | null> {
-    if (this.useFallback) {
-      const reviewIndex = inMemoryData.reviews.findIndex(r => r._id === id);
-      if (reviewIndex === -1) return null;
-      
-      inMemoryData.reviews[reviewIndex].approved = approved;
-      inMemoryData.reviews[reviewIndex].updatedAt = new Date();
-      return inMemoryData.reviews[reviewIndex];
-    }
-    
     const review = await Review.findByIdAndUpdate(id, { approved }, { new: true });
     return this.transformDocument(review);
   }
 
   async getActivityRating(activityId: string): Promise<{ averageRating: number; totalReviews: number }> {
-    if (this.useFallback) {
-      const reviews = inMemoryData.reviews.filter(r => r.activityId === activityId && r.approved);
-      const totalReviews = reviews.length;
-      
-      if (totalReviews === 0) {
-        return { averageRating: 0, totalReviews: 0 };
-      }
-      
-      const totalRating = reviews.reduce((sum, review) => sum + review.rating, 0);
-      const averageRating = totalRating / totalReviews;
-      
-      return { averageRating, totalReviews };
-    }
-    
     const reviews = await Review.find({ activityId, approved: true });
     const totalReviews = reviews.length;
     
@@ -819,23 +310,11 @@ class MongoStorage implements IStorage {
 
   async seedInitialData(): Promise<void> {
     try {
-      // Always check if we should use fallback mode or if MongoDB is not properly connected
-      if (this.useFallback || !this.isConnected) {
-        console.log('Using fallback mode - skipping MongoDB seeding');
-        return;
-      }
-
-      // Additional safety check - test MongoDB connection before proceeding
-      try {
-        if (mongoose.connection.db) {
-          await mongoose.connection.db.admin().ping();
-        } else {
-          throw new Error('Database connection not available');
-        }
-      } catch (error) {
-        console.log('MongoDB ping failed, skipping seeding');
-        this.useFallback = true;
-        return;
+      // Test MongoDB connection before proceeding
+      if (mongoose.connection.db) {
+        await mongoose.connection.db.admin().ping();
+      } else {
+        throw new Error('Database connection not available');
       }
 
       // Create admin users if they don't exist
@@ -944,32 +423,6 @@ class MongoStorage implements IStorage {
 
   // Analytics methods
   async getEarningsAnalytics(): Promise<any> {
-    if (this.useFallback) {
-      const now = new Date();
-      const currentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-      const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-      
-      const currentMonthBookings = inMemoryData.bookings.filter(booking => 
-        booking.createdAt >= currentMonth && 
-        (booking.paymentStatus === 'deposit_paid' || booking.paymentStatus === 'fully_paid')
-      );
-      
-      const lastMonthBookings = inMemoryData.bookings.filter(booking => 
-        booking.createdAt >= lastMonth && 
-        booking.createdAt < currentMonth && 
-        (booking.paymentStatus === 'deposit_paid' || booking.paymentStatus === 'fully_paid')
-      );
-      
-      const currentMonthTotal = currentMonthBookings.reduce((sum, booking) => sum + booking.paidAmount, 0);
-      const lastMonthTotal = lastMonthBookings.reduce((sum, booking) => sum + booking.paidAmount, 0);
-      
-      return {
-        currentMonth: currentMonthTotal,
-        lastMonth: lastMonthTotal,
-        currency: 'MAD'
-      };
-    }
-    
     const now = new Date();
     const currentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
@@ -992,17 +445,6 @@ class MongoStorage implements IStorage {
   }
 
   async getActivityAnalytics(): Promise<any> {
-    if (this.useFallback) {
-      const activities = inMemoryData.activities.filter(a => a.isActive);
-      return activities.map(activity => {
-        const bookingCount = inMemoryData.bookings.filter(b => b.activityId === activity._id).length;
-        return {
-          ...activity,
-          bookingCount
-        };
-      });
-    }
-    
     const activities = await Activity.find({ isActive: true });
     const bookingCounts = await Booking.aggregate([
       { $group: { _id: '$activityId', count: { $sum: 1 } } }
@@ -1018,19 +460,6 @@ class MongoStorage implements IStorage {
   }
 
   async getBookingAnalytics(): Promise<any> {
-    if (this.useFallback) {
-      const totalBookings = inMemoryData.bookings.length;
-      const pendingBookings = inMemoryData.bookings.filter(b => b.status === 'pending').length;
-      const confirmedBookings = inMemoryData.bookings.filter(b => b.status === 'confirmed').length;
-      
-      return {
-        total: totalBookings,
-        pending: pendingBookings,
-        confirmed: confirmedBookings,
-        completed: totalBookings - pendingBookings - confirmedBookings
-      };
-    }
-    
     const totalBookings = await Booking.countDocuments();
     const pendingBookings = await Booking.countDocuments({ status: 'pending' });
     const confirmedBookings = await Booking.countDocuments({ status: 'confirmed' });
@@ -1044,24 +473,11 @@ class MongoStorage implements IStorage {
   }
 
   async getGetYourGuidePriceComparison(): Promise<any> {
-    if (this.useFallback) {
-      return inMemoryData.activities.filter(a => a.isActive);
-    }
-    
     const activities = await Activity.find({ isActive: true });
     return activities.map(activity => this.transformDocument(activity));
   }
 
   async updateActivityGetYourGuidePrice(id: string, price: number): Promise<ActivityType | null> {
-    if (this.useFallback) {
-      const activityIndex = inMemoryData.activities.findIndex(a => a._id === id);
-      if (activityIndex === -1) return null;
-      
-      inMemoryData.activities[activityIndex].getyourguidePrice = price;
-      inMemoryData.activities[activityIndex].updatedAt = new Date();
-      return inMemoryData.activities[activityIndex];
-    }
-    
     const activity = await Activity.findByIdAndUpdate(id, { getyourguidePrice: price }, { new: true });
     return this.transformDocument(activity);
   }

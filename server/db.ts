@@ -1,15 +1,57 @@
-import { Pool, neonConfig } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-serverless';
-import ws from "ws";
-import * as schema from "@shared/schema";
+import mongoose from 'mongoose';
 
-neonConfig.webSocketConstructor = ws;
-
+// Ensure DATABASE_URL is set
 if (!process.env.DATABASE_URL) {
-  throw new Error(
-    "DATABASE_URL must be set. Did you forget to provision a database?",
-  );
+  console.error('❌ DATABASE_URL environment variable is required but not set.');
+  console.error('Please set DATABASE_URL to your MongoDB connection string.');
+  process.exit(1);
 }
 
-export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-export const db = drizzle({ client: pool, schema });
+export async function connectToDatabase(): Promise<void> {
+  try {
+    // Clear any existing connections
+    if (mongoose.connection.readyState !== 0) {
+      await mongoose.disconnect();
+    }
+
+    // Connect to MongoDB with proper options
+    await mongoose.connect(process.env.DATABASE_URL, {
+      retryWrites: true,
+      w: 'majority',
+      maxPoolSize: 10,
+      serverSelectionTimeoutMS: 10000,
+      socketTimeoutMS: 15000,
+      connectTimeoutMS: 10000,
+      family: 4
+    });
+
+    console.log('✅ Connected to MongoDB Atlas');
+    
+    // Handle connection events
+    mongoose.connection.on('error', (error) => {
+      console.error('❌ MongoDB connection error:', error);
+      process.exit(1);
+    });
+
+    mongoose.connection.on('disconnected', () => {
+      console.log('⚠️ MongoDB disconnected');
+    });
+
+    mongoose.connection.on('reconnected', () => {
+      console.log('✅ MongoDB reconnected');
+    });
+
+  } catch (error) {
+    console.error('❌ MongoDB connection error:', error);
+    process.exit(1);
+  }
+}
+
+export async function disconnectFromDatabase(): Promise<void> {
+  try {
+    await mongoose.disconnect();
+    console.log('✅ Disconnected from MongoDB Atlas');
+  } catch (error) {
+    console.error('❌ Error disconnecting from MongoDB:', error);
+  }
+}

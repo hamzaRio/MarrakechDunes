@@ -3,6 +3,7 @@ import { fileURLToPath } from "url";
 import dotenv from "dotenv";
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
+import { connectToDatabase } from "./db";
 // Logging helper similar to Vite's logger
 const log = (message: string, source = "express", level: "info" | "warn" | "error" = "info") => {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
@@ -32,10 +33,7 @@ const rootDir =
     : path.resolve(__dirname, "..");
 dotenv.config({ path: path.join(rootDir, ".env") });
 
-// Initialize application with MongoDB
-if (process.env.NODE_ENV === "development") {
-  console.log("Initializing MarrakechDunes with MongoDB Atlas...");
-}
+// Database connection will be established before starting the server
 
 const app = express();
 // Configure trust proxy for rate limiting  
@@ -83,6 +81,9 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Connect to MongoDB before starting the server
+  await connectToDatabase();
+  
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
