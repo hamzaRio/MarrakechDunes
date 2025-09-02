@@ -8,7 +8,7 @@ import { Request, Response, NextFunction } from 'express';
 // Rate limiting for authentication attempts
 export const authRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // 5 attempts per window
+  max: process.env.NODE_ENV === 'production' ? 5 : 100, // Stricter in production
   message: {
     error: 'Too many authentication attempts',
     message: 'Please wait 15 minutes before trying again'
@@ -18,6 +18,18 @@ export const authRateLimit = rateLimit({
   skip: (req) => {
     // Skip rate limiting in development
     return process.env.NODE_ENV === 'development';
+  },
+  // Enhanced rate limiting with IP-based tracking
+  keyGenerator: (req) => {
+    return req.ip || req.connection.remoteAddress || 'unknown';
+  },
+  // Custom handler for rate limit exceeded
+  handler: (req, res) => {
+    res.status(429).json({
+      error: 'Too many authentication attempts',
+      message: 'Please wait 15 minutes before trying again',
+      retryAfter: Math.ceil(15 * 60 / 60) // minutes
+    });
   }
 });
 
@@ -238,8 +250,10 @@ export const sessionSecurity = {
   saveUninitialized: false,
   store: createSessionStore(),
   cookie: {
-    secure: false, // Set to false for localhost development (no HTTPS)
+    secure: process.env.NODE_ENV === 'production', // Secure in production only
     httpOnly: true,
-    sameSite: 'lax', // Use 'lax' for localhost development
+    sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
+    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    domain: process.env.NODE_ENV === 'production' ? process.env.COOKIE_DOMAIN : undefined,
   }
 };

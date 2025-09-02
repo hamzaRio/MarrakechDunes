@@ -10,10 +10,27 @@ dotenv.config({ path: path.join(rootDir, ".env") });
 
 // Validate required environment variables
 const requiredEnvVars = ['DATABASE_URL'];
+const optionalEnvVars = ['SESSION_SECRET', 'CLIENT_URL', 'WHATSAPP_RECEIVERS'];
+
 for (const envVar of requiredEnvVars) {
   if (!process.env[envVar]) {
     console.error(`❌ Required environment variable ${envVar} is not set.`);
     console.error('Please check your .env file or environment configuration.');
+    process.exit(1);
+  }
+}
+
+// Warn about missing optional environment variables
+for (const envVar of optionalEnvVars) {
+  if (!process.env[envVar]) {
+    console.warn(`⚠️ Optional environment variable ${envVar} is not set.`);
+  }
+}
+
+// Validate SESSION_SECRET length in production
+if (process.env.NODE_ENV === 'production' && process.env.SESSION_SECRET) {
+  if (process.env.SESSION_SECRET.length < 32) {
+    console.error('❌ SESSION_SECRET must be at least 32 characters long in production.');
     process.exit(1);
   }
 }

@@ -20,11 +20,12 @@ export async function connectToDatabase(): Promise<void> {
 
       console.log(`🔄 Attempting to connect to MongoDB (attempt ${attempt}/${maxRetries})...`);
 
-      // Connect to MongoDB with proper options
+      // Connect to MongoDB with enhanced options for production reliability
       await mongoose.connect(process.env.DATABASE_URL, {
         retryWrites: true,
         w: 'majority',
-        maxPoolSize: 10,
+        maxPoolSize: process.env.NODE_ENV === 'production' ? 20 : 10,
+        minPoolSize: process.env.NODE_ENV === 'production' ? 5 : 1,
         serverSelectionTimeoutMS: 10000,
         socketTimeoutMS: 15000,
         connectTimeoutMS: 10000,
@@ -32,7 +33,19 @@ export async function connectToDatabase(): Promise<void> {
         // Enhanced options for better reliability
         bufferCommands: false,
         autoIndex: true,
-        autoCreate: true
+        autoCreate: true,
+        // Additional production optimizations
+        maxIdleTimeMS: 30000,
+        heartbeatFrequencyMS: 10000,
+        // Retry configuration
+        retryReads: true,
+        retryWrites: true,
+        // Write concern for better durability
+        writeConcern: {
+          w: 'majority',
+          j: true,
+          wtimeout: 10000
+        }
       });
 
       console.log('✅ Connected to MongoDB Atlas');

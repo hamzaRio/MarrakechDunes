@@ -55,14 +55,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // CORS configuration - read CLIENT_URL from environment
   const clientUrls = (process.env.CLIENT_URL || 'http://localhost:5173').split(',').map(url => url.trim());
   
+  // Optimized CORS middleware - only set headers if not already set by main CORS middleware
   app.use((req: Request, res: Response, next: NextFunction) => {
     const origin = req.headers.origin;
-    if (origin && clientUrls.includes(origin)) {
+    if (origin && clientUrls.includes(origin) && !res.getHeader('Access-Control-Allow-Origin')) {
       res.setHeader('Access-Control-Allow-Origin', origin);
     }
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+    if (!res.getHeader('Access-Control-Allow-Credentials')) {
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+    }
+    if (!res.getHeader('Access-Control-Allow-Methods')) {
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    }
+    if (!res.getHeader('Access-Control-Allow-Headers')) {
+      res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+    }
     
     if (req.method === 'OPTIONS') {
       return res.sendStatus(200);
@@ -93,6 +100,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Configure secure sessions FIRST (before other middleware)
+  app.use(session(sessionSecurity));
+  
   // Apply security headers
   app.use(securityHeaders);
   
@@ -101,9 +111,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Apply input validation
   app.use(validateInput);
-  
-  // Configure secure sessions
-  app.use(session(sessionSecurity));
 
   // Initialize database
   await storage.seedInitialData();

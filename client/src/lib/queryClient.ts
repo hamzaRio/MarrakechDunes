@@ -3,8 +3,30 @@ import { API_URL } from "./env";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
-    const text = (await res.text()) || res.statusText;
-    throw new Error(`${res.status}: ${text}`);
+    let errorMessage = res.statusText;
+    try {
+      const errorData = await res.json();
+      errorMessage = errorData.message || errorData.error || res.statusText;
+    } catch {
+      // If JSON parsing fails, use status text
+      errorMessage = res.statusText;
+    }
+    
+    // Enhanced error handling for specific status codes
+    switch (res.status) {
+      case 401:
+        throw new Error('Authentication required. Please log in again.');
+      case 403:
+        throw new Error('Access denied. You do not have permission for this action.');
+      case 404:
+        throw new Error('Resource not found.');
+      case 429:
+        throw new Error('Too many requests. Please try again later.');
+      case 500:
+        throw new Error('Server error. Please try again later.');
+      default:
+        throw new Error(`${res.status}: ${errorMessage}`);
+    }
   }
 }
 
