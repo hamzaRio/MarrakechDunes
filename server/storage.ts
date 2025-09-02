@@ -18,10 +18,6 @@ import type {
 // MongoDB connection string - must use DATABASE_URL
 const DATABASE_URL = process.env.DATABASE_URL;
 
-if (!DATABASE_URL) {
-  throw new Error('DATABASE_URL environment variable is required');
-}
-
 // Mongoose Schemas
 const userSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true },

@@ -1,13 +1,13 @@
 import mongoose from 'mongoose';
 
-// Ensure DATABASE_URL is set
-if (!process.env.DATABASE_URL) {
-  console.error('❌ DATABASE_URL environment variable is required but not set.');
-  console.error('Please set DATABASE_URL to your MongoDB connection string.');
-  process.exit(1);
-}
-
 export async function connectToDatabase(): Promise<void> {
+  // Check for required environment variable
+  if (!process.env.DATABASE_URL) {
+    console.error('❌ DATABASE_URL environment variable is required but not set.');
+    console.error('Please set DATABASE_URL to your MongoDB connection string.');
+    process.exit(1);
+  }
+
   try {
     // Clear any existing connections
     if (mongoose.connection.readyState !== 0) {

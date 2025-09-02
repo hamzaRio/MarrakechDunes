@@ -1,6 +1,24 @@
 import path from "path";
 import { fileURLToPath } from "url";
 import dotenv from "dotenv";
+
+// ✅ Load environment variables FIRST, before any other imports
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const rootDir = path.resolve(__dirname, ".."); // Always go up 1 level to project root
+dotenv.config({ path: path.join(rootDir, ".env") });
+
+// Validate required environment variables
+const requiredEnvVars = ['DATABASE_URL'];
+for (const envVar of requiredEnvVars) {
+  if (!process.env[envVar]) {
+    console.error(`❌ Required environment variable ${envVar} is not set.`);
+    console.error('Please check your .env file or environment configuration.');
+    process.exit(1);
+  }
+}
+
+// Now import modules that depend on environment variables
 import express, { type Request, Response, NextFunction } from "express";
 import cors from "cors";
 import { registerRoutes } from "./routes";
@@ -31,17 +49,6 @@ const log = (
       console.log(logMessage);
   }
 };
-
-// Resolve root directory
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const rootDir =
-  process.env.NODE_ENV === "production"
-    ? path.resolve(__dirname, "..", "..")
-    : path.resolve(__dirname, "..");
-
-// Load environment variables
-dotenv.config({ path: path.join(rootDir, ".env") });
 
 const app = express();
 
