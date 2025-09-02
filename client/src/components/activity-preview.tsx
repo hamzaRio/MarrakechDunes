@@ -7,6 +7,7 @@ import { useLanguage } from '@/hooks/useLanguage';
 import ActivityRating from './activity-rating';
 
 import { getAssetUrl } from '@/lib/utils';
+import { asset } from '@/lib/env';
 import type { ActivityType } from '@shared/schema';
 
 interface ActivityPreviewProps {
@@ -52,7 +53,7 @@ export default function ActivityPreview({ activity, isOpen, onClose, onBookNow }
                 alt={`${activity.name} - Image ${currentImageIndex + 1}`}
                 className="w-full h-full object-cover"
                 onError={(e) => {
-                  e.currentTarget.src = "https://images.unsplash.com/photo-1540979388789-6cee28a1cdc9?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600";
+                  e.currentTarget.src = asset("riad-kheirredine_1756041288677.jpg");
                 }}
               />
             </div>

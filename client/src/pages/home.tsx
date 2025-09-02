@@ -141,12 +141,12 @@ export default function Home() {
             </div>
             <div>
               <img
-                src="https://images.unsplash.com/photo-1539650116574-75c0c6d73d16?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2069&q=80"
+                src={asset("riad-kheirredine_1756041288677.jpg")}
                 alt="Traditional Moroccan riad courtyard with ornate tilework"
                 className="rounded-2xl shadow-xl w-full h-auto object-cover"
                 loading="lazy"
                 onError={(e) => {
-                  e.currentTarget.src = "https://images.unsplash.com/photo-1564155219151-52b4159c8b55?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600";
+                  e.currentTarget.src = asset("ourika-valley-marrakech_1751114166832.jpg");
                 }}
               />
             </div>
