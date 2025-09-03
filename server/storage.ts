@@ -313,15 +313,19 @@ class MongoStorage implements IStorage {
         throw new Error('Database connection not available');
       }
 
-      // Create admin users if they don't exist
-      const defaultPassword = process.env.NODE_ENV === 'development' ? 'Marrakech@2025' : 'ChangeMe123!';
-      const superadminPassword = process.env.SUPERADMIN_PASSWORD || defaultPassword;
-      const adminPassword = process.env.ADMIN_PASSWORD || defaultPassword;
+      // Validate required environment variables for admin users
+      if (!process.env.SUPERADMIN_PASSWORD) {
+        throw new Error('SUPERADMIN_PASSWORD environment variable is required');
+      }
+      if (!process.env.ADMIN_PASSWORD) {
+        throw new Error('ADMIN_PASSWORD environment variable is required');
+      }
       
+      // Create admin users if they don't exist
       const adminUsers = [
-        { username: 'nadia', password: superadminPassword, role: 'superadmin' },
-        { username: 'ahmed', password: adminPassword, role: 'admin' },
-        { username: 'yahia', password: adminPassword, role: 'admin' },
+        { username: 'nadia', password: process.env.SUPERADMIN_PASSWORD, role: 'superadmin' as const },
+        { username: 'ahmed', password: process.env.ADMIN_PASSWORD, role: 'admin' as const },
+        { username: 'yahia', password: process.env.ADMIN_PASSWORD, role: 'admin' as const },
       ];
 
       for (const userData of adminUsers) {
