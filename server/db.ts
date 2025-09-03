@@ -22,8 +22,6 @@ export async function connectToDatabase(): Promise<void> {
 
       // Connect to MongoDB with enhanced options for production reliability
       await mongoose.connect(process.env.DATABASE_URL, {
-        retryWrites: true,
-        w: 'majority',
         maxPoolSize: process.env.NODE_ENV === 'production' ? 20 : 10,
         minPoolSize: process.env.NODE_ENV === 'production' ? 5 : 1,
         serverSelectionTimeoutMS: 10000,

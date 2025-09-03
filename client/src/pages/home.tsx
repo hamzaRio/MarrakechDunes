@@ -94,7 +94,7 @@ export default function Home() {
       {/* About Section */}
       <section className="py-20 bg-moroccan-sand">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          <div className="max-w-4xl mx-auto">
             <div>
               <h2 className="font-playfair text-4xl font-black text-gray-900 mb-6">
                 {t('aboutTitle')}
@@ -138,17 +138,6 @@ export default function Home() {
                   <span className="font-semibold">15 {t('yearsExperience')}</span>
                 </div>
               </div>
-            </div>
-            <div>
-              <img
-                src={asset("riad-kheirredine_1756041288677.jpg")}
-                alt="Traditional Moroccan riad courtyard with ornate tilework"
-                className="rounded-2xl shadow-xl w-full h-auto object-cover"
-                loading="lazy"
-                onError={(e) => {
-                  e.currentTarget.src = asset("ourika-valley-marrakech_1751114166832.jpg");
-                }}
-              />
             </div>
           </div>
         </div>
