@@ -302,7 +302,7 @@ export const sessionSecurity = {
   cookie: {
     secure: process.env.NODE_ENV === 'production', // Secure in production only
     httpOnly: true,
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // 'lax' for development, 'none' for production
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' as 'none' : 'lax' as 'lax',
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
     domain: process.env.NODE_ENV === 'production' ? process.env.COOKIE_DOMAIN : undefined,
     path: '/', // Ensure cookie is available for all paths

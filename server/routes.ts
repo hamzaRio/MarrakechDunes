@@ -162,7 +162,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         referer: req.headers.referer,
         'user-agent': req.headers['user-agent']
       },
-      sessionStore: authReq.session?.store ? 'available' : 'missing'
+      sessionStore: (authReq.session as any)?.store ? 'available' : 'missing'
     });
     
     if (authReq.session?.user) {
@@ -232,7 +232,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           sessionId: authReq.sessionID,
           user: authReq.session.user,
           cookie: authReq.session.cookie,
-          cookieName: authReq.session.cookie?.name
+          cookieName: (authReq.session as any)?.cookie?.name ?? 'unnamed'
         });
 
         // Create audit log
