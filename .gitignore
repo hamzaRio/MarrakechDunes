@@ -53,10 +53,6 @@ coverage/
 tmp/
 temp/
 
-# === Replit specific ===
-.replit
-replit.nix
-
 # === Database files ===
 *.db
 *.sqlite
@@ -74,7 +70,14 @@ uploads/
 # === Docker ===
 .dockerignore
 
-# === Hosting configs ===
+# === Hosting configs (keep only Render + Vercel) ===
 .vercel
-.netlify
 render.yaml
+
+# Ignore unused deployment configs
+netlify.toml
+app.json
+.replit
+replit.nix
+replit.md
+DEPLOY-README.md
