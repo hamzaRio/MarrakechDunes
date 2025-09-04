@@ -222,10 +222,7 @@ const createSessionStore = () => {
       ttl: 24 * 60 * 60, // 24 hours in seconds
       autoRemove: 'native',
       crypto: {
-        secret: process.env.SESSION_SECRET || (() => {
-          console.error('❌ SESSION_SECRET environment variable is required');
-          process.exit(1);
-        })()
+        secret: process.env.SESSION_SECRET || 'dev-session-secret-change-in-production'
       }
     });
   } catch (error) {
@@ -261,10 +258,7 @@ const createEnhancedSessionStore = () => {
       ttl: 24 * 60 * 60, // 24 hours in seconds
       autoRemove: 'native',
       crypto: {
-        secret: process.env.SESSION_SECRET || (() => {
-          console.error('❌ SESSION_SECRET environment variable is required');
-          process.exit(1);
-        })()
+        secret: process.env.SESSION_SECRET || 'dev-session-secret-change-in-production'
       },
       // Enhanced options for better reliability
       touchAfter: 24 * 3600, // Only update session once per day
@@ -295,10 +289,7 @@ const createEnhancedSessionStore = () => {
 // Session security configuration
 export const sessionSecurity = {
   name: 'marrakech.session',
-  secret: process.env.SESSION_SECRET || (() => {
-    console.error('❌ SESSION_SECRET environment variable is required');
-    process.exit(1);
-  })(),
+  secret: process.env.SESSION_SECRET || 'dev-session-secret-change-in-production',
   resave: true, // Ensure session is saved
   saveUninitialized: false,
   store: createEnhancedSessionStore(),
