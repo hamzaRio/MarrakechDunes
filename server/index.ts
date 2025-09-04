@@ -48,6 +48,7 @@ for (const envVar of optionalEnvVars) {
 // Now import modules that depend on environment variables
 import express, { type Request, Response, NextFunction } from "express";
 import cors from "cors";
+import cookieParser from "cookie-parser";
 import { registerRoutes } from "./routes";
 import { connectToDatabase } from "./db";
 
@@ -85,6 +86,9 @@ app.set("trust proxy", 1);
 // Enable JSON & URL-encoded
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Enable cookie parsing
+app.use(cookieParser());
 
 // ✅ Enable CORS (API + frontend)
 const clientUrls = (process.env.CLIENT_URL || 'http://localhost:5173').split(',').map(url => url.trim());
