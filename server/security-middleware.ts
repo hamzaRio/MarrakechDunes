@@ -19,10 +19,7 @@ export const authRateLimit = rateLimit({
     // Skip rate limiting in development
     return process.env.NODE_ENV === 'development';
   },
-  // Enhanced rate limiting with IP-based tracking
-  keyGenerator: (req) => {
-    return req.ip || req.connection.remoteAddress || 'unknown';
-  },
+
   // Custom handler for rate limit exceeded
   handler: (req, res) => {
     res.status(429).json({

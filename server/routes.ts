@@ -741,8 +741,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Object storage routes for activity image uploads
-  app.get("/public-objects/:filePath(*)", async (req, res) => {
-    const filePath = req.params.filePath;
+  app.get("/public-objects/*", async (req, res) => {
+    const filePath = req.path.replace('/public-objects/', '');
     const { ObjectStorageService } = await import("./objectStorage");
     const objectStorageService = new ObjectStorageService();
     try {
@@ -757,7 +757,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/objects/:objectPath(*)", async (req, res) => {
+  app.get("/objects/*", async (req, res) => {
     const { ObjectStorageService, ObjectNotFoundError } = await import("./objectStorage");
     const objectStorageService = new ObjectStorageService();
     try {
