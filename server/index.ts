@@ -49,6 +49,8 @@ for (const envVar of optionalEnvVars) {
 import express, { type Request, Response, NextFunction } from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
+import helmet from "helmet";
+import { globalLimiter, strictLimiter } from "./rate-limiters";
 import { registerRoutes } from "./routes";
 import { connectToDatabase } from "./db";
 
@@ -82,6 +84,14 @@ const app = express();
 
 // Configure trust proxy for rate limiting
 app.set("trust proxy", 1);
+
+// Security middleware
+app.use(helmet());
+
+
+
+// Apply global rate limiting
+app.use(globalLimiter);
 
 // Enable JSON & URL-encoded
 app.use(express.json());

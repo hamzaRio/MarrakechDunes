@@ -19,6 +19,7 @@ import {
   adminAuditLog,
   sessionSecurity
 } from "./security-middleware";
+import { strictLimiter } from './rate-limiters';
 
 // Types for session data
 declare module 'express-session' {
@@ -47,6 +48,14 @@ const requireSuperAdmin = (req: Request, res: Response, next: NextFunction) => {
   const authReq = req as AuthenticatedRequest;
   if (!authReq.session.user || authReq.session.user.role !== 'superadmin') {
     return res.status(403).json({ message: "Superadmin access required" });
+  }
+  next();
+};
+
+const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
+  const authReq = req as AuthenticatedRequest;
+  if (!authReq.session.user || (authReq.session.user.role !== "admin" && authReq.session.user.role !== "superadmin")) {
+    return res.status(403).json({ message: "Forbidden: Admins only" });
   }
   next();
 };
@@ -114,8 +123,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/bookings', generalApiRateLimit);
   app.use('/api/reviews', generalApiRateLimit);
 
-  // Admin API routes with stricter rate limiting and audit logging
-  app.use('/api/admin', adminApiRateLimit, adminAuditLog);
+  // Admin API routes with stricter rate limiting, audit logging, and admin authentication
+  app.use('/api/admin', adminApiRateLimit, adminAuditLog, requireAdmin);
 
   // Auth routes
   app.get('/api/auth/test', (req: Request, res) => {
@@ -178,7 +187,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/auth/login", authRateLimit, async (req: Request, res) => {
+  app.post("/api/auth/login", strictLimiter, authRateLimit, async (req: Request, res) => {
     const { username, password } = req.body;
     
     console.log('🔐 Login attempt:', { 
@@ -257,7 +266,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/auth/logout", (req: Request, res) => {
+  app.post("/api/auth/logout", strictLimiter, (req: Request, res) => {
     const authReq = req as AuthenticatedRequest;
     
     console.log('🚪 Logout attempt:', {

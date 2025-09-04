@@ -9,11 +9,14 @@
   },
   "dependencies": {
     "cookie-parser": "^1.4.7",
+    "express-rate-limit": "^8.0.1",
+    "helmet": "^8.1.0",
     "mongodb": "^6.19.0",
     "mongoose": "^8.18.0",
     "rest-express": "file:.."
   },
   "devDependencies": {
-    "@types/cookie-parser": "^1.4.9"
+    "@types/cookie-parser": "^1.4.9",
+    "@types/helmet": "^0.0.48"
   }
 }
