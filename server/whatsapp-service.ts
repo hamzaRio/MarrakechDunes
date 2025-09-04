@@ -1,5 +1,6 @@
 // WhatsApp Business API Service for MarrakechDunes
 // This service handles automated WhatsApp notifications to admins
+import CircuitBreaker from 'opossum';
 
 export interface WhatsAppContact {
   name: string;
@@ -24,6 +25,8 @@ export interface BookingNotificationData {
 
 export class WhatsAppService {
   private adminContacts: WhatsAppContact[];
+  private bookingNotificationBreaker: CircuitBreaker;
+  private paymentConfirmationBreaker: CircuitBreaker;
 
   constructor() {
     // Read WhatsApp receivers from environment variable
@@ -36,9 +39,62 @@ export class WhatsAppService {
       { name: "Yahia", phone: `+${receivers[1] || "212693323368"}`, role: "admin" as const },
       { name: "Nadia", phone: `+${receivers[2] || "212654497354"}`, role: "superadmin" as const }
     ].filter(contact => contact.phone !== "+");
+
+    // Initialize circuit breakers
+    this.bookingNotificationBreaker = new CircuitBreaker(this.sendBookingNotificationInternal.bind(this), {
+      timeout: 5000, // 5 seconds
+      errorThresholdPercentage: 50, // 50% error rate
+      resetTimeout: 30000, // 30 seconds
+    });
+
+    this.paymentConfirmationBreaker = new CircuitBreaker(this.sendPaymentConfirmationInternal.bind(this), {
+      timeout: 5000, // 5 seconds
+      errorThresholdPercentage: 50, // 50% error rate
+      resetTimeout: 30000, // 30 seconds
+    });
+
+    // Add event listeners for monitoring
+    this.bookingNotificationBreaker.on('open', () => {
+      console.warn('⚠️ WhatsApp booking notification circuit breaker opened');
+    });
+
+    this.bookingNotificationBreaker.on('close', () => {
+      console.log('✅ WhatsApp booking notification circuit breaker closed');
+    });
+
+    this.paymentConfirmationBreaker.on('open', () => {
+      console.warn('⚠️ WhatsApp payment confirmation circuit breaker opened');
+    });
+
+    this.paymentConfirmationBreaker.on('close', () => {
+      console.log('✅ WhatsApp payment confirmation circuit breaker closed');
+    });
   }
 
   async sendBookingNotification(booking: BookingNotificationData): Promise<{
+    success: boolean;
+    recipients: WhatsAppContact[];
+    message: string;
+    whatsappLinks: Array<{name: string; phone: string; link: string}>;
+    customerMessage?: string;
+    customerWhatsappLink?: string;
+  }> {
+    try {
+      return await this.bookingNotificationBreaker.fire(booking);
+    } catch (error) {
+      console.error('❌ WhatsApp booking notification failed:', error);
+      return {
+        success: false,
+        recipients: this.adminContacts,
+        message: 'Service temporarily unavailable',
+        whatsappLinks: [],
+        customerMessage: 'Service temporarily unavailable',
+        customerWhatsappLink: ''
+      };
+    }
+  }
+
+  private async sendBookingNotificationInternal(booking: BookingNotificationData): Promise<{
     success: boolean;
     recipients: WhatsAppContact[];
     message: string;
@@ -86,6 +142,23 @@ export class WhatsAppService {
   }
 
   async sendPaymentConfirmation(booking: BookingNotificationData, paymentType: 'full' | 'deposit'): Promise<{
+    success: boolean;
+    message: string;
+    whatsappLinks: Array<{name: string; phone: string; link: string}>;
+  }> {
+    try {
+      return await this.paymentConfirmationBreaker.fire(booking, paymentType);
+    } catch (error) {
+      console.error('❌ WhatsApp payment confirmation failed:', error);
+      return {
+        success: false,
+        message: 'Service temporarily unavailable',
+        whatsappLinks: []
+      };
+    }
+  }
+
+  private async sendPaymentConfirmationInternal(booking: BookingNotificationData, paymentType: 'full' | 'deposit'): Promise<{
     success: boolean;
     message: string;
     whatsappLinks: Array<{name: string; phone: string; link: string}>;
