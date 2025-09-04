@@ -302,7 +302,7 @@ export const sessionSecurity = {
   cookie: {
     secure: false, // allow cookies over HTTP localhost
     httpOnly: true,
-    sameSite: 'lax', // use 'lax' for local testing
+    sameSite: 'lax' as 'lax', // use 'lax' for local testing
     maxAge: 24 * 60 * 60 * 1000, // 1 day
     path: '/', // Ensure cookie is available for all paths
   }
@@ -319,7 +319,7 @@ console.log('🔧 Session configuration:', {
     httpOnly: sessionSecurity.cookie.httpOnly,
     sameSite: sessionSecurity.cookie.sameSite,
     maxAge: sessionSecurity.cookie.maxAge,
-    domain: sessionSecurity.cookie.domain
+    path: sessionSecurity.cookie.path
   },
   environment: process.env.NODE_ENV || 'development',
   clientUrl: process.env.CLIENT_URL || 'http://localhost:5173'
