@@ -272,11 +272,11 @@ const createEnhancedSessionStore = () => {
     });
     
     // Test the store
-    store.on('connect', () => {
+    (store as any).on('connect', () => {
       console.log('✅ MongoDB session store connected successfully');
     });
     
-    store.on('error', (error) => {
+    (store as any).on('error', (error: unknown) => {
       console.error('❌ MongoDB session store error:', error);
     });
     

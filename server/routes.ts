@@ -4,7 +4,7 @@ import session from "express-session";
 import MongoStore from "connect-mongo";
 import bcrypt from "bcrypt";
 import { storage } from "./storage";
-import { insertBookingSchema, insertReviewSchema } from "@shared/schema";
+import { insertBookingSchema, insertReviewSchema } from "@shared/schema.ts";
 import { whatsappService } from "./whatsapp-service";
 import { z } from "zod";
 import {
@@ -95,7 +95,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (req.path.startsWith('/api/auth/')) {
       console.log('🔧 Session middleware:', {
         path: req.path,
-        sessionId: req.sessionID,
+        sessionId: req.session.id,
         hasSession: !!req.session,
         hasUser: !!req.session?.user,
         cookie: req.headers.cookie ? 'present' : 'missing',
@@ -131,7 +131,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const authReq = req as AuthenticatedRequest;
     
     console.log('🧪 Auth test endpoint called:', {
-      sessionId: authReq.sessionID,
+      sessionId: authReq.session.id,
       hasSession: !!authReq.session,
       hasUser: !!authReq.session?.user,
       cookie: req.headers.cookie ? 'present' : 'missing',
@@ -140,7 +140,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
     
     res.json({
-      sessionId: authReq.sessionID,
+      sessionId: authReq.session.id,
       hasSession: !!authReq.session,
       hasUser: !!authReq.session?.user,
       user: authReq.session?.user,
@@ -160,7 +160,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const authReq = req as AuthenticatedRequest;
     
     console.log('🔍 Auth check:', {
-      sessionId: authReq.sessionID,
+      sessionId: authReq.session.id,
       hasSession: !!authReq.session,
       hasUser: !!authReq.session?.user,
       user: authReq.session?.user,
@@ -180,7 +180,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } else {
       console.log('❌ User not authenticated - session details:', {
         sessionExists: !!authReq.session,
-        sessionId: authReq.sessionID,
+        sessionId: authReq.session.id,
         cookieHeader: req.headers.cookie ? 'present' : 'missing'
       });
       res.status(401).json({ message: "Not authenticated" });
@@ -194,7 +194,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       username, 
       ip: req.ip, 
       userAgent: req.get('User-Agent'),
-      sessionId: req.sessionID,
+      sessionId: req.session.id,
       hasSession: !!req.session
     });
     
@@ -225,7 +225,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
 
       console.log('📝 Session data set:', {
-        sessionId: authReq.sessionID,
+        sessionId: authReq.session.id,
         user: authReq.session.user,
         cookie: authReq.session.cookie
       });
@@ -238,7 +238,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         
         console.log('✅ Session saved successfully:', {
-          sessionId: authReq.sessionID,
+          sessionId: authReq.session.id,
           user: authReq.session.user,
           cookie: authReq.session.cookie,
           cookieName: (authReq.session as any)?.cookie?.name ?? 'unnamed'
@@ -257,7 +257,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.json({ 
           message: "Login successful", 
           user: authReq.session.user,
-          sessionId: authReq.sessionID
+          sessionId: authReq.session.id
         });
       });
     } catch (error) {
@@ -270,7 +270,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const authReq = req as AuthenticatedRequest;
     
     console.log('🚪 Logout attempt:', {
-      sessionId: authReq.sessionID,
+      sessionId: authReq.session.id,
       user: authReq.session?.user,
       ip: req.ip
     });
