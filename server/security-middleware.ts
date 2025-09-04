@@ -300,11 +300,10 @@ export const sessionSecurity = {
   saveUninitialized: false,
   store: createEnhancedSessionStore(),
   cookie: {
-    secure: process.env.NODE_ENV === 'production', // Secure in production only
+    secure: false, // allow cookies over HTTP localhost
     httpOnly: true,
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' as 'none' : 'lax' as 'lax',
-    maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    domain: process.env.NODE_ENV === 'production' ? process.env.COOKIE_DOMAIN : undefined,
+    sameSite: 'lax', // use 'lax' for local testing
+    maxAge: 24 * 60 * 60 * 1000, // 1 day
     path: '/', // Ensure cookie is available for all paths
   }
 };

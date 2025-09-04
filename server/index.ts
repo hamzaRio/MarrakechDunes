@@ -90,7 +90,7 @@ app.use(express.urlencoded({ extended: false }));
 const clientUrls = (process.env.CLIENT_URL || 'http://localhost:5173').split(',').map(url => url.trim());
 app.use(
   cors({
-    origin: clientUrls,
+    origin: process.env.CLIENT_URL || 'http://localhost:5173',
     credentials: true,
   })
 );
