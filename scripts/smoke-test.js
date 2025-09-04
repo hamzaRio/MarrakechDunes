@@ -39,7 +39,10 @@ async function runTests() {
     console.log('\n3️⃣ Testing Admin Login...');
     const loginData = {
       username: "nadia",
-      password: process.env.SUPERADMIN_PASSWORD || "Marrakech@2025"
+      password: process.env.SUPERADMIN_PASSWORD || (() => {
+        console.error('❌ SUPERADMIN_PASSWORD environment variable is required');
+        process.exit(1);
+      })()
     };
     
     res = await fetch(`${API}/api/auth/login`, {

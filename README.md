@@ -4,6 +4,15 @@
 
 MarrakechDunes is a production-ready full-stack web application for booking authentic Moroccan desert adventures and experiences. Built with modern technologies and designed for scalability, performance, and security.
 
+## 🔒 Security Notice
+
+**⚠️ IMPORTANT**: This application contains sensitive functionality and requires proper security configuration:
+- **Never commit `.env` files** to version control
+- **Always use strong, unique passwords** for admin accounts
+- **Rotate secrets regularly** in production
+- **Use HTTPS** in production environments
+- **Monitor audit logs** for suspicious activity
+
 ## 🚀 Quick Start
 
 ### Prerequisites
@@ -64,31 +73,37 @@ MarrakechDunes/
 
 Create a `.env` file in the root directory with the following variables:
 
-### Required Credentials
+### Required Environment Variables
 
 ```bash
 # === Database Configuration ===
-MONGODB_URI=mongodb+srv://your-username:your-password@cluster.mongodb.net/marrakech-tours?retryWrites=true&w=majority
+DATABASE_URL=mongodb+srv://your-username:your-password@cluster.mongodb.net/marrakech-tours?retryWrites=true&w=majority
 
 # === Authentication & Security ===
-JWT_SECRET=your-jwt-secret-key-here
-SESSION_SECRET=your-session-secret-key-here
+JWT_SECRET=your-jwt-secret-key-minimum-32-characters-long
+SESSION_SECRET=your-session-secret-key-minimum-32-characters-long
 
 # === Admin Credentials ===
-ADMIN_PASSWORD=your-secure-admin-password
-SUPERADMIN_PASSWORD=your-secure-superadmin-password
+ADMIN_PASSWORD=your-secure-admin-password-minimum-8-characters
+SUPERADMIN_PASSWORD=your-secure-superadmin-password-minimum-8-characters
 
 # === Application Configuration ===
 CLIENT_URL=http://localhost:5173,https://your-frontend-domain.com
 VITE_API_URL=http://localhost:5000
 
 # === Business Integration ===
-WHATSAPP_RECEIVERS=+212600623630,+212693323368,+212654497354
+WHATSAPP_RECEIVERS=your-phone-number-1,your-phone-number-2,your-phone-number-3
 
-# === Optional ===
+# === Environment ===
 NODE_ENV=development
 PORT=5000
 ```
+
+**⚠️ SECURITY WARNING**: 
+- Never use default passwords in production
+- Generate strong, unique secrets for JWT_SECRET and SESSION_SECRET
+- Use different passwords for ADMIN_PASSWORD and SUPERADMIN_PASSWORD
+- Replace WhatsApp numbers with your actual business phone numbers
 
 ### How to Get Credentials
 
@@ -111,14 +126,25 @@ openssl rand -hex 64
 ```
 
 #### 3. Admin Passwords
-Choose strong passwords for admin access:
-- **ADMIN_PASSWORD**: For regular admin users
-- **SUPERADMIN_PASSWORD**: For super admin access (highest privileges)
+Choose strong, unique passwords for admin access:
+- **ADMIN_PASSWORD**: For regular admin users (minimum 8 characters)
+- **SUPERADMIN_PASSWORD**: For super admin access (minimum 8 characters, different from ADMIN_PASSWORD)
+
+**Security Requirements:**
+- Use a mix of uppercase, lowercase, numbers, and special characters
+- Avoid common passwords or patterns
+- Use different passwords for each admin account
+- Consider using a password manager for secure storage
 
 #### 4. WhatsApp Integration
-Add phone numbers (with country codes) for receiving booking notifications:
+Add your actual business phone numbers (with country codes) for receiving booking notifications:
 ```bash
-WHATSAPP_RECEIVERS=+212600623630,+212693323368,+212654497354
+WHATSAPP_RECEIVERS=your-phone-number-1,your-phone-number-2,your-phone-number-3
+```
+
+**Example:**
+```bash
+WHATSAPP_RECEIVERS=+1234567890,+1987654321
 ```
 
 ## 🛠️ Development
@@ -189,34 +215,74 @@ This creates:
 For each deployment platform, set these environment variables:
 
 ```bash
-MONGODB_URI=your-production-mongodb-uri
-JWT_SECRET=your-production-jwt-secret
-SESSION_SECRET=your-production-session-secret
-ADMIN_PASSWORD=your-production-admin-password
-SUPERADMIN_PASSWORD=your-production-superadmin-password
+DATABASE_URL=your-production-mongodb-uri
+JWT_SECRET=your-production-jwt-secret-minimum-32-characters
+SESSION_SECRET=your-production-session-secret-minimum-32-characters
+ADMIN_PASSWORD=your-production-admin-password-minimum-8-characters
+SUPERADMIN_PASSWORD=your-production-superadmin-password-minimum-8-characters
 CLIENT_URL=https://your-frontend-domain.com
+VITE_API_URL=https://your-backend-domain.com
+VITE_ASSETS_BASE=https://your-backend-domain.com/assets
 WHATSAPP_RECEIVERS=your-production-phone-numbers
 NODE_ENV=production
+PORT=5000
 ```
+
+**🔒 Production Security Checklist:**
+- [ ] All secrets are at least 32 characters long
+- [ ] Admin passwords are strong and unique
+- [ ] HTTPS URLs are used for all endpoints
+- [ ] CORS is restricted to production domains
+- [ ] Rate limiting is enabled
+- [ ] Audit logging is active
+- [ ] Security headers are configured
+- [ ] Database access is properly secured
 
 ## 🔒 Security
 
 ### Security Features Implemented
 - ✅ **CORS Protection** - Configured for specific domains
-- ✅ **Rate Limiting** - Prevents API abuse
-- ✅ **Input Validation** - Zod schema validation
-- ✅ **Session Security** - Secure session management
+- ✅ **Rate Limiting** - Prevents API abuse (100 req/15min global, 10 req/min admin)
+- ✅ **Input Validation** - Zod schema validation with XSS protection
+- ✅ **Session Security** - Secure session management with MongoDB store
 - ✅ **Password Hashing** - bcrypt for admin passwords
-- ✅ **Environment Variables** - No credentials in code
-- ✅ **Audit Logging** - Track admin actions
+- ✅ **Environment Variables** - No hardcoded credentials in code
+- ✅ **Audit Logging** - Track all admin actions
+- ✅ **Circuit Breakers** - Protect external service calls
+- ✅ **Security Headers** - Helmet middleware for protection
+- ✅ **HTTPS Enforcement** - Required in production
 
 ### Security Best Practices
 1. **Never commit** `.env` files to version control
-2. **Use strong passwords** for admin accounts
-3. **Regularly rotate** JWT and session secrets
-4. **Use HTTPS** in production
+2. **Use strong passwords** for admin accounts (minimum 8 characters)
+3. **Regularly rotate** JWT and session secrets (minimum 32 characters)
+4. **Use HTTPS** in production environments
 5. **Restrict CORS** to your actual domains
 6. **Monitor** audit logs for suspicious activity
+7. **Run security audits** regularly with `npm audit`
+8. **Keep dependencies updated** to latest secure versions
+9. **Use environment-specific** configurations
+10. **Implement proper error handling** without exposing sensitive information
+
+### Environment Variable Security
+- **SESSION_SECRET**: Must be at least 32 characters long
+- **JWT_SECRET**: Must be at least 32 characters long  
+- **ADMIN_PASSWORD**: Use strong, unique passwords
+- **SUPERADMIN_PASSWORD**: Use different strong password
+- **DATABASE_URL**: Use MongoDB Atlas with proper access controls
+- **WHATSAPP_RECEIVERS**: Use actual phone numbers for notifications
+
+### Production Security Checklist
+- [ ] All environment variables set with secure values
+- [ ] HTTPS enabled and enforced
+- [ ] Rate limiting configured appropriately
+- [ ] CORS restricted to production domains
+- [ ] Session cookies configured for production
+- [ ] Database access properly secured
+- [ ] Admin passwords changed from defaults
+- [ ] Audit logging enabled and monitored
+- [ ] Security headers properly configured
+- [ ] Dependencies updated and audited
 
 ## 🗃️ Database
 
@@ -273,6 +339,46 @@ npm run db:push --force
 - **bcrypt** - Password hashing
 - **Express Sessions** - Authentication
 - **Rate Limiting** - API protection
+- **Helmet** - Security headers
+- **Circuit Breakers** - External service protection
+
+## 📦 Dependencies and Security
+
+### Security Audits
+Regularly audit your dependencies for security vulnerabilities:
+
+```bash
+# Check for vulnerabilities
+npm audit
+
+# Fix automatically fixable issues
+npm audit fix
+
+# Update dependencies to latest secure versions
+npm update
+
+# Check for outdated packages
+npm outdated
+```
+
+### Critical Dependencies
+- **express**: Web framework (keep updated for security patches)
+- **mongoose**: MongoDB ODM (monitor for security updates)
+- **bcrypt**: Password hashing (critical for security)
+- **helmet**: Security headers (essential for production)
+- **express-rate-limit**: Rate limiting (prevents abuse)
+
+### Development Dependencies
+- **typescript**: Type safety
+- **esbuild**: Production builds
+- **tsx**: Development server
+- **cross-env**: Cross-platform environment variables
+
+### Security Monitoring
+- Run `npm audit` before each deployment
+- Monitor GitHub security advisories for dependencies
+- Keep Node.js updated to latest LTS version
+- Regularly review and update all dependencies
 
 ## 🐛 Troubleshooting
 

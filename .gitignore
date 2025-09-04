@@ -25,6 +25,9 @@ server/.env
 *.swo
 *~
 
+# === Local development files ===
+.local/
+
 # === OS ===
 .DS_Store
 Thumbs.db
