@@ -4,7 +4,7 @@ import session from "express-session";
 import MongoStore from "connect-mongo";
 import bcrypt from "bcrypt";
 import { storage } from "./storage";
-import { insertBookingSchema, insertReviewSchema } from "@shared/schema.ts";
+import { insertBookingSchema, insertReviewSchema } from "@shared/schema";
 import { whatsappService } from "./whatsapp-service";
 import { z } from "zod";
 import {
