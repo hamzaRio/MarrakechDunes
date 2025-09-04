@@ -80,7 +80,14 @@ export class WhatsAppService {
     customerWhatsappLink?: string;
   }> {
     try {
-      return await this.bookingNotificationBreaker.fire(booking);
+      return await this.bookingNotificationBreaker.fire(booking) as {
+        success: boolean;
+        recipients: WhatsAppContact[];
+        message: string;
+        whatsappLinks: Array<{name: string; phone: string; link: string}>;
+        customerMessage?: string;
+        customerWhatsappLink?: string;
+      };
     } catch (error) {
       console.error('❌ WhatsApp booking notification failed:', error);
       return {
@@ -147,7 +154,11 @@ export class WhatsAppService {
     whatsappLinks: Array<{name: string; phone: string; link: string}>;
   }> {
     try {
-      return await this.paymentConfirmationBreaker.fire(booking, paymentType);
+      return await this.paymentConfirmationBreaker.fire(booking, paymentType) as {
+        success: boolean;
+        message: string;
+        whatsappLinks: Array<{name: string; phone: string; link: string}>;
+      };
     } catch (error) {
       console.error('❌ WhatsApp payment confirmation failed:', error);
       return {
