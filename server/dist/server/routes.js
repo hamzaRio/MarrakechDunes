@@ -1,12 +1,12 @@
 import { createServer } from "http";
 import session from "express-session";
 import bcrypt from "bcrypt";
-import { storage } from "./storage";
+import { storage } from "./storage.js.js";
 import { insertReviewSchema } from "@shared/schema";
-import { whatsappService } from "./whatsapp-service";
+import { whatsappService } from "./whatsapp-service.js.js";
 import { z } from "zod";
-import { authRateLimit, adminApiRateLimit, generalApiRateLimit, enforceHTTPS, adminSecurityMiddleware, superadminSecurityMiddleware, validateInput, securityHeaders, adminAuditLog, sessionSecurity } from "./security-middleware";
-import { strictLimiter } from './rate-limiters';
+import { authRateLimit, adminApiRateLimit, generalApiRateLimit, enforceHTTPS, adminSecurityMiddleware, superadminSecurityMiddleware, validateInput, securityHeaders, adminAuditLog, sessionSecurity } from "./security-middleware.js.js";
+import { strictLimiter } from './rate-limiters.js';
 const requireAuth = (req, res, next) => {
     const authReq = req;
     if (!authReq.session.user) {

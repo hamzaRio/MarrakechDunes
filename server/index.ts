@@ -50,9 +50,9 @@ import express, { type Request, Response, NextFunction } from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import helmet from "helmet";
-import { globalLimiter, strictLimiter } from "./rate-limiters";
-import { registerRoutes } from "./routes";
-import { connectToDatabase } from "./db";
+import { globalLimiter, strictLimiter } from "./rate-limiters.js";
+import { registerRoutes } from "./routes.js";
+import { connectToDatabase } from "./db.js";
 
 // Logging helper
 const log = (

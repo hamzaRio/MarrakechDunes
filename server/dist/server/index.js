@@ -45,9 +45,9 @@ import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import helmet from "helmet";
-import { globalLimiter } from "./rate-limiters";
-import { registerRoutes } from "./routes";
-import { connectToDatabase } from "./db";
+import { globalLimiter } from "./rate-limiters.js.js";
+import { registerRoutes } from "./routes.js.js";
+import { connectToDatabase } from "./db.js.js";
 // Logging helper
 const log = (message, source = "express", level = "info") => {
     const formattedTime = new Date().toLocaleTimeString("en-US", {
