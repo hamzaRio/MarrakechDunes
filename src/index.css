@@ -1,0 +1,308 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: hsl(0, 0%, 100%);
+  --foreground: hsl(20, 14.3%, 4.1%);
+  --muted: hsl(60, 4.8%, 95.9%);
+  --muted-foreground: hsl(25, 5.3%, 44.7%);
+  --popover: hsl(0, 0%, 100%);
+  --popover-foreground: hsl(20, 14.3%, 4.1%);
+  --card: hsl(0, 0%, 100%);
+  --card-foreground: hsl(20, 14.3%, 4.1%);
+  --border: hsl(20, 5.9%, 90%);
+  --input: hsl(20, 5.9%, 90%);
+  --primary: hsl(0, 73%, 41%);
+  --primary-foreground: hsl(0, 0%, 98%);
+  --secondary: hsl(60, 4.8%, 95.9%);
+  --secondary-foreground: hsl(24, 9.8%, 10%);
+  --accent: hsl(60, 4.8%, 95.9%);
+  --accent-foreground: hsl(24, 9.8%, 10%);
+  --destructive: hsl(0, 84.2%, 60.2%);
+  --destructive-foreground: hsl(60, 9.1%, 97.8%);
+  --ring: hsl(20, 14.3%, 4.1%);
+  --radius: 0.5rem;
+
+  /* Moroccan theme colors */
+  --moroccan-red: hsl(0, 73%, 41%);
+  --moroccan-red-light: hsl(0, 78%, 47%);
+  --moroccan-blue: hsl(224, 76%, 48%);
+  --moroccan-blue-light: hsl(224, 76%, 58%);
+  --moroccan-gold: hsl(43, 89%, 49%);
+  --moroccan-gold-light: hsl(43, 89%, 59%);
+  --moroccan-sand: hsl(60, 29%, 94%);
+  --moroccan-sand-dark: hsl(0, 0%, 90%);
+  
+  /* Enhanced typography for better readability */
+  --text-high-contrast: hsl(0, 0%, 10%);
+  --text-medium-contrast: hsl(0, 0%, 25%);
+  --text-low-contrast: hsl(0, 0%, 45%);
+}
+
+.dark {
+  --background: hsl(240, 10%, 3.9%);
+  --foreground: hsl(0, 0%, 98%);
+  --muted: hsl(240, 3.7%, 15.9%);
+  --muted-foreground: hsl(240, 5%, 64.9%);
+  --popover: hsl(240, 10%, 3.9%);
+  --popover-foreground: hsl(0, 0%, 98%);
+  --card: hsl(240, 10%, 3.9%);
+  --card-foreground: hsl(0, 0%, 98%);
+  --border: hsl(240, 3.7%, 15.9%);
+  --input: hsl(240, 3.7%, 15.9%);
+  --primary: hsl(0, 73%, 41%);
+  --primary-foreground: hsl(0, 0%, 98%);
+  --secondary: hsl(240, 3.7%, 15.9%);
+  --secondary-foreground: hsl(0, 0%, 98%);
+  --accent: hsl(240, 3.7%, 15.9%);
+  --accent-foreground: hsl(0, 0%, 98%);
+  --destructive: hsl(0, 62.8%, 30.6%);
+  --destructive-foreground: hsl(0, 0%, 98%);
+  --ring: hsl(240, 4.9%, 83.9%);
+  --radius: 0.5rem;
+}
+
+@layer base {
+  * {
+    @apply border-[hsl(var(--border))];
+  }
+
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+    font-weight: 400;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  /* Enhanced readability for headings */
+  h1, h2, h3, h4, h5, h6 {
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    color: var(--text-high-contrast);
+  }
+  
+  /* Better contrast for body text */
+  p, span, div {
+    color: var(--text-medium-contrast);
+  }
+  
+  /* Enhanced button text readability */
+  button {
+    font-weight: 600;
+    letter-spacing: 0.025em;
+  }
+  
+  /* Card content improvements */
+  .card-content {
+    color: var(--text-medium-contrast);
+  }
+  
+  /* Navigation text enhancement */
+  nav a {
+    font-weight: 500;
+    color: var(--text-high-contrast);
+  }
+}
+
+/* Custom Moroccan styles */
+.moroccan-red {
+  color: var(--moroccan-red);
+}
+
+.bg-moroccan-red {
+  background-color: var(--moroccan-red);
+}
+
+.bg-moroccan-red:hover {
+  background-color: var(--moroccan-red-light);
+}
+
+.moroccan-blue {
+  color: var(--moroccan-blue);
+}
+
+.bg-moroccan-blue {
+  background-color: var(--moroccan-blue);
+}
+
+.bg-moroccan-blue:hover {
+  background-color: var(--moroccan-blue-light);
+}
+
+.moroccan-gold {
+  color: var(--moroccan-gold);
+}
+
+.bg-moroccan-gold {
+  background-color: var(--moroccan-gold);
+}
+
+.bg-moroccan-gold:hover {
+  background-color: var(--moroccan-gold-light);
+}
+
+.bg-moroccan-sand {
+  background-color: var(--moroccan-sand);
+}
+
+.bg-moroccan-sand-dark {
+  background-color: var(--moroccan-sand-dark);
+}
+
+/* Moroccan pattern */
+.moroccan-pattern {
+  background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='60' height='60' viewBox='0 0 60 60'><rect width='60' height='60' fill='%23F59E0B' opacity='0.1'/><path d='M30 0L45 15L30 30L15 15Z' fill='%23F59E0B' opacity='0.2'/><path d='M30 30L45 45L30 60L15 45Z' fill='%23F59E0B' opacity='0.2'/></svg>");
+}
+
+/* Carousel Animation */
+@keyframes carousel {
+  0% { transform: translateX(0); }
+  16.66% { transform: translateX(-16.66%); }
+  33.33% { transform: translateX(-33.33%); }
+  50% { transform: translateX(-50%); }
+  66.66% { transform: translateX(-66.66%); }
+  83.33% { transform: translateX(-83.33%); }
+  100% { transform: translateX(-100%); }
+}
+
+.animate-carousel {
+  animation: carousel 20s infinite;
+  width: 600%; /* 6 images */
+}
+
+/* Responsive Utilities */
+@media (max-width: 768px) {
+  .line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  
+  .animate-carousel {
+    animation: carousel 15s infinite;
+  }
+  
+  .grid {
+    gap: 1rem;
+  }
+}
+
+/* Font families */
+.font-playfair {
+  font-family: 'Playfair Display', serif;
+}
+
+.font-inter {
+  font-family: 'Inter', sans-serif;
+}
+
+/* Hero section styling */
+.hero-bg {
+  background-image: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url('https://images.unsplash.com/photo-1469474968028-56623f02e42e?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&h=1080');
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: hsl(var(--moroccan-sand));
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--moroccan-gold));
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--moroccan-gold-light));
+}
+
+/* Custom Calendar Styles */
+.morocco-calendar {
+  font-family: inherit;
+}
+
+.morocco-calendar .rdp-day {
+  width: 50px;
+  height: 50px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+}
+
+.morocco-calendar .rdp-day:hover {
+  background-color: rgba(30, 64, 175, 0.1);
+  transform: scale(1.05);
+  border-color: rgba(30, 64, 175, 0.3);
+}
+
+.morocco-calendar .rdp-day_selected {
+  background-color: #1e40af !important;
+  color: white !important;
+  font-weight: 600;
+  border-color: #1e40af !important;
+}
+
+.morocco-calendar .rdp-day_today {
+  border: 2px solid #1e40af;
+  background-color: rgba(30, 64, 175, 0.1);
+  font-weight: 600;
+}
+
+.morocco-calendar .rdp-day_disabled {
+  color: #9ca3af;
+  opacity: 0.5;
+}
+
+.morocco-calendar .rdp-day_disabled:hover {
+  background-color: transparent;
+  transform: none;
+  border-color: transparent;
+}
+
+.morocco-calendar .rdp-caption {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1e40af;
+  margin-bottom: 1rem;
+}
+
+.morocco-calendar .rdp-nav_button {
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  color: #1e40af;
+  transition: all 0.2s ease;
+}
+
+.morocco-calendar .rdp-nav_button:hover {
+  background-color: rgba(30, 64, 175, 0.1);
+  transform: scale(1.1);
+}
+
+.morocco-calendar .rdp-head_cell {
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 0.5rem;
+}
+
+.morocco-calendar .rdp-table {
+  border-spacing: 4px;
+}
+
+.morocco-calendar .rdp-cell {
+  padding: 2px;
+}
