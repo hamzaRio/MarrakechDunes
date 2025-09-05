@@ -13,6 +13,33 @@ MarrakechDunes is a production-ready full-stack web application for booking auth
 - **Use HTTPS** in production environments
 - **Monitor audit logs** for suspicious activity
 
+## 🏗️ Monorepo Structure
+
+This project uses npm workspaces for a clean monorepo structure:
+
+```
+MarrakechDunes/
+├── src/                    # Frontend (Vite + React)
+│   ├── components/         # React components
+│   ├── pages/             # Page components
+│   ├── hooks/             # Custom React hooks
+│   ├── lib/               # Frontend utilities
+│   ├── package.json       # Frontend dependencies
+│   ├── vite.config.ts     # Vite configuration
+│   └── index.html         # HTML entry point
+├── server/                # Backend (Express + TypeScript)
+│   ├── routes.ts          # API routes
+│   ├── security-middleware.ts # Security configurations
+│   ├── package.json       # Backend dependencies
+│   └── tsconfig.json      # TypeScript config
+├── shared/                # Shared code
+│   ├── schema.ts          # Zod schemas
+│   └── package.json       # Shared dependencies
+├── package.json           # Root workspace configuration
+├── vercel.json           # Vercel deployment config
+└── render.yaml           # Render deployment config
+```
+
 ## 🚀 Quick Start
 
 ### Prerequisites
@@ -39,14 +66,39 @@ cp .env.example .env
 ```
 Edit `.env` with your actual credentials (see [Environment Variables](#environment-variables) section below).
 
-4. **Start development server:**
+4. **Start development servers:**
 ```bash
 npm run dev
 ```
 
-The application will be available at:
+This will start both frontend and backend concurrently:
 - **Frontend:** http://localhost:5173
 - **Backend API:** http://localhost:5000
+
+### Development Commands
+
+```bash
+# Start both frontend and backend
+npm run dev
+
+# Start only frontend
+npm run dev:frontend
+
+# Start only backend
+npm run dev:backend
+
+# Build both frontend and backend
+npm run build
+
+# Build only frontend
+npm run build:frontend
+
+# Build only backend
+npm run build:backend
+
+# Start production server
+npm start
+```
 
 ## 📁 Project Structure
 
@@ -182,33 +234,24 @@ npm run build
 ```
 
 This creates:
-- `dist/public/` - Frontend production build
-- `dist/` - Backend production build
+- `src/dist/` - Frontend production build
+- `server/dist/` - Backend production build
 
 ### Deployment Options
 
-#### Option 1: Vercel (Frontend) + Render (Backend)
-**Recommended for most users**
+#### Vercel (Frontend) + Render (Backend)
+**Recommended for production deployment**
 
 **Frontend (Vercel):**
 1. Connect your GitHub repository to Vercel
-2. Set environment variables in Vercel dashboard
-3. Deploy automatically on git push
+2. Vercel will automatically detect the workspace structure
+3. The `vercel.json` configuration will build from the `src` workspace
+4. Set environment variables in Vercel dashboard
 
 **Backend (Render):**
 1. Connect repository to Render
 2. Use the included `render.yaml` configuration
 3. Set environment variables in Render dashboard
-
-#### Option 2: Netlify (Frontend only)
-1. Connect repository to Netlify
-2. Use the included `netlify.toml` configuration
-3. Deploy frontend as static site
-
-#### Option 3: Heroku (Full-stack)
-1. Create Heroku app
-2. Use the included `app.json` for easy deployment
-3. Set environment variables in Heroku dashboard
 
 ### Environment Variables for Production
 

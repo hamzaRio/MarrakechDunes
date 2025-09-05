@@ -1,35 +1,18 @@
 {
-  "buildCommand": "npm run build",
-  "outputDirectory": "dist",
-  "framework": "vite",
+  "version": 2,
+  "builds": [
+    {
+      "src": "client/package.json",
+      "use": "@vercel/static-build",
+      "config": { "distDir": "dist" }
+    }
+  ],
+  "routes": [
+    { "src": "/(.*)", "dest": "/" }
+  ],
   "env": {
     "NODE_VERSION": "20",
     "VITE_API_URL": "https://marrakechdunes.onrender.com",
     "VITE_ASSETS_BASE": "https://marrakechdunes.onrender.com/assets"
-  },
-  "rewrites": [
-    {
-      "source": "/api/(.*)",
-      "destination": "https://marrakechdunes.onrender.com/api/$1"
-    },
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
-    }
-  ],
-  "headers": [
-    {
-      "source": "/attached_assets/(.*)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=86400"
-        },
-        {
-          "key": "Access-Control-Allow-Origin",
-          "value": "*"
-        }
-      ]
-    }
-  ]
+  }
 }
