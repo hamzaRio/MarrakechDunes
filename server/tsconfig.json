@@ -23,10 +23,8 @@
     "../shared/**/*.ts"
   ],
   "exclude": [
-    "node_modules",
-    "dist",
-    "vite.ts",
-    "../vite.config.ts",
-    "../client/vite.config.ts"
+    "../client",
+    "../node_modules",
+    "../dist"
   ]
 }

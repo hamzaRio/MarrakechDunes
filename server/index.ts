@@ -1,4 +1,5 @@
 import path from "path";
+import fs from "fs";
 import { fileURLToPath } from "url";
 import dotenv from "dotenv";
 
@@ -179,11 +180,22 @@ app.use((req, res, next) => {
 
   // ✅ Serve static files from client/dist in production
   try {
-    const { serveStatic } = await import("./vite.js");
-    serveStatic(app);
-    log("Static file serving setup complete");
+    const clientDistPath = path.join(rootDir, "client", "dist");
+    
+    if (fs.existsSync(clientDistPath)) {
+      app.use(express.static(clientDistPath));
+      
+      // Fall through to index.html for SPA routing
+      app.use("*", (_req, res) => {
+        res.sendFile(path.join(clientDistPath, "index.html"));
+      });
+      
+      log("Static file serving setup complete");
+    } else {
+      log("Client dist directory not found, skipping static file serving", "express", "warn");
+    }
   } catch (error) {
-    log(`Failed to setup static serving: ${error}`, "vite", "error");
+    log(`Failed to setup static serving: ${error}`, "express", "error");
   }
 
   // Start server

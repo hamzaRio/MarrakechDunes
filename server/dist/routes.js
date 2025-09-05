@@ -2,11 +2,11 @@ import { createServer } from "http";
 import session from "express-session";
 import bcrypt from "bcrypt";
 import { storage } from "./storage.js";
-import { insertReviewSchema } from "@shared/schema";
+import { insertReviewSchema } from "../shared/schema.js";
 import { whatsappService } from "./whatsapp-service.js";
 import { z } from "zod";
 import { authRateLimit, adminApiRateLimit, generalApiRateLimit, enforceHTTPS, adminSecurityMiddleware, superadminSecurityMiddleware, validateInput, securityHeaders, adminAuditLog, sessionSecurity } from "./security-middleware.js";
-import { strictLimiter } from './rate-limiters';
+import { strictLimiter } from './rate-limiters.js';
 const requireAuth = (req, res, next) => {
     const authReq = req;
     if (!authReq.session.user) {
@@ -641,7 +641,7 @@ export async function registerRoutes(app) {
     // Object storage routes for activity image uploads
     app.get("/public-objects/:filePath", async (req, res) => {
         const filePath = req.params.filePath;
-        const { ObjectStorageService } = await import("./objectStorage");
+        const { ObjectStorageService } = await import("./objectStorage.js");
         const objectStorageService = new ObjectStorageService();
         try {
             const file = await objectStorageService.searchPublicObject(filePath);
@@ -656,7 +656,7 @@ export async function registerRoutes(app) {
         }
     });
     app.get("/objects/:objectPath", async (req, res) => {
-        const { ObjectStorageService, ObjectNotFoundError } = await import("./objectStorage");
+        const { ObjectStorageService, ObjectNotFoundError } = await import("./objectStorage.js");
         const objectStorageService = new ObjectStorageService();
         try {
             const objectFile = await objectStorageService.getObjectEntityFile(`/objects/${req.params.objectPath}`);
@@ -671,7 +671,7 @@ export async function registerRoutes(app) {
         }
     });
     app.post("/api/objects/upload", adminSecurityMiddleware, async (req, res) => {
-        const { ObjectStorageService } = await import("./objectStorage");
+        const { ObjectStorageService } = await import("./objectStorage.js");
         const objectStorageService = new ObjectStorageService();
         try {
             const uploadURL = await objectStorageService.getObjectEntityUploadURL();
@@ -690,7 +690,7 @@ export async function registerRoutes(app) {
             if (!imageURL) {
                 return res.status(400).json({ error: "imageURL is required" });
             }
-            const { ObjectStorageService } = await import("./objectStorage");
+            const { ObjectStorageService } = await import("./objectStorage.js");
             const objectStorageService = new ObjectStorageService();
             const objectPath = objectStorageService.normalizeObjectEntityPath(imageURL);
             // Update activity with new image path
