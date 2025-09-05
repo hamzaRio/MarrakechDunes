@@ -179,7 +179,7 @@ app.use((req, res, next) => {
 
   // ✅ Serve static files from client/dist in production
   try {
-    const { serveStatic } = await import("./vite");
+    const { serveStatic } = await import("./vite.js");
     serveStatic(app);
     log("Static file serving setup complete");
   } catch (error) {
