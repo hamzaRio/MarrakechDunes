@@ -88,11 +88,6 @@ app.set("trust proxy", 1);
 // Security middleware
 app.use(helmet());
 
-
-
-// Apply global rate limiting
-app.use(globalLimiter);
-
 // Enable JSON & URL-encoded
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -104,12 +99,12 @@ app.use(cookieParser());
 const clientUrls = (process.env.CLIENT_URL || 'http://localhost:5173').split(',').map(url => url.trim());
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || 'http://localhost:5173',
+    origin: clientUrls,
     credentials: true,
   })
 );
 
-// ✅ Static mounts BEFORE routes - serve assets with 7-day cache + CORS headers
+// ✅ Static mounts BEFORE rate limiting - serve assets with 7-day cache + CORS headers
 const assetsPath = path.join(rootDir, "attached_assets");
 
 app.use(
@@ -131,6 +126,9 @@ app.use(
     },
   })
 );
+
+// Apply global rate limiting AFTER static assets
+app.use(globalLimiter);
 
 // Logging middleware
 app.use((req, res, next) => {

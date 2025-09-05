@@ -34,7 +34,8 @@ export default {
     proxy: {
       '/assets': {
         target: process.env.VITE_API_URL || 'http://localhost:5000',
-        changeOrigin: true
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/assets/, '/assets')
       }
     }
   },
