@@ -16,6 +16,6 @@
   "env": {
     "NODE_VERSION": "20",
     "VITE_API_URL": "https://marrakechdunes.onrender.com",
-    "VITE_ASSETS_BASE": "https://marrakechdunes.onrender.com/assets"
+    "VITE_ASSETS_BASE": "https://marrakechdunes.onrender.com/attached_assets"
   }
 }

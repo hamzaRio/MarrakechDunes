@@ -114,8 +114,11 @@ app.use(cors({
 }));
 
 app.use("/attached_assets", express.static(assetsPath, {
-  setHeaders: (res) => {
+  setHeaders: (res, path) => {
+    // Allow CORS for static assets from all origins
     res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
   }
 }));
 
