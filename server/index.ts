@@ -55,6 +55,15 @@ import { globalLimiter, strictLimiter } from "./rate-limiters.js";
 import { registerRoutes } from "./routes.js";
 import { connectToDatabase } from "./db.js";
 
+// Define constants before use
+const allowedOrigins = [
+  "https://marrakech-dunes.vercel.app",
+  /\.vercel\.app$/,
+  "http://localhost:5173"
+];
+
+const assetsPath = path.join(__dirname, "attached_assets");
+
 // Logging helper
 const log = (
   message: string,
@@ -99,22 +108,18 @@ app.use(express.urlencoded({ extended: false }));
 // Enable cookie parsing
 app.use(cookieParser());
 
-// ✅ Enable CORS (API + frontend) with explicit allowlist
+// Apply CORS middleware before routes
 app.use(cors({
-  origin: [
-    "https://marrakech-dunes.vercel.app",
-    /\.vercel\.app$/,
-    "http://localhost:5173"
-  ],
+  origin: allowedOrigins,
   credentials: true
 }));
 
-// ✅ Static mounts BEFORE rate limiting - serve assets with proper CORS headers
+// Mount static assets with headers
 app.use("/attached_assets", (req, res, next) => {
   res.header("Access-Control-Allow-Origin", "https://marrakech-dunes.vercel.app");
   res.header("Access-Control-Allow-Credentials", "true");
   next();
-}, express.static(path.join(__dirname, "attached_assets")));
+}, express.static(assetsPath));
 
 // Apply global rate limiting AFTER static assets
 app.use(globalLimiter);
