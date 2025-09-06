@@ -100,7 +100,26 @@ app.use(cookieParser());
 const clientUrls = (process.env.CLIENT_URL || 'http://localhost:5173').split(',').map(url => url.trim());
 app.use(
   cors({
-    origin: clientUrls,
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) return callback(null, true);
+      
+      // Check if origin is in allowed list
+      const isAllowed = clientUrls.some(url => {
+        if (url.includes('*')) {
+          // Handle wildcard domains like *.vercel.app
+          const pattern = url.replace('*', '.*');
+          return new RegExp(`^${pattern}$`).test(origin);
+        }
+        return url === origin;
+      });
+      
+      if (isAllowed) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     credentials: true,
   })
 );
@@ -123,6 +142,7 @@ app.use(
   express.static(assetsPath, {
     maxAge: "7d",
     setHeaders: (res) => {
+      res.setHeader("Access-Control-Allow-Origin", "*");
       res.setHeader("Access-Control-Allow-Credentials", "true");
     },
   })

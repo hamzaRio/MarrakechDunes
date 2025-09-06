@@ -17,6 +17,7 @@ client/dist/
 .env
 .env.* 
 !.env.example
+!.env.production
 client/.env
 server/.env
 
