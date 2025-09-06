@@ -62,7 +62,7 @@ const allowedOrigins = [
   "http://localhost:5173"
 ];
 
-const assetsPath = path.join(__dirname, "attached_assets");
+const finalAssetsPath = path.join(__dirname, "../attached_assets");
 
 // Logging helper
 const log = (
@@ -111,12 +111,11 @@ app.use(cors({
   credentials: true
 }));
 
-// Mount static assets with headers
-app.use("/attached_assets", (req, res, next) => {
-  res.header("Access-Control-Allow-Origin", "https://marrakech-dunes.vercel.app");
-  res.header("Access-Control-Allow-Credentials", "true");
-  next();
-}, express.static(assetsPath));
+app.use("/attached_assets", express.static(finalAssetsPath, {
+  setHeaders: (res) => {
+    res.setHeader("Access-Control-Allow-Origin", "*");
+  }
+}));
 
 // Apply global rate limiting AFTER static assets
 app.use(globalLimiter);
@@ -220,7 +219,7 @@ app.use((req, res, next) => {
   server.listen(port, () => {
     log(`🚀 Server started on port ${port}`);
     log(`🌐 CORS origins: ${allowedOrigins.join(', ')}`);
-    log(`📁 Assets served from: ${assetsPath}`);
+    log(`📁 Assets served from: ${finalAssetsPath}`);
     log(`🔒 Rate limiting: 500 req/15min global, 20 req/min auth`);
     log(`🍪 Session cookies: secure=${isProduction}, sameSite=${isProduction ? 'none' : 'lax'}, httpOnly=${isProduction}`);
     log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
