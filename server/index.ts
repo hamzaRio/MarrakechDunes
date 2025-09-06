@@ -92,11 +92,8 @@ const log = (
 
 const app = express();
 
-// Configure trust proxy for production deployment (cookies and rate limiting)
-// This must be set before session middleware to ensure cookies work properly
-if (process.env.NODE_ENV === 'production') {
-  app.set("trust proxy", 1);
-}
+// Set trust proxy at the top before any middleware
+app.set("trust proxy", 1);
 
 // Security middleware
 app.use(helmet());
