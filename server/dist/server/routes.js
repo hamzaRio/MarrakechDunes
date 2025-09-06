@@ -194,6 +194,14 @@ export async function registerRoutes(app) {
                 }).catch(error => {
                     console.log('⚠️ Audit logging failed:', error);
                 });
+                // Set explicit cookie for cross-origin support
+                res.cookie('marrakech.session', authReq.session.id, {
+                    secure: true,
+                    httpOnly: true,
+                    sameSite: 'none',
+                    maxAge: 86400000,
+                    path: '/'
+                });
                 // Return success response with user data
                 res.json({
                     message: "Login successful",

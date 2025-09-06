@@ -70,7 +70,7 @@ const log = (message, source = "express", level = "info") => {
     }
 };
 const app = express();
-// Configure trust proxy for rate limiting
+// Configure trust proxy for Render deployment (cookies and rate limiting)
 app.set("trust proxy", 1);
 // Security middleware
 app.use(helmet());
@@ -80,13 +80,42 @@ app.use(express.urlencoded({ extended: false }));
 // Enable cookie parsing
 app.use(cookieParser());
 // ✅ Enable CORS (API + frontend)
-const clientUrls = (process.env.CLIENT_URL || 'http://localhost:5173').split(',').map(url => url.trim());
+const allowedOrigins = [
+    'https://marrakech-dunes.vercel.app',
+    'http://localhost:5173'
+];
+// Add any additional origins from environment
+const envOrigins = process.env.CLIENT_URL?.split(",") || [];
+envOrigins.forEach(origin => {
+    const trimmed = origin.trim();
+    if (trimmed && !allowedOrigins.includes(trimmed)) {
+        allowedOrigins.push(trimmed);
+    }
+});
+console.log('🌐 Allowed CORS origins:', allowedOrigins);
 app.use(cors({
-    origin: clientUrls,
+    origin: (origin, cb) => {
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin)
+            return cb(null, true);
+        // Check exact matches first
+        if (allowedOrigins.includes(origin)) {
+            return cb(null, true);
+        }
+        // Check if origin is a subdomain of vercel.app
+        if (origin.endsWith('.vercel.app')) {
+            return cb(null, true);
+        }
+        // Reject other origins
+        console.log('❌ CORS rejected origin:', origin);
+        cb(new Error("Not allowed by CORS"));
+    },
     credentials: true,
+    optionsSuccessStatus: 200
 }));
 // ✅ Static mounts BEFORE rate limiting - serve assets with 7-day cache + CORS headers
 const assetsPath = path.join(rootDir, "attached_assets");
+console.log('📁 Assets path:', assetsPath);
 app.use("/attached_assets", express.static(assetsPath, {
     maxAge: "7d",
     setHeaders: (res) => {
@@ -96,9 +125,15 @@ app.use("/attached_assets", express.static(assetsPath, {
 app.use("/assets", express.static(assetsPath, {
     maxAge: "7d",
     setHeaders: (res) => {
+        res.setHeader("Access-Control-Allow-Origin", "*");
         res.setHeader("Access-Control-Allow-Credentials", "true");
     },
 }));
+// Fallback handler for missing assets
+app.use("/assets", (req, res) => {
+    console.log('⚠️ Asset not found:', req.path);
+    res.status(404).json({ error: "Asset not found", path: req.path });
+});
 // Apply global rate limiting AFTER static assets
 app.use(globalLimiter);
 // Logging middleware
@@ -130,12 +165,29 @@ app.use((req, res, next) => {
     // ✅ Connect to MongoDB before starting the server
     await connectToDatabase();
     const server = await registerRoutes(app);
+    // Health check endpoint
+    app.get('/', (req, res) => {
+        res.json({
+            status: 'healthy',
+            service: 'MarrakechDunes API',
+            timestamp: new Date().toISOString(),
+            version: '1.0.0'
+        });
+    });
+    // API 404 handler
+    app.use('/api/*', (req, res) => {
+        res.status(404).json({
+            error: 'API endpoint not found',
+            path: req.path,
+            method: req.method
+        });
+    });
     // Global error middleware
     app.use((err, _req, res, _next) => {
         const status = err.status || err.statusCode || 500;
         const message = err.message || "Internal Server Error";
         console.error("Error middleware caught:", err);
-        res.status(status).json({ message });
+        res.status(status).json({ error: message });
     });
     // ✅ Serve static files from client/dist in production
     try {
@@ -158,6 +210,9 @@ app.use((req, res, next) => {
     // Start server
     const port = parseInt(process.env.PORT || "5000");
     server.listen(port, () => {
-        log(`serving on port ${port}`);
+        log(`🚀 Server started on port ${port}`);
+        log(`🌐 CORS origins: ${allowedOrigins.join(', ')}`);
+        log(`📁 Assets served from: ${assetsPath}`);
+        log(`🔒 Rate limiting: 500 req/15min global, 20 req/min auth`);
     });
 })();

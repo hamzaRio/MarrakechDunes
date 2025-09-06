@@ -163,6 +163,12 @@ app.use(
   })
 );
 
+// Fallback handler for missing assets
+app.use("/assets", (req, res) => {
+  console.log('⚠️ Asset not found:', req.path);
+  res.status(404).json({ error: "Asset not found", path: req.path });
+});
+
 // Apply global rate limiting AFTER static assets
 app.use(globalLimiter);
 
@@ -203,6 +209,25 @@ app.use((req, res, next) => {
 
   const server = await registerRoutes(app);
 
+  // Health check endpoint
+  app.get('/', (req, res) => {
+    res.json({ 
+      status: 'healthy', 
+      service: 'MarrakechDunes API',
+      timestamp: new Date().toISOString(),
+      version: '1.0.0'
+    });
+  });
+
+  // API 404 handler
+  app.use('/api/*', (req, res) => {
+    res.status(404).json({ 
+      error: 'API endpoint not found', 
+      path: req.path,
+      method: req.method 
+    });
+  });
+
   // Global error middleware
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
@@ -210,7 +235,7 @@ app.use((req, res, next) => {
 
     console.error("Error middleware caught:", err);
 
-    res.status(status).json({ message });
+    res.status(status).json({ error: message });
   });
 
   // ✅ Serve static files from client/dist in production
@@ -240,5 +265,8 @@ app.use((req, res, next) => {
     log(`🌐 CORS origins: ${allowedOrigins.join(', ')}`);
     log(`📁 Assets served from: ${assetsPath}`);
     log(`🔒 Rate limiting: 500 req/15min global, 20 req/min auth`);
+    log(`🍪 Session cookies: secure=true, sameSite=none, httpOnly=true`);
+    log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+    log(`📡 API Base URL: ${process.env.VITE_API_URL || 'http://localhost:5000'}`);
   });
 })();

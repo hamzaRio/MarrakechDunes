@@ -294,10 +294,10 @@ export const sessionSecurity = {
   saveUninitialized: false,
   store: createEnhancedSessionStore(),
   cookie: {
-    secure: process.env.NODE_ENV === "production",
+    secure: true,
     httpOnly: true,
-    sameSite: process.env.NODE_ENV === "production" ? "none" as "none" : "lax" as "lax",
-    maxAge: 24 * 60 * 60 * 1000, // 1 day
+    sameSite: "none" as "none",
+    maxAge: 86400000, // 1 day
     path: "/",
   }
 };
