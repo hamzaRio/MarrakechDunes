@@ -294,9 +294,9 @@ export const sessionSecurity = {
   saveUninitialized: false,
   store: createEnhancedSessionStore(),
   cookie: {
-    secure: true,
-    httpOnly: true,
-    sameSite: "none" as "none",
+    secure: true, // Required for HTTPS in production
+    httpOnly: true, // Prevent XSS attacks
+    sameSite: "none" as "none", // Allow cross-site cookies
     maxAge: 86400000, // 1 day
     path: "/",
   }

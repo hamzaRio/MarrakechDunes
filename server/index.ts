@@ -84,6 +84,7 @@ const log = (
 const app = express();
 
 // Configure trust proxy for Render deployment (cookies and rate limiting)
+// This must be set before session middleware to ensure cookies work properly
 app.set("trust proxy", 1);
 
 // Security middleware
@@ -102,7 +103,7 @@ const allowedOrigins = [
   'http://localhost:5173'
 ];
 
-// Add any additional origins from environment
+// Parse CLIENT_URL from env by splitting commas into an array
 const envOrigins = process.env.CLIENT_URL?.split(",") || [];
 envOrigins.forEach(origin => {
   const trimmed = origin.trim();
@@ -115,24 +116,7 @@ console.log('🌐 Allowed CORS origins:', allowedOrigins);
 
 app.use(
   cors({
-    origin: (origin, cb) => {
-      // Allow requests with no origin (like mobile apps or curl requests)
-      if (!origin) return cb(null, true);
-      
-      // Check exact matches first
-      if (allowedOrigins.includes(origin)) {
-        return cb(null, true);
-      }
-      
-      // Check if origin is a subdomain of vercel.app
-      if (origin.endsWith('.vercel.app')) {
-        return cb(null, true);
-      }
-      
-      // Reject other origins
-      console.log('❌ CORS rejected origin:', origin);
-      cb(new Error("Not allowed by CORS"));
-    },
+    origin: allowedOrigins,
     credentials: true,
     optionsSuccessStatus: 200
   })
@@ -154,17 +138,7 @@ app.use(
   })
 );
 
-app.use(
-  "/assets",
-  express.static(finalAssetsPath, {
-    maxAge: "7d",
-    setHeaders: (res) => {
-      res.setHeader("Access-Control-Allow-Origin", "*");
-      res.setHeader("Access-Control-Allow-Credentials", "true");
-    },
-  })
-);
-
+// Remove the /assets route since we're only serving from /attached_assets
 // Fallback handler for missing assets
 app.use("/assets", (req, res) => {
   console.log('⚠️ Asset not found:', req.path);
@@ -219,6 +193,11 @@ app.use((req, res, next) => {
       timestamp: new Date().toISOString(),
       version: '1.0.0'
     });
+  });
+
+  // Handle favicon.ico requests to prevent 404 errors
+  app.get('/favicon.ico', (req, res) => {
+    res.status(204).end();
   });
 
   // API 404 handler
