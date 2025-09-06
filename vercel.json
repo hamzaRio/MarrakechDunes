@@ -10,8 +10,8 @@
       }
     }
   ],
-  "routes": [
-    { "src": "/(.*)", "dest": "/" }
+  "rewrites": [
+    { "source": "/((?!api|_next|_static|favicon.ico).*)", "destination": "/index.html" }
   ],
   "env": {
     "NODE_VERSION": "20",

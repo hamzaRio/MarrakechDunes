@@ -59,6 +59,7 @@ import { connectToDatabase } from "./db.js";
 const allowedOrigins = [
   "https://marrakech-dunes.vercel.app",
   "https://marrakech-dunes-ai4459fkx-hamzarios-projects.vercel.app",
+  "https://marrakech-dunes-ci633jch7-hamzarios-projects.vercel.app",
   /\.vercel\.app$/,
   "http://localhost:5173"
 ];
@@ -140,6 +141,18 @@ app.use("/attached_assets", express.static(assetsPath, {
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
     res.setHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+    
+    // Add caching headers for better performance
+    if (path && path.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i)) {
+      res.setHeader("Cache-Control", "public, max-age=31536000, immutable"); // 1 year cache for images
+    } else if (path && path.match(/\.(css|js)$/i)) {
+      res.setHeader("Cache-Control", "public, max-age=86400"); // 1 day cache for CSS/JS
+    } else {
+      res.setHeader("Cache-Control", "public, max-age=3600"); // 1 hour cache for other assets
+    }
+    
+    // Add ETag for better caching
+    res.setHeader("ETag", `"${Date.now()}"`);
   }
 }));
 
@@ -151,6 +164,11 @@ app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
   let capturedJsonResponse: Record<string, any> | undefined = undefined;
+  
+  // Log Origin header for CORS debugging
+  if (req.headers.origin) {
+    log(`Origin: ${req.headers.origin} for ${req.method} ${path}`, "cors");
+  }
 
   const originalResJson = res.json;
   res.json = function (bodyJson, ...args) {
@@ -250,5 +268,7 @@ app.use((req, res, next) => {
     log(`🍪 Session cookies: secure=${isProduction}, sameSite=${isProduction ? 'none' : 'lax'}, httpOnly=${isProduction}`);
     log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
     log(`📡 API Base URL: ${apiUrl}`);
+    log(`🔧 Trust proxy: ${app.get('trust proxy')}`);
+    log(`🔑 Session secret: ${process.env.SESSION_SECRET ? '✅ SET' : '❌ NOT SET'}`);
   });
 })();
