@@ -296,9 +296,9 @@ export const sessionSecurity = {
   saveUninitialized: false,
   store: createEnhancedSessionStore(),
   cookie: {
-    secure: isProduction, // Only secure in production (HTTPS required)
-    httpOnly: isProduction, // Only httpOnly in production for development flexibility
-    sameSite: isProduction ? "none" as "none" : "lax" as "lax", // Environment-aware sameSite
+    secure: true,
+    httpOnly: true,
+    sameSite: "none",
     maxAge: 86400000, // 1 day
     path: "/",
   }

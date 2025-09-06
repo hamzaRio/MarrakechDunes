@@ -3,6 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Star, User, Calendar, CheckCircle } from "lucide-react";
 import type { ReviewWithActivity } from "@shared/schema";
+import { apiFetch } from "@/lib/api";
 
 interface ReviewListProps {
   activityId?: string;
@@ -16,9 +17,7 @@ export default function ReviewList({ activityId, showActivityName = false, limit
     queryKey: activityId ? ["/api/reviews", { activityId }] : ["/api/reviews"],
     queryFn: async () => {
       const url = activityId ? `/api/reviews?activityId=${activityId}` : "/api/reviews";
-      const response = await fetch(url, {
-        credentials: "include",
-      });
+      const response = await apiFetch(url);
       if (!response.ok) throw new Error("Failed to fetch reviews");
       return response.json();
     },
