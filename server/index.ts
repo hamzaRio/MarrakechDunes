@@ -58,6 +58,7 @@ import { connectToDatabase } from "./db.js";
 // Define constants before use
 const allowedOrigins = [
   "https://marrakech-dunes.vercel.app",
+  "https://marrakech-dunes-ai4459fkx-hamzarios-projects.vercel.app",
   /\.vercel\.app$/,
   "http://localhost:5173"
 ];
@@ -107,7 +108,27 @@ app.use(cookieParser());
 
 // Apply CORS middleware before routes
 app.use(cors({
-  origin: allowedOrigins,
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    // Check if origin is in allowed list
+    const isAllowed = allowedOrigins.some(allowedOrigin => {
+      if (typeof allowedOrigin === 'string') {
+        return origin === allowedOrigin;
+      } else if (allowedOrigin instanceof RegExp) {
+        return allowedOrigin.test(origin);
+      }
+      return false;
+    });
+    
+    if (isAllowed) {
+      callback(null, true);
+    } else {
+      console.warn(`CORS blocked origin: ${origin}`);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Origin", "X-Requested-With", "Content-Type", "Accept", "Authorization"],

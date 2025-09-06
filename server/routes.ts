@@ -317,8 +317,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Security events endpoint for frontend audit logging
   app.post("/api/security-events", (req: Request, res) => {
-    console.log("Security event:", req.body);
-    res.status(200).json({ ok: true });
+    try {
+      console.log("Security event:", req.body);
+      res.status(200).json({ ok: true });
+    } catch (error) {
+      console.error("Security event error:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
   });
 
   // Simple health alias
