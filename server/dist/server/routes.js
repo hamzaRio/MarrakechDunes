@@ -55,9 +55,10 @@ export async function registerRoutes(app) {
     });
     // Configure secure sessions FIRST (before other middleware)
     app.use(session(sessionSecurity));
-    // Session debug middleware
+    // Session debug middleware (reduced logging)
     app.use((req, res, next) => {
-        if (req.path.startsWith('/api/auth/')) {
+        // Only log session details in development for auth routes
+        if (process.env.NODE_ENV === 'development' && req.path.startsWith('/api/auth/')) {
             console.log('🔧 Session middleware:', {
                 path: req.path,
                 sessionId: req.session.id,
@@ -87,14 +88,17 @@ export async function registerRoutes(app) {
     // Auth routes
     app.get('/api/auth/test', (req, res) => {
         const authReq = req;
-        console.log('🧪 Auth test endpoint called:', {
-            sessionId: authReq.session.id,
-            hasSession: !!authReq.session,
-            hasUser: !!authReq.session?.user,
-            cookie: req.headers.cookie ? 'present' : 'missing',
-            origin: req.headers.origin,
-            referer: req.headers.referer
-        });
+        // Only log in development
+        if (process.env.NODE_ENV === 'development') {
+            console.log('🧪 Auth test endpoint called:', {
+                sessionId: authReq.session.id,
+                hasSession: !!authReq.session,
+                hasUser: !!authReq.session?.user,
+                cookie: req.headers.cookie ? 'present' : 'missing',
+                origin: req.headers.origin,
+                referer: req.headers.referer
+            });
+        }
         res.json({
             sessionId: authReq.session.id,
             hasSession: !!authReq.session,
@@ -113,53 +117,66 @@ export async function registerRoutes(app) {
     });
     app.get('/api/auth/user', (req, res) => {
         const authReq = req;
-        console.log('🔍 Auth check:', {
-            sessionId: authReq.session.id,
-            hasSession: !!authReq.session,
-            hasUser: !!authReq.session?.user,
-            user: authReq.session?.user,
-            cookie: authReq.session?.cookie,
-            headers: {
-                cookie: req.headers.cookie ? 'present' : 'missing',
-                origin: req.headers.origin,
-                referer: req.headers.referer,
-                'user-agent': req.headers['user-agent']
-            },
-            sessionStore: authReq.session?.store ? 'available' : 'missing'
-        });
+        // Only log in development
+        if (process.env.NODE_ENV === 'development') {
+            console.log('🔍 Auth check:', {
+                sessionId: authReq.session.id,
+                hasSession: !!authReq.session,
+                hasUser: !!authReq.session?.user,
+                user: authReq.session?.user,
+                cookie: authReq.session?.cookie,
+                headers: {
+                    cookie: req.headers.cookie ? 'present' : 'missing',
+                    origin: req.headers.origin,
+                    referer: req.headers.referer,
+                    'user-agent': req.headers['user-agent']
+                },
+                sessionStore: authReq.session?.store ? 'available' : 'missing'
+            });
+        }
         if (authReq.session?.user) {
-            console.log('✅ User authenticated:', authReq.session.user.username);
+            if (process.env.NODE_ENV === 'development') {
+                console.log('✅ User authenticated:', authReq.session.user.username);
+            }
             res.json(authReq.session.user);
         }
         else {
-            console.log('❌ User not authenticated - session details:', {
-                sessionExists: !!authReq.session,
-                sessionId: authReq.session.id,
-                cookieHeader: req.headers.cookie ? 'present' : 'missing'
-            });
+            if (process.env.NODE_ENV === 'development') {
+                console.log('❌ User not authenticated - session details:', {
+                    sessionExists: !!authReq.session,
+                    sessionId: authReq.session.id,
+                    cookieHeader: req.headers.cookie ? 'present' : 'missing'
+                });
+            }
             res.status(401).json({ message: "Not authenticated" });
         }
     });
     app.post("/api/auth/login", strictLimiter, authRateLimit, async (req, res) => {
         const { username, password } = req.body;
-        console.log('🔐 Login attempt:', {
-            username,
-            ip: req.ip,
-            userAgent: req.get('User-Agent'),
-            sessionId: req.session.id,
-            hasSession: !!req.session
-        });
+        // Only log in development
+        if (process.env.NODE_ENV === 'development') {
+            console.log('🔐 Login attempt:', {
+                username,
+                ip: req.ip,
+                userAgent: req.get('User-Agent'),
+                sessionId: req.session.id,
+                hasSession: !!req.session
+            });
+        }
         try {
             const user = await storage.getUserByUsername(username);
-            console.log('👤 Found user:', user ? { username: user.username, role: user.role } : null);
             if (!user) {
-                console.log('❌ User not found:', username);
+                if (process.env.NODE_ENV === 'development') {
+                    console.log('❌ User not found:', username);
+                }
                 return res.status(401).json({ message: "Invalid credentials" });
             }
             // Use bcrypt to verify password with MongoDB
             const isPasswordValid = await bcrypt.compare(password, user.password);
             if (!isPasswordValid) {
-                console.log('❌ Invalid password for user:', username);
+                if (process.env.NODE_ENV === 'development') {
+                    console.log('❌ Invalid password for user:', username);
+                }
                 return res.status(401).json({ message: "Invalid credentials" });
             }
             const authReq = req;
@@ -169,38 +186,37 @@ export async function registerRoutes(app) {
                 username: user.username,
                 role: user.role,
             };
-            console.log('📝 Session data set:', {
-                sessionId: authReq.session.id,
-                user: authReq.session.user,
-                cookie: authReq.session.cookie
-            });
             // Force session save with explicit callback
             authReq.session.save((err) => {
                 if (err) {
                     console.error('❌ Session save error:', err);
                     return res.status(500).json({ message: "Login failed - session error" });
                 }
-                console.log('✅ Session saved successfully:', {
-                    sessionId: authReq.session.id,
-                    user: authReq.session.user,
-                    cookie: authReq.session.cookie,
-                    cookieName: authReq.session?.cookie?.name ?? 'unnamed'
-                });
+                if (process.env.NODE_ENV === 'development') {
+                    console.log('✅ Session saved successfully:', {
+                        sessionId: authReq.session.id,
+                        user: authReq.session.user,
+                        cookie: authReq.session.cookie,
+                        cookieName: authReq.session?.cookie?.name ?? 'unnamed'
+                    });
+                }
                 // Create audit log
                 storage.createAuditLog({
                     userId: user._id,
                     action: `User ${username} logged in`,
                     details: `Login from IP: ${req.ip}`
                 }).catch(error => {
-                    console.log('⚠️ Audit logging failed:', error);
+                    if (process.env.NODE_ENV === 'development') {
+                        console.log('⚠️ Audit logging failed:', error);
+                    }
                 });
                 // Set explicit cookie for cross-origin support
                 res.cookie('marrakech.session', authReq.session.id, {
                     secure: true,
                     httpOnly: true,
-                    sameSite: 'none',
-                    maxAge: 86400000,
-                    path: '/'
+                    sameSite: "none",
+                    maxAge: 24 * 60 * 60 * 1000,
+                    path: "/"
                 });
                 // Return success response with user data
                 res.json({
@@ -217,41 +233,29 @@ export async function registerRoutes(app) {
     });
     app.post("/api/auth/logout", strictLimiter, (req, res) => {
         const authReq = req;
-        console.log('🚪 Logout attempt:', {
-            sessionId: authReq.session.id,
-            user: authReq.session?.user,
-            ip: req.ip
-        });
+        // Only log in development
+        if (process.env.NODE_ENV === 'development') {
+            console.log('🚪 Logout attempt:', {
+                sessionId: authReq.session.id,
+                user: authReq.session?.user,
+                ip: req.ip
+            });
+        }
         authReq.session.destroy((err) => {
             if (err) {
                 console.error('❌ Logout error:', err);
                 return res.status(500).json({ message: "Logout failed" });
             }
-            console.log('✅ Logout successful - session destroyed');
+            if (process.env.NODE_ENV === 'development') {
+                console.log('✅ Logout successful - session destroyed');
+            }
             res.json({ message: "Logout successful" });
         });
     });
     // Security events endpoint for frontend audit logging
     app.post("/api/security-events", (req, res) => {
-        const { event, details, timestamp, userAgent, url } = req.body;
-        console.log('🔒 Security event received:', {
-            event,
-            details,
-            timestamp,
-            userAgent: userAgent ? 'present' : 'missing',
-            url: url ? 'present' : 'missing',
-            ip: req.ip
-        });
-        // Log to console for now (can be extended to database logging)
-        console.log('Security Event:', {
-            event,
-            details,
-            timestamp: timestamp || new Date().toISOString(),
-            userAgent,
-            url,
-            ip: req.ip
-        });
-        res.status(200).json({ message: "Security event logged" });
+        console.log("Security event:", req.body);
+        res.status(200).json({ ok: true });
     });
     // Simple health alias
     app.get('/health', (_req, res) => {

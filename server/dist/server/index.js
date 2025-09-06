@@ -49,6 +49,13 @@ import helmet from "helmet";
 import { globalLimiter } from "./rate-limiters.js";
 import { registerRoutes } from "./routes.js";
 import { connectToDatabase } from "./db.js";
+// Define constants before use
+const allowedOrigins = [
+    "https://marrakech-dunes.vercel.app",
+    /\.vercel\.app$/,
+    "http://localhost:5173"
+];
+const assetsPath = path.join(__dirname, "attached_assets");
 // Logging helper
 const log = (message, source = "express", level = "info") => {
     const formattedTime = new Date().toLocaleTimeString("en-US", {
@@ -70,7 +77,7 @@ const log = (message, source = "express", level = "info") => {
     }
 };
 const app = express();
-// Configure trust proxy for Render deployment (cookies and rate limiting)
+// Set trust proxy at the top before any middleware
 app.set("trust proxy", 1);
 // Security middleware
 app.use(helmet());
@@ -79,63 +86,18 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 // Enable cookie parsing
 app.use(cookieParser());
-// ✅ Enable CORS (API + frontend)
-const allowedOrigins = [
-    'https://marrakech-dunes.vercel.app',
-    'http://localhost:5173'
-];
-// Add any additional origins from environment
-const envOrigins = process.env.CLIENT_URL?.split(",") || [];
-envOrigins.forEach(origin => {
-    const trimmed = origin.trim();
-    if (trimmed && !allowedOrigins.includes(trimmed)) {
-        allowedOrigins.push(trimmed);
-    }
-});
-console.log('🌐 Allowed CORS origins:', allowedOrigins);
+// Apply CORS middleware before routes
 app.use(cors({
-    origin: (origin, cb) => {
-        // Allow requests with no origin (like mobile apps or curl requests)
-        if (!origin)
-            return cb(null, true);
-        // Check exact matches first
-        if (allowedOrigins.includes(origin)) {
-            return cb(null, true);
-        }
-        // Check if origin is a subdomain of vercel.app
-        if (origin.endsWith('.vercel.app')) {
-            return cb(null, true);
-        }
-        // Reject other origins
-        console.log('❌ CORS rejected origin:', origin);
-        cb(new Error("Not allowed by CORS"));
-    },
+    origin: allowedOrigins,
     credentials: true,
-    optionsSuccessStatus: 200
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Origin", "X-Requested-With", "Content-Type", "Accept", "Authorization"],
 }));
-// ✅ Static mounts BEFORE rate limiting - serve assets with 7-day cache + CORS headers
-const assetsPath = path.join(rootDir, "attached_assets");
-const distAssetsPath = path.join(__dirname, "attached_assets");
-const finalAssetsPath = fs.existsSync(distAssetsPath) ? distAssetsPath : assetsPath;
-console.log('📁 Assets path:', finalAssetsPath);
-app.use("/attached_assets", express.static(finalAssetsPath, {
-    maxAge: "7d",
-    setHeaders: (res) => {
-        res.setHeader("Access-Control-Allow-Credentials", "true");
-    },
-}));
-app.use("/assets", express.static(finalAssetsPath, {
-    maxAge: "7d",
+app.use("/attached_assets", express.static(assetsPath, {
     setHeaders: (res) => {
         res.setHeader("Access-Control-Allow-Origin", "*");
-        res.setHeader("Access-Control-Allow-Credentials", "true");
-    },
+    }
 }));
-// Fallback handler for missing assets
-app.use("/assets", (req, res) => {
-    console.log('⚠️ Asset not found:', req.path);
-    res.status(404).json({ error: "Asset not found", path: req.path });
-});
 // Apply global rate limiting AFTER static assets
 app.use(globalLimiter);
 // Logging middleware
@@ -176,6 +138,10 @@ app.use((req, res, next) => {
             version: '1.0.0'
         });
     });
+    // Handle favicon.ico requests to prevent 404 errors
+    app.get('/favicon.ico', (req, res) => {
+        res.status(204).end();
+    });
     // API 404 handler
     app.use('/api/*', (req, res) => {
         res.status(404).json({
@@ -211,13 +177,15 @@ app.use((req, res, next) => {
     }
     // Start server
     const port = parseInt(process.env.PORT || "5000");
+    const apiUrl = process.env.VITE_API_URL || `http://localhost:${port}`;
+    const isProduction = process.env.NODE_ENV === 'production';
     server.listen(port, () => {
         log(`🚀 Server started on port ${port}`);
         log(`🌐 CORS origins: ${allowedOrigins.join(', ')}`);
         log(`📁 Assets served from: ${assetsPath}`);
         log(`🔒 Rate limiting: 500 req/15min global, 20 req/min auth`);
-        log(`🍪 Session cookies: secure=true, sameSite=none, httpOnly=true`);
+        log(`🍪 Session cookies: secure=${isProduction}, sameSite=${isProduction ? 'none' : 'lax'}, httpOnly=${isProduction}`);
         log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
-        log(`📡 API Base URL: ${process.env.VITE_API_URL || 'http://localhost:5000'}`);
+        log(`📡 API Base URL: ${apiUrl}`);
     });
 })();

@@ -62,7 +62,7 @@ const allowedOrigins = [
   "http://localhost:5173"
 ];
 
-const finalAssetsPath = path.join(__dirname, "../attached_assets");
+const assetsPath = path.join(__dirname, "attached_assets");
 
 // Logging helper
 const log = (
@@ -108,10 +108,12 @@ app.use(cookieParser());
 // Apply CORS middleware before routes
 app.use(cors({
   origin: allowedOrigins,
-  credentials: true
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Origin", "X-Requested-With", "Content-Type", "Accept", "Authorization"],
 }));
 
-app.use("/attached_assets", express.static(finalAssetsPath, {
+app.use("/attached_assets", express.static(assetsPath, {
   setHeaders: (res) => {
     res.setHeader("Access-Control-Allow-Origin", "*");
   }
@@ -219,7 +221,7 @@ app.use((req, res, next) => {
   server.listen(port, () => {
     log(`🚀 Server started on port ${port}`);
     log(`🌐 CORS origins: ${allowedOrigins.join(', ')}`);
-    log(`📁 Assets served from: ${finalAssetsPath}`);
+    log(`📁 Assets served from: ${assetsPath}`);
     log(`🔒 Rate limiting: 500 req/15min global, 20 req/min auth`);
     log(`🍪 Session cookies: secure=${isProduction}, sameSite=${isProduction ? 'none' : 'lax'}, httpOnly=${isProduction}`);
     log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);

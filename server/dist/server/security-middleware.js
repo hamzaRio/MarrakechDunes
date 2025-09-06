@@ -257,7 +257,8 @@ const createEnhancedSessionStore = () => {
         });
     }
 };
-// Session security configuration
+// Session security configuration - environment-aware
+const isProduction = process.env.NODE_ENV === 'production';
 export const sessionSecurity = {
     name: 'marrakech.session',
     secret: process.env.SESSION_SECRET || 'dev-session-secret-change-in-production',
@@ -268,23 +269,8 @@ export const sessionSecurity = {
         secure: true,
         httpOnly: true,
         sameSite: "none",
-        maxAge: 86400000, // 1 day
-        path: "/",
+        maxAge: 24 * 60 * 60 * 1000,
+        path: "/"
     }
 };
-// Debug session configuration
-console.log('🔧 Session configuration:', {
-    name: sessionSecurity.name,
-    secret: sessionSecurity.secret ? '✅ SET' : '❌ NOT SET',
-    resave: sessionSecurity.resave,
-    saveUninitialized: sessionSecurity.saveUninitialized,
-    cookie: {
-        secure: sessionSecurity.cookie.secure,
-        httpOnly: sessionSecurity.cookie.httpOnly,
-        sameSite: sessionSecurity.cookie.sameSite,
-        maxAge: sessionSecurity.cookie.maxAge,
-        path: sessionSecurity.cookie.path
-    },
-    environment: process.env.NODE_ENV || 'development',
-    clientUrl: process.env.CLIENT_URL || 'http://localhost:5173'
-});
+// Session configuration is set up - no need to log details
