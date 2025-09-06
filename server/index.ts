@@ -83,7 +83,7 @@ const log = (
 
 const app = express();
 
-// Configure trust proxy for rate limiting
+// Configure trust proxy for Render deployment (cookies and rate limiting)
 app.set("trust proxy", 1);
 
 // Security middleware
@@ -97,24 +97,50 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 
 // ✅ Enable CORS (API + frontend)
-const allowedOrigins = process.env.CLIENT_URL?.split(",") || ['http://localhost:5173'];
+const allowedOrigins = [
+  'https://marrakech-dunes.vercel.app',
+  'http://localhost:5173'
+];
+
+// Add any additional origins from environment
+const envOrigins = process.env.CLIENT_URL?.split(",") || [];
+envOrigins.forEach(origin => {
+  const trimmed = origin.trim();
+  if (trimmed && !allowedOrigins.includes(trimmed)) {
+    allowedOrigins.push(trimmed);
+  }
+});
+
 console.log('🌐 Allowed CORS origins:', allowedOrigins);
 
 app.use(
   cors({
     origin: (origin, cb) => {
-      if (!origin || allowedOrigins.some(o => origin.endsWith(o.replace("*.", "")))) {
-        cb(null, true);
-      } else {
-        cb(new Error("Not allowed by CORS"));
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) return cb(null, true);
+      
+      // Check exact matches first
+      if (allowedOrigins.includes(origin)) {
+        return cb(null, true);
       }
+      
+      // Check if origin is a subdomain of vercel.app
+      if (origin.endsWith('.vercel.app')) {
+        return cb(null, true);
+      }
+      
+      // Reject other origins
+      console.log('❌ CORS rejected origin:', origin);
+      cb(new Error("Not allowed by CORS"));
     },
-    credentials: true
+    credentials: true,
+    optionsSuccessStatus: 200
   })
 );
 
 // ✅ Static mounts BEFORE rate limiting - serve assets with 7-day cache + CORS headers
 const assetsPath = path.join(rootDir, "attached_assets");
+console.log('📁 Assets path:', assetsPath);
 
 app.use(
   "/attached_assets",
