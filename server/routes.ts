@@ -269,10 +269,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
 
         // Set explicit cookie for cross-origin support
+        const isProduction = process.env.NODE_ENV === 'production';
         res.cookie('marrakech.session', authReq.session.id, {
-          secure: true,
+          secure: isProduction,
           httpOnly: true,
-          sameSite: "none" as const,
+          sameSite: isProduction ? "none" as const : "lax" as const,
           maxAge: 24 * 60 * 60 * 1000,
           path: "/"
         });
@@ -318,10 +319,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Security events endpoint for frontend audit logging
   app.post("/api/security-events", (req: Request, res) => {
     try {
-      console.log("Security event:", req.body);
+      // Only log in production to reduce console noise
+      if (process.env.NODE_ENV === 'production') {
+        console.log("Security event:", {
+          event: req.body?.event,
+          timestamp: req.body?.timestamp,
+          url: req.body?.url,
+          userAgent: req.body?.userAgent ? req.body.userAgent.substring(0, 100) : 'unknown'
+        });
+      }
       res.status(200).json({ ok: true });
     } catch (error) {
-      console.error("Security event error:", error);
+      // Only log errors in production
+      if (process.env.NODE_ENV === 'production') {
+        console.error("Security event error:", error);
+      }
       res.status(500).json({ error: "Internal server error" });
     }
   });

@@ -55,14 +55,27 @@ import { globalLimiter, strictLimiter } from "./rate-limiters.js";
 import { registerRoutes } from "./routes.js";
 import { connectToDatabase } from "./db.js";
 
-// Define constants before use
-const allowedOrigins = [
-  "https://marrakech-dunes.vercel.app",
-  "https://marrakech-dunes-ai4459fkx-hamzarios-projects.vercel.app",
-  "https://marrakech-dunes-ci633jch7-hamzarios-projects.vercel.app",
-  /\.vercel\.app$/,
-  "http://localhost:5173"
-];
+// Define constants before use - support multiple origins from environment
+const getClientUrls = (): (string | RegExp)[] => {
+  const clientUrl = process.env.CLIENT_URL;
+  const origins: (string | RegExp)[] = [
+    "https://marrakech-dunes.vercel.app",
+    "http://localhost:5173"
+  ];
+  
+  if (clientUrl) {
+    // Split by comma and add each URL
+    const urls = clientUrl.split(',').map(url => url.trim());
+    origins.push(...urls);
+  }
+  
+  // Add regex for all vercel.app subdomains
+  origins.push(/\.vercel\.app$/);
+  
+  return origins;
+};
+
+const allowedOrigins = getClientUrls();
 
 const assetsPath = path.join(__dirname, "attached_assets");
 
@@ -262,13 +275,14 @@ app.use((req, res, next) => {
   
   server.listen(port, () => {
     log(`🚀 Server started on port ${port}`);
-    log(`🌐 CORS origins: ${allowedOrigins.join(', ')}`);
+    log(`🌐 CORS origins: ${allowedOrigins.map(o => typeof o === 'string' ? o : o.toString()).join(', ')}`);
     log(`📁 Assets served from: ${assetsPath}`);
     log(`🔒 Rate limiting: 500 req/15min global, 20 req/min auth`);
-    log(`🍪 Session cookies: secure=${isProduction}, sameSite=${isProduction ? 'none' : 'lax'}, httpOnly=${isProduction}`);
+    log(`🍪 Session cookies: secure=${isProduction}, sameSite=${isProduction ? 'none' : 'lax'}, httpOnly=true`);
     log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
     log(`📡 API Base URL: ${apiUrl}`);
     log(`🔧 Trust proxy: ${app.get('trust proxy')}`);
     log(`🔑 Session secret: ${process.env.SESSION_SECRET ? '✅ SET' : '❌ NOT SET'}`);
+    log(`🌐 CLIENT_URL: ${process.env.CLIENT_URL || 'not set'}`);
   });
 })();

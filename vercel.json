@@ -4,14 +4,17 @@
     {
       "src": "client/package.json",
       "use": "@vercel/static-build",
-      "config": { 
+      "config": {
         "distDir": "dist",
         "buildCommand": "npm run build"
       }
     }
   ],
   "rewrites": [
-    { "source": "/((?!api|_next|_static|favicon.ico).*)", "destination": "/index.html" }
+    {
+      "source": "/((?!api|_next|_static|favicon.ico|attached_assets).*)",
+      "destination": "/dist/index.html"
+    }
   ],
   "env": {
     "NODE_VERSION": "20",
