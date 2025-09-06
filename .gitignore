@@ -15,11 +15,13 @@ client/dist/
 
 # === Environment variables ===
 .env
-.env.* 
+.env.local
+.env.development
+.env.test
+.env.staging
+
 !.env.example
 !.env.production
-client/.env
-server/.env
 
 # === IDE ===
 .vscode/

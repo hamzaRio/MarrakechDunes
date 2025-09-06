@@ -116,7 +116,7 @@ async function runTests() {
 
     // Test 6: Static Assets
     console.log('\n6️⃣ Testing Static Assets...');
-    res = await fetch(`${API}/assets/`);
+    res = await fetch(`${API}/attached_assets/`);
     console.log(`   Static Assets Status: ${res.status} ${res.statusText}`);
     if (res.status !== 200 && res.status !== 404) {
       console.error('   ❌ Static assets endpoint failed');

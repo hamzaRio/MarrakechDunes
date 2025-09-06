@@ -284,13 +284,13 @@ class MongoStorage {
                         description: "Discover the coastal charm of Essaouira with its historic medina, fishing port, and beautiful Atlantic beaches.",
                         price: "200",
                         currency: "MAD",
-                        image: "/assets/Essaouira Day Trip1_1751124502666.jpg",
+                        image: "/attached_assets/Essaouira Day Trip1_1751124502666.jpg",
                         photos: [
-                            "/assets/Essaouira Day Trip1_1751124502666.jpg",
-                            "/assets/Essaouira day trip 3_1751122022832.jpg",
-                            "/assets/Essaouira day trip 4_1751122022833.jpg",
-                            "/assets/Essaouira Day Trip_1751122022833.jpg",
-                            "/assets/Essaouira Day Trip2_1751122022833.jpg"
+                            "/attached_assets/Essaouira Day Trip1_1751124502666.jpg",
+                            "/attached_assets/Essaouira day trip 3_1751122022832.jpg",
+                            "/attached_assets/Essaouira day trip 4_1751122022833.jpg",
+                            "/attached_assets/Essaouira Day Trip_1751122022833.jpg",
+                            "/attached_assets/Essaouira Day Trip2_1751122022833.jpg"
                         ],
                         category: "Day Trips",
                         isActive: true,
@@ -311,13 +311,13 @@ class MongoStorage {
                         description: "Discover the stunning Ourika Valley with its colorful Berber villages, flowing rivers, snow-capped Atlas Mountains, and authentic local culture.",
                         price: "150",
                         currency: "MAD",
-                        image: "/assets/Ourika-Valley-day-trip-from-Marrakech_1751119268337.jpg",
+                        image: "/attached_assets/Ourika-Valley-day-trip-from-Marrakech_1751119268337.jpg",
                         photos: [
-                            "/assets/ourika valley3_1751119268336.jpg",
-                            "/assets/Ourika-Valley-day-trip-from-Marrakech_1751119268337.jpg",
-                            "/assets/Ourika-valley-day-trip-from-marrakech-1_1751119268337.jpg",
-                            "/assets/ourika-valley-1_1751119268337.jpeg",
-                            "/assets/ourika-valley-marrakech_1751119268337.jpg"
+                            "/attached_assets/ourika valley3_1751119268336.jpg",
+                            "/attached_assets/Ourika-Valley-day-trip-from-Marrakech_1751119268337.jpg",
+                            "/attached_assets/Ourika-valley-day-trip-from-marrakech-1_1751119268337.jpg",
+                            "/attached_assets/ourika-valley-1_1751119268337.jpeg",
+                            "/attached_assets/ourika-valley-marrakech_1751119268337.jpg"
                         ],
                         category: "Day Trips",
                         isActive: true,
