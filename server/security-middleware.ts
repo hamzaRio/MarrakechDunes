@@ -304,19 +304,4 @@ export const sessionSecurity = {
   }
 };
 
-// Debug session configuration
-console.log('🔧 Session configuration:', {
-  name: sessionSecurity.name,
-  secret: sessionSecurity.secret ? '✅ SET' : '❌ NOT SET',
-  resave: sessionSecurity.resave,
-  saveUninitialized: sessionSecurity.saveUninitialized,
-  cookie: {
-    secure: sessionSecurity.cookie.secure,
-    httpOnly: sessionSecurity.cookie.httpOnly,
-    sameSite: sessionSecurity.cookie.sameSite,
-    maxAge: sessionSecurity.cookie.maxAge,
-    path: sessionSecurity.cookie.path
-  },
-  environment: process.env.NODE_ENV || 'development',
-  clientUrl: process.env.CLIENT_URL || 'http://localhost:5173'
-});
+// Session configuration is set up - no need to log details

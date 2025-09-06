@@ -152,7 +152,10 @@ const corsOriginFunction = (origin: string | undefined, callback: (err: Error | 
   callback(new Error("Not allowed by CORS"));
 };
 
-console.log('🌐 Allowed CORS origins:', allowedOrigins);
+// Only log CORS origins in development
+if (process.env.NODE_ENV === 'development') {
+  console.log('🌐 Allowed CORS origins:', allowedOrigins);
+}
 
 app.use(
   cors({
