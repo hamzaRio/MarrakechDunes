@@ -140,11 +140,13 @@ app.use(
 
 // ✅ Static mounts BEFORE rate limiting - serve assets with 7-day cache + CORS headers
 const assetsPath = path.join(rootDir, "attached_assets");
-console.log('📁 Assets path:', assetsPath);
+const distAssetsPath = path.join(__dirname, "attached_assets");
+const finalAssetsPath = fs.existsSync(distAssetsPath) ? distAssetsPath : assetsPath;
+console.log('📁 Assets path:', finalAssetsPath);
 
 app.use(
   "/attached_assets",
-  express.static(assetsPath, {
+  express.static(finalAssetsPath, {
     maxAge: "7d",
     setHeaders: (res) => {
       res.setHeader("Access-Control-Allow-Credentials", "true");
@@ -154,7 +156,7 @@ app.use(
 
 app.use(
   "/assets",
-  express.static(assetsPath, {
+  express.static(finalAssetsPath, {
     maxAge: "7d",
     setHeaders: (res) => {
       res.setHeader("Access-Control-Allow-Origin", "*");

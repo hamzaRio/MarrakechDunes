@@ -115,14 +115,16 @@ app.use(cors({
 }));
 // ✅ Static mounts BEFORE rate limiting - serve assets with 7-day cache + CORS headers
 const assetsPath = path.join(rootDir, "attached_assets");
-console.log('📁 Assets path:', assetsPath);
-app.use("/attached_assets", express.static(assetsPath, {
+const distAssetsPath = path.join(__dirname, "attached_assets");
+const finalAssetsPath = fs.existsSync(distAssetsPath) ? distAssetsPath : assetsPath;
+console.log('📁 Assets path:', finalAssetsPath);
+app.use("/attached_assets", express.static(finalAssetsPath, {
     maxAge: "7d",
     setHeaders: (res) => {
         res.setHeader("Access-Control-Allow-Credentials", "true");
     },
 }));
-app.use("/assets", express.static(assetsPath, {
+app.use("/assets", express.static(finalAssetsPath, {
     maxAge: "7d",
     setHeaders: (res) => {
         res.setHeader("Access-Control-Allow-Origin", "*");
@@ -214,5 +216,8 @@ app.use((req, res, next) => {
         log(`🌐 CORS origins: ${allowedOrigins.join(', ')}`);
         log(`📁 Assets served from: ${assetsPath}`);
         log(`🔒 Rate limiting: 500 req/15min global, 20 req/min auth`);
+        log(`🍪 Session cookies: secure=true, sameSite=none, httpOnly=true`);
+        log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+        log(`📡 API Base URL: ${process.env.VITE_API_URL || 'http://localhost:5000'}`);
     });
 })();

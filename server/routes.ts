@@ -295,6 +295,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
+  // Security events endpoint for frontend audit logging
+  app.post("/api/security-events", (req: Request, res) => {
+    const { event, details, timestamp, userAgent, url } = req.body;
+    
+    console.log('🔒 Security event received:', {
+      event,
+      details,
+      timestamp,
+      userAgent: userAgent ? 'present' : 'missing',
+      url: url ? 'present' : 'missing',
+      ip: req.ip
+    });
+
+    // Log to console for now (can be extended to database logging)
+    console.log('Security Event:', {
+      event,
+      details,
+      timestamp: timestamp || new Date().toISOString(),
+      userAgent,
+      url,
+      ip: req.ip
+    });
+
+    res.status(200).json({ message: "Security event logged" });
+  });
+
   // Simple health alias
   app.get('/health', (_req: Request, res: Response) => {
     res.status(200).json({ status: 'healthy' });
