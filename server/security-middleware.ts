@@ -286,7 +286,9 @@ const createEnhancedSessionStore = () => {
   }
 };
 
-// Session security configuration
+// Session security configuration - environment-aware
+const isProduction = process.env.NODE_ENV === 'production';
+
 export const sessionSecurity = {
   name: 'marrakech.session',
   secret: process.env.SESSION_SECRET || 'dev-session-secret-change-in-production',
@@ -294,9 +296,9 @@ export const sessionSecurity = {
   saveUninitialized: false,
   store: createEnhancedSessionStore(),
   cookie: {
-    secure: true, // Required for HTTPS in production
-    httpOnly: true, // Prevent XSS attacks
-    sameSite: "none" as "none", // Allow cross-site cookies
+    secure: isProduction, // Only secure in production (HTTPS required)
+    httpOnly: isProduction, // Only httpOnly in production for development flexibility
+    sameSite: isProduction ? "none" as "none" : "lax" as "lax", // Environment-aware sameSite
     maxAge: 86400000, // 1 day
     path: "/",
   }

@@ -83,9 +83,11 @@ const log = (
 
 const app = express();
 
-// Configure trust proxy for Render deployment (cookies and rate limiting)
+// Configure trust proxy for production deployment (cookies and rate limiting)
 // This must be set before session middleware to ensure cookies work properly
-app.set("trust proxy", 1);
+if (process.env.NODE_ENV === 'production') {
+  app.set("trust proxy", 1);
+}
 
 // Security middleware
 app.use(helmet());
@@ -97,13 +99,13 @@ app.use(express.urlencoded({ extended: false }));
 // Enable cookie parsing
 app.use(cookieParser());
 
-// ✅ Enable CORS (API + frontend)
+// ✅ Enable CORS (API + frontend) with robust wildcard support
 const allowedOrigins = [
   'https://marrakech-dunes.vercel.app',
   'http://localhost:5173'
 ];
 
-// Parse CLIENT_URL from env by splitting commas into an array
+// Parse CLIENT_URL from env with robust handling
 const envOrigins = process.env.CLIENT_URL?.split(",") || [];
 envOrigins.forEach(origin => {
   const trimmed = origin.trim();
@@ -112,11 +114,48 @@ envOrigins.forEach(origin => {
   }
 });
 
+// CORS origin function with wildcard support
+const corsOriginFunction = (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+  // Allow requests with no origin (like mobile apps or curl requests)
+  if (!origin) return callback(null, true);
+  
+  // Check exact matches first
+  if (allowedOrigins.includes(origin)) {
+    return callback(null, true);
+  }
+  
+  // Check wildcard patterns
+  for (const allowedOrigin of allowedOrigins) {
+    if (allowedOrigin.includes('*')) {
+      // Convert wildcard pattern to regex
+      const pattern = allowedOrigin.replace(/\*/g, '.*');
+      const regex = new RegExp(`^${pattern}$`);
+      if (regex.test(origin)) {
+        return callback(null, true);
+      }
+    }
+  }
+  
+  // Check if origin is a subdomain of vercel.app
+  if (origin.endsWith('.vercel.app')) {
+    return callback(null, true);
+  }
+  
+  // Check if origin is localhost with any port
+  if (origin.startsWith('http://localhost:') || origin.startsWith('https://localhost:')) {
+    return callback(null, true);
+  }
+  
+  // Reject other origins
+  console.log('❌ CORS rejected origin:', origin);
+  callback(new Error("Not allowed by CORS"));
+};
+
 console.log('🌐 Allowed CORS origins:', allowedOrigins);
 
 app.use(
   cors({
-    origin: allowedOrigins,
+    origin: corsOriginFunction,
     credentials: true,
     optionsSuccessStatus: 200
   })
@@ -128,8 +167,9 @@ const distAssetsPath = path.join(__dirname, "attached_assets");
 const finalAssetsPath = fs.existsSync(distAssetsPath) ? distAssetsPath : assetsPath;
 console.log('📁 Assets path:', finalAssetsPath);
 
+// Serve static assets from /assets path
 app.use(
-  "/attached_assets",
+  "/assets",
   express.static(finalAssetsPath, {
     maxAge: "7d",
     setHeaders: (res) => {
@@ -138,10 +178,12 @@ app.use(
   })
 );
 
-// Remove the /assets route since we're only serving from /attached_assets
-// Fallback handler for missing assets
+// Fallback handler for missing assets (reduced logging)
 app.use("/assets", (req, res) => {
-  console.log('⚠️ Asset not found:', req.path);
+  // Only log in development to reduce noise
+  if (process.env.NODE_ENV === 'development') {
+    console.log('⚠️ Asset not found:', req.path);
+  }
   res.status(404).json({ error: "Asset not found", path: req.path });
 });
 
@@ -241,13 +283,16 @@ app.use((req, res, next) => {
 
   // Start server
   const port = parseInt(process.env.PORT || "5000");
+  const apiUrl = process.env.VITE_API_URL || `http://localhost:${port}`;
+  const isProduction = process.env.NODE_ENV === 'production';
+  
   server.listen(port, () => {
     log(`🚀 Server started on port ${port}`);
     log(`🌐 CORS origins: ${allowedOrigins.join(', ')}`);
     log(`📁 Assets served from: ${assetsPath}`);
     log(`🔒 Rate limiting: 500 req/15min global, 20 req/min auth`);
-    log(`🍪 Session cookies: secure=true, sameSite=none, httpOnly=true`);
+    log(`🍪 Session cookies: secure=${isProduction}, sameSite=${isProduction ? 'none' : 'lax'}, httpOnly=${isProduction}`);
     log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
-    log(`📡 API Base URL: ${process.env.VITE_API_URL || 'http://localhost:5000'}`);
+    log(`📡 API Base URL: ${apiUrl}`);
   });
 })();
