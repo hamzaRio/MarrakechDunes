@@ -97,30 +97,19 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 
 // ✅ Enable CORS (API + frontend)
-const clientUrls = (process.env.CLIENT_URL || 'http://localhost:5173').split(',').map(url => url.trim());
+const allowedOrigins = process.env.CLIENT_URL?.split(",") || ['http://localhost:5173'];
+console.log('🌐 Allowed CORS origins:', allowedOrigins);
+
 app.use(
   cors({
-    origin: (origin, callback) => {
-      // Allow requests with no origin (like mobile apps or curl requests)
-      if (!origin) return callback(null, true);
-      
-      // Check if origin is in allowed list
-      const isAllowed = clientUrls.some(url => {
-        if (url.includes('*')) {
-          // Handle wildcard domains like *.vercel.app
-          const pattern = url.replace('*', '.*');
-          return new RegExp(`^${pattern}$`).test(origin);
-        }
-        return url === origin;
-      });
-      
-      if (isAllowed) {
-        callback(null, true);
+    origin: (origin, cb) => {
+      if (!origin || allowedOrigins.some(o => origin.endsWith(o.replace("*.", "")))) {
+        cb(null, true);
       } else {
-        callback(new Error('Not allowed by CORS'));
+        cb(new Error("Not allowed by CORS"));
       }
     },
-    credentials: true,
+    credentials: true
   })
 );
 
@@ -221,6 +210,9 @@ app.use((req, res, next) => {
   // Start server
   const port = parseInt(process.env.PORT || "5000");
   server.listen(port, () => {
-    log(`serving on port ${port}`);
+    log(`🚀 Server started on port ${port}`);
+    log(`🌐 CORS origins: ${allowedOrigins.join(', ')}`);
+    log(`📁 Assets served from: ${assetsPath}`);
+    log(`🔒 Rate limiting: 500 req/15min global, 20 req/min auth`);
   });
 })();
