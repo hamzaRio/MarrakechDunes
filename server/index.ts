@@ -99,96 +99,22 @@ app.use(express.urlencoded({ extended: false }));
 // Enable cookie parsing
 app.use(cookieParser());
 
-// ✅ Enable CORS (API + frontend) with robust wildcard support
-const allowedOrigins = [
-  'https://marrakech-dunes.vercel.app',
-  'https://*.vercel.app',
-  'http://localhost:5173'
-];
+// ✅ Enable CORS (API + frontend) with explicit allowlist
+app.use(cors({
+  origin: [
+    "https://marrakech-dunes.vercel.app",
+    /\.vercel\.app$/,
+    "http://localhost:5173"
+  ],
+  credentials: true
+}));
 
-// Parse CLIENT_URL from env with robust handling
-const envOrigins = process.env.CLIENT_URL?.split(",") || [];
-envOrigins.forEach(origin => {
-  const trimmed = origin.trim();
-  if (trimmed && !allowedOrigins.includes(trimmed)) {
-    allowedOrigins.push(trimmed);
-  }
-});
-
-// CORS origin function with wildcard support
-const corsOriginFunction = (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
-  // Allow requests with no origin (like mobile apps or curl requests)
-  if (!origin) return callback(null, true);
-  
-  // Check exact matches first
-  if (allowedOrigins.includes(origin)) {
-    return callback(null, true);
-  }
-  
-  // Check wildcard patterns
-  for (const allowedOrigin of allowedOrigins) {
-    if (allowedOrigin.includes('*')) {
-      // Convert wildcard pattern to regex
-      const pattern = allowedOrigin.replace(/\*/g, '.*');
-      const regex = new RegExp(`^${pattern}$`);
-      if (regex.test(origin)) {
-        return callback(null, true);
-      }
-    }
-  }
-  
-  // Check if origin is a subdomain of vercel.app
-  if (origin.endsWith('.vercel.app')) {
-    return callback(null, true);
-  }
-  
-  // Check if origin is localhost with any port
-  if (origin.startsWith('http://localhost:') || origin.startsWith('https://localhost:')) {
-    return callback(null, true);
-  }
-  
-  // Reject other origins
-  console.log('❌ CORS rejected origin:', origin);
-  callback(new Error("Not allowed by CORS"));
-};
-
-// Only log CORS origins in development
-if (process.env.NODE_ENV === 'development') {
-  console.log('🌐 Allowed CORS origins:', allowedOrigins);
-}
-
-app.use(
-  cors({
-    origin: corsOriginFunction,
-    credentials: true,
-    optionsSuccessStatus: 200
-  })
-);
-
-// ✅ Static mounts BEFORE rate limiting - serve assets with 7-day cache + CORS headers
-const assetsPath = path.join(rootDir, "attached_assets");
-const distAssetsPath = path.join(__dirname, "attached_assets");
-const finalAssetsPath = fs.existsSync(distAssetsPath) ? distAssetsPath : assetsPath;
-
-// Serve static assets from /assets path
-app.use(
-  "/assets",
-  express.static(finalAssetsPath, {
-    maxAge: "7d",
-    setHeaders: (res) => {
-      res.setHeader("Access-Control-Allow-Credentials", "true");
-    },
-  })
-);
-
-// Fallback handler for missing assets (reduced logging)
-app.use("/assets", (req, res) => {
-  // Only log in development to reduce noise
-  if (process.env.NODE_ENV === 'development') {
-    console.log('⚠️ Asset not found:', req.path);
-  }
-  res.status(404).json({ error: "Asset not found", path: req.path });
-});
+// ✅ Static mounts BEFORE rate limiting - serve assets with proper CORS headers
+app.use("/attached_assets", (req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "https://marrakech-dunes.vercel.app");
+  res.header("Access-Control-Allow-Credentials", "true");
+  next();
+}, express.static(path.join(__dirname, "attached_assets")));
 
 // Apply global rate limiting AFTER static assets
 app.use(globalLimiter);
