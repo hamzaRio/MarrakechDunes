@@ -298,7 +298,7 @@ export const sessionSecurity = {
   cookie: {
     secure: true,
     httpOnly: true,
-    sameSite: "none",
+    sameSite: "none" as const,
     maxAge: 86400000, // 1 day
     path: "/",
   }

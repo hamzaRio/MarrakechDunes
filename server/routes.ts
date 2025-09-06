@@ -272,7 +272,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.cookie('marrakech.session', authReq.session.id, {
           secure: true,
           httpOnly: true,
-          sameSite: 'none',
+          sameSite: 'none' as const,
           maxAge: 86400000,
           path: '/'
         });
