@@ -23,6 +23,7 @@ export default function ActivityCard({ activity, showDescription = false }: Acti
   // Process activity image path
   const getImageSrc = (imagePath: string) => {
     if (imagePath.startsWith('/attached_assets/')) {
+      // Legacy support for attached_assets paths
       const filename = imagePath.replace('/attached_assets/', '');
       return asset(filename);
     }

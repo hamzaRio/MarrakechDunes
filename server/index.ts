@@ -102,6 +102,7 @@ app.use(cookieParser());
 // ✅ Enable CORS (API + frontend) with robust wildcard support
 const allowedOrigins = [
   'https://marrakech-dunes.vercel.app',
+  'https://*.vercel.app',
   'http://localhost:5173'
 ];
 
@@ -165,7 +166,6 @@ app.use(
 const assetsPath = path.join(rootDir, "attached_assets");
 const distAssetsPath = path.join(__dirname, "attached_assets");
 const finalAssetsPath = fs.existsSync(distAssetsPath) ? distAssetsPath : assetsPath;
-console.log('📁 Assets path:', finalAssetsPath);
 
 // Serve static assets from /assets path
 app.use(

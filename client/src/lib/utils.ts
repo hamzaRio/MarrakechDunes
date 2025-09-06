@@ -9,7 +9,7 @@ export function cn(...inputs: ClassValue[]) {
 export function getAssetUrl(path: string): string {
   if (!path) return asset("placeholder.jpg");
   
-  // Handle attached_assets paths
+  // Handle attached_assets paths (legacy support)
   if (path.startsWith('/attached_assets/')) {
     // Remove /attached_assets/ prefix since asset() will handle it
     const cleanPath = path.replace('/attached_assets/', '');

@@ -7,7 +7,7 @@ export const getAssetUrl = (filename: string): string => {
   
   // Always serve from backend assets with cache busting
   if (filename.startsWith('/attached_assets/')) {
-    // Remove /attached_assets/ prefix since asset() will handle it
+    // Remove /attached_assets/ prefix since asset() will handle it (legacy support)
     const cleanFilename = filename.replace('/attached_assets/', '');
     return asset(cleanFilename) + cacheBuster;
   }
