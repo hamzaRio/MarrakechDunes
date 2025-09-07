@@ -11,7 +11,7 @@
     "grepInvert": null,
     "maxFailures": 0,
     "metadata": {
-      "actualWorkers": 6
+      "actualWorkers": 3
     },
     "preserveOutput": "always",
     "reporter": [
@@ -43,7 +43,7 @@
         "repeatEach": 1,
         "retries": 0,
         "metadata": {
-          "actualWorkers": 6
+          "actualWorkers": 3
         },
         "id": "chromium",
         "name": "chromium",
@@ -59,7 +59,7 @@
         "repeatEach": 1,
         "retries": 0,
         "metadata": {
-          "actualWorkers": 6
+          "actualWorkers": 3
         },
         "id": "firefox",
         "name": "firefox",
@@ -75,7 +75,7 @@
         "repeatEach": 1,
         "retries": 0,
         "metadata": {
-          "actualWorkers": 6
+          "actualWorkers": 3
         },
         "id": "webkit",
         "name": "webkit",
@@ -96,20 +96,20 @@
   },
   "suites": [
     {
-      "title": "simple-spa-test.spec.js",
-      "file": "simple-spa-test.spec.js",
+      "title": "cors-test.spec.js",
+      "file": "cors-test.spec.js",
       "column": 0,
       "line": 0,
       "specs": [],
       "suites": [
         {
-          "title": "Simple SPA Routing Test",
-          "file": "simple-spa-test.spec.js",
-          "line": 5,
+          "title": "CORS and API Connectivity Test",
+          "file": "cors-test.spec.js",
+          "line": 6,
           "column": 6,
           "specs": [
             {
-              "title": "Home page loads",
+              "title": "Test CORS preflight request",
               "ok": true,
               "tags": [],
               "tests": [
@@ -124,16 +124,19 @@
                       "workerIndex": 0,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 4496,
+                      "duration": 4873,
                       "errors": [],
                       "stdout": [
                         {
-                          "text": "✅ Home page loads successfully\n"
+                          "text": "API Response: {\n  status: \u001b[33m200\u001b[39m,\n  statusText: \u001b[32m''\u001b[39m,\n  headers: {\n    \u001b[32m'content-length'\u001b[39m: \u001b[32m'102'\u001b[39m,\n    \u001b[32m'content-type'\u001b[39m: \u001b[32m'application/json; charset=utf-8'\u001b[39m\n  },\n  body: \u001b[32m'{\"status\":\"healthy\",\"timestamp\":\"2025-09-07T17:12:25.794Z\",\"version\":\"1.0.0\",\"database\":\"connected\",\"activities\":5,\"environment\":\"production\"}'\u001b[39m\n}\n"
+                        },
+                        {
+                          "text": "✅ API call successful: \u001b[33m200\u001b[39m\n"
                         }
                       ],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2025-09-07T17:03:09.974Z",
+                      "startTime": "2025-09-07T17:12:19.103Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -141,14 +144,14 @@
                   "status": "expected"
                 }
               ],
-              "id": "7539973d8be1c6507f9a-9b3cd16f176451c8978f",
-              "file": "simple-spa-test.spec.js",
-              "line": 7,
+              "id": "b2e9de14d0178cfb7884-4629ebb9a7e67019754c",
+              "file": "cors-test.spec.js",
+              "line": 8,
               "column": 3
             },
             {
-              "title": "Activities page loads (SPA routing)",
-              "ok": false,
+              "title": "Test activities API call",
+              "ok": true,
               "tags": [],
               "tests": [
                 {
@@ -161,68 +164,35 @@
                     {
                       "workerIndex": 1,
                       "parallelIndex": 1,
-                      "status": "failed",
-                      "duration": 764,
-                      "error": {
-                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m404\u001b[39m",
-                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m404\u001b[39m\n    at C:\\Users\\backm\\Desktop\\React-Project\\test\\MarrakechDunes\\tests\\simple-spa-test.spec.js:26:31",
-                        "location": {
-                          "file": "C:\\Users\\backm\\Desktop\\React-Project\\test\\MarrakechDunes\\tests\\simple-spa-test.spec.js",
-                          "column": 31,
-                          "line": 26
-                        },
-                        "snippet": "\u001b[0m \u001b[90m 24 |\u001b[39m     \n \u001b[90m 25 |\u001b[39m     \u001b[90m// Should not be 404 - should be 200 with React app\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 26 |\u001b[39m     expect(response\u001b[33m.\u001b[39mstatus())\u001b[33m.\u001b[39mtoBe(\u001b[35m200\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                               \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 27 |\u001b[39m     \n \u001b[90m 28 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mwaitForTimeout(\u001b[35m3000\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 29 |\u001b[39m     \u001b[0m"
-                      },
-                      "errors": [
+                      "status": "passed",
+                      "duration": 5249,
+                      "errors": [],
+                      "stdout": [
                         {
-                          "location": {
-                            "file": "C:\\Users\\backm\\Desktop\\React-Project\\test\\MarrakechDunes\\tests\\simple-spa-test.spec.js",
-                            "column": 31,
-                            "line": 26
-                          },
-                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m404\u001b[39m\n\n\u001b[0m \u001b[90m 24 |\u001b[39m     \n \u001b[90m 25 |\u001b[39m     \u001b[90m// Should not be 404 - should be 200 with React app\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 26 |\u001b[39m     expect(response\u001b[33m.\u001b[39mstatus())\u001b[33m.\u001b[39mtoBe(\u001b[35m200\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                               \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 27 |\u001b[39m     \n \u001b[90m 28 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mwaitForTimeout(\u001b[35m3000\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 29 |\u001b[39m     \u001b[0m\n\u001b[2m    at C:\\Users\\backm\\Desktop\\React-Project\\test\\MarrakechDunes\\tests\\simple-spa-test.spec.js:26:31\u001b[22m"
+                          "text": "Activities API Response: {\n  status: \u001b[33m200\u001b[39m,\n  statusText: \u001b[32m''\u001b[39m,\n  body: \u001b[32m`[{\"_id\":\"686005165c47594a927cd206\",\"name\":\"Montgolfière (Hot Air Balloon)\",\"description\":\"Experience the magic of Marrakech from above with a sunrise hot air balloon ride over the Atlas Mountains and traditional Berber villages.\",\"price\":\"1100\",\"currency\":\"MAD\",\"image\":\"/attached_assets/Hot Air Balloon Ride2_1751127701686.jpg\",\"photos\":[\"/attached_assets/Hot Air Balloon Ride2_1751127701686.jpg\",\"/attached_assets/Hot Air Balloon Ride3_1751127701686.jpg\",\"/attached_assets/montgofliere_a_marrakech_1751127701687.jpg\",\"/attached_assets/montgolfiere-marrakech_1751127701687.jpg\"],\"category\":\"Adventure\",\"isActive\":true,\"availability\":\"Daily at sunrise (6:00 AM)\",\"id\":\"686005165c47594a927cd206\"},{\"_id\":\"686005165c47594a927cd207\",\"name\":\"Agafay Combo\",\"description\":\"Complete Agafay Desert experience with camel riding, quad biking, traditional dinner under the stars, and sunset views.\",\"price\":\"450\",\"currency\":\"MAD\",\"image\":\"/attached_assets/agafaypack1_1751128022717.jpeg\",\"photos\":[\"/attached_assets/agafaypack1_1751128022717.jpeg\",\"/attached_assets/agafaypack2_1751128022717.jpeg\",\"/attached_assets/agafaypack3_1751128022718.jpeg\",\"/attached_assets/agafaypack5_1751128022718.jpeg\",\"/attached_assets/agafaypack6_1751128022718.jpeg\"],\"category\":\"Adventure\",\"isActive\":true,\"availability\":\"Daily departures\",\"id\":\"686005165c47594a927cd207\"},{\"_id\":\"686005165c47594a927cd209\",\"name\":\"Ouzoud Waterfalls Day Trip\",\"description\":\"Visit Morocco's most spectacular waterfalls with 110-meter cascades, rainbow views, and Barbary macaque encounters.\",\"price\":\"200\",\"currency\":\"MAD\",\"image\":\"/attached_assets/ouzoud waterfalls 2_1751126328232.jpg\",\"photos\":[\"/attached_assets/ouzoud waterfalls 2_1751126328232.jpg\",\"/attached_assets/Ouzoud-Waterfalls_1751126328233.jpg\",\"/attached_assets/Ouzoud-Waterfalls3_1751126328233.jpg\",\"/attached_assets/Ouzoud-Waterfalls4_1751126328233.JPG\"],\"category\":\"Nature\",\"isActive\":true,\"availability\":\"Daily 8:00 AM - 6:00 PM\",\"id\":\"686005165c47594a927cd209\"},{\"_id\":\"686005165c47594a927cd20a\",\"name\":\"Ourika Valley Day Trip\",\"description\":\"Discover the stunning Ourika Valley with its colorful Berber villages, flowing rivers, snow-capped Atlas Mountains, and authentic local culture.\",\"price\":\"150\",\"currency\":\"MAD\",\"image\":\"/attached_assets/Ourika-Valley-day-trip-from-Marrakech_1751119268337.jpg\",\"photos\":[\"/attached_assets/ourika valley3_1751119268336.jpg\",\"/attached_assets/Ourika-Valley-day-trip-from-Marrakech_1751119268337.jpg\",\"/attached_assets/Ourika-valley-day-trip-from-marrakech-1_1751119268337.jpg\",\"/attached_assets/ourika-valley-1_1751119268337.jpeg\",\"/attached_assets/ourika-valley-marrakech_1751119268337.jpg\"],\"category\":\"Nature\",\"isActive\":true,\"availability\":\"Daily 9:00 AM - 5:00 PM\",\"id\":\"686005165c47594a927cd20a\"},{\"_id\":\"68600afdd687e06645ec5676\",\"name\":\"Essaouira Day Trip\",\"description\":\"Discover the coastal charm of Essaouira with its historic medina, fishing port, and beautiful Atlantic beaches.\",\"price\":\"200\",\"currency\":\"MAD\",\"image\":\"/attached_assets/Essaouira Day Trip1_1751124502666.jpg\",\"photos\":[\"/attached_assets/Essaouira Day Trip1_1751124502666.jpg\",\"/attached_assets/Essaouira day trip 3_1751122022832.jpg\",\"/attached_assets/Essaouira day trip 4_1751122022833.jpg\",\"/attached_assets/Essaouira Day Trip_1751122022833.jpg\",\"/attached_assets/Essaouira Day Trip2_1751122022833.jpg\"],\"category\":\"Day Trips\",\"isActive\":true,\"availability\":\"Daily 8:00 AM - 7:00 PM\",\"id\":\"68600afdd687e06645ec5676\"}]`\u001b[39m\n}\n"
+                        },
+                        {
+                          "text": "✅ Activities API call successful: \u001b[33m200\u001b[39m\n"
                         }
                       ],
-                      "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2025-09-07T17:03:10.274Z",
+                      "startTime": "2025-09-07T17:12:19.073Z",
                       "annotations": [],
-                      "attachments": [
-                        {
-                          "name": "screenshot",
-                          "contentType": "image/png",
-                          "path": "C:\\Users\\backm\\Desktop\\React-Project\\test\\MarrakechDunes\\test-results\\simple-spa-test-Simple-SPA-238c1-ies-page-loads-SPA-routing--chromium\\test-failed-1.png"
-                        },
-                        {
-                          "name": "video",
-                          "contentType": "video/webm",
-                          "path": "C:\\Users\\backm\\Desktop\\React-Project\\test\\MarrakechDunes\\test-results\\simple-spa-test-Simple-SPA-238c1-ies-page-loads-SPA-routing--chromium\\video.webm"
-                        },
-                        {
-                          "name": "error-context",
-                          "contentType": "text/markdown",
-                          "path": "C:\\Users\\backm\\Desktop\\React-Project\\test\\MarrakechDunes\\test-results\\simple-spa-test-Simple-SPA-238c1-ies-page-loads-SPA-routing--chromium\\error-context.md"
-                        }
-                      ],
-                      "errorLocation": {
-                        "file": "C:\\Users\\backm\\Desktop\\React-Project\\test\\MarrakechDunes\\tests\\simple-spa-test.spec.js",
-                        "column": 31,
-                        "line": 26
-                      }
+                      "attachments": []
                     }
                   ],
-                  "status": "unexpected"
+                  "status": "expected"
                 }
               ],
-              "id": "7539973d8be1c6507f9a-7e90448886652074ee8c",
-              "file": "simple-spa-test.spec.js",
-              "line": 22,
+              "id": "b2e9de14d0178cfb7884-326aabe46a5957bf45a1",
+              "file": "cors-test.spec.js",
+              "line": 46,
               "column": 3
             },
             {
-              "title": "Booking page loads (SPA routing)",
-              "ok": false,
+              "title": "Test static assets CORS",
+              "ok": true,
               "tags": [],
               "tests": [
                 {
@@ -235,285 +205,30 @@
                     {
                       "workerIndex": 2,
                       "parallelIndex": 2,
-                      "status": "failed",
-                      "duration": 1423,
-                      "error": {
-                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m404\u001b[39m",
-                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m404\u001b[39m\n    at C:\\Users\\backm\\Desktop\\React-Project\\test\\MarrakechDunes\\tests\\simple-spa-test.spec.js:41:31",
-                        "location": {
-                          "file": "C:\\Users\\backm\\Desktop\\React-Project\\test\\MarrakechDunes\\tests\\simple-spa-test.spec.js",
-                          "column": 31,
-                          "line": 41
-                        },
-                        "snippet": "\u001b[0m \u001b[90m 39 |\u001b[39m     \n \u001b[90m 40 |\u001b[39m     \u001b[90m// Should not be 404 - should be 200 with React app\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 41 |\u001b[39m     expect(response\u001b[33m.\u001b[39mstatus())\u001b[33m.\u001b[39mtoBe(\u001b[35m200\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                               \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 42 |\u001b[39m     \n \u001b[90m 43 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mwaitForTimeout(\u001b[35m3000\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 44 |\u001b[39m     \u001b[0m"
-                      },
-                      "errors": [
+                      "status": "passed",
+                      "duration": 4267,
+                      "errors": [],
+                      "stdout": [
                         {
-                          "location": {
-                            "file": "C:\\Users\\backm\\Desktop\\React-Project\\test\\MarrakechDunes\\tests\\simple-spa-test.spec.js",
-                            "column": 31,
-                            "line": 41
-                          },
-                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m404\u001b[39m\n\n\u001b[0m \u001b[90m 39 |\u001b[39m     \n \u001b[90m 40 |\u001b[39m     \u001b[90m// Should not be 404 - should be 200 with React app\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 41 |\u001b[39m     expect(response\u001b[33m.\u001b[39mstatus())\u001b[33m.\u001b[39mtoBe(\u001b[35m200\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                               \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 42 |\u001b[39m     \n \u001b[90m 43 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mwaitForTimeout(\u001b[35m3000\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 44 |\u001b[39m     \u001b[0m\n\u001b[2m    at C:\\Users\\backm\\Desktop\\React-Project\\test\\MarrakechDunes\\tests\\simple-spa-test.spec.js:41:31\u001b[22m"
+                          "text": "Static Assets Response: { error: \u001b[32m'Failed to fetch'\u001b[39m, name: \u001b[32m'TypeError'\u001b[39m }\n"
+                        },
+                        {
+                          "text": "❌ Static Assets Error: Failed to fetch\n"
                         }
                       ],
-                      "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2025-09-07T17:03:09.702Z",
+                      "startTime": "2025-09-07T17:12:19.152Z",
                       "annotations": [],
-                      "attachments": [
-                        {
-                          "name": "screenshot",
-                          "contentType": "image/png",
-                          "path": "C:\\Users\\backm\\Desktop\\React-Project\\test\\MarrakechDunes\\test-results\\simple-spa-test-Simple-SPA-9f031-ing-page-loads-SPA-routing--chromium\\test-failed-1.png"
-                        },
-                        {
-                          "name": "video",
-                          "contentType": "video/webm",
-                          "path": "C:\\Users\\backm\\Desktop\\React-Project\\test\\MarrakechDunes\\test-results\\simple-spa-test-Simple-SPA-9f031-ing-page-loads-SPA-routing--chromium\\video.webm"
-                        },
-                        {
-                          "name": "error-context",
-                          "contentType": "text/markdown",
-                          "path": "C:\\Users\\backm\\Desktop\\React-Project\\test\\MarrakechDunes\\test-results\\simple-spa-test-Simple-SPA-9f031-ing-page-loads-SPA-routing--chromium\\error-context.md"
-                        }
-                      ],
-                      "errorLocation": {
-                        "file": "C:\\Users\\backm\\Desktop\\React-Project\\test\\MarrakechDunes\\tests\\simple-spa-test.spec.js",
-                        "column": 31,
-                        "line": 41
-                      }
+                      "attachments": []
                     }
                   ],
-                  "status": "unexpected"
+                  "status": "expected"
                 }
               ],
-              "id": "7539973d8be1c6507f9a-80db641d9f2b6cabc0db",
-              "file": "simple-spa-test.spec.js",
-              "line": 37,
-              "column": 3
-            },
-            {
-              "title": "Reviews page loads (SPA routing)",
-              "ok": false,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 60000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": 3,
-                      "parallelIndex": 3,
-                      "status": "failed",
-                      "duration": 677,
-                      "error": {
-                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m404\u001b[39m",
-                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m404\u001b[39m\n    at C:\\Users\\backm\\Desktop\\React-Project\\test\\MarrakechDunes\\tests\\simple-spa-test.spec.js:56:31",
-                        "location": {
-                          "file": "C:\\Users\\backm\\Desktop\\React-Project\\test\\MarrakechDunes\\tests\\simple-spa-test.spec.js",
-                          "column": 31,
-                          "line": 56
-                        },
-                        "snippet": "\u001b[0m \u001b[90m 54 |\u001b[39m     \n \u001b[90m 55 |\u001b[39m     \u001b[90m// Should not be 404 - should be 200 with React app\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 56 |\u001b[39m     expect(response\u001b[33m.\u001b[39mstatus())\u001b[33m.\u001b[39mtoBe(\u001b[35m200\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                               \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 57 |\u001b[39m     \n \u001b[90m 58 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mwaitForTimeout(\u001b[35m3000\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 59 |\u001b[39m     \u001b[0m"
-                      },
-                      "errors": [
-                        {
-                          "location": {
-                            "file": "C:\\Users\\backm\\Desktop\\React-Project\\test\\MarrakechDunes\\tests\\simple-spa-test.spec.js",
-                            "column": 31,
-                            "line": 56
-                          },
-                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m404\u001b[39m\n\n\u001b[0m \u001b[90m 54 |\u001b[39m     \n \u001b[90m 55 |\u001b[39m     \u001b[90m// Should not be 404 - should be 200 with React app\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 56 |\u001b[39m     expect(response\u001b[33m.\u001b[39mstatus())\u001b[33m.\u001b[39mtoBe(\u001b[35m200\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                               \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 57 |\u001b[39m     \n \u001b[90m 58 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mwaitForTimeout(\u001b[35m3000\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 59 |\u001b[39m     \u001b[0m\n\u001b[2m    at C:\\Users\\backm\\Desktop\\React-Project\\test\\MarrakechDunes\\tests\\simple-spa-test.spec.js:56:31\u001b[22m"
-                        }
-                      ],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2025-09-07T17:03:10.064Z",
-                      "annotations": [],
-                      "attachments": [
-                        {
-                          "name": "screenshot",
-                          "contentType": "image/png",
-                          "path": "C:\\Users\\backm\\Desktop\\React-Project\\test\\MarrakechDunes\\test-results\\simple-spa-test-Simple-SPA-10739-ews-page-loads-SPA-routing--chromium\\test-failed-1.png"
-                        },
-                        {
-                          "name": "video",
-                          "contentType": "video/webm",
-                          "path": "C:\\Users\\backm\\Desktop\\React-Project\\test\\MarrakechDunes\\test-results\\simple-spa-test-Simple-SPA-10739-ews-page-loads-SPA-routing--chromium\\video.webm"
-                        },
-                        {
-                          "name": "error-context",
-                          "contentType": "text/markdown",
-                          "path": "C:\\Users\\backm\\Desktop\\React-Project\\test\\MarrakechDunes\\test-results\\simple-spa-test-Simple-SPA-10739-ews-page-loads-SPA-routing--chromium\\error-context.md"
-                        }
-                      ],
-                      "errorLocation": {
-                        "file": "C:\\Users\\backm\\Desktop\\React-Project\\test\\MarrakechDunes\\tests\\simple-spa-test.spec.js",
-                        "column": 31,
-                        "line": 56
-                      }
-                    }
-                  ],
-                  "status": "unexpected"
-                }
-              ],
-              "id": "7539973d8be1c6507f9a-47eaee786aa64c5e40ae",
-              "file": "simple-spa-test.spec.js",
-              "line": 52,
-              "column": 3
-            },
-            {
-              "title": "Admin page loads (SPA routing)",
-              "ok": false,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 60000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": 4,
-                      "parallelIndex": 4,
-                      "status": "failed",
-                      "duration": 1156,
-                      "error": {
-                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m404\u001b[39m",
-                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m404\u001b[39m\n    at C:\\Users\\backm\\Desktop\\React-Project\\test\\MarrakechDunes\\tests\\simple-spa-test.spec.js:71:31",
-                        "location": {
-                          "file": "C:\\Users\\backm\\Desktop\\React-Project\\test\\MarrakechDunes\\tests\\simple-spa-test.spec.js",
-                          "column": 31,
-                          "line": 71
-                        },
-                        "snippet": "\u001b[0m \u001b[90m 69 |\u001b[39m     \n \u001b[90m 70 |\u001b[39m     \u001b[90m// Should not be 404 - should be 200 with React app\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 71 |\u001b[39m     expect(response\u001b[33m.\u001b[39mstatus())\u001b[33m.\u001b[39mtoBe(\u001b[35m200\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                               \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 72 |\u001b[39m     \n \u001b[90m 73 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mwaitForTimeout(\u001b[35m3000\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 74 |\u001b[39m     \u001b[0m"
-                      },
-                      "errors": [
-                        {
-                          "location": {
-                            "file": "C:\\Users\\backm\\Desktop\\React-Project\\test\\MarrakechDunes\\tests\\simple-spa-test.spec.js",
-                            "column": 31,
-                            "line": 71
-                          },
-                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m404\u001b[39m\n\n\u001b[0m \u001b[90m 69 |\u001b[39m     \n \u001b[90m 70 |\u001b[39m     \u001b[90m// Should not be 404 - should be 200 with React app\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 71 |\u001b[39m     expect(response\u001b[33m.\u001b[39mstatus())\u001b[33m.\u001b[39mtoBe(\u001b[35m200\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                               \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 72 |\u001b[39m     \n \u001b[90m 73 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mwaitForTimeout(\u001b[35m3000\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 74 |\u001b[39m     \u001b[0m\n\u001b[2m    at C:\\Users\\backm\\Desktop\\React-Project\\test\\MarrakechDunes\\tests\\simple-spa-test.spec.js:71:31\u001b[22m"
-                        }
-                      ],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2025-09-07T17:03:09.924Z",
-                      "annotations": [],
-                      "attachments": [
-                        {
-                          "name": "screenshot",
-                          "contentType": "image/png",
-                          "path": "C:\\Users\\backm\\Desktop\\React-Project\\test\\MarrakechDunes\\test-results\\simple-spa-test-Simple-SPA-0aaa7-min-page-loads-SPA-routing--chromium\\test-failed-1.png"
-                        },
-                        {
-                          "name": "video",
-                          "contentType": "video/webm",
-                          "path": "C:\\Users\\backm\\Desktop\\React-Project\\test\\MarrakechDunes\\test-results\\simple-spa-test-Simple-SPA-0aaa7-min-page-loads-SPA-routing--chromium\\video.webm"
-                        },
-                        {
-                          "name": "error-context",
-                          "contentType": "text/markdown",
-                          "path": "C:\\Users\\backm\\Desktop\\React-Project\\test\\MarrakechDunes\\test-results\\simple-spa-test-Simple-SPA-0aaa7-min-page-loads-SPA-routing--chromium\\error-context.md"
-                        }
-                      ],
-                      "errorLocation": {
-                        "file": "C:\\Users\\backm\\Desktop\\React-Project\\test\\MarrakechDunes\\tests\\simple-spa-test.spec.js",
-                        "column": 31,
-                        "line": 71
-                      }
-                    }
-                  ],
-                  "status": "unexpected"
-                }
-              ],
-              "id": "7539973d8be1c6507f9a-47e84b339d75daa75ca2",
-              "file": "simple-spa-test.spec.js",
-              "line": 67,
-              "column": 3
-            },
-            {
-              "title": "Non-existent route falls back to React app",
-              "ok": false,
-              "tags": [],
-              "tests": [
-                {
-                  "timeout": 60000,
-                  "annotations": [],
-                  "expectedStatus": "passed",
-                  "projectId": "chromium",
-                  "projectName": "chromium",
-                  "results": [
-                    {
-                      "workerIndex": 5,
-                      "parallelIndex": 5,
-                      "status": "failed",
-                      "duration": 587,
-                      "error": {
-                        "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m404\u001b[39m",
-                        "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m404\u001b[39m\n    at C:\\Users\\backm\\Desktop\\React-Project\\test\\MarrakechDunes\\tests\\simple-spa-test.spec.js:86:31",
-                        "location": {
-                          "file": "C:\\Users\\backm\\Desktop\\React-Project\\test\\MarrakechDunes\\tests\\simple-spa-test.spec.js",
-                          "column": 31,
-                          "line": 86
-                        },
-                        "snippet": "\u001b[0m \u001b[90m 84 |\u001b[39m     \n \u001b[90m 85 |\u001b[39m     \u001b[90m// Should not be 404 - should be 200 with React app\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 86 |\u001b[39m     expect(response\u001b[33m.\u001b[39mstatus())\u001b[33m.\u001b[39mtoBe(\u001b[35m200\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                               \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 87 |\u001b[39m     \n \u001b[90m 88 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mwaitForTimeout(\u001b[35m3000\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 89 |\u001b[39m     \u001b[0m"
-                      },
-                      "errors": [
-                        {
-                          "location": {
-                            "file": "C:\\Users\\backm\\Desktop\\React-Project\\test\\MarrakechDunes\\tests\\simple-spa-test.spec.js",
-                            "column": 31,
-                            "line": 86
-                          },
-                          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m200\u001b[39m\nReceived: \u001b[31m404\u001b[39m\n\n\u001b[0m \u001b[90m 84 |\u001b[39m     \n \u001b[90m 85 |\u001b[39m     \u001b[90m// Should not be 404 - should be 200 with React app\u001b[39m\n\u001b[31m\u001b[1m>\u001b[22m\u001b[39m\u001b[90m 86 |\u001b[39m     expect(response\u001b[33m.\u001b[39mstatus())\u001b[33m.\u001b[39mtoBe(\u001b[35m200\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m    |\u001b[39m                               \u001b[31m\u001b[1m^\u001b[22m\u001b[39m\n \u001b[90m 87 |\u001b[39m     \n \u001b[90m 88 |\u001b[39m     \u001b[36mawait\u001b[39m page\u001b[33m.\u001b[39mwaitForTimeout(\u001b[35m3000\u001b[39m)\u001b[33m;\u001b[39m\n \u001b[90m 89 |\u001b[39m     \u001b[0m\n\u001b[2m    at C:\\Users\\backm\\Desktop\\React-Project\\test\\MarrakechDunes\\tests\\simple-spa-test.spec.js:86:31\u001b[22m"
-                        }
-                      ],
-                      "stdout": [],
-                      "stderr": [],
-                      "retry": 0,
-                      "startTime": "2025-09-07T17:03:10.369Z",
-                      "annotations": [],
-                      "attachments": [
-                        {
-                          "name": "screenshot",
-                          "contentType": "image/png",
-                          "path": "C:\\Users\\backm\\Desktop\\React-Project\\test\\MarrakechDunes\\test-results\\simple-spa-test-Simple-SPA-3b6b4-ute-falls-back-to-React-app-chromium\\test-failed-1.png"
-                        },
-                        {
-                          "name": "video",
-                          "contentType": "video/webm",
-                          "path": "C:\\Users\\backm\\Desktop\\React-Project\\test\\MarrakechDunes\\test-results\\simple-spa-test-Simple-SPA-3b6b4-ute-falls-back-to-React-app-chromium\\video.webm"
-                        },
-                        {
-                          "name": "error-context",
-                          "contentType": "text/markdown",
-                          "path": "C:\\Users\\backm\\Desktop\\React-Project\\test\\MarrakechDunes\\test-results\\simple-spa-test-Simple-SPA-3b6b4-ute-falls-back-to-React-app-chromium\\error-context.md"
-                        }
-                      ],
-                      "errorLocation": {
-                        "file": "C:\\Users\\backm\\Desktop\\React-Project\\test\\MarrakechDunes\\tests\\simple-spa-test.spec.js",
-                        "column": 31,
-                        "line": 86
-                      }
-                    }
-                  ],
-                  "status": "unexpected"
-                }
-              ],
-              "id": "7539973d8be1c6507f9a-76e6c00f9a4b1ddbcecb",
-              "file": "simple-spa-test.spec.js",
-              "line": 82,
+              "id": "b2e9de14d0178cfb7884-d9d367014a3880415747",
+              "file": "cors-test.spec.js",
+              "line": 81,
               "column": 3
             }
           ]
@@ -523,11 +238,11 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2025-09-07T17:03:08.076Z",
-    "duration": 6704.674000000001,
-    "expected": 1,
+    "startTime": "2025-09-07T17:12:17.841Z",
+    "duration": 7764.393,
+    "expected": 3,
     "skipped": 0,
-    "unexpected": 5,
+    "unexpected": 0,
     "flaky": 0
   }
 }

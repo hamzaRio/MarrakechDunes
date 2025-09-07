@@ -1,203 +1,35 @@
-<testsuites id="" name="" tests="6" failures="5" skipped="0" errors="0" time="6.704674000000001">
-<testsuite name="simple-spa-test.spec.js" timestamp="2025-09-07T17:03:08.414Z" hostname="chromium" tests="6" failures="5" skipped="0" time="9.103" errors="0">
-<testcase name="Simple SPA Routing Test › Home page loads" classname="simple-spa-test.spec.js" time="4.496">
+<testsuites id="" name="" tests="3" failures="0" skipped="0" errors="0" time="7.764393">
+<testsuite name="cors-test.spec.js" timestamp="2025-09-07T17:12:18.136Z" hostname="chromium" tests="3" failures="0" skipped="0" time="14.389" errors="0">
+<testcase name="CORS and API Connectivity Test › Test CORS preflight request" classname="cors-test.spec.js" time="4.873">
 <system-out>
-<![CDATA[✅ Home page loads successfully
+<![CDATA[API Response: {
+  status: [33m200[39m,
+  statusText: [32m''[39m,
+  headers: {
+    [32m'content-length'[39m: [32m'102'[39m,
+    [32m'content-type'[39m: [32m'application/json; charset=utf-8'[39m
+  },
+  body: [32m'{"status":"healthy","timestamp":"2025-09-07T17:12:25.794Z","version":"1.0.0","database":"connected","activities":5,"environment":"production"}'[39m
+}
+✅ API call successful: [33m200[39m
 ]]>
 </system-out>
 </testcase>
-<testcase name="Simple SPA Routing Test › Activities page loads (SPA routing)" classname="simple-spa-test.spec.js" time="0.764">
-<failure message="simple-spa-test.spec.js:22:3 Activities page loads (SPA routing)" type="FAILURE">
-<![CDATA[  [chromium] › simple-spa-test.spec.js:22:3 › Simple SPA Routing Test › Activities page loads (SPA routing) 
-
-    Error: expect(received).toBe(expected) // Object.is equality
-
-    Expected: 200
-    Received: 404
-
-      24 |     
-      25 |     // Should not be 404 - should be 200 with React app
-    > 26 |     expect(response.status()).toBe(200);
-         |                               ^
-      27 |     
-      28 |     await page.waitForTimeout(3000);
-      29 |     
-        at C:\Users\backm\Desktop\React-Project\test\MarrakechDunes\tests\simple-spa-test.spec.js:26:31
-
-    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
-    ..\test-results\simple-spa-test-Simple-SPA-238c1-ies-page-loads-SPA-routing--chromium\test-failed-1.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
-    ..\test-results\simple-spa-test-Simple-SPA-238c1-ies-page-loads-SPA-routing--chromium\video.webm
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    Error Context: ..\test-results\simple-spa-test-Simple-SPA-238c1-ies-page-loads-SPA-routing--chromium\error-context.md
-]]>
-</failure>
+<testcase name="CORS and API Connectivity Test › Test activities API call" classname="cors-test.spec.js" time="5.249">
 <system-out>
-<![CDATA[
-[[ATTACHMENT|simple-spa-test-Simple-SPA-238c1-ies-page-loads-SPA-routing--chromium\test-failed-1.png]]
-
-[[ATTACHMENT|simple-spa-test-Simple-SPA-238c1-ies-page-loads-SPA-routing--chromium\video.webm]]
-
-[[ATTACHMENT|simple-spa-test-Simple-SPA-238c1-ies-page-loads-SPA-routing--chromium\error-context.md]]
+<![CDATA[Activities API Response: {
+  status: [33m200[39m,
+  statusText: [32m''[39m,
+  body: [32m`[{"_id":"686005165c47594a927cd206","name":"Montgolfière (Hot Air Balloon)","description":"Experience the magic of Marrakech from above with a sunrise hot air balloon ride over the Atlas Mountains and traditional Berber villages.","price":"1100","currency":"MAD","image":"/attached_assets/Hot Air Balloon Ride2_1751127701686.jpg","photos":["/attached_assets/Hot Air Balloon Ride2_1751127701686.jpg","/attached_assets/Hot Air Balloon Ride3_1751127701686.jpg","/attached_assets/montgofliere_a_marrakech_1751127701687.jpg","/attached_assets/montgolfiere-marrakech_1751127701687.jpg"],"category":"Adventure","isActive":true,"availability":"Daily at sunrise (6:00 AM)","id":"686005165c47594a927cd206"},{"_id":"686005165c47594a927cd207","name":"Agafay Combo","description":"Complete Agafay Desert experience with camel riding, quad biking, traditional dinner under the stars, and sunset views.","price":"450","currency":"MAD","image":"/attached_assets/agafaypack1_1751128022717.jpeg","photos":["/attached_assets/agafaypack1_1751128022717.jpeg","/attached_assets/agafaypack2_1751128022717.jpeg","/attached_assets/agafaypack3_1751128022718.jpeg","/attached_assets/agafaypack5_1751128022718.jpeg","/attached_assets/agafaypack6_1751128022718.jpeg"],"category":"Adventure","isActive":true,"availability":"Daily departures","id":"686005165c47594a927cd207"},{"_id":"686005165c47594a927cd209","name":"Ouzoud Waterfalls Day Trip","description":"Visit Morocco's most spectacular waterfalls with 110-meter cascades, rainbow views, and Barbary macaque encounters.","price":"200","currency":"MAD","image":"/attached_assets/ouzoud waterfalls 2_1751126328232.jpg","photos":["/attached_assets/ouzoud waterfalls 2_1751126328232.jpg","/attached_assets/Ouzoud-Waterfalls_1751126328233.jpg","/attached_assets/Ouzoud-Waterfalls3_1751126328233.jpg","/attached_assets/Ouzoud-Waterfalls4_1751126328233.JPG"],"category":"Nature","isActive":true,"availability":"Daily 8:00 AM - 6:00 PM","id":"686005165c47594a927cd209"},{"_id":"686005165c47594a927cd20a","name":"Ourika Valley Day Trip","description":"Discover the stunning Ourika Valley with its colorful Berber villages, flowing rivers, snow-capped Atlas Mountains, and authentic local culture.","price":"150","currency":"MAD","image":"/attached_assets/Ourika-Valley-day-trip-from-Marrakech_1751119268337.jpg","photos":["/attached_assets/ourika valley3_1751119268336.jpg","/attached_assets/Ourika-Valley-day-trip-from-Marrakech_1751119268337.jpg","/attached_assets/Ourika-valley-day-trip-from-marrakech-1_1751119268337.jpg","/attached_assets/ourika-valley-1_1751119268337.jpeg","/attached_assets/ourika-valley-marrakech_1751119268337.jpg"],"category":"Nature","isActive":true,"availability":"Daily 9:00 AM - 5:00 PM","id":"686005165c47594a927cd20a"},{"_id":"68600afdd687e06645ec5676","name":"Essaouira Day Trip","description":"Discover the coastal charm of Essaouira with its historic medina, fishing port, and beautiful Atlantic beaches.","price":"200","currency":"MAD","image":"/attached_assets/Essaouira Day Trip1_1751124502666.jpg","photos":["/attached_assets/Essaouira Day Trip1_1751124502666.jpg","/attached_assets/Essaouira day trip 3_1751122022832.jpg","/attached_assets/Essaouira day trip 4_1751122022833.jpg","/attached_assets/Essaouira Day Trip_1751122022833.jpg","/attached_assets/Essaouira Day Trip2_1751122022833.jpg"],"category":"Day Trips","isActive":true,"availability":"Daily 8:00 AM - 7:00 PM","id":"68600afdd687e06645ec5676"}]`[39m
+}
+✅ Activities API call successful: [33m200[39m
 ]]>
 </system-out>
 </testcase>
-<testcase name="Simple SPA Routing Test › Booking page loads (SPA routing)" classname="simple-spa-test.spec.js" time="1.423">
-<failure message="simple-spa-test.spec.js:37:3 Booking page loads (SPA routing)" type="FAILURE">
-<![CDATA[  [chromium] › simple-spa-test.spec.js:37:3 › Simple SPA Routing Test › Booking page loads (SPA routing) 
-
-    Error: expect(received).toBe(expected) // Object.is equality
-
-    Expected: 200
-    Received: 404
-
-      39 |     
-      40 |     // Should not be 404 - should be 200 with React app
-    > 41 |     expect(response.status()).toBe(200);
-         |                               ^
-      42 |     
-      43 |     await page.waitForTimeout(3000);
-      44 |     
-        at C:\Users\backm\Desktop\React-Project\test\MarrakechDunes\tests\simple-spa-test.spec.js:41:31
-
-    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
-    ..\test-results\simple-spa-test-Simple-SPA-9f031-ing-page-loads-SPA-routing--chromium\test-failed-1.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
-    ..\test-results\simple-spa-test-Simple-SPA-9f031-ing-page-loads-SPA-routing--chromium\video.webm
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    Error Context: ..\test-results\simple-spa-test-Simple-SPA-9f031-ing-page-loads-SPA-routing--chromium\error-context.md
-]]>
-</failure>
+<testcase name="CORS and API Connectivity Test › Test static assets CORS" classname="cors-test.spec.js" time="4.267">
 <system-out>
-<![CDATA[
-[[ATTACHMENT|simple-spa-test-Simple-SPA-9f031-ing-page-loads-SPA-routing--chromium\test-failed-1.png]]
-
-[[ATTACHMENT|simple-spa-test-Simple-SPA-9f031-ing-page-loads-SPA-routing--chromium\video.webm]]
-
-[[ATTACHMENT|simple-spa-test-Simple-SPA-9f031-ing-page-loads-SPA-routing--chromium\error-context.md]]
-]]>
-</system-out>
-</testcase>
-<testcase name="Simple SPA Routing Test › Reviews page loads (SPA routing)" classname="simple-spa-test.spec.js" time="0.677">
-<failure message="simple-spa-test.spec.js:52:3 Reviews page loads (SPA routing)" type="FAILURE">
-<![CDATA[  [chromium] › simple-spa-test.spec.js:52:3 › Simple SPA Routing Test › Reviews page loads (SPA routing) 
-
-    Error: expect(received).toBe(expected) // Object.is equality
-
-    Expected: 200
-    Received: 404
-
-      54 |     
-      55 |     // Should not be 404 - should be 200 with React app
-    > 56 |     expect(response.status()).toBe(200);
-         |                               ^
-      57 |     
-      58 |     await page.waitForTimeout(3000);
-      59 |     
-        at C:\Users\backm\Desktop\React-Project\test\MarrakechDunes\tests\simple-spa-test.spec.js:56:31
-
-    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
-    ..\test-results\simple-spa-test-Simple-SPA-10739-ews-page-loads-SPA-routing--chromium\test-failed-1.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
-    ..\test-results\simple-spa-test-Simple-SPA-10739-ews-page-loads-SPA-routing--chromium\video.webm
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    Error Context: ..\test-results\simple-spa-test-Simple-SPA-10739-ews-page-loads-SPA-routing--chromium\error-context.md
-]]>
-</failure>
-<system-out>
-<![CDATA[
-[[ATTACHMENT|simple-spa-test-Simple-SPA-10739-ews-page-loads-SPA-routing--chromium\test-failed-1.png]]
-
-[[ATTACHMENT|simple-spa-test-Simple-SPA-10739-ews-page-loads-SPA-routing--chromium\video.webm]]
-
-[[ATTACHMENT|simple-spa-test-Simple-SPA-10739-ews-page-loads-SPA-routing--chromium\error-context.md]]
-]]>
-</system-out>
-</testcase>
-<testcase name="Simple SPA Routing Test › Admin page loads (SPA routing)" classname="simple-spa-test.spec.js" time="1.156">
-<failure message="simple-spa-test.spec.js:67:3 Admin page loads (SPA routing)" type="FAILURE">
-<![CDATA[  [chromium] › simple-spa-test.spec.js:67:3 › Simple SPA Routing Test › Admin page loads (SPA routing) 
-
-    Error: expect(received).toBe(expected) // Object.is equality
-
-    Expected: 200
-    Received: 404
-
-      69 |     
-      70 |     // Should not be 404 - should be 200 with React app
-    > 71 |     expect(response.status()).toBe(200);
-         |                               ^
-      72 |     
-      73 |     await page.waitForTimeout(3000);
-      74 |     
-        at C:\Users\backm\Desktop\React-Project\test\MarrakechDunes\tests\simple-spa-test.spec.js:71:31
-
-    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
-    ..\test-results\simple-spa-test-Simple-SPA-0aaa7-min-page-loads-SPA-routing--chromium\test-failed-1.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
-    ..\test-results\simple-spa-test-Simple-SPA-0aaa7-min-page-loads-SPA-routing--chromium\video.webm
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    Error Context: ..\test-results\simple-spa-test-Simple-SPA-0aaa7-min-page-loads-SPA-routing--chromium\error-context.md
-]]>
-</failure>
-<system-out>
-<![CDATA[
-[[ATTACHMENT|simple-spa-test-Simple-SPA-0aaa7-min-page-loads-SPA-routing--chromium\test-failed-1.png]]
-
-[[ATTACHMENT|simple-spa-test-Simple-SPA-0aaa7-min-page-loads-SPA-routing--chromium\video.webm]]
-
-[[ATTACHMENT|simple-spa-test-Simple-SPA-0aaa7-min-page-loads-SPA-routing--chromium\error-context.md]]
-]]>
-</system-out>
-</testcase>
-<testcase name="Simple SPA Routing Test › Non-existent route falls back to React app" classname="simple-spa-test.spec.js" time="0.587">
-<failure message="simple-spa-test.spec.js:82:3 Non-existent route falls back to React app" type="FAILURE">
-<![CDATA[  [chromium] › simple-spa-test.spec.js:82:3 › Simple SPA Routing Test › Non-existent route falls back to React app 
-
-    Error: expect(received).toBe(expected) // Object.is equality
-
-    Expected: 200
-    Received: 404
-
-      84 |     
-      85 |     // Should not be 404 - should be 200 with React app
-    > 86 |     expect(response.status()).toBe(200);
-         |                               ^
-      87 |     
-      88 |     await page.waitForTimeout(3000);
-      89 |     
-        at C:\Users\backm\Desktop\React-Project\test\MarrakechDunes\tests\simple-spa-test.spec.js:86:31
-
-    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
-    ..\test-results\simple-spa-test-Simple-SPA-3b6b4-ute-falls-back-to-React-app-chromium\test-failed-1.png
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
-    ..\test-results\simple-spa-test-Simple-SPA-3b6b4-ute-falls-back-to-React-app-chromium\video.webm
-    ────────────────────────────────────────────────────────────────────────────────────────────────
-
-    Error Context: ..\test-results\simple-spa-test-Simple-SPA-3b6b4-ute-falls-back-to-React-app-chromium\error-context.md
-]]>
-</failure>
-<system-out>
-<![CDATA[
-[[ATTACHMENT|simple-spa-test-Simple-SPA-3b6b4-ute-falls-back-to-React-app-chromium\test-failed-1.png]]
-
-[[ATTACHMENT|simple-spa-test-Simple-SPA-3b6b4-ute-falls-back-to-React-app-chromium\video.webm]]
-
-[[ATTACHMENT|simple-spa-test-Simple-SPA-3b6b4-ute-falls-back-to-React-app-chromium\error-context.md]]
+<![CDATA[Static Assets Response: { error: [32m'Failed to fetch'[39m, name: [32m'TypeError'[39m }
+❌ Static Assets Error: Failed to fetch
 ]]>
 </system-out>
 </testcase>
