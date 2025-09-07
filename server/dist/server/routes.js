@@ -80,7 +80,7 @@ export async function registerRoutes(app) {
     // Initialize database
     await storage.seedInitialData();
     // Public API routes with general rate limiting
-    app.use('/api/activities', generalApiRateLimit);
+    // Note: /api/activities has no rate limiting to prevent 429 errors
     app.use('/api/bookings', generalApiRateLimit);
     app.use('/api/reviews', generalApiRateLimit);
     // Admin API routes with stricter rate limiting, audit logging, and admin authentication

@@ -61,8 +61,8 @@ const getClientUrls = () => {
         const urls = clientUrl.split(',').map(url => url.trim());
         origins.push(...urls);
     }
-    // Add regex for all vercel.app subdomains
-    origins.push(/\.vercel\.app$/);
+    // Add regex for all vercel.app subdomains (including preview deployments)
+    origins.push(/^https:\/\/.*\.vercel\.app$/);
     return origins;
 };
 const allowedOrigins = getClientUrls();

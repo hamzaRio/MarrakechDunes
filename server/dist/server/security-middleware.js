@@ -6,10 +6,10 @@ import session from 'express-session';
 // Rate limiting for authentication attempts
 export const authRateLimit = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: process.env.NODE_ENV === 'production' ? 100 : 200, // Relaxed limits
+    max: process.env.NODE_ENV === 'production' ? 10 : 20, // Stricter for auth
     message: {
-        error: 'Too many authentication attempts',
-        message: 'Please wait 15 minutes before trying again'
+        error: 'Too many requests, try again later.',
+        retryAfter: '15 minutes'
     },
     standardHeaders: true,
     legacyHeaders: false,
@@ -20,8 +20,7 @@ export const authRateLimit = rateLimit({
     // Custom handler for rate limit exceeded
     handler: (req, res) => {
         res.status(429).json({
-            error: 'Too many authentication attempts',
-            message: 'Please wait 15 minutes before trying again',
+            error: 'Too many requests, try again later.',
             retryAfter: Math.ceil(15 * 60 / 60) // minutes
         });
     }
@@ -29,10 +28,10 @@ export const authRateLimit = rateLimit({
 // Rate limiting for admin API endpoints
 export const adminApiRateLimit = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes (consistent with others)
-    max: process.env.NODE_ENV === 'production' ? 100 : 200, // Relaxed limits
+    max: process.env.NODE_ENV === 'production' ? 1000 : 2000, // Relaxed for admin operations
     message: {
-        error: 'Too many requests',
-        message: 'API rate limit exceeded'
+        error: 'Too many requests, try again later.',
+        retryAfter: '15 minutes'
     },
     standardHeaders: true,
     legacyHeaders: false,
@@ -44,10 +43,10 @@ export const adminApiRateLimit = rateLimit({
 // General API rate limiting
 export const generalApiRateLimit = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes (consistent with others)
-    max: process.env.NODE_ENV === 'production' ? 100 : 200, // Relaxed limits
+    max: process.env.NODE_ENV === 'production' ? 1000 : 2000, // Relaxed for general API
     message: {
-        error: 'Too many requests',
-        message: 'API rate limit exceeded'
+        error: 'Too many requests, try again later.',
+        retryAfter: '15 minutes'
     },
     standardHeaders: true,
     legacyHeaders: false,
