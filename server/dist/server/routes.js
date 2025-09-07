@@ -211,10 +211,11 @@ export async function registerRoutes(app) {
                     }
                 });
                 // Set explicit cookie for cross-origin support
+                const isProduction = process.env.NODE_ENV === 'production';
                 res.cookie('marrakech.session', authReq.session.id, {
-                    secure: true,
+                    secure: isProduction,
                     httpOnly: true,
-                    sameSite: "none",
+                    sameSite: isProduction ? "none" : "lax",
                     maxAge: 24 * 60 * 60 * 1000,
                     path: "/"
                 });
@@ -254,8 +255,25 @@ export async function registerRoutes(app) {
     });
     // Security events endpoint for frontend audit logging
     app.post("/api/security-events", (req, res) => {
-        console.log("Security event:", req.body);
-        res.status(200).json({ ok: true });
+        try {
+            // Only log in production to reduce console noise
+            if (process.env.NODE_ENV === 'production') {
+                console.log("Security event:", {
+                    event: req.body?.event,
+                    timestamp: req.body?.timestamp,
+                    url: req.body?.url,
+                    userAgent: req.body?.userAgent ? req.body.userAgent.substring(0, 100) : 'unknown'
+                });
+            }
+            res.status(200).json({ ok: true });
+        }
+        catch (error) {
+            // Only log errors in production
+            if (process.env.NODE_ENV === 'production') {
+                console.error("Security event error:", error);
+            }
+            res.status(500).json({ error: "Internal server error" });
+        }
     });
     // Simple health alias
     app.get('/health', (_req, res) => {
