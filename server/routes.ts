@@ -624,65 +624,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   }));
 
-  app.get("/api/admin/performance-alerts", adminSecurityMiddleware, async (req, res) => {
-    try {
-      const bookings = await storage.getBookings();
-      const alerts = [];
+  app.get("/api/admin/performance-alerts", adminSecurityMiddleware, asyncHandler(async (req: Request, res: Response) => {
+    const bookings = await storage.getBookings();
+    const alerts = [];
 
-      // Check recent booking volume
-      const recentBookings = bookings.filter(b => {
-        const bookingDate = new Date(b.createdAt);
-        const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-        return bookingDate >= oneDayAgo;
-      }).length;
+    // Check recent booking volume
+    const recentBookings = bookings.filter(b => {
+      const bookingDate = new Date(b.createdAt);
+      const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      return bookingDate >= oneDayAgo;
+    }).length;
 
-      if (recentBookings === 0) {
-        alerts.push({
-          type: 'warning',
-          message: 'No bookings in the last 24 hours',
-          value: '0',
-          threshold: '1+',
-          timestamp: new Date()
-        });
-      }
-
-      // Check conversion rate
-      const totalBookings = bookings.length;
-      const confirmedBookings = bookings.filter(b => b.status === 'confirmed' || b.status === 'completed').length;
-      const conversionRate = totalBookings > 0 ? (confirmedBookings / totalBookings) * 100 : 0;
-
-      if (conversionRate < 50) {
-        alerts.push({
-          type: 'warning',
-          message: 'Low booking conversion rate',
-          value: `${Math.round(conversionRate)}%`,
-          threshold: '50%',
-          timestamp: new Date()
-        });
-      }
-
-      res.json({ 
-        alerts, 
-        systemHealth: {
-          cpu: Math.floor(Math.random() * 30) + 15,
-          memory: Math.floor(Math.random() * 40) + 25,
-          database: Math.floor(Math.random() * 20) + 5,
-          uptime: process.uptime(),
-          status: 'healthy'
-        }
-      });
-    } catch (error) {
-      console.error("Failed to fetch performance alerts:", error);
-      res.status(500).json({ 
-        status: 'error',
-        message: "Failed to fetch performance alerts",
-        code: 'FETCH_PERFORMANCE_ALERTS_ERROR',
-        timestamp: new Date().toISOString(),
-        path: req.path,
-        method: req.method
+    if (recentBookings === 0) {
+      alerts.push({
+        type: 'warning',
+        message: 'No bookings in the last 24 hours',
+        value: '0',
+        threshold: '1+',
+        timestamp: new Date()
       });
     }
-  });
+
+    // Check conversion rate
+    const totalBookings = bookings.length;
+    const confirmedBookings = bookings.filter(b => b.status === 'confirmed' || b.status === 'completed').length;
+    const conversionRate = totalBookings > 0 ? (confirmedBookings / totalBookings) * 100 : 0;
+
+    if (conversionRate < 50) {
+      alerts.push({
+        type: 'warning',
+        message: 'Low booking conversion rate',
+        value: `${Math.round(conversionRate)}%`,
+        threshold: '50%',
+        timestamp: new Date()
+      });
+    }
+
+    res.json({ 
+      alerts, 
+      systemHealth: {
+        cpu: Math.floor(Math.random() * 30) + 15,
+        memory: Math.floor(Math.random() * 40) + 25,
+        database: Math.floor(Math.random() * 20) + 5,
+        uptime: process.uptime(),
+        status: 'healthy'
+      }
+    });
+  }));
 
   app.patch("/api/admin/bookings/:id/status", adminSecurityMiddleware, asyncHandler(async (req: Request, res: Response) => {
     const authReq = req as AuthenticatedRequest;
@@ -960,46 +948,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/activities/:id/rating", async (req: Request, res) => {
-    try {
-      const rating = await storage.getActivityRating(req.params.id);
-      res.json(rating);
-    } catch (error) {
-      console.error("Error fetching activity rating:", error);
-      res.status(500).json({ 
-        status: 'error',
-        message: "Failed to fetch rating",
-        code: 'FETCH_RATING_ERROR',
-        timestamp: new Date().toISOString(),
-        path: req.path,
-        method: req.method
-      });
-    }
-  });
+  app.get("/api/activities/:id/rating", asyncHandler(async (req: Request, res: Response) => {
+    const rating = await storage.getActivityRating(req.params.id);
+    res.json(rating);
+  }));
 
-  app.post("/api/reviews", async (req: Request, res) => {
+  app.post("/api/reviews", asyncHandler(async (req: Request, res: Response) => {
     try {
       const validatedData = insertReviewSchema.parse(req.body);
       const review = await storage.createReview(validatedData);
       res.status(201).json(review);
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return res.status(400).json({ 
-          message: "Validation error", 
-          errors: error.errors 
-        });
+        throw new AppError("Validation error", 400, 'VALIDATION_ERROR');
       }
-      console.error("Error creating review:", error);
-      res.status(500).json({ 
-        status: 'error',
-        message: "Failed to create review",
-        code: 'CREATE_REVIEW_ERROR',
-        timestamp: new Date().toISOString(),
-        path: req.path,
-        method: req.method
-      });
+      throw error;
     }
-  });
+  }));
 
   // Admin review management
   app.get("/api/admin/reviews", adminSecurityMiddleware, async (req: Request, res) => {

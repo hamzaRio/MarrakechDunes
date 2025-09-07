@@ -16,7 +16,11 @@
       "destination": "/"
     },
     {
-      "source": "/(.*)",
+      "source": "/admin/(.*)",
+      "destination": "/"
+    },
+    {
+      "source": "/((?!api|_next|_static|favicon.ico|attached_assets).*)",
       "destination": "/"
     }
   ],

@@ -99,8 +99,23 @@ export default function BookingFormModal({
       });
 
       if (!response.ok) {
-        const errorData = await response.text();
-        throw new Error(errorData || "Failed to create booking");
+        let errorMessage = "Failed to create booking";
+        try {
+          const errorData = await response.json();
+          if (errorData.status === 'error') {
+            errorMessage = errorData.message || "Failed to create booking";
+          } else {
+            errorMessage = errorData.message || errorData.error || "Failed to create booking";
+          }
+        } catch {
+          // If JSON parsing fails, try text
+          try {
+            errorMessage = await response.text() || "Failed to create booking";
+          } catch {
+            errorMessage = "Failed to create booking";
+          }
+        }
+        throw new Error(errorMessage);
       }
 
       return await response.json();
