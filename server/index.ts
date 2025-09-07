@@ -275,11 +275,11 @@ app.use((req, res, next) => {
   
   server.listen(port, () => {
     log(`🚀 Server started on port ${port}`);
-    log(`🌐 CORS origins: ${allowedOrigins.map(o => typeof o === 'string' ? o : o.toString()).join(', ')}`);
-    log(`📁 Assets served from: ${assetsPath}`);
-    log(`🔒 Rate limiting: 500 req/15min global, 20 req/min auth`);
+    log(`🌍 NODE_ENV: ${process.env.NODE_ENV || 'development'}`);
+    log(`🌐 Allowed CORS origins: ${allowedOrigins.map(o => typeof o === 'string' ? o : o.toString()).join(', ')}`);
+    log(`📁 Assets path: ${assetsPath}`);
+    log(`🔒 Rate limiting: ${isProduction ? '100' : '200'} req/15min (global, auth, admin, general)`);
     log(`🍪 Session cookies: secure=${isProduction}, sameSite=${isProduction ? 'none' : 'lax'}, httpOnly=true`);
-    log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
     log(`📡 API Base URL: ${apiUrl}`);
     log(`🔧 Trust proxy: ${app.get('trust proxy')}`);
     log(`🔑 Session secret: ${process.env.SESSION_SECRET ? '✅ SET' : '❌ NOT SET'}`);

@@ -1,9 +1,9 @@
 import rateLimit from "express-rate-limit";
 
-// Global rate limiter (500 requests per 15 minutes)
+// Global rate limiter (environment-aware)
 export const globalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 500, // allow more requests for frontend assets
+  max: process.env.NODE_ENV === 'production' ? 100 : 200, // Relaxed limits
   message: {
     error: 'Too many requests from this IP, please try again later.',
     retryAfter: '15 minutes'
@@ -12,13 +12,13 @@ export const globalLimiter = rateLimit({
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
 });
 
-// Stricter rate limiter for auth and admin routes (20 requests per minute)
+// Stricter rate limiter for auth and admin routes (environment-aware)
 export const strictLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 minute
-  max: 20, // limit each IP to 20 requests per windowMs
+  windowMs: 15 * 60 * 1000, // 15 minutes (changed to match global)
+  max: process.env.NODE_ENV === 'production' ? 100 : 200, // Relaxed limits
   message: {
     error: 'Too many authentication attempts, please try again later.',
-    retryAfter: '1 minute'
+    retryAfter: '15 minutes'
   },
   standardHeaders: true,
   legacyHeaders: false,
