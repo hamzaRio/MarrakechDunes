@@ -12,15 +12,7 @@
   ],
   "rewrites": [
     {
-      "source": "/admin",
-      "destination": "/"
-    },
-    {
-      "source": "/admin/(.*)",
-      "destination": "/"
-    },
-    {
-      "source": "/((?!api|_next|_static|favicon.ico|attached_assets).*)",
+      "source": "/(.*)",
       "destination": "/"
     }
   ],

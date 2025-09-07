@@ -930,23 +930,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Review routes
-  app.get("/api/reviews", async (req: Request, res) => {
-    try {
-      const activityId = req.query.activityId as string;
-      const reviews = await storage.getReviews(activityId);
-      res.json(reviews);
-    } catch (error) {
-      console.error("Error fetching reviews:", error);
-      res.status(500).json({ 
-        status: 'error',
-        message: "Failed to fetch reviews",
-        code: 'FETCH_REVIEWS_ERROR',
-        timestamp: new Date().toISOString(),
-        path: req.path,
-        method: req.method
-      });
-    }
-  });
+  app.get("/api/reviews", asyncHandler(async (req: Request, res: Response) => {
+    const activityId = req.query.activityId as string;
+    const reviews = await storage.getReviews(activityId);
+    res.json(reviews);
+  }));
 
   app.get("/api/activities/:id/rating", asyncHandler(async (req: Request, res: Response) => {
     const rating = await storage.getActivityRating(req.params.id);
@@ -967,104 +955,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }));
 
   // Admin review management
-  app.get("/api/admin/reviews", adminSecurityMiddleware, async (req: Request, res) => {
-    try {
-      const reviews = await storage.getReviews();
-      res.json(reviews);
-    } catch (error) {
-      console.error("Error fetching admin reviews:", error);
-      res.status(500).json({ 
-        status: 'error',
-        message: "Failed to fetch reviews",
-        code: 'FETCH_REVIEWS_ERROR',
-        timestamp: new Date().toISOString(),
-        path: req.path,
-        method: req.method
-      });
-    }
-  });
+  app.get("/api/admin/reviews", adminSecurityMiddleware, asyncHandler(async (req: Request, res: Response) => {
+    const reviews = await storage.getReviews();
+    res.json(reviews);
+  }));
 
-  app.patch("/api/admin/reviews/:id/approval", adminSecurityMiddleware, async (req: Request, res) => {
-    try {
-      const { approved } = req.body;
-      const review = await storage.updateReviewApproval(req.params.id, approved);
-      
-      if (!review) {
-        return res.status(404).json({ 
-          status: 'error',
-          message: "Review not found",
-          code: 'REVIEW_NOT_FOUND',
-          timestamp: new Date().toISOString(),
-          path: req.path,
-          method: req.method
-        });
-      }
-
-      res.json(review);
-    } catch (error) {
-      console.error("Error updating review approval:", error);
-      res.status(500).json({ 
-        status: 'error',
-        message: "Failed to update review approval",
-        code: 'UPDATE_REVIEW_APPROVAL_ERROR',
-        timestamp: new Date().toISOString(),
-        path: req.path,
-        method: req.method
-      });
+  app.patch("/api/admin/reviews/:id/approval", adminSecurityMiddleware, asyncHandler(async (req: Request, res: Response) => {
+    const { approved } = req.body;
+    const review = await storage.updateReviewApproval(req.params.id, approved);
+    
+    if (!review) {
+      throw new NotFoundError("Review not found");
     }
-  });
+
+    res.json(review);
+  }));
 
   // CEO Dashboard Analytics endpoints
-  app.get("/api/admin/analytics/earnings", superadminSecurityMiddleware, async (req: Request, res) => {
-    try {
-      const analytics = await storage.getEarningsAnalytics();
-      res.json(analytics);
-    } catch (error) {
-      console.error("Error fetching earnings analytics:", error);
-      res.status(500).json({ 
-        status: 'error',
-        message: "Failed to fetch earnings analytics",
-        code: 'FETCH_EARNINGS_ANALYTICS_ERROR',
-        timestamp: new Date().toISOString(),
-        path: req.path,
-        method: req.method
-      });
-    }
-  });
+  app.get("/api/admin/analytics/earnings", superadminSecurityMiddleware, asyncHandler(async (req: Request, res: Response) => {
+    const analytics = await storage.getEarningsAnalytics();
+    res.json(analytics);
+  }));
 
-  app.get("/api/admin/analytics/activities", adminSecurityMiddleware, async (req: Request, res) => {
-    try {
-      const analytics = await storage.getActivityAnalytics();
-      res.json(analytics);
-    } catch (error) {
-      console.error("Error fetching activity analytics:", error);
-      res.status(500).json({ 
-        status: 'error',
-        message: "Failed to fetch activity analytics",
-        code: 'FETCH_ACTIVITY_ANALYTICS_ERROR',
-        timestamp: new Date().toISOString(),
-        path: req.path,
-        method: req.method
-      });
-    }
-  });
+  app.get("/api/admin/analytics/activities", adminSecurityMiddleware, asyncHandler(async (req: Request, res: Response) => {
+    const analytics = await storage.getActivityAnalytics();
+    res.json(analytics);
+  }));
 
-  app.get("/api/admin/analytics/bookings", adminSecurityMiddleware, async (req: Request, res) => {
-    try {
-      const analytics = await storage.getBookingAnalytics();
-      res.json(analytics);
-    } catch (error) {
-      console.error("Error fetching booking analytics:", error);
-      res.status(500).json({ 
-        status: 'error',
-        message: "Failed to fetch booking analytics",
-        code: 'FETCH_BOOKING_ANALYTICS_ERROR',
-        timestamp: new Date().toISOString(),
-        path: req.path,
-        method: req.method
-      });
-    }
-  });
+  app.get("/api/admin/analytics/bookings", adminSecurityMiddleware, asyncHandler(async (req: Request, res: Response) => {
+    const analytics = await storage.getBookingAnalytics();
+    res.json(analytics);
+  }));
 
   // GetYourGuide price comparison
   app.get("/api/admin/getyourguide/comparison", superadminSecurityMiddleware, async (req: Request, res) => {
