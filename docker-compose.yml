@@ -1,0 +1,79 @@
+# Docker Compose for MarrakechDunes Development
+# This helps standardize error handling and environment setup
+
+version: '3.8'
+
+services:
+  # Backend service
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    ports:
+      - "5000:5000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=${DATABASE_URL}
+      - SESSION_SECRET=${SESSION_SECRET}
+      - JWT_SECRET=${JWT_SECRET}
+      - CLIENT_URL=${CLIENT_URL}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - SUPERADMIN_PASSWORD=${SUPERADMIN_PASSWORD}
+      - WHATSAPP_RECEIVERS=${WHATSAPP_RECEIVERS}
+    volumes:
+      # Mount attached_assets for development
+      - ./attached_assets:/app/attached_assets:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:5000/api/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Development backend (with hot reload)
+  backend-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+    ports:
+      - "5001:5000"
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=${DATABASE_URL}
+      - SESSION_SECRET=${SESSION_SECRET:-dev-session-secret-change-in-production}
+      - JWT_SECRET=${JWT_SECRET:-dev-jwt-secret-change-in-production}
+      - CLIENT_URL=http://localhost:5173
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123}
+      - SUPERADMIN_PASSWORD=${SUPERADMIN_PASSWORD:-superadmin123}
+      - WHATSAPP_RECEIVERS=${WHATSAPP_RECEIVERS}
+    volumes:
+      # Mount source code for hot reload
+      - ./server:/app/server
+      - ./shared:/app/shared
+      - ./attached_assets:/app/attached_assets:ro
+      - /app/node_modules
+    command: ["npm", "run", "dev", "-w", "server"]
+    profiles:
+      - dev
+
+  # MongoDB for local development (optional)
+  mongodb:
+    image: mongo:7.0
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=password
+      - MONGO_INITDB_DATABASE=marrakechdunes
+    volumes:
+      - mongodb_data:/data/db
+      - ./scripts/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    profiles:
+      - dev
+      - local
+
+volumes:
+  mongodb_data:

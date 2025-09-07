@@ -54,6 +54,7 @@ import helmet from "helmet";
 import { globalLimiter, strictLimiter } from "./rate-limiters.js";
 import { registerRoutes } from "./routes.js";
 import { connectToDatabase } from "./db.js";
+import { globalErrorHandler, notFoundHandler } from "./error-handler.js";
 
 // Define constants before use - support multiple origins from environment
 const getClientUrls = (): (string | RegExp)[] => {
@@ -229,24 +230,11 @@ app.use((req, res, next) => {
     res.status(204).end();
   });
 
-  // API 404 handler
-  app.use('/api/*', (req, res) => {
-    res.status(404).json({ 
-      error: 'API endpoint not found', 
-      path: req.path,
-      method: req.method 
-    });
-  });
+  // API 404 handler for undefined routes
+  app.use('/api/*', notFoundHandler);
 
-  // Global error middleware
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
-
-    console.error("Error middleware caught:", err);
-
-    res.status(status).json({ error: message });
-  });
+  // Global error handler (must be last)
+  app.use(globalErrorHandler);
 
   // Note: Frontend is served by Vercel, backend only serves API and static assets
   log("Backend configured for API and static assets only - frontend served by Vercel");

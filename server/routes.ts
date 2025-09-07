@@ -20,6 +20,15 @@ import {
   sessionSecurity
 } from "./security-middleware.js";
 import { strictLimiter } from './rate-limiters.js';
+import { 
+  asyncHandler, 
+  AppError, 
+  AuthenticationError, 
+  AuthorizationError, 
+  NotFoundError,
+  handleDatabaseError,
+  handleZodError
+} from "./error-handler.js";
 
 // Types for session data
 declare module 'express-session' {
@@ -39,7 +48,7 @@ interface AuthenticatedRequest extends Request {
 const requireAuth = (req: Request, res: Response, next: NextFunction) => {
   const authReq = req as AuthenticatedRequest;
   if (!authReq.session.user) {
-    return res.status(401).json({ message: "Not authenticated" });
+    return next(new AuthenticationError("Not authenticated"));
   }
   next();
 };
@@ -47,7 +56,7 @@ const requireAuth = (req: Request, res: Response, next: NextFunction) => {
 const requireSuperAdmin = (req: Request, res: Response, next: NextFunction) => {
   const authReq = req as AuthenticatedRequest;
   if (!authReq.session.user || authReq.session.user.role !== 'superadmin') {
-    return res.status(403).json({ message: "Superadmin access required" });
+    return next(new AuthorizationError("Superadmin access required"));
   }
   next();
 };
@@ -55,7 +64,7 @@ const requireSuperAdmin = (req: Request, res: Response, next: NextFunction) => {
 const requireAdmin = (req: Request, res: Response, next: NextFunction) => {
   const authReq = req as AuthenticatedRequest;
   if (!authReq.session.user || (authReq.session.user.role !== "admin" && authReq.session.user.role !== "superadmin")) {
-    return res.status(403).json({ message: "Forbidden: Admins only" });
+    return next(new AuthorizationError("Forbidden: Admins only"));
   }
   next();
 };
@@ -64,8 +73,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Note: CORS is already configured in server/index.ts before routes are registered
   // This ensures CORS headers are set before session middleware
 
-    // Health check endpoint for deployment monitoring
-    app.get('/api/health', async (req: Request, res: Response) => {
+  // Health check endpoint for deployment monitoring
+  app.get('/api/health', asyncHandler(async (req: Request, res: Response) => {
     try {
       // Test database connectivity
       const activitiesCount = await storage.getActivities();
@@ -79,13 +88,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         environment: process.env.NODE_ENV || 'development'
       });
     } catch (error) {
-      res.status(503).json({
-        status: 'unhealthy',
-        timestamp: new Date().toISOString(),
-        error: 'Database connection failed'
-      });
+      throw new AppError('Database connection failed', 503, 'DATABASE_CONNECTION_FAILED');
     }
-  });
+  }));
 
   // Configure secure sessions FIRST (before other middleware)
   app.use(session(sessionSecurity));
@@ -344,23 +349,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Public routes
-  app.get("/api/activities", async (req: Request, res) => {
+  app.get("/api/activities", asyncHandler(async (req: Request, res: Response) => {
     try {
       const activities = await storage.getActivities();
       res.json(activities);
     } catch (error) {
-      console.error("Error fetching activities:", error);
-      res.status(500).json({ message: "Failed to fetch activities" });
+      throw handleDatabaseError(error);
     }
-  });
+  }));
 
-  app.post("/api/bookings", async (req: Request, res) => {
+  app.post("/api/bookings", asyncHandler(async (req: Request, res: Response) => {
     try {
       const data = req.body;
       
       // Calculate total amount
       const activity = await storage.getActivity(data.activityId);
-      const totalAmount = activity ? (parseInt(activity.price) * data.numberOfPeople).toString() : '0';
+      if (!activity) {
+        throw new NotFoundError('Activity not found');
+      }
+      
+      const totalAmount = (parseInt(activity.price) * data.numberOfPeople).toString();
       
       const booking = await storage.createBooking({
         customerName: data.customerName,
@@ -377,31 +385,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       // Send WhatsApp notifications to all admins
-      if (activity) {
-        const participantNames = booking.participantNames?.join(', ') || booking.customerName;
-        const notificationData = {
-          customerName: booking.customerName,
-          customerPhone: booking.customerPhone,
-          activityName: activity.name,
-          numberOfPeople: booking.numberOfPeople,
-          preferredDate: new Date(booking.preferredDate),
-          totalAmount: parseInt(booking.totalAmount),
-          paymentMethod: booking.paymentMethod || 'cash',
-          paymentStatus: booking.paymentStatus || 'unpaid',
-          status: booking.status,
-          notes: booking.notes ? `Participants: ${participantNames}\n${booking.notes}` : `Participants: ${participantNames}`,
-          bookingId: booking._id?.toString() || 'N/A'
-        };
-        
-        await whatsappService.sendBookingNotification(notificationData);
-      }
+      const participantNames = booking.participantNames?.join(', ') || booking.customerName;
+      const notificationData = {
+        customerName: booking.customerName,
+        customerPhone: booking.customerPhone,
+        activityName: activity.name,
+        numberOfPeople: booking.numberOfPeople,
+        preferredDate: new Date(booking.preferredDate),
+        totalAmount: parseInt(booking.totalAmount),
+        paymentMethod: booking.paymentMethod || 'cash',
+        paymentStatus: booking.paymentStatus || 'unpaid',
+        status: booking.status,
+        notes: booking.notes ? `Participants: ${participantNames}\n${booking.notes}` : `Participants: ${participantNames}`,
+        bookingId: booking._id?.toString() || 'N/A'
+      };
+      
+      await whatsappService.sendBookingNotification(notificationData);
 
       res.status(201).json(booking);
     } catch (error) {
-      console.error("Error creating booking:", error);
-      res.status(500).json({ message: "Failed to create booking" });
+      if (error instanceof AppError) {
+        throw error;
+      }
+      throw handleDatabaseError(error);
     }
-  });
+  }));
 
   // Admin routes
   app.get("/api/admin/bookings", adminSecurityMiddleware, async (req: Request, res) => {
