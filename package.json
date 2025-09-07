@@ -5,7 +5,7 @@
   "license": "MIT",
   "workspaces": [
     "client",
-    "server", 
+    "server",
     "shared"
   ],
   "scripts": {
@@ -25,10 +25,23 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
+    "@playwright/test": "^1.55.0",
     "concurrently": "^8.2.2",
     "cross-env": "^10.0.0",
     "drizzle-kit": "^0.30.0",
     "node-fetch": "^3.3.2",
     "typescript": "5.6.3"
-  }
+  },
+  "description": "MarrakechDunes is a production-ready full-stack web application for booking authentic Moroccan desert adventures and experiences. Built with modern technologies and designed for scalability, performance, and security.",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hamzaRio/MarrakechDunes.git"
+  },
+  "keywords": [],
+  "author": "",
+  "bugs": {
+    "url": "https://github.com/hamzaRio/MarrakechDunes/issues"
+  },
+  "homepage": "https://github.com/hamzaRio/MarrakechDunes#readme"
 }

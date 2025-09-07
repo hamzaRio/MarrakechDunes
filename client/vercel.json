@@ -1,15 +1,4 @@
 {
-  "version": 2,
-  "builds": [
-    {
-      "src": "client/package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "dist",
-        "buildCommand": "npm run build"
-      }
-    }
-  ],
   "rewrites": [
     {
       "source": "/admin",
@@ -35,10 +24,5 @@
       "source": "/((?!api|_next|_static|favicon.ico|attached_assets|assets).*)",
       "destination": "/"
     }
-  ],
-  "env": {
-    "NODE_VERSION": "20",
-    "VITE_API_URL": "https://marrakechdunes.onrender.com",
-    "VITE_ASSETS_BASE": "https://marrakechdunes.onrender.com/attached_assets"
-  }
+  ]
 }

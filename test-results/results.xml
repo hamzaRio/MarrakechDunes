@@ -1,0 +1,205 @@
+<testsuites id="" name="" tests="6" failures="5" skipped="0" errors="0" time="6.704674000000001">
+<testsuite name="simple-spa-test.spec.js" timestamp="2025-09-07T17:03:08.414Z" hostname="chromium" tests="6" failures="5" skipped="0" time="9.103" errors="0">
+<testcase name="Simple SPA Routing Test › Home page loads" classname="simple-spa-test.spec.js" time="4.496">
+<system-out>
+<![CDATA[✅ Home page loads successfully
+]]>
+</system-out>
+</testcase>
+<testcase name="Simple SPA Routing Test › Activities page loads (SPA routing)" classname="simple-spa-test.spec.js" time="0.764">
+<failure message="simple-spa-test.spec.js:22:3 Activities page loads (SPA routing)" type="FAILURE">
+<![CDATA[  [chromium] › simple-spa-test.spec.js:22:3 › Simple SPA Routing Test › Activities page loads (SPA routing) 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: 200
+    Received: 404
+
+      24 |     
+      25 |     // Should not be 404 - should be 200 with React app
+    > 26 |     expect(response.status()).toBe(200);
+         |                               ^
+      27 |     
+      28 |     await page.waitForTimeout(3000);
+      29 |     
+        at C:\Users\backm\Desktop\React-Project\test\MarrakechDunes\tests\simple-spa-test.spec.js:26:31
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\test-results\simple-spa-test-Simple-SPA-238c1-ies-page-loads-SPA-routing--chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\test-results\simple-spa-test-Simple-SPA-238c1-ies-page-loads-SPA-routing--chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\test-results\simple-spa-test-Simple-SPA-238c1-ies-page-loads-SPA-routing--chromium\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|simple-spa-test-Simple-SPA-238c1-ies-page-loads-SPA-routing--chromium\test-failed-1.png]]
+
+[[ATTACHMENT|simple-spa-test-Simple-SPA-238c1-ies-page-loads-SPA-routing--chromium\video.webm]]
+
+[[ATTACHMENT|simple-spa-test-Simple-SPA-238c1-ies-page-loads-SPA-routing--chromium\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Simple SPA Routing Test › Booking page loads (SPA routing)" classname="simple-spa-test.spec.js" time="1.423">
+<failure message="simple-spa-test.spec.js:37:3 Booking page loads (SPA routing)" type="FAILURE">
+<![CDATA[  [chromium] › simple-spa-test.spec.js:37:3 › Simple SPA Routing Test › Booking page loads (SPA routing) 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: 200
+    Received: 404
+
+      39 |     
+      40 |     // Should not be 404 - should be 200 with React app
+    > 41 |     expect(response.status()).toBe(200);
+         |                               ^
+      42 |     
+      43 |     await page.waitForTimeout(3000);
+      44 |     
+        at C:\Users\backm\Desktop\React-Project\test\MarrakechDunes\tests\simple-spa-test.spec.js:41:31
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\test-results\simple-spa-test-Simple-SPA-9f031-ing-page-loads-SPA-routing--chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\test-results\simple-spa-test-Simple-SPA-9f031-ing-page-loads-SPA-routing--chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\test-results\simple-spa-test-Simple-SPA-9f031-ing-page-loads-SPA-routing--chromium\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|simple-spa-test-Simple-SPA-9f031-ing-page-loads-SPA-routing--chromium\test-failed-1.png]]
+
+[[ATTACHMENT|simple-spa-test-Simple-SPA-9f031-ing-page-loads-SPA-routing--chromium\video.webm]]
+
+[[ATTACHMENT|simple-spa-test-Simple-SPA-9f031-ing-page-loads-SPA-routing--chromium\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Simple SPA Routing Test › Reviews page loads (SPA routing)" classname="simple-spa-test.spec.js" time="0.677">
+<failure message="simple-spa-test.spec.js:52:3 Reviews page loads (SPA routing)" type="FAILURE">
+<![CDATA[  [chromium] › simple-spa-test.spec.js:52:3 › Simple SPA Routing Test › Reviews page loads (SPA routing) 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: 200
+    Received: 404
+
+      54 |     
+      55 |     // Should not be 404 - should be 200 with React app
+    > 56 |     expect(response.status()).toBe(200);
+         |                               ^
+      57 |     
+      58 |     await page.waitForTimeout(3000);
+      59 |     
+        at C:\Users\backm\Desktop\React-Project\test\MarrakechDunes\tests\simple-spa-test.spec.js:56:31
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\test-results\simple-spa-test-Simple-SPA-10739-ews-page-loads-SPA-routing--chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\test-results\simple-spa-test-Simple-SPA-10739-ews-page-loads-SPA-routing--chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\test-results\simple-spa-test-Simple-SPA-10739-ews-page-loads-SPA-routing--chromium\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|simple-spa-test-Simple-SPA-10739-ews-page-loads-SPA-routing--chromium\test-failed-1.png]]
+
+[[ATTACHMENT|simple-spa-test-Simple-SPA-10739-ews-page-loads-SPA-routing--chromium\video.webm]]
+
+[[ATTACHMENT|simple-spa-test-Simple-SPA-10739-ews-page-loads-SPA-routing--chromium\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Simple SPA Routing Test › Admin page loads (SPA routing)" classname="simple-spa-test.spec.js" time="1.156">
+<failure message="simple-spa-test.spec.js:67:3 Admin page loads (SPA routing)" type="FAILURE">
+<![CDATA[  [chromium] › simple-spa-test.spec.js:67:3 › Simple SPA Routing Test › Admin page loads (SPA routing) 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: 200
+    Received: 404
+
+      69 |     
+      70 |     // Should not be 404 - should be 200 with React app
+    > 71 |     expect(response.status()).toBe(200);
+         |                               ^
+      72 |     
+      73 |     await page.waitForTimeout(3000);
+      74 |     
+        at C:\Users\backm\Desktop\React-Project\test\MarrakechDunes\tests\simple-spa-test.spec.js:71:31
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\test-results\simple-spa-test-Simple-SPA-0aaa7-min-page-loads-SPA-routing--chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\test-results\simple-spa-test-Simple-SPA-0aaa7-min-page-loads-SPA-routing--chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\test-results\simple-spa-test-Simple-SPA-0aaa7-min-page-loads-SPA-routing--chromium\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|simple-spa-test-Simple-SPA-0aaa7-min-page-loads-SPA-routing--chromium\test-failed-1.png]]
+
+[[ATTACHMENT|simple-spa-test-Simple-SPA-0aaa7-min-page-loads-SPA-routing--chromium\video.webm]]
+
+[[ATTACHMENT|simple-spa-test-Simple-SPA-0aaa7-min-page-loads-SPA-routing--chromium\error-context.md]]
+]]>
+</system-out>
+</testcase>
+<testcase name="Simple SPA Routing Test › Non-existent route falls back to React app" classname="simple-spa-test.spec.js" time="0.587">
+<failure message="simple-spa-test.spec.js:82:3 Non-existent route falls back to React app" type="FAILURE">
+<![CDATA[  [chromium] › simple-spa-test.spec.js:82:3 › Simple SPA Routing Test › Non-existent route falls back to React app 
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: 200
+    Received: 404
+
+      84 |     
+      85 |     // Should not be 404 - should be 200 with React app
+    > 86 |     expect(response.status()).toBe(200);
+         |                               ^
+      87 |     
+      88 |     await page.waitForTimeout(3000);
+      89 |     
+        at C:\Users\backm\Desktop\React-Project\test\MarrakechDunes\tests\simple-spa-test.spec.js:86:31
+
+    attachment #1: screenshot (image/png) ──────────────────────────────────────────────────────────
+    ..\test-results\simple-spa-test-Simple-SPA-3b6b4-ute-falls-back-to-React-app-chromium\test-failed-1.png
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    attachment #2: video (video/webm) ──────────────────────────────────────────────────────────────
+    ..\test-results\simple-spa-test-Simple-SPA-3b6b4-ute-falls-back-to-React-app-chromium\video.webm
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+    Error Context: ..\test-results\simple-spa-test-Simple-SPA-3b6b4-ute-falls-back-to-React-app-chromium\error-context.md
+]]>
+</failure>
+<system-out>
+<![CDATA[
+[[ATTACHMENT|simple-spa-test-Simple-SPA-3b6b4-ute-falls-back-to-React-app-chromium\test-failed-1.png]]
+
+[[ATTACHMENT|simple-spa-test-Simple-SPA-3b6b4-ute-falls-back-to-React-app-chromium\video.webm]]
+
+[[ATTACHMENT|simple-spa-test-Simple-SPA-3b6b4-ute-falls-back-to-React-app-chromium\error-context.md]]
+]]>
+</system-out>
+</testcase>
+</testsuite>
+</testsuites>
