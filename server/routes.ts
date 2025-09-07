@@ -97,17 +97,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Session debug middleware (reduced logging)
   app.use((req: Request, res: Response, next: NextFunction) => {
-    // Only log session details in development for auth routes
+    // Debug logging only in development
     if (process.env.NODE_ENV === 'development' && req.path.startsWith('/api/auth/')) {
-      console.log('🔧 Session middleware:', {
-        path: req.path,
-        sessionId: req.session.id,
-        hasSession: !!req.session,
-        hasUser: !!req.session?.user,
-        cookie: req.headers.cookie ? 'present' : 'missing',
-        origin: req.headers.origin,
-        method: req.method
-      });
+      console.log('🔧 Session middleware for:', req.path);
     }
     next();
   });
@@ -136,16 +128,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/auth/test', asyncHandler(async (req: Request, res: Response) => {
     const authReq = req as AuthenticatedRequest;
     
-    // Only log in development
+    // Debug logging only in development
     if (process.env.NODE_ENV === 'development') {
-      console.log('🧪 Auth test endpoint called:', {
-        sessionId: authReq.session.id,
-        hasSession: !!authReq.session,
-        hasUser: !!authReq.session?.user,
-        cookie: req.headers.cookie ? 'present' : 'missing',
-        origin: req.headers.origin,
-        referer: req.headers.referer
-      });
+      console.log('🧪 Auth test endpoint called');
     }
     
     res.json({
@@ -168,21 +153,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/auth/user', asyncHandler(async (req: Request, res: Response) => {
     const authReq = req as AuthenticatedRequest;
     
-    // Only log in development
+    // Debug logging only in development
     if (process.env.NODE_ENV === 'development') {
       console.log('🔍 Auth check:', {
-        sessionId: authReq.session.id,
         hasSession: !!authReq.session,
         hasUser: !!authReq.session?.user,
-        user: authReq.session?.user,
-        cookie: authReq.session?.cookie,
-        headers: {
-          cookie: req.headers.cookie ? 'present' : 'missing',
-          origin: req.headers.origin,
-          referer: req.headers.referer,
-          'user-agent': req.headers['user-agent']
-        },
-        sessionStore: (authReq.session as any)?.store ? 'available' : 'missing'
+        user: authReq.session?.user?.username
       });
     }
     
@@ -193,11 +169,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(authReq.session.user);
     } else {
       if (process.env.NODE_ENV === 'development') {
-        console.log('❌ User not authenticated - session details:', {
-          sessionExists: !!authReq.session,
-          sessionId: authReq.session.id,
-          cookieHeader: req.headers.cookie ? 'present' : 'missing'
-        });
+        console.log('❌ User not authenticated');
       }
       throw new AuthenticationError('Not authenticated');
     }
@@ -206,15 +178,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/auth/login", strictLimiter, authRateLimit, asyncHandler(async (req: Request, res: Response) => {
     const { username, password } = req.body;
     
-    // Only log in development
+    // Debug logging only in development
     if (process.env.NODE_ENV === 'development') {
-      console.log('🔐 Login attempt:', { 
-        username, 
-        ip: req.ip, 
-        userAgent: req.get('User-Agent'),
-        sessionId: req.session.id,
-        hasSession: !!req.session
-      });
+      console.log('🔐 Login attempt for:', username);
     }
     
     try {

@@ -66,7 +66,7 @@ const getClientUrls = () => {
     return origins;
 };
 const allowedOrigins = getClientUrls();
-const assetsPath = path.join(__dirname, "attached_assets");
+const assetsPath = path.join(__dirname, "server", "attached_assets");
 // Logging helper
 const log = (message, source = "express", level = "info") => {
     const formattedTime = new Date().toLocaleTimeString("en-US", {
@@ -131,6 +131,7 @@ app.use("/attached_assets", express.static(assetsPath, {
         res.setHeader("Access-Control-Allow-Origin", "*");
         res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
         res.setHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+        res.setHeader("Access-Control-Allow-Credentials", "false");
         // Add caching headers for better performance
         if (path && path.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i)) {
             res.setHeader("Cache-Control", "public, max-age=31536000, immutable"); // 1 year cache for images

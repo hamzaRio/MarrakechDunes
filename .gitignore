@@ -51,6 +51,17 @@ pids
 coverage/
 *.lcov
 
+# === Testing ===
+test-results/
+playwright-report/
+test-*.js
+test-*.ts
+tests/
+*.test.js
+*.test.ts
+*.spec.js
+*.spec.ts
+
 # === Cache ===
 .npm
 .eslintcache
