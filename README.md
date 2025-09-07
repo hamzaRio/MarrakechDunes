@@ -1,46 +1,49 @@
-# MarrakechDunes - Moroccan Adventure Booking Platform
+﻿# MarrakechDunes - Moroccan Adventure Booking Platform
 
-## 🌟 Overview
+##  Overview
 
 MarrakechDunes is a production-ready full-stack web application for booking authentic Moroccan desert adventures and experiences. Built with modern technologies and designed for scalability, performance, and security.
 
-## 🔒 Security Notice
+##  Security Notice
 
-**⚠️ IMPORTANT**: This application contains sensitive functionality and requires proper security configuration:
-- **Never commit `.env` files** to version control
+** IMPORTANT**: This application contains sensitive functionality and requires proper security configuration:
+- **Never commit .env files** to version control
 - **Always use strong, unique passwords** for admin accounts
 - **Rotate secrets regularly** in production
 - **Use HTTPS** in production environments
 - **Monitor audit logs** for suspicious activity
 
-## 🏗️ Monorepo Structure
+##  Monorepo Structure
 
 This project uses npm workspaces for a clean monorepo structure:
 
-```
+`
 MarrakechDunes/
-├── src/                    # Frontend (Vite + React)
-│   ├── components/         # React components
-│   ├── pages/             # Page components
-│   ├── hooks/             # Custom React hooks
-│   ├── lib/               # Frontend utilities
-│   ├── package.json       # Frontend dependencies
-│   ├── vite.config.ts     # Vite configuration
-│   └── index.html         # HTML entry point
-├── server/                # Backend (Express + TypeScript)
-│   ├── routes.ts          # API routes
-│   ├── security-middleware.ts # Security configurations
-│   ├── package.json       # Backend dependencies
-│   └── tsconfig.json      # TypeScript config
-├── shared/                # Shared code
-│   ├── schema.ts          # Zod schemas
-│   └── package.json       # Shared dependencies
-├── package.json           # Root workspace configuration
-├── vercel.json           # Vercel deployment config
-└── render.yaml           # Render deployment config
-```
+ client/                # Frontend (Vite + React)
+    src/
+       components/    # React components
+       pages/         # Page components
+       hooks/         # Custom React hooks
+       lib/           # Frontend utilities
+       package.json   # Frontend dependencies
+       vite.config.ts # Vite configuration
+       index.html     # HTML entry point
+ server/                # Backend (Express + TypeScript)
+    routes.ts          # API routes
+    security-middleware.ts # Security configurations
+    package.json       # Backend dependencies
+    tsconfig.json      # TypeScript config
+ shared/                # Shared code
+    schema.ts          # Zod schemas
+    package.json       # Shared dependencies
+ package.json           # Root workspace configuration
+ vercel.json           # Vercel deployment config
+ render.yaml           # Render deployment config
+ .env.example          # Environment variables template
+ .env.production       # Production environment template
+`
 
-## 🚀 Quick Start
+##  Quick Start
 
 ### Prerequisites
 - **Node.js 20** or higher
@@ -50,160 +53,158 @@ MarrakechDunes/
 ### Installation
 
 1. **Clone the repository:**
-```bash
+`ash
 git clone <your-repository-url>
 cd marrakech-dunes
-```
+`
 
 2. **Install dependencies:**
-```bash
+`ash
 npm install
-```
+`
 
 3. **Set up environment variables:**
-```bash
+`ash
 cp .env.example .env
-```
-Edit `.env` with your actual credentials (see [Environment Variables](#environment-variables) section below).
+`
+Edit .env with your actual credentials (see [Environment Variables](#environment-variables) section below).
 
 4. **Start development servers:**
-```bash
+`ash
 npm run dev
-```
+`
 
 This will start both frontend and backend concurrently:
 - **Frontend:** http://localhost:5173
 - **Backend API:** http://localhost:5000
 
-### Development Commands
+##  Environment Variables
 
-```bash
-# Start both frontend and backend
-npm run dev
+### Local Development Setup
 
-# Start only frontend
-npm run dev:frontend
+1. **Copy the example file:**
+`ash
+cp .env.example .env
+`
 
-# Start only backend
-npm run dev:backend
-
-# Build both frontend and backend
-npm run build
-
-# Build only frontend
-npm run build:frontend
-
-# Build only backend
-npm run build:backend
-
-# Start production server
-npm start
-```
-
-## 📁 Project Structure
-
-```
-MarrakechDunes/
-├── client/              # React frontend (Vite + TypeScript)
-│   ├── src/
-│   │   ├── components/  # Reusable UI components
-│   │   ├── pages/       # Application pages
-│   │   ├── hooks/       # Custom React hooks
-│   │   └── lib/         # Utilities and configurations
-├── server/              # Express backend (Node.js + TypeScript)
-│   ├── index.ts         # Main server file
-│   ├── routes.ts        # API route definitions
-│   ├── storage.ts       # Database operations
-│   └── security-middleware.ts
-├── shared/              # Shared TypeScript schemas
-│   └── schema.ts        # Data models and validation
-├── attached_assets/     # Static assets and images
-└── deployment configs   # Various hosting platform configurations
-```
-
-## 🔧 Environment Variables
-
-Create a `.env` file in the root directory with the following variables:
-
-### Required Environment Variables
-
-```bash
-# === Database Configuration ===
-DATABASE_URL=mongodb+srv://your-username:your-password@cluster.mongodb.net/marrakech-tours?retryWrites=true&w=majority
-
-# === Authentication & Security ===
-JWT_SECRET=your-jwt-secret-key-minimum-32-characters-long
-SESSION_SECRET=your-session-secret-key-minimum-32-characters-long
-
-# === Admin Credentials ===
-ADMIN_PASSWORD=your-secure-admin-password-minimum-8-characters
-SUPERADMIN_PASSWORD=your-secure-superadmin-password-minimum-8-characters
-
-# === Application Configuration ===
-CLIENT_URL=http://localhost:5173,https://your-frontend-domain.com
-VITE_API_URL=http://localhost:5000
-
-# === Business Integration ===
-WHATSAPP_RECEIVERS=your-phone-number-1,your-phone-number-2,your-phone-number-3
-
+2. **Edit .env with your actual values:**
+`ash
 # === Environment ===
 NODE_ENV=development
-PORT=5000
-```
 
-**⚠️ SECURITY WARNING**: 
-- Never use default passwords in production
-- Generate strong, unique secrets for JWT_SECRET and SESSION_SECRET
-- Use different passwords for ADMIN_PASSWORD and SUPERADMIN_PASSWORD
-- Replace WhatsApp numbers with your actual business phone numbers
+# === Database ===
+DATABASE_URL=mongodb://localhost:27017/marrakechdunes
+# Or use MongoDB Atlas: mongodb+srv://username:password@cluster.mongodb.net/marrakechdunes
 
-### How to Get Credentials
+# === Security ===
+SESSION_SECRET=your-session-secret-here-32-characters-minimum
+JWT_SECRET=your-jwt-secret-here-32-characters-minimum
 
-#### 1. MongoDB URI
-1. Sign up for [MongoDB Atlas](https://cloud.mongodb.com/)
-2. Create a new cluster
-3. Go to **Database Access** → Create a database user
-4. Go to **Network Access** → Add your IP address (or 0.0.0.0/0 for development)
-5. Go to **Clusters** → **Connect** → **Connect your application**
-6. Copy the connection string and replace `<password>` with your database user password
+# === Frontend URLs ===
+VITE_API_URL=http://localhost:5000
+VITE_ASSETS_BASE=http://localhost:5000/attached_assets
 
-#### 2. JWT & Session Secrets
-Generate secure random strings:
-```bash
-# Option 1: Using Node.js
-node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
+# === CORS Configuration ===
+CLIENT_URL=http://localhost:5173,http://localhost:3000
 
-# Option 2: Using OpenSSL
-openssl rand -hex 64
-```
+# === Admin Credentials ===
+ADMIN_PASSWORD=your-admin-password-here
+SUPERADMIN_PASSWORD=your-superadmin-password-here
 
-#### 3. Admin Passwords
-Choose strong, unique passwords for admin access:
-- **ADMIN_PASSWORD**: For regular admin users (minimum 8 characters)
-- **SUPERADMIN_PASSWORD**: For super admin access (minimum 8 characters, different from ADMIN_PASSWORD)
+# === WhatsApp Integration ===
+WHATSAPP_RECEIVERS=212600623630,212693323368,212654497354
+`
 
-**Security Requirements:**
-- Use a mix of uppercase, lowercase, numbers, and special characters
-- Avoid common passwords or patterns
-- Use different passwords for each admin account
-- Consider using a password manager for secure storage
+### Production Deployment
 
-#### 4. WhatsApp Integration
-Add your actual business phone numbers (with country codes) for receiving booking notifications:
-```bash
-WHATSAPP_RECEIVERS=your-phone-number-1,your-phone-number-2,your-phone-number-3
-```
+#### Render (Backend) Environment Variables
 
-**Example:**
-```bash
-WHATSAPP_RECEIVERS=+1234567890,+1987654321
-```
+Set these in your Render dashboard under **Environment**:
 
-## 🛠️ Development
+`ash
+NODE_ENV=production
+DATABASE_URL=your-mongodb-atlas-connection-string
+SESSION_SECRET=your-production-session-secret-32-characters-minimum
+JWT_SECRET=your-production-jwt-secret-32-characters-minimum
+CLIENT_URL=https://marrakech-dunes.vercel.app,http://localhost:5173
+ADMIN_PASSWORD=your-production-admin-password
+SUPERADMIN_PASSWORD=your-production-superadmin-password
+WHATSAPP_RECEIVERS=212600623630,212693323368,212654497354
+`
+
+#### Vercel (Frontend) Environment Variables
+
+Set these in your Vercel dashboard under **Settings > Environment Variables**:
+
+`ash
+VITE_API_URL=https://marrakechdunes.onrender.com
+VITE_ASSETS_BASE=https://marrakechdunes.onrender.com/attached_assets
+`
+
+### Environment Variable Reference
+
+| Variable | Required | Description | Example |
+|----------|----------|-------------|---------|
+| NODE_ENV | Yes | Environment mode | development or production |
+| DATABASE_URL | Yes | MongoDB connection string | mongodb+srv://user:pass@cluster.mongodb.net/db |
+| SESSION_SECRET | Yes | Session encryption key (32+ chars) | your-session-secret-here-32-characters-minimum |
+| JWT_SECRET | Yes | JWT token signing key (32+ chars) | your-jwt-secret-here-32-characters-minimum |
+| VITE_API_URL | Yes | Backend API URL for frontend | http://localhost:5000 (dev) / https://marrakechdunes.onrender.com (prod) |
+| VITE_ASSETS_BASE | Yes | Static assets base URL | http://localhost:5000/attached_assets (dev) / https://marrakechdunes.onrender.com/attached_assets (prod) |
+| CLIENT_URL | Yes | Allowed CORS origins | http://localhost:5173 (dev) / https://marrakech-dunes.vercel.app (prod) |
+| ADMIN_PASSWORD | Yes | Admin user password | your-secure-admin-password |
+| SUPERADMIN_PASSWORD | Yes | Superadmin user password | your-secure-superadmin-password |
+| WHATSAPP_RECEIVERS | No | WhatsApp phone numbers for notifications | 212600623630,212693323368,212654497354 |
+
+### Security Requirements
+
+** CRITICAL SECURITY NOTES:**
+
+1. **Session & JWT Secrets:**
+   - Must be at least 32 characters long
+   - Use cryptographically secure random strings
+   - Generate with: 
+ode -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
+
+2. **Admin Passwords:**
+   - Use strong, unique passwords (minimum 8 characters)
+   - Include uppercase, lowercase, numbers, and special characters
+   - Use different passwords for admin and superadmin accounts
+
+3. **Database Security:**
+   - Use MongoDB Atlas with proper access controls
+   - Restrict network access to your application IPs
+   - Use strong database user credentials
+
+4. **Production Deployment:**
+   - Never use default or example values in production
+   - Use HTTPS URLs for all production endpoints
+   - Restrict CORS to your actual production domains
+
+### How to Set Environment Variables
+
+#### Local Development
+1. Copy .env.example to .env
+2. Edit .env with your actual values
+3. Never commit .env to version control
+
+#### Render (Backend)
+1. Go to your Render dashboard
+2. Select your backend service
+3. Go to **Environment** tab
+4. Add each environment variable with its production value
+
+#### Vercel (Frontend)
+1. Go to your Vercel dashboard
+2. Select your project
+3. Go to **Settings > Environment Variables**
+4. Add each environment variable with its production value
+
+##  Development
 
 ### Available Scripts
 
-```bash
+`ash
 # Development
 npm run dev              # Start development server with hot reload
 
@@ -216,26 +217,26 @@ npm run check           # Run TypeScript type checking
 
 # Database
 npm run db:push         # Push schema changes to database
-```
+`
 
 ### Development Workflow
 
-1. **Frontend Development:** Edit files in `client/src/`
-2. **Backend Development:** Edit files in `server/`
-3. **Shared Types:** Edit `shared/schema.ts` for data models
-4. **Static Assets:** Add images to `attached_assets/`
+1. **Frontend Development:** Edit files in client/src/
+2. **Backend Development:** Edit files in server/
+3. **Shared Types:** Edit shared/schema.ts for data models
+4. **Static Assets:** Add images to ttached_assets/
 
-## 🚀 Production Deployment
+##  Production Deployment
 
 ### Build for Production
 
-```bash
+`ash
 npm run build
-```
+`
 
 This creates:
-- `src/dist/` - Frontend production build
-- `server/dist/` - Backend production build
+- client/dist/ - Frontend production build
+- server/dist/ - Backend production build
 
 ### Deployment Options
 
@@ -245,19 +246,19 @@ This creates:
 **Frontend (Vercel):**
 1. Connect your GitHub repository to Vercel
 2. Vercel will automatically detect the workspace structure
-3. The `vercel.json` configuration will build from the `src` workspace
+3. The ercel.json configuration will build from the client workspace
 4. Set environment variables in Vercel dashboard
 
 **Backend (Render):**
 1. Connect repository to Render
-2. Use the included `render.yaml` configuration
+2. Use the included ender.yaml configuration
 3. Set environment variables in Render dashboard
 
 ### Environment Variables for Production
 
 For each deployment platform, set these environment variables:
 
-```bash
+`ash
 DATABASE_URL=your-production-mongodb-uri
 JWT_SECRET=your-production-jwt-secret-minimum-32-characters
 SESSION_SECRET=your-production-session-secret-minimum-32-characters
@@ -269,9 +270,9 @@ VITE_ASSETS_BASE=https://your-backend-domain.com/assets
 WHATSAPP_RECEIVERS=your-production-phone-numbers
 NODE_ENV=production
 PORT=5000
-```
+`
 
-**🔒 Production Security Checklist:**
+** Production Security Checklist:**
 - [ ] All secrets are at least 32 characters long
 - [ ] Admin passwords are strong and unique
 - [ ] HTTPS URLs are used for all endpoints
@@ -281,28 +282,29 @@ PORT=5000
 - [ ] Security headers are configured
 - [ ] Database access is properly secured
 
-## 🔒 Security
+##  Security
 
 ### Security Features Implemented
-- ✅ **CORS Protection** - Configured for specific domains
-- ✅ **Rate Limiting** - Prevents API abuse (100 req/15min global, 10 req/min admin)
-- ✅ **Input Validation** - Zod schema validation with XSS protection
-- ✅ **Session Security** - Secure session management with MongoDB store
-- ✅ **Password Hashing** - bcrypt for admin passwords
-- ✅ **Environment Variables** - No hardcoded credentials in code
-- ✅ **Audit Logging** - Track all admin actions
-- ✅ **Circuit Breakers** - Protect external service calls
-- ✅ **Security Headers** - Helmet middleware for protection
-- ✅ **HTTPS Enforcement** - Required in production
+-  **CORS Protection** - Configured for specific domains
+-  **Rate Limiting** - Prevents API abuse (100 req/15min global, 200 req/15min dev)
+-  **Input Validation** - Zod schema validation with XSS protection
+-  **Session Security** - Secure session management with MongoDB store
+-  **Password Hashing** - bcrypt for admin passwords
+-  **Environment Variables** - No hardcoded credentials in code
+-  **Audit Logging** - Track all admin actions
+-  **Circuit Breakers** - Protect external service calls
+-  **Security Headers** - Helmet middleware for protection
+-  **HTTPS Enforcement** - Required in production
 
 ### Security Best Practices
-1. **Never commit** `.env` files to version control
+1. **Never commit** .env files to version control
 2. **Use strong passwords** for admin accounts (minimum 8 characters)
 3. **Regularly rotate** JWT and session secrets (minimum 32 characters)
 4. **Use HTTPS** in production environments
 5. **Restrict CORS** to your actual domains
 6. **Monitor** audit logs for suspicious activity
-7. **Run security audits** regularly with `npm audit`
+7. **Run security audits** regularly with 
+pm audit
 8. **Keep dependencies updated** to latest secure versions
 9. **Use environment-specific** configurations
 10. **Implement proper error handling** without exposing sensitive information
@@ -327,7 +329,7 @@ PORT=5000
 - [ ] Security headers properly configured
 - [ ] Dependencies updated and audited
 
-## 🗃️ Database
+##  Database
 
 ### MongoDB Collections
 - **activities** - Tour and adventure listings
@@ -336,32 +338,32 @@ PORT=5000
 - **audit_logs** - Admin action tracking
 
 ### Database Operations
-```bash
+`ash
 # Push schema changes (development)
 npm run db:push
 
 # Force push (if warnings about data loss)
 npm run db:push --force
-```
+`
 
-## 📱 Features
+##  Features
 
 ### Customer Features
-- 🏜️ **Browse Activities** - Desert tours, city trips, balloon rides
-- 📅 **Book Adventures** - Multi-step booking process
-- 💬 **WhatsApp Integration** - Direct communication
-- ⭐ **Reviews & Ratings** - Share experiences
-- 🌍 **Multi-language** - English and French support
+-  **Browse Activities** - Desert tours, city trips, balloon rides
+-  **Book Adventures** - Multi-step booking process
+-  **WhatsApp Integration** - Direct communication
+-  **Reviews & Ratings** - Share experiences
+-  **Multi-language** - English and French support
 
 ### Admin Features
-- 🔐 **Secure Authentication** - Role-based access
-- 📊 **Dashboard Analytics** - Booking and revenue insights
-- ✏️ **Activity Management** - CRUD operations
-- 📋 **Booking Management** - Track reservations
-- 👥 **Review Moderation** - Approve customer reviews
-- 📈 **Price Comparison** - GetYourGuide integration
+-  **Secure Authentication** - Role-based access
+-  **Dashboard Analytics** - Booking and revenue insights
+-  **Activity Management** - CRUD operations
+-  **Booking Management** - Track reservations
+-  **Review Moderation** - Approve customer reviews
+-  **Price Comparison** - GetYourGuide integration
 
-## 🛠️ Tech Stack
+##  Tech Stack
 
 ### Frontend
 - **React 18** - Component library
@@ -385,12 +387,12 @@ npm run db:push --force
 - **Helmet** - Security headers
 - **Circuit Breakers** - External service protection
 
-## 📦 Dependencies and Security
+##  Dependencies and Security
 
 ### Security Audits
 Regularly audit your dependencies for security vulnerabilities:
 
-```bash
+`ash
 # Check for vulnerabilities
 npm audit
 
@@ -402,7 +404,7 @@ npm update
 
 # Check for outdated packages
 npm outdated
-```
+`
 
 ### Critical Dependencies
 - **express**: Web framework (keep updated for security patches)
@@ -418,53 +420,62 @@ npm outdated
 - **cross-env**: Cross-platform environment variables
 
 ### Security Monitoring
-- Run `npm audit` before each deployment
+- Run 
+pm audit before each deployment
 - Monitor GitHub security advisories for dependencies
 - Keep Node.js updated to latest LTS version
 - Regularly review and update all dependencies
 
-## 🐛 Troubleshooting
+##  Troubleshooting
 
 ### Common Issues
 
 #### 1. MongoDB Connection Failed
-```bash
+`ash
 Error: MongoServerError: bad auth: authentication failed
-```
-**Solution:** Verify your `MONGODB_URI` credentials and network access in MongoDB Atlas.
+`
+**Solution:** Verify your DATABASE_URL credentials and network access in MongoDB Atlas.
 
 #### 2. Build Errors
-```bash
+`ash
 Error: No matching export in "server/vite.ts"
-```
+`
 **Solution:** This is a known TypeScript issue with the Vite configuration. The app runs correctly in development and production mode.
 
 #### 3. Port Already in Use
-```bash
+`ash
 Error: EADDRINUSE: address already in use :::5000
-```
-**Solution:** Change the `PORT` in your `.env` file or kill the process using the port.
+`
+**Solution:** Change the PORT in your .env file or kill the process using the port.
 
 #### 4. Assets Not Loading
-**Solution:** Ensure images are placed in `attached_assets/` and referenced correctly in the code.
+**Solution:** Ensure images are placed in ttached_assets/ and referenced correctly in the code.
+
+#### 5. Environment Variables Not Loading
+**Solution:** 
+- Ensure .env file exists in the root directory
+- Check that variable names match exactly (case-sensitive)
+- Restart the development server after changing .env
 
 ### Development Tips
-1. Use `npm run check` to verify TypeScript types
+1. Use 
+pm run check to verify TypeScript types
 2. Check browser console for frontend errors
 3. Monitor server logs for backend issues
-4. Use the health endpoint: `http://localhost:5000/api/health`
+4. Use the health endpoint: http://localhost:5000/api/health
+5. Verify environment variables are loaded: http://localhost:5000/health
 
-## 📄 License
+##  License
 
 This project is licensed under the MIT License.
 
-## 🤝 Support
+##  Support
 
 For support and questions:
-- 📧 Email: support@marrakechdunes.com
-- 💬 WhatsApp: +212600623630
-- 🌐 Website: https://marrakechdunes.vercel.app
+-  Email: support@marrakechdunes.com
+-  WhatsApp: +212600623630
+-  Website: https://marrakechdunes.vercel.app
 
 ---
 
-**Built with ❤️ for authentic Moroccan adventures**
+**Built with  for authentic Moroccan adventures**
