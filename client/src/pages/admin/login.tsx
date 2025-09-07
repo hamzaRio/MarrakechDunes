@@ -45,8 +45,23 @@ export default function AdminLogin() {
       });
       
       if (!response.ok) {
-        const errorData = await response.text();
-        throw new Error(errorData || "Login failed");
+        let errorMessage = "Login failed";
+        try {
+          const errorData = await response.json();
+          if (errorData.status === 'error') {
+            errorMessage = errorData.message || "Login failed";
+          } else {
+            errorMessage = errorData.message || errorData.error || "Login failed";
+          }
+        } catch {
+          // If JSON parsing fails, try text
+          try {
+            errorMessage = await response.text() || "Login failed";
+          } catch {
+            errorMessage = "Login failed";
+          }
+        }
+        throw new Error(errorMessage);
       }
       
       return await response.json();

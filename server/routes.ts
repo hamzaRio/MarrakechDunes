@@ -133,7 +133,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/admin', adminApiRateLimit, adminAuditLog, requireAdmin);
 
   // Auth routes
-  app.get('/api/auth/test', (req: Request, res) => {
+  app.get('/api/auth/test', asyncHandler(async (req: Request, res: Response) => {
     const authReq = req as AuthenticatedRequest;
     
     // Only log in development
@@ -163,9 +163,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       environment: process.env.NODE_ENV || 'development',
       timestamp: new Date().toISOString()
     });
-  });
+  }));
 
-  app.get('/api/auth/user', (req: Request, res) => {
+  app.get('/api/auth/user', asyncHandler(async (req: Request, res: Response) => {
     const authReq = req as AuthenticatedRequest;
     
     // Only log in development
@@ -199,9 +199,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           cookieHeader: req.headers.cookie ? 'present' : 'missing'
         });
       }
-      res.status(401).json({ message: "Not authenticated" });
+      throw new AuthenticationError('Not authenticated');
     }
-  });
+  }));
 
   app.post("/api/auth/login", strictLimiter, authRateLimit, asyncHandler(async (req: Request, res: Response) => {
     const { username, password } = req.body;
@@ -296,7 +296,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   }));
 
-  app.post("/api/auth/logout", strictLimiter, (req: Request, res: Response) => {
+  app.post("/api/auth/logout", strictLimiter, asyncHandler(async (req: Request, res: Response) => {
     const authReq = req as AuthenticatedRequest;
     
     // Only log in development
@@ -311,14 +311,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     authReq.session.destroy((err) => {
       if (err) {
         console.error('❌ Logout error:', err);
-        return res.status(500).json({ 
-          status: 'error',
-          message: "Logout failed",
-          code: 'LOGOUT_ERROR',
-          timestamp: new Date().toISOString(),
-          path: req.path,
-          method: req.method
-        });
+        throw new AppError("Logout failed", 500, 'LOGOUT_ERROR');
       }
       
       if (process.env.NODE_ENV === 'development') {
@@ -326,41 +319,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       res.json({ message: "Logout successful" });
     });
-  });
+  }));
 
   // Security events endpoint for frontend audit logging
-  app.post("/api/security-events", (req: Request, res) => {
-    try {
-      // Only log in production to reduce console noise
-      if (process.env.NODE_ENV === 'production') {
-        console.log("Security event:", {
-          event: req.body?.event,
-          timestamp: req.body?.timestamp,
-          url: req.body?.url,
-          userAgent: req.body?.userAgent ? req.body.userAgent.substring(0, 100) : 'unknown'
-        });
-      }
-      res.status(200).json({ ok: true });
-    } catch (error) {
-      // Only log errors in production
-      if (process.env.NODE_ENV === 'production') {
-        console.error("Security event error:", error);
-      }
-      res.status(500).json({ 
-        status: 'error',
-        message: "Internal server error",
-        code: 'SECURITY_EVENT_ERROR',
-        timestamp: new Date().toISOString(),
-        path: req.path,
-        method: req.method
+  app.post("/api/security-events", asyncHandler(async (req: Request, res: Response) => {
+    // Only log in production to reduce console noise
+    if (process.env.NODE_ENV === 'production') {
+      console.log("Security event:", {
+        event: req.body?.event,
+        timestamp: req.body?.timestamp,
+        url: req.body?.url,
+        userAgent: req.body?.userAgent ? req.body.userAgent.substring(0, 100) : 'unknown'
       });
     }
-  });
+    res.status(200).json({ ok: true });
+  }));
 
   // Simple health alias
-  app.get('/health', (_req: Request, res: Response) => {
+  app.get('/health', asyncHandler(async (_req: Request, res: Response) => {
     res.status(200).json({ status: 'healthy' });
-  });
+  }));
 
   // Public routes
   app.get("/api/activities", asyncHandler(async (req: Request, res: Response) => {
@@ -706,100 +684,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/admin/bookings/:id/status", adminSecurityMiddleware, async (req: Request, res) => {
+  app.patch("/api/admin/bookings/:id/status", adminSecurityMiddleware, asyncHandler(async (req: Request, res: Response) => {
     const authReq = req as AuthenticatedRequest;
-    try {
-      const { id } = req.params;
-      const { status } = req.body;
-      const booking = await storage.updateBookingStatus(id, status);
-      
-      // Create audit log
-      await storage.createAuditLog({
-        userId: authReq.session.user!.id,
-        action: `Updated booking ${id} status to ${status}`,
-        details: `Booking ${id} status changed to ${status}`
-      });
-      
-      res.json(booking);
-    } catch (error) {
-      console.error("Error updating booking status:", error);
-      res.status(500).json({ 
-        status: 'error',
-        message: "Failed to update booking status",
-        code: 'UPDATE_BOOKING_STATUS_ERROR',
-        timestamp: new Date().toISOString(),
-        path: req.path,
-        method: req.method
-      });
-    }
-  });
+    const { id } = req.params;
+    const { status } = req.body;
+    const booking = await storage.updateBookingStatus(id, status);
+    
+    // Create audit log
+    await storage.createAuditLog({
+      userId: authReq.session.user!.id,
+      action: `Updated booking ${id} status to ${status}`,
+      details: `Booking ${id} status changed to ${status}`
+    });
+    
+    res.json(booking);
+  }));
 
-  app.patch("/api/admin/bookings/:id/payment", adminSecurityMiddleware, async (req: Request, res) => {
+  app.patch("/api/admin/bookings/:id/payment", adminSecurityMiddleware, asyncHandler(async (req: Request, res: Response) => {
     const authReq = req as AuthenticatedRequest;
-    try {
-      const { id } = req.params;
-      const { paymentStatus, paidAmount, paymentMethod, depositAmount } = req.body;
-      
-      const booking = await storage.updateBookingPayment(id, {
-        paymentStatus,
-        paidAmount,
-        paymentMethod,
-        depositAmount
-      });
-      
-      if (!booking) {
-        return res.status(404).json({ 
-          status: 'error',
-          message: "Booking not found",
-          code: 'BOOKING_NOT_FOUND',
-          timestamp: new Date().toISOString(),
-          path: req.path,
-          method: req.method
-        });
-      }
-
-      // Create audit log
-      await storage.createAuditLog({
-        userId: authReq.session.user!.id,
-        action: `Updated booking ${id} payment status to ${paymentStatus}`,
-        details: `Payment updated for booking ${id}: ${paymentStatus}, paid: ${paidAmount} MAD`
-      });
-
-      // Send WhatsApp payment confirmation to all admins
-      const bookingWithActivity = await storage.getBooking(id);
-      if (bookingWithActivity && bookingWithActivity.activity) {
-        const notificationData = {
-          customerName: booking.customerName,
-          customerPhone: booking.customerPhone,
-          activityName: bookingWithActivity.activity.name,
-          numberOfPeople: booking.numberOfPeople,
-          preferredDate: booking.preferredDate,
-          preferredTime: booking.preferredDate.toLocaleTimeString(),
-          totalAmount: parseInt(booking.totalAmount),
-          paymentMethod: booking.paymentMethod || 'cash',
-          paymentStatus: booking.paymentStatus,
-          status: booking.status,
-          notes: booking.notes || '',
-          bookingId: booking._id?.toString() || id
-        };
-        
-        const paymentType = paymentStatus === 'fully_paid' ? 'full' : 'deposit';
-        await whatsappService.sendPaymentConfirmation(notificationData, paymentType);
-      }
-
-      res.json(booking);
-    } catch (error) {
-      console.error("Error updating booking payment:", error);
-      res.status(500).json({ 
-        status: 'error',
-        message: "Failed to update booking payment",
-        code: 'UPDATE_BOOKING_PAYMENT_ERROR',
-        timestamp: new Date().toISOString(),
-        path: req.path,
-        method: req.method
-      });
+    const { id } = req.params;
+    const { paymentStatus, paidAmount, paymentMethod, depositAmount } = req.body;
+    
+    const booking = await storage.updateBookingPayment(id, {
+      paymentStatus,
+      paidAmount,
+      paymentMethod,
+      depositAmount
+    });
+    
+    if (!booking) {
+      throw new NotFoundError("Booking not found");
     }
-  });
+
+    // Create audit log
+    await storage.createAuditLog({
+      userId: authReq.session.user!.id,
+      action: `Updated booking ${id} payment status to ${paymentStatus}`,
+      details: `Payment updated for booking ${id}: ${paymentStatus}, paid: ${paidAmount} MAD`
+    });
+
+    // Send WhatsApp payment confirmation to all admins
+    const bookingWithActivity = await storage.getBooking(id);
+    if (bookingWithActivity && bookingWithActivity.activity) {
+      const notificationData = {
+        customerName: booking.customerName,
+        customerPhone: booking.customerPhone,
+        activityName: bookingWithActivity.activity.name,
+        numberOfPeople: booking.numberOfPeople,
+        preferredDate: booking.preferredDate,
+        preferredTime: booking.preferredDate.toLocaleTimeString(),
+        totalAmount: parseInt(booking.totalAmount),
+        paymentMethod: booking.paymentMethod || 'cash',
+        paymentStatus: booking.paymentStatus,
+        status: booking.status,
+        notes: booking.notes || '',
+        bookingId: booking._id?.toString() || id
+      };
+      
+      const paymentType = paymentStatus === 'fully_paid' ? 'full' : 'deposit';
+      await whatsappService.sendPaymentConfirmation(notificationData, paymentType);
+    }
+
+    res.json(booking);
+  }));
 
   app.post("/api/admin/activities", adminSecurityMiddleware, async (req: Request, res) => {
     const authReq = req as AuthenticatedRequest;

@@ -4,9 +4,18 @@ import { API_URL } from "./env";
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
     let errorMessage = res.statusText;
+    let errorCode = 'UNKNOWN_ERROR';
+    
     try {
       const errorData = await res.json();
-      errorMessage = errorData.message || errorData.error || res.statusText;
+      // Handle standardized error format from backend
+      if (errorData.status === 'error') {
+        errorMessage = errorData.message || res.statusText;
+        errorCode = errorData.code || 'UNKNOWN_ERROR';
+      } else {
+        // Fallback for non-standardized errors
+        errorMessage = errorData.message || errorData.error || res.statusText;
+      }
     } catch {
       // If JSON parsing fails, use status text
       errorMessage = res.statusText;

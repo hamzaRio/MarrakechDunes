@@ -54,6 +54,9 @@ function getErrorDetails(error, isDevelopment) {
 export function globalErrorHandler(error, req, res, next) {
     const isDevelopment = process.env.NODE_ENV === 'development';
     const isTest = process.env.NODE_ENV === 'test';
+    // Get user information if available
+    const userId = req.session?.user?.id;
+    const username = req.session?.user?.username;
     // Log error details
     if (isDevelopment || isTest) {
         console.error('🚨 Error caught by global handler:', {
@@ -61,9 +64,12 @@ export function globalErrorHandler(error, req, res, next) {
             stack: error.stack,
             url: req.url,
             method: req.method,
+            userId: userId || 'anonymous',
+            username: username || 'anonymous',
             body: req.body,
             query: req.query,
-            params: req.params
+            params: req.params,
+            timestamp: new Date().toISOString()
         });
     }
     else {
@@ -73,6 +79,8 @@ export function globalErrorHandler(error, req, res, next) {
             code: error.code || 'UNKNOWN_ERROR',
             url: req.url,
             method: req.method,
+            userId: userId || 'anonymous',
+            username: username || 'anonymous',
             timestamp: new Date().toISOString()
         });
     }
