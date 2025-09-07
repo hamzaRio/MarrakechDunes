@@ -203,7 +203,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/auth/login", strictLimiter, authRateLimit, async (req: Request, res) => {
+  app.post("/api/auth/login", strictLimiter, authRateLimit, asyncHandler(async (req: Request, res: Response) => {
     const { username, password } = req.body;
     
     // Only log in development
@@ -224,7 +224,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (process.env.NODE_ENV === 'development') {
           console.log('❌ User not found:', username);
         }
-        return res.status(401).json({ message: "Invalid credentials" });
+        throw new AuthenticationError("Invalid credentials");
       }
 
       // Use bcrypt to verify password with MongoDB
@@ -234,7 +234,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (process.env.NODE_ENV === 'development') {
           console.log('❌ Invalid password for user:', username);
         }
-        return res.status(401).json({ message: "Invalid credentials" });
+        throw new AuthenticationError("Invalid credentials");
       }
 
       const authReq = req as AuthenticatedRequest;
@@ -250,7 +250,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       authReq.session.save((err) => {
         if (err) {
           console.error('❌ Session save error:', err);
-          return res.status(500).json({ message: "Login failed - session error" });
+          throw new AppError("Login failed - session error", 500, 'SESSION_ERROR');
         }
         
         if (process.env.NODE_ENV === 'development') {
@@ -292,11 +292,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       console.error("❌ Login error:", error);
-      res.status(500).json({ message: "Login failed" });
+      throw new AppError("Login failed", 500, 'LOGIN_ERROR');
     }
-  });
+  }));
 
-  app.post("/api/auth/logout", strictLimiter, (req: Request, res) => {
+  app.post("/api/auth/logout", strictLimiter, (req: Request, res: Response) => {
     const authReq = req as AuthenticatedRequest;
     
     // Only log in development
@@ -311,7 +311,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     authReq.session.destroy((err) => {
       if (err) {
         console.error('❌ Logout error:', err);
-        return res.status(500).json({ message: "Logout failed" });
+        return res.status(500).json({ 
+          status: 'error',
+          message: "Logout failed",
+          code: 'LOGOUT_ERROR',
+          timestamp: new Date().toISOString(),
+          path: req.path,
+          method: req.method
+        });
       }
       
       if (process.env.NODE_ENV === 'development') {
@@ -339,7 +346,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (process.env.NODE_ENV === 'production') {
         console.error("Security event error:", error);
       }
-      res.status(500).json({ error: "Internal server error" });
+      res.status(500).json({ 
+        status: 'error',
+        message: "Internal server error",
+        code: 'SECURITY_EVENT_ERROR',
+        timestamp: new Date().toISOString(),
+        path: req.path,
+        method: req.method
+      });
     }
   });
 
@@ -412,28 +426,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }));
 
   // Admin routes
-  app.get("/api/admin/bookings", adminSecurityMiddleware, async (req: Request, res) => {
+  app.get("/api/admin/bookings", adminSecurityMiddleware, asyncHandler(async (req: Request, res: Response) => {
     try {
       const bookings = await storage.getBookings();
       res.json(bookings);
     } catch (error) {
       console.error("Error fetching bookings:", error);
-      res.status(500).json({ message: "Failed to fetch bookings" });
+      res.status(500).json({ 
+        status: 'error',
+        message: "Failed to fetch bookings",
+        code: 'FETCH_BOOKINGS_ERROR',
+        timestamp: new Date().toISOString(),
+        path: req.path,
+        method: req.method
+      });
     }
-  });
+  }));
 
-  app.get("/api/admin/audit-logs", superadminSecurityMiddleware, async (req: Request, res) => {
+  app.get("/api/admin/audit-logs", superadminSecurityMiddleware, asyncHandler(async (req: Request, res: Response) => {
     try {
       const logs = await storage.getAuditLogs();
       res.json(logs);
     } catch (error) {
       console.error("Error fetching audit logs:", error);
-      res.status(500).json({ message: "Failed to fetch audit logs" });
+      res.status(500).json({ 
+        status: 'error',
+        message: "Failed to fetch audit logs",
+        code: 'FETCH_AUDIT_LOGS_ERROR',
+        timestamp: new Date().toISOString(),
+        path: req.path,
+        method: req.method
+      });
     }
-  });
+  }));
 
   // Performance Analytics Routes
-  app.get("/api/admin/performance-metrics", adminSecurityMiddleware, async (req, res) => {
+  app.get("/api/admin/performance-metrics", adminSecurityMiddleware, asyncHandler(async (req: Request, res: Response) => {
     try {
       const timeRange = req.query.range as string || '24h';
       
@@ -607,9 +635,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(metrics);
     } catch (error) {
       console.error("Failed to fetch performance metrics:", error);
-      res.status(500).json({ error: "Failed to fetch performance metrics" });
+      res.status(500).json({ 
+        status: 'error',
+        message: "Failed to fetch performance metrics",
+        code: 'FETCH_PERFORMANCE_METRICS_ERROR',
+        timestamp: new Date().toISOString(),
+        path: req.path,
+        method: req.method
+      });
     }
-  });
+  }));
 
   app.get("/api/admin/performance-alerts", adminSecurityMiddleware, async (req, res) => {
     try {
@@ -660,7 +695,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       console.error("Failed to fetch performance alerts:", error);
-      res.status(500).json({ error: "Failed to fetch performance alerts" });
+      res.status(500).json({ 
+        status: 'error',
+        message: "Failed to fetch performance alerts",
+        code: 'FETCH_PERFORMANCE_ALERTS_ERROR',
+        timestamp: new Date().toISOString(),
+        path: req.path,
+        method: req.method
+      });
     }
   });
 
@@ -681,7 +723,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(booking);
     } catch (error) {
       console.error("Error updating booking status:", error);
-      res.status(500).json({ message: "Failed to update booking status" });
+      res.status(500).json({ 
+        status: 'error',
+        message: "Failed to update booking status",
+        code: 'UPDATE_BOOKING_STATUS_ERROR',
+        timestamp: new Date().toISOString(),
+        path: req.path,
+        method: req.method
+      });
     }
   });
 
@@ -699,7 +748,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       if (!booking) {
-        return res.status(404).json({ message: "Booking not found" });
+        return res.status(404).json({ 
+          status: 'error',
+          message: "Booking not found",
+          code: 'BOOKING_NOT_FOUND',
+          timestamp: new Date().toISOString(),
+          path: req.path,
+          method: req.method
+        });
       }
 
       // Create audit log
@@ -734,7 +790,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(booking);
     } catch (error) {
       console.error("Error updating booking payment:", error);
-      res.status(500).json({ message: "Failed to update booking payment" });
+      res.status(500).json({ 
+        status: 'error',
+        message: "Failed to update booking payment",
+        code: 'UPDATE_BOOKING_PAYMENT_ERROR',
+        timestamp: new Date().toISOString(),
+        path: req.path,
+        method: req.method
+      });
     }
   });
 
@@ -754,7 +817,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json(activity);
     } catch (error) {
       console.error("Error creating activity:", error);
-      res.status(500).json({ message: "Failed to create activity" });
+      res.status(500).json({ 
+        status: 'error',
+        message: "Failed to create activity",
+        code: 'CREATE_ACTIVITY_ERROR',
+        timestamp: new Date().toISOString(),
+        path: req.path,
+        method: req.method
+      });
     }
   });
 
@@ -775,7 +845,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(activity);
     } catch (error) {
       console.error("Error updating activity:", error);
-      res.status(500).json({ message: "Failed to update activity" });
+      res.status(500).json({ 
+        status: 'error',
+        message: "Failed to update activity",
+        code: 'UPDATE_ACTIVITY_ERROR',
+        timestamp: new Date().toISOString(),
+        path: req.path,
+        method: req.method
+      });
     }
   });
 
@@ -796,7 +873,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ message: "Activity deleted successfully" });
     } catch (error) {
       console.error("Error deleting activity:", error);
-      res.status(500).json({ message: "Failed to delete activity" });
+      res.status(500).json({ 
+        status: 'error',
+        message: "Failed to delete activity",
+        code: 'DELETE_ACTIVITY_ERROR',
+        timestamp: new Date().toISOString(),
+        path: req.path,
+        method: req.method
+      });
     }
   });
 
@@ -808,12 +892,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const file = await objectStorageService.searchPublicObject(filePath);
       if (!file) {
-        return res.status(404).json({ error: "File not found" });
+        return res.status(404).json({ 
+          status: 'error',
+          message: "File not found",
+          code: 'FILE_NOT_FOUND',
+          timestamp: new Date().toISOString(),
+          path: req.path,
+          method: req.method
+        });
       }
       objectStorageService.downloadObject(file, res);
     } catch (error) {
       console.error("Error searching for public object:", error);
-      return res.status(500).json({ error: "Internal server error" });
+      return res.status(500).json({ 
+        status: 'error',
+        message: "Internal server error",
+        code: 'INTERNAL_SERVER_ERROR',
+        timestamp: new Date().toISOString(),
+        path: req.path,
+        method: req.method
+      });
     }
   });
 
@@ -840,7 +938,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ uploadURL });
     } catch (error) {
       console.error("Error getting upload URL:", error);
-      res.status(500).json({ error: "Failed to get upload URL" });
+      res.status(500).json({ 
+        status: 'error',
+        message: "Failed to get upload URL",
+        code: 'GET_UPLOAD_URL_ERROR',
+        timestamp: new Date().toISOString(),
+        path: req.path,
+        method: req.method
+      });
     }
   });
 
@@ -851,7 +956,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { imageURL } = req.body;
       
       if (!imageURL) {
-        return res.status(400).json({ error: "imageURL is required" });
+        return res.status(400).json({ 
+          status: 'error',
+          message: "imageURL is required",
+          code: 'VALIDATION_ERROR',
+          timestamp: new Date().toISOString(),
+          path: req.path,
+          method: req.method
+        });
       }
 
       const { ObjectStorageService } = await import("./objectStorage.js");
@@ -871,7 +983,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ objectPath });
     } catch (error) {
       console.error("Error updating activity image:", error);
-      res.status(500).json({ error: "Failed to update activity image" });
+      res.status(500).json({ 
+        status: 'error',
+        message: "Failed to update activity image",
+        code: 'UPDATE_ACTIVITY_IMAGE_ERROR',
+        timestamp: new Date().toISOString(),
+        path: req.path,
+        method: req.method
+      });
     }
   });
 
@@ -883,7 +1002,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(reviews);
     } catch (error) {
       console.error("Error fetching reviews:", error);
-      res.status(500).json({ message: "Failed to fetch reviews" });
+      res.status(500).json({ 
+        status: 'error',
+        message: "Failed to fetch reviews",
+        code: 'FETCH_REVIEWS_ERROR',
+        timestamp: new Date().toISOString(),
+        path: req.path,
+        method: req.method
+      });
     }
   });
 
@@ -893,7 +1019,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(rating);
     } catch (error) {
       console.error("Error fetching activity rating:", error);
-      res.status(500).json({ message: "Failed to fetch rating" });
+      res.status(500).json({ 
+        status: 'error',
+        message: "Failed to fetch rating",
+        code: 'FETCH_RATING_ERROR',
+        timestamp: new Date().toISOString(),
+        path: req.path,
+        method: req.method
+      });
     }
   });
 
@@ -910,7 +1043,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       console.error("Error creating review:", error);
-      res.status(500).json({ message: "Failed to create review" });
+      res.status(500).json({ 
+        status: 'error',
+        message: "Failed to create review",
+        code: 'CREATE_REVIEW_ERROR',
+        timestamp: new Date().toISOString(),
+        path: req.path,
+        method: req.method
+      });
     }
   });
 
@@ -921,7 +1061,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(reviews);
     } catch (error) {
       console.error("Error fetching admin reviews:", error);
-      res.status(500).json({ message: "Failed to fetch reviews" });
+      res.status(500).json({ 
+        status: 'error',
+        message: "Failed to fetch reviews",
+        code: 'FETCH_REVIEWS_ERROR',
+        timestamp: new Date().toISOString(),
+        path: req.path,
+        method: req.method
+      });
     }
   });
 
@@ -931,13 +1078,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const review = await storage.updateReviewApproval(req.params.id, approved);
       
       if (!review) {
-        return res.status(404).json({ message: "Review not found" });
+        return res.status(404).json({ 
+          status: 'error',
+          message: "Review not found",
+          code: 'REVIEW_NOT_FOUND',
+          timestamp: new Date().toISOString(),
+          path: req.path,
+          method: req.method
+        });
       }
 
       res.json(review);
     } catch (error) {
       console.error("Error updating review approval:", error);
-      res.status(500).json({ message: "Failed to update review approval" });
+      res.status(500).json({ 
+        status: 'error',
+        message: "Failed to update review approval",
+        code: 'UPDATE_REVIEW_APPROVAL_ERROR',
+        timestamp: new Date().toISOString(),
+        path: req.path,
+        method: req.method
+      });
     }
   });
 
@@ -948,7 +1109,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(analytics);
     } catch (error) {
       console.error("Error fetching earnings analytics:", error);
-      res.status(500).json({ message: "Failed to fetch earnings analytics" });
+      res.status(500).json({ 
+        status: 'error',
+        message: "Failed to fetch earnings analytics",
+        code: 'FETCH_EARNINGS_ANALYTICS_ERROR',
+        timestamp: new Date().toISOString(),
+        path: req.path,
+        method: req.method
+      });
     }
   });
 
@@ -958,7 +1126,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(analytics);
     } catch (error) {
       console.error("Error fetching activity analytics:", error);
-      res.status(500).json({ message: "Failed to fetch activity analytics" });
+      res.status(500).json({ 
+        status: 'error',
+        message: "Failed to fetch activity analytics",
+        code: 'FETCH_ACTIVITY_ANALYTICS_ERROR',
+        timestamp: new Date().toISOString(),
+        path: req.path,
+        method: req.method
+      });
     }
   });
 
@@ -968,7 +1143,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(analytics);
     } catch (error) {
       console.error("Error fetching booking analytics:", error);
-      res.status(500).json({ message: "Failed to fetch booking analytics" });
+      res.status(500).json({ 
+        status: 'error',
+        message: "Failed to fetch booking analytics",
+        code: 'FETCH_BOOKING_ANALYTICS_ERROR',
+        timestamp: new Date().toISOString(),
+        path: req.path,
+        method: req.method
+      });
     }
   });
 
@@ -979,7 +1161,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(comparison);
     } catch (error) {
       console.error("Error fetching GetYourGuide comparison:", error);
-      res.status(500).json({ message: "Failed to fetch price comparison" });
+      res.status(500).json({ 
+        status: 'error',
+        message: "Failed to fetch price comparison",
+        code: 'FETCH_PRICE_COMPARISON_ERROR',
+        timestamp: new Date().toISOString(),
+        path: req.path,
+        method: req.method
+      });
     }
   });
 
@@ -991,7 +1180,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const updatedActivity = await storage.updateActivityGetYourGuidePrice(activityId, getyourguidePrice);
       
       if (!updatedActivity) {
-        return res.status(404).json({ message: "Activity not found" });
+        return res.status(404).json({ 
+          status: 'error',
+          message: "Activity not found",
+          code: 'ACTIVITY_NOT_FOUND',
+          timestamp: new Date().toISOString(),
+          path: req.path,
+          method: req.method
+        });
       }
 
       // Create audit log
@@ -1005,7 +1201,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(updatedActivity);
     } catch (error) {
       console.error("Error updating GetYourGuide price:", error);
-      res.status(500).json({ message: "Failed to update GetYourGuide price" });
+      res.status(500).json({ 
+        status: 'error',
+        message: "Failed to update GetYourGuide price",
+        code: 'UPDATE_GETYOURGUIDE_PRICE_ERROR',
+        timestamp: new Date().toISOString(),
+        path: req.path,
+        method: req.method
+      });
     }
   });
 
@@ -1016,7 +1219,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(contacts);
     } catch (error) {
       console.error("Error fetching WhatsApp contacts:", error);
-      res.status(500).json({ message: "Failed to fetch WhatsApp contacts" });
+      res.status(500).json({ 
+        status: 'error',
+        message: "Failed to fetch WhatsApp contacts",
+        code: 'FETCH_WHATSAPP_CONTACTS_ERROR',
+        timestamp: new Date().toISOString(),
+        path: req.path,
+        method: req.method
+      });
     }
   });
 
@@ -1039,7 +1249,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(systemHealth);
     } catch (error) {
       console.error("Error fetching system health:", error);
-      res.status(500).json({ message: "Failed to fetch system health" });
+      res.status(500).json({ 
+        status: 'error',
+        message: "Failed to fetch system health",
+        code: 'FETCH_SYSTEM_HEALTH_ERROR',
+        timestamp: new Date().toISOString(),
+        path: req.path,
+        method: req.method
+      });
     }
   });
 
