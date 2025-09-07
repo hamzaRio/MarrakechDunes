@@ -13,11 +13,11 @@
   "rewrites": [
     {
       "source": "/admin",
-      "destination": "/dist/index.html"
+      "destination": "/"
     },
     {
-      "source": "/((?!api|_next|_static|favicon.ico|attached_assets).*)",
-      "destination": "/dist/index.html"
+      "source": "/(.*)",
+      "destination": "/"
     }
   ],
   "env": {

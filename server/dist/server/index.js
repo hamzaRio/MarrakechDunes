@@ -1,5 +1,4 @@
 import path from "path";
-import fs from "fs";
 import { fileURLToPath } from "url";
 import dotenv from "dotenv";
 // ✅ Load environment variables FIRST, before any other imports
@@ -208,24 +207,8 @@ app.use((req, res, next) => {
         console.error("Error middleware caught:", err);
         res.status(status).json({ error: message });
     });
-    // ✅ Serve static files from client/dist in production
-    try {
-        const clientDistPath = path.join(rootDir, "client", "dist");
-        if (fs.existsSync(clientDistPath)) {
-            app.use(express.static(clientDistPath));
-            // Fall through to index.html for SPA routing
-            app.use("*", (_req, res) => {
-                res.sendFile(path.join(clientDistPath, "index.html"));
-            });
-            log("Static file serving setup complete");
-        }
-        else {
-            log("Client dist directory not found, skipping static file serving", "express", "warn");
-        }
-    }
-    catch (error) {
-        log(`Failed to setup static serving: ${error}`, "express", "error");
-    }
+    // Note: Frontend is served by Vercel, backend only serves API and static assets
+    log("Backend configured for API and static assets only - frontend served by Vercel");
     // Start server
     const port = parseInt(process.env.PORT || "5000");
     const apiUrl = process.env.VITE_API_URL || `http://localhost:${port}`;
