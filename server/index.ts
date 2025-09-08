@@ -79,6 +79,9 @@ const getClientUrls = (): (string | RegExp)[] => {
   // Add regex for localhost with any port
   origins.push(/^http:\/\/localhost:\d+$/);
   
+  // Add regex for any vercel.app domain (including preview deployments)
+  origins.push(/^https:\/\/[a-zA-Z0-9-]+\.vercel\.app$/);
+  
   return origins;
 };
 
@@ -163,12 +166,27 @@ app.options("*", cors());
 
 // Serve static assets
 app.use("/attached_assets", express.static(assetsPath, {
-  setHeaders: (res, path) => {
-    // Allow CORS for static assets from all origins
-    res.setHeader("Access-Control-Allow-Origin", "*");
+  setHeaders: (res, path, stat) => {
+    // Use the same CORS logic as main middleware
+    const origin = res.req?.headers.origin;
+    if (origin) {
+      const isAllowed = allowedOrigins.some(allowedOrigin => {
+        if (typeof allowedOrigin === 'string') {
+          return origin === allowedOrigin;
+        } else if (allowedOrigin instanceof RegExp) {
+          return allowedOrigin.test(origin);
+        }
+        return false;
+      });
+      
+      if (isAllowed) {
+        res.setHeader("Access-Control-Allow-Origin", origin);
+        res.setHeader("Access-Control-Allow-Credentials", "true");
+      }
+    }
+    
     res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
     res.setHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
-    res.setHeader("Access-Control-Allow-Credentials", "false");
     
     // Add caching headers for better performance
     if (path && path.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i)) {
@@ -272,7 +290,21 @@ app.use((req, res, next) => {
 
   // SPA fallback - serve index.html for all non-API routes
   app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    // Check if the request is for a static file
+    if (req.path.match(/\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$/)) {
+      return res.status(404).json({ error: 'Static file not found' });
+    }
+    
+    // Serve index.html for SPA routing
+    const indexPath = path.join(__dirname, 'public', 'index.html');
+    if (fs.existsSync(indexPath)) {
+      res.sendFile(indexPath);
+    } else {
+      res.status(404).json({ 
+        error: 'Frontend not found', 
+        message: 'Please ensure the client is built and copied to the server' 
+      });
+    }
   });
 
   // Global error handler (must be last)

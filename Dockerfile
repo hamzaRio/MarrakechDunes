@@ -32,6 +32,9 @@ RUN cp -r ../shared ./shared
 # Copy client build to server for serving static files
 RUN mkdir -p ./dist/public && cp -r ../client/dist/* ./dist/public/
 
+# Ensure shared directory is available at runtime
+RUN mkdir -p ./dist/shared && cp -r ../shared/* ./dist/shared/
+
 # Remove dev dependencies to reduce image size
 WORKDIR /app
 RUN npm ci --only=production && npm cache clean --force
