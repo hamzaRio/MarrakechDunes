@@ -117,6 +117,14 @@ export const translations = {
       bookings: "Bookings",
       analytics: "Analytics",
       settings: "Settings"
+    },
+    errors: {
+      customerNameRequired: "Customer name is required",
+      validPhoneRequired: "Valid phone number is required",
+      activitySelectionRequired: "Activity selection is required",
+      atLeastOnePerson: "At least 1 person required",
+      maximumTwentyPeople: "Maximum 20 people",
+      failedToCreateBooking: "Failed to create booking"
     }
   },
   fr: {
@@ -233,6 +241,14 @@ export const translations = {
       bookings: "Réservations",
       analytics: "Analyses",
       settings: "Paramètres"
+    },
+    errors: {
+      customerNameRequired: "Le nom du client est requis",
+      validPhoneRequired: "Un numéro de téléphone valide est requis",
+      activitySelectionRequired: "La sélection d'activité est requise",
+      atLeastOnePerson: "Au moins 1 personne requise",
+      maximumTwentyPeople: "Maximum 20 personnes",
+      failedToCreateBooking: "Échec de la création de la réservation"
     }
   }
 };

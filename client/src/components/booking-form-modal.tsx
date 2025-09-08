@@ -29,21 +29,22 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/hooks/use-language";
 import { apiRequest } from "@/lib/queryClient";
 import { apiFetch } from "@/lib/api";
 import { Plus, Calendar, Users } from "lucide-react";
 
-const bookingFormSchema = z.object({
-  customerName: z.string().min(2, "Customer name is required"),
-  customerPhone: z.string().min(10, "Valid phone number is required"),
-  activityId: z.string().min(1, "Activity selection is required"),
-  numberOfPeople: z.number().min(1, "At least 1 person required").max(20, "Maximum 20 people"),
+const createBookingFormSchema = (t: (key: string) => string) => z.object({
+  customerName: z.string().min(2, t('errors.customerNameRequired')),
+  customerPhone: z.string().min(10, t('errors.validPhoneRequired')),
+  activityId: z.string().min(1, t('errors.activitySelectionRequired')),
+  numberOfPeople: z.number().min(1, t('errors.atLeastOnePerson')).max(20, t('errors.maximumTwentyPeople')),
   preferredDate: z.string().optional(),
   preferredTime: z.string().optional(),
   notes: z.string().optional(),
 });
 
-type BookingFormData = z.infer<typeof bookingFormSchema>;
+type BookingFormData = z.infer<ReturnType<typeof createBookingFormSchema>>;
 
 interface BookingFormModalProps {
   trigger?: React.ReactNode;
@@ -60,6 +61,7 @@ export default function BookingFormModal({
 }: BookingFormModalProps) {
   const [open, setOpen] = useState(false);
   const { toast } = useToast();
+  const { t } = useLanguage();
   const queryClient = useQueryClient();
 
   const { data: fetchedActivities } = useQuery({
@@ -72,7 +74,7 @@ export default function BookingFormModal({
   const modalOpen = isControlled ? isOpen : open;
 
   const form = useForm<BookingFormData>({
-    resolver: zodResolver(bookingFormSchema),
+    resolver: zodResolver(createBookingFormSchema(t)),
     defaultValues: {
       customerName: "",
       customerPhone: "",
@@ -99,20 +101,20 @@ export default function BookingFormModal({
       });
 
       if (!response.ok) {
-        let errorMessage = "Failed to create booking";
+        let errorMessage = t('errors.failedToCreateBooking');
         try {
           const errorData = await response.json();
           if (errorData.status === 'error') {
-            errorMessage = errorData.message || "Failed to create booking";
+            errorMessage = errorData.message || t('errors.failedToCreateBooking');
           } else {
-            errorMessage = errorData.message || errorData.error || "Failed to create booking";
+            errorMessage = errorData.message || errorData.error || t('errors.failedToCreateBooking');
           }
         } catch {
           // If JSON parsing fails, try text
           try {
-            errorMessage = await response.text() || "Failed to create booking";
+            errorMessage = await response.text() || t('errors.failedToCreateBooking');
           } catch {
-            errorMessage = "Failed to create booking";
+            errorMessage = t('errors.failedToCreateBooking');
           }
         }
         throw new Error(errorMessage);
