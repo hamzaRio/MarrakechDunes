@@ -79,7 +79,7 @@ const getClientUrls = (): (string | RegExp)[] => {
 
 const allowedOrigins = getClientUrls();
 
-const assetsPath = path.join(__dirname, "server", "attached_assets");
+const assetsPath = path.join(__dirname, "attached_assets");
 
 // Logging helper
 const log = (

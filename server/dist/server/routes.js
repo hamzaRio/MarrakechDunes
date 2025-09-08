@@ -54,17 +54,9 @@ export async function registerRoutes(app) {
     app.use(session(sessionSecurity));
     // Session debug middleware (reduced logging)
     app.use((req, res, next) => {
-        // Only log session details in development for auth routes
+        // Debug logging only in development
         if (process.env.NODE_ENV === 'development' && req.path.startsWith('/api/auth/')) {
-            console.log('🔧 Session middleware:', {
-                path: req.path,
-                sessionId: req.session.id,
-                hasSession: !!req.session,
-                hasUser: !!req.session?.user,
-                cookie: req.headers.cookie ? 'present' : 'missing',
-                origin: req.headers.origin,
-                method: req.method
-            });
+            console.log('🔧 Session middleware for:', req.path);
         }
         next();
     });
@@ -85,16 +77,9 @@ export async function registerRoutes(app) {
     // Auth routes
     app.get('/api/auth/test', asyncHandler(async (req, res) => {
         const authReq = req;
-        // Only log in development
+        // Debug logging only in development
         if (process.env.NODE_ENV === 'development') {
-            console.log('🧪 Auth test endpoint called:', {
-                sessionId: authReq.session.id,
-                hasSession: !!authReq.session,
-                hasUser: !!authReq.session?.user,
-                cookie: req.headers.cookie ? 'present' : 'missing',
-                origin: req.headers.origin,
-                referer: req.headers.referer
-            });
+            console.log('🧪 Auth test endpoint called');
         }
         res.json({
             sessionId: authReq.session.id,
@@ -114,21 +99,12 @@ export async function registerRoutes(app) {
     }));
     app.get('/api/auth/user', asyncHandler(async (req, res) => {
         const authReq = req;
-        // Only log in development
+        // Debug logging only in development
         if (process.env.NODE_ENV === 'development') {
             console.log('🔍 Auth check:', {
-                sessionId: authReq.session.id,
                 hasSession: !!authReq.session,
                 hasUser: !!authReq.session?.user,
-                user: authReq.session?.user,
-                cookie: authReq.session?.cookie,
-                headers: {
-                    cookie: req.headers.cookie ? 'present' : 'missing',
-                    origin: req.headers.origin,
-                    referer: req.headers.referer,
-                    'user-agent': req.headers['user-agent']
-                },
-                sessionStore: authReq.session?.store ? 'available' : 'missing'
+                user: authReq.session?.user?.username
             });
         }
         if (authReq.session?.user) {
@@ -139,26 +115,16 @@ export async function registerRoutes(app) {
         }
         else {
             if (process.env.NODE_ENV === 'development') {
-                console.log('❌ User not authenticated - session details:', {
-                    sessionExists: !!authReq.session,
-                    sessionId: authReq.session.id,
-                    cookieHeader: req.headers.cookie ? 'present' : 'missing'
-                });
+                console.log('❌ User not authenticated');
             }
             throw new AuthenticationError('Not authenticated');
         }
     }));
     app.post("/api/auth/login", strictLimiter, authRateLimit, asyncHandler(async (req, res) => {
         const { username, password } = req.body;
-        // Only log in development
+        // Debug logging only in development
         if (process.env.NODE_ENV === 'development') {
-            console.log('🔐 Login attempt:', {
-                username,
-                ip: req.ip,
-                userAgent: req.get('User-Agent'),
-                sessionId: req.session.id,
-                hasSession: !!req.session
-            });
+            console.log('🔐 Login attempt for:', username);
         }
         try {
             const user = await storage.getUserByUsername(username);
@@ -250,8 +216,8 @@ export async function registerRoutes(app) {
             res.json({ message: "Logout successful" });
         });
     }));
-    // Security events endpoint for frontend audit logging
-    app.post("/api/security-events", asyncHandler(async (req, res) => {
+    // Security events endpoint for frontend audit logging with rate limiting
+    app.post("/api/security-events", generalApiRateLimit, asyncHandler(async (req, res) => {
         // Only log in production to reduce console noise
         if (process.env.NODE_ENV === 'production') {
             console.log("Security event:", {

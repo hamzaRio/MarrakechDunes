@@ -54,7 +54,8 @@ const getClientUrls = () => {
     const clientUrl = process.env.CLIENT_URL;
     const origins = [
         "https://marrakech-dunes.vercel.app",
-        "http://localhost:5173"
+        "http://localhost:5173",
+        "http://localhost:5174"
     ];
     if (clientUrl) {
         // Split by comma and add each URL
@@ -66,7 +67,7 @@ const getClientUrls = () => {
     return origins;
 };
 const allowedOrigins = getClientUrls();
-const assetsPath = path.join(__dirname, "server", "attached_assets");
+const assetsPath = path.join(__dirname, "attached_assets");
 // Logging helper
 const log = (message, source = "express", level = "info") => {
     const formattedTime = new Date().toLocaleTimeString("en-US", {
