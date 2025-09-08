@@ -104,14 +104,14 @@ app.use(express.urlencoded({ extended: false }));
 // Enable cookie parsing
 app.use(cookieParser());
 
-// Session middleware
-app.use(session(sessionSecurity));
-
-// Apply CORS middleware before routes
+// Apply CORS middleware before session middleware
 app.use(cors({
   origin: allowedOrigins,
   credentials: true
 }));
+
+// Session middleware
+app.use(session(sessionSecurity));
 
 
 // Serve static assets
