@@ -181,6 +181,8 @@ export const securityHeaders = helmet({
   noSniff: true,
   frameguard: { action: 'deny' },
   xssFilter: true,
+  crossOriginResourcePolicy: false, // Disable helmet's CORS policy to allow our custom headers
+  crossOriginEmbedderPolicy: false
 });
 
 // Request logging middleware for admin actions

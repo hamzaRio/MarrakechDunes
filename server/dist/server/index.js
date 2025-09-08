@@ -42,7 +42,6 @@ for (const envVar of optionalEnvVars) {
 }
 // Now import modules that depend on environment variables
 import express from "express";
-import cors from "cors";
 import cookieParser from "cookie-parser";
 import helmet from "helmet";
 import session from "express-session";
@@ -77,8 +76,11 @@ const log = (message, source = "express", level = "info") => {
 const app = express();
 // Set trust proxy at the top before any middleware
 app.set("trust proxy", 1);
-// Security middleware
-app.use(helmet());
+// Security middleware with CORS-friendly configuration
+app.use(helmet({
+    crossOriginResourcePolicy: false, // Disable helmet's CORS policy to allow our custom headers
+    crossOriginEmbedderPolicy: false
+}));
 // Enable JSON & URL-encoded
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -93,16 +95,15 @@ app.use((req, res, next) => {
     res.setHeader("Access-Control-Allow-Credentials", "true");
     next();
 });
-// Apply CORS middleware before session middleware
-app.use(cors({
-    origin: allowedOrigins,
-    credentials: true
-}));
 // Session middleware
 app.use(session(sessionSecurity));
-// Serve static assets
+// Serve static assets with proper CORS headers
 app.use("/attached_assets", express.static(assetsPath, {
-    setHeaders: (res) => res.setHeader("Access-Control-Allow-Origin", "*")
+    setHeaders: (res) => {
+        res.setHeader("Access-Control-Allow-Origin", "https://marrakech-dunes.vercel.app");
+        res.setHeader("Access-Control-Allow-Credentials", "true");
+        res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+    }
 }));
 // Serve static client files
 const publicPath = path.join(__dirname, "public");
