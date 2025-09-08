@@ -1,5 +1,4 @@
 import path from "path";
-import fs from "fs";
 import { fileURLToPath } from "url";
 import dotenv from "dotenv";
 // ✅ Load environment variables FIRST, before any other imports
@@ -52,28 +51,8 @@ import { registerRoutes } from "./routes.js";
 import { connectToDatabase } from "./db.js";
 import { globalErrorHandler, notFoundHandler } from "./error-handler.js";
 import { sessionSecurity } from "./security-middleware.js";
-// Define constants before use - support multiple origins from environment
-const getClientUrls = () => {
-    const clientUrl = process.env.CLIENT_URL;
-    const origins = [
-        "https://marrakech-dunes.vercel.app",
-        "http://localhost:5173",
-        "http://localhost:5174"
-    ];
-    if (clientUrl) {
-        // Split by comma and add each URL
-        const urls = clientUrl.split(',').map(url => url.trim());
-        origins.push(...urls);
-    }
-    // Add regex for all vercel.app subdomains (including preview deployments)
-    origins.push(/^https:\/\/.*\.vercel\.app$/);
-    // Add regex for localhost with any port
-    origins.push(/^http:\/\/localhost:\d+$/);
-    // Add regex for any vercel.app domain (including preview deployments)
-    origins.push(/^https:\/\/[a-zA-Z0-9-]+\.vercel\.app$/);
-    return origins;
-};
-const allowedOrigins = getClientUrls();
+// Define CORS origins - simplified configuration
+const allowedOrigins = [/\.vercel\.app$/, "http://localhost:5173"];
 const assetsPath = path.join(__dirname, "attached_assets");
 // Logging helper
 const log = (message, source = "express", level = "info") => {
@@ -109,69 +88,12 @@ app.use(cookieParser());
 app.use(session(sessionSecurity));
 // Apply CORS middleware before routes
 app.use(cors({
-    origin: (origin, callback) => {
-        // Allow requests with no origin (like mobile apps or curl requests)
-        if (!origin)
-            return callback(null, true);
-        // Check if origin is in allowed list
-        const isAllowed = allowedOrigins.some(allowedOrigin => {
-            if (typeof allowedOrigin === 'string') {
-                return origin === allowedOrigin;
-            }
-            else if (allowedOrigin instanceof RegExp) {
-                return allowedOrigin.test(origin);
-            }
-            return false;
-        });
-        if (isAllowed) {
-            callback(null, true);
-        }
-        else {
-            console.warn(`CORS blocked origin: ${origin}`);
-            callback(new Error('Not allowed by CORS'));
-        }
-    },
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Origin", "X-Requested-With", "Content-Type", "Accept", "Authorization"],
+    origin: allowedOrigins,
+    credentials: true
 }));
-// Handle preflight requests
-app.options("*", cors());
 // Serve static assets
 app.use("/attached_assets", express.static(assetsPath, {
-    setHeaders: (res, path, stat) => {
-        // Use the same CORS logic as main middleware
-        const origin = res.req?.headers.origin;
-        if (origin) {
-            const isAllowed = allowedOrigins.some(allowedOrigin => {
-                if (typeof allowedOrigin === 'string') {
-                    return origin === allowedOrigin;
-                }
-                else if (allowedOrigin instanceof RegExp) {
-                    return allowedOrigin.test(origin);
-                }
-                return false;
-            });
-            if (isAllowed) {
-                res.setHeader("Access-Control-Allow-Origin", origin);
-                res.setHeader("Access-Control-Allow-Credentials", "true");
-            }
-        }
-        res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
-        res.setHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
-        // Add caching headers for better performance
-        if (path && path.match(/\.(jpg|jpeg|png|gif|webp|svg)$/i)) {
-            res.setHeader("Cache-Control", "public, max-age=31536000, immutable"); // 1 year cache for images
-        }
-        else if (path && path.match(/\.(css|js)$/i)) {
-            res.setHeader("Cache-Control", "public, max-age=86400"); // 1 day cache for CSS/JS
-        }
-        else {
-            res.setHeader("Cache-Control", "public, max-age=3600"); // 1 hour cache for other assets
-        }
-        // Add ETag for better caching
-        res.setHeader("ETag", `"${Date.now()}"`);
-    }
+    setHeaders: (res) => res.setHeader("Access-Control-Allow-Origin", "*")
 }));
 // Serve static client files
 const publicPath = path.join(__dirname, "public");
@@ -246,22 +168,8 @@ app.use((req, res, next) => {
     // API 404 handler for undefined routes
     app.use('/api/*', notFoundHandler);
     // SPA fallback - serve index.html for all non-API routes
-    app.get('*', (req, res) => {
-        // Check if the request is for a static file
-        if (req.path.match(/\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$/)) {
-            return res.status(404).json({ error: 'Static file not found' });
-        }
-        // Serve index.html for SPA routing
-        const indexPath = path.join(__dirname, 'public', 'index.html');
-        if (fs.existsSync(indexPath)) {
-            res.sendFile(indexPath);
-        }
-        else {
-            res.status(404).json({
-                error: 'Frontend not found',
-                message: 'Please ensure the client is built and copied to the server'
-            });
-        }
+    app.get('*', (_, res) => {
+        res.sendFile(path.join(__dirname, 'public/index.html'));
     });
     // Global error handler (must be last)
     app.use(globalErrorHandler);
