@@ -84,13 +84,13 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 // Enable cookie parsing
 app.use(cookieParser());
-// Session middleware
-app.use(session(sessionSecurity));
-// Apply CORS middleware before routes
+// Apply CORS middleware before session middleware
 app.use(cors({
     origin: allowedOrigins,
     credentials: true
 }));
+// Session middleware
+app.use(session(sessionSecurity));
 // Serve static assets
 app.use("/attached_assets", express.static(assetsPath, {
     setHeaders: (res) => res.setHeader("Access-Control-Allow-Origin", "*")
