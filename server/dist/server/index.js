@@ -64,6 +64,8 @@ const getClientUrls = () => {
     }
     // Add regex for all vercel.app subdomains (including preview deployments)
     origins.push(/^https:\/\/.*\.vercel\.app$/);
+    // Add regex for localhost with any port
+    origins.push(/^http:\/\/localhost:\d+$/);
     return origins;
 };
 const allowedOrigins = getClientUrls();
@@ -182,13 +184,22 @@ app.use((req, res, next) => {
     // ✅ Connect to MongoDB before starting the server
     await connectToDatabase();
     const server = await registerRoutes(app);
-    // Health check endpoint
+    // Health check endpoints
     app.get('/', (req, res) => {
         res.json({
             status: 'healthy',
             service: 'MarrakechDunes API',
             timestamp: new Date().toISOString(),
             version: '1.0.0'
+        });
+    });
+    app.get('/health', (req, res) => {
+        res.json({
+            status: "healthy",
+            service: "MarrakechDunes API",
+            uptime: process.uptime(),
+            timestamp: new Date().toISOString(),
+            version: "1.0"
         });
     });
     // Handle favicon.ico requests to prevent 404 errors
