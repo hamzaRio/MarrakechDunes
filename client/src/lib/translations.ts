@@ -124,7 +124,13 @@ export const translations = {
       activitySelectionRequired: "Activity selection is required",
       atLeastOnePerson: "At least 1 person required",
       maximumTwentyPeople: "Maximum 20 people",
-      failedToCreateBooking: "Failed to create booking"
+      failedToCreateBooking: "Failed to create booking",
+      usernameRequired: "Username is required",
+      passwordRequired: "Password is required",
+      loginFailed: "Login failed"
+    },
+    success: {
+      title: "Success"
     }
   },
   fr: {
@@ -248,7 +254,13 @@ export const translations = {
       activitySelectionRequired: "La sélection d'activité est requise",
       atLeastOnePerson: "Au moins 1 personne requise",
       maximumTwentyPeople: "Maximum 20 personnes",
-      failedToCreateBooking: "Échec de la création de la réservation"
+      failedToCreateBooking: "Échec de la création de la réservation",
+      usernameRequired: "Le nom d'utilisateur est requis",
+      passwordRequired: "Le mot de passe est requis",
+      loginFailed: "Échec de la connexion"
+    },
+    success: {
+      title: "Succès"
     }
   }
 };

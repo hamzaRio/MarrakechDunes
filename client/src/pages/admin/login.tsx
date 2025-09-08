@@ -13,12 +13,12 @@ import { apiFetch } from "@/lib/api";
 import { useLocation } from "wouter";
 import { useLanguage } from "@/hooks/useLanguage";
 
-const loginFormSchema = z.object({
-  username: z.string().min(1, "Username is required"),
-  password: z.string().min(1, "Password is required"),
+const createLoginFormSchema = (t: (key: string) => string) => z.object({
+  username: z.string().min(1, t('errors.usernameRequired')),
+  password: z.string().min(1, t('errors.passwordRequired')),
 });
 
-type LoginFormData = z.infer<typeof loginFormSchema>;
+type LoginFormData = z.infer<ReturnType<typeof createLoginFormSchema>>;
 
 export default function AdminLogin() {
   const { toast } = useToast();
@@ -26,7 +26,7 @@ export default function AdminLogin() {
   const { t } = useLanguage();
 
   const form = useForm<LoginFormData>({
-    resolver: zodResolver(loginFormSchema),
+    resolver: zodResolver(createLoginFormSchema(t)),
     defaultValues: {
       username: "",
       password: "",
@@ -45,20 +45,20 @@ export default function AdminLogin() {
       });
       
       if (!response.ok) {
-        let errorMessage = "Login failed";
+        let errorMessage = t('errors.loginFailed');
         try {
           const errorData = await response.json();
           if (errorData.status === 'error') {
-            errorMessage = errorData.message || "Login failed";
+            errorMessage = errorData.message || t('errors.loginFailed');
           } else {
-            errorMessage = errorData.message || errorData.error || "Login failed";
+            errorMessage = errorData.message || errorData.error || t('errors.loginFailed');
           }
         } catch {
           // If JSON parsing fails, try text
           try {
-            errorMessage = await response.text() || "Login failed";
+            errorMessage = await response.text() || t('errors.loginFailed');
           } catch {
-            errorMessage = "Login failed";
+            errorMessage = t('errors.loginFailed');
           }
         }
         throw new Error(errorMessage);
@@ -68,8 +68,8 @@ export default function AdminLogin() {
     },
     onSuccess: (data) => {
       toast({
-        title: "Success", 
-        description: "Login successful",
+        title: t('success.title'), 
+        description: t('admin.loginSuccess'),
       });
       // Redirect based on user role
       if (data.user?.role === "superadmin") {

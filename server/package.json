@@ -5,7 +5,7 @@
   "scripts": {
     "build": "tsc && npm run copy-assets",
     "copy-assets": "node -e \"const fs=require('fs'); const path=require('path'); const src=path.join(__dirname,'attached_assets'); const dest=path.join(__dirname,'dist','attached_assets'); if(fs.existsSync(src)){fs.mkdirSync(dest,{recursive:true}); const files=fs.readdirSync(src); files.forEach(f=>{const srcFile=path.join(src,f); const destFile=path.join(dest,f); if(fs.statSync(srcFile).isFile()){fs.copyFileSync(srcFile,destFile);}}); console.log('Assets copied to dist/attached_assets');} else {console.log('No attached_assets found');}\"",
-    "start": "node dist/server/index.js",
+    "start": "node dist/index.js",
     "prestart": "npm run build"
   },
   "dependencies": {
