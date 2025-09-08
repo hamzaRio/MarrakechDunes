@@ -7,6 +7,7 @@ WORKDIR /app
 # Copy package files for dependency installation
 COPY package*.json ./
 COPY server/package*.json ./server/
+COPY client/package*.json ./client/
 COPY shared/package*.json ./shared/
 
 # Install dependencies (including dev dependencies for build)
@@ -14,14 +15,22 @@ RUN npm ci
 
 # Copy source code
 COPY server/ ./server/
+COPY client/ ./client/
 COPY shared/ ./shared/
 
-# Build the application
+# Build the client
+WORKDIR /app/client
+RUN npm run build
+
+# Build the server
 WORKDIR /app/server
 RUN npm run build
 
 # Copy shared directory to server level for runtime (matches import path ../shared)
 RUN cp -r ../shared ./shared
+
+# Copy client build to server for serving static files
+RUN mkdir -p ./dist/public && cp -r ../client/dist/* ./dist/public/
 
 # Remove dev dependencies to reduce image size
 WORKDIR /app

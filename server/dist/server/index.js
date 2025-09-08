@@ -45,10 +45,12 @@ import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import helmet from "helmet";
+import session from "express-session";
 import { globalLimiter } from "./rate-limiters.js";
 import { registerRoutes } from "./routes.js";
 import { connectToDatabase } from "./db.js";
 import { globalErrorHandler, notFoundHandler } from "./error-handler.js";
+import { sessionSecurity } from "./security-middleware.js";
 // Define constants before use - support multiple origins from environment
 const getClientUrls = () => {
     const clientUrl = process.env.CLIENT_URL;
@@ -100,6 +102,8 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 // Enable cookie parsing
 app.use(cookieParser());
+// Session middleware
+app.use(session(sessionSecurity));
 // Apply CORS middleware before routes
 app.use(cors({
     origin: (origin, callback) => {
@@ -128,6 +132,9 @@ app.use(cors({
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Origin", "X-Requested-With", "Content-Type", "Accept", "Authorization"],
 }));
+// Handle preflight requests
+app.options("*", cors());
+// Serve static assets
 app.use("/attached_assets", express.static(assetsPath, {
     setHeaders: (res, path) => {
         // Allow CORS for static assets from all origins
@@ -147,6 +154,19 @@ app.use("/attached_assets", express.static(assetsPath, {
         }
         // Add ETag for better caching
         res.setHeader("ETag", `"${Date.now()}"`);
+    }
+}));
+// Serve static client files
+const publicPath = path.join(__dirname, "public");
+app.use(express.static(publicPath, {
+    setHeaders: (res, path) => {
+        // Add caching headers for client assets
+        if (path && path.match(/\.(css|js)$/i)) {
+            res.setHeader("Cache-Control", "public, max-age=86400"); // 1 day cache for CSS/JS
+        }
+        else if (path && path.match(/\.(html)$/i)) {
+            res.setHeader("Cache-Control", "public, max-age=3600"); // 1 hour cache for HTML
+        }
     }
 }));
 // Apply global rate limiting AFTER static assets
@@ -208,6 +228,10 @@ app.use((req, res, next) => {
     });
     // API 404 handler for undefined routes
     app.use('/api/*', notFoundHandler);
+    // SPA fallback - serve index.html for all non-API routes
+    app.get('*', (req, res) => {
+        res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    });
     // Global error handler (must be last)
     app.use(globalErrorHandler);
     // Note: Frontend is served by Vercel, backend only serves API and static assets
