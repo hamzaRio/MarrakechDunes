@@ -23,11 +23,12 @@ export default function Navbar() {
     { href: "/activities", label: t('nav.activities') },
     { href: "/booking", label: t('nav.booking') },
     { href: "/reviews", label: t('nav.reviews') },
+    { href: "/admin/login", label: t('nav.admin') },
   ];
 
-  // Only show admin link if user is authenticated and has admin role
+  // Add admin dashboard link if user is authenticated and has admin role
   if (user && (user.role === 'admin' || user.role === 'superadmin')) {
-    navItems.push({ href: "/admin/dashboard", label: t('nav.admin') });
+    navItems.push({ href: "/admin/dashboard", label: t('nav.adminDashboard') });
   }
 
   return (

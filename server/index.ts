@@ -61,7 +61,8 @@ const getClientUrls = (): (string | RegExp)[] => {
   const clientUrl = process.env.CLIENT_URL;
   const origins: (string | RegExp)[] = [
     "https://marrakech-dunes.vercel.app",
-    "http://localhost:5173"
+    "http://localhost:5173",
+    "http://localhost:5174"
   ];
   
   if (clientUrl) {

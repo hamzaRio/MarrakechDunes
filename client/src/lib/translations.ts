@@ -10,6 +10,7 @@ export const translations = {
       reviews: "Reviews",
       contact: "Contact",
       admin: "Admin",
+      adminDashboard: "Admin Dashboard",
       booking: "Booking"
     },
     hero: {
@@ -50,7 +51,9 @@ export const translations = {
       viewDetails: "View Details & Book",
       available: "Available",
       soldOut: "Sold Out",
-      change: "Change"
+      change: "Change",
+      noActivities: "No activities available at the moment",
+      checkBackLater: "Please check back later for new experiences"
     },
     booking: {
       title: "Book Your Adventure",
@@ -123,6 +126,7 @@ export const translations = {
       reviews: "Avis",
       contact: "Contact", 
       admin: "Admin",
+      adminDashboard: "Tableau de Bord Admin",
       booking: "Réservation"
     },
     hero: {
@@ -163,7 +167,9 @@ export const translations = {
       viewDetails: "Voir les Détails et Réserver",
       available: "Disponible",
       soldOut: "Complet",
-      change: "Changer"
+      change: "Changer",
+      noActivities: "Aucune activité disponible pour le moment",
+      checkBackLater: "Veuillez revenir plus tard pour de nouvelles expériences"
     },
     booking: {
       title: "Réservez Votre Aventure",

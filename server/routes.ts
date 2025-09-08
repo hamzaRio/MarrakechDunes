@@ -287,8 +287,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   }));
 
-  // Security events endpoint for frontend audit logging
-  app.post("/api/security-events", asyncHandler(async (req: Request, res: Response) => {
+  // Security events endpoint for frontend audit logging with rate limiting
+  app.post("/api/security-events", generalApiRateLimit, asyncHandler(async (req: Request, res: Response) => {
     // Only log in production to reduce console noise
     if (process.env.NODE_ENV === 'production') {
       console.log("Security event:", {

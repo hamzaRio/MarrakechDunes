@@ -81,7 +81,7 @@ export function SecurityProvider({ children }: { children: ReactNode }) {
     };
   }, [toast]);
 
-  // Security event logging
+  // Security event logging with throttling
   const logSecurityEvent = (event: string, details?: any) => {
     // Skip all security logging in development mode
     if (process.env.NODE_ENV === 'development') {
@@ -95,19 +95,28 @@ export function SecurityProvider({ children }: { children: ReactNode }) {
       details
     });
 
-    // Send to server for audit logging in production
+    // Send to server for audit logging in production with throttling
     if (process.env.NODE_ENV === 'production') {
+      // Throttle security events to prevent spam (max 1 per 30 seconds per event type)
+      const throttleKey = `security_event_${event}`;
+      const lastSent = localStorage.getItem(throttleKey);
+      const now = Date.now();
+      
+      if (!lastSent || (now - parseInt(lastSent)) > 30000) { // 30 seconds throttle
+        localStorage.setItem(throttleKey, now.toString());
+        
         apiFetch('/api/security-events', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          event,
-          details,
-          timestamp: new Date().toISOString(),
-          userAgent: navigator.userAgent,
-          url: window.location.href
-        })
-      }).catch(console.error);
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            event,
+            details,
+            timestamp: new Date().toISOString(),
+            userAgent: navigator.userAgent,
+            url: window.location.href
+          })
+        }).catch(console.error);
+      }
     }
   };
 
