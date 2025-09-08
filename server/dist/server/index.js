@@ -84,6 +84,15 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 // Enable cookie parsing
 app.use(cookieParser());
+// Global CORS middleware to fix image cross-origin errors
+app.use((req, res, next) => {
+    res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+    res.setHeader("Access-Control-Allow-Origin", "https://marrakech-dunes.vercel.app");
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    res.setHeader("Access-Control-Allow-Credentials", "true");
+    next();
+});
 // Apply CORS middleware before session middleware
 app.use(cors({
     origin: allowedOrigins,
@@ -164,6 +173,10 @@ app.use((req, res, next) => {
     // Handle favicon.ico requests to prevent 404 errors
     app.get('/favicon.ico', (req, res) => {
         res.status(204).end();
+    });
+    // Stub route for security events to prevent 404 spam in logs
+    app.post('/api/security-events', (req, res) => {
+        res.status(204).send(); // no content, prevents 404 spam in logs
     });
     // API 404 handler for undefined routes
     app.use('/api/*', notFoundHandler);
