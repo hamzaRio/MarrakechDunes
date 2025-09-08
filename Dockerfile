@@ -20,6 +20,9 @@ COPY shared/ ./shared/
 WORKDIR /app/server
 RUN npm run build
 
+# Copy shared directory to server level for runtime (matches import path ../shared)
+RUN cp -r ../shared ./shared
+
 # Remove dev dependencies to reduce image size
 WORKDIR /app
 RUN npm ci --only=production && npm cache clean --force
