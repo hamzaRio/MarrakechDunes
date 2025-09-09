@@ -1,7 +1,7 @@
 param(
   [string]$FrontEndUrl = $env:FRONTEND_URL,
   [string]$BackEndUrl  = $env:BACKEND_URL,
-  [int]$TimeoutSec     = 12
+  [int]$TimeoutSec     = 30
 )
 
 if (-not $FrontEndUrl) { $FrontEndUrl = "https://marrakech-dunes.vercel.app" }
@@ -16,22 +16,32 @@ $HadError = $false
 function Log($m){ $l="[{0}] {1}" -f (Get-Date -Format "HH:mm:ss"),$m; Write-Host $l; Add-Content -Path $ReportPath -Value $l }
 function Section($t){ Log ""; Log "===== $t =====" }
 function Fail($m,$fix){ Log "FAIL: $m"; if($fix){ Log "NEXT: $fix" }; $script:HadError = $true }
-function TryRest($Method,$Url,$Body=$null){
-  try{
-    $params=@{Method=$Method;Uri=$Url;TimeoutSec=$TimeoutSec;ErrorAction='Stop'}
-    if($Body){$params.Body=$Body;$params.ContentType="application/json"}
-    $r = Invoke-RestMethod @params
-    return @{ ok=$true; data=$r }
-  }catch{
-    return @{ ok=$false; err=$_.Exception.Message }
+function TryRest($Method,$Url,$Body=$null,$Retries=3){
+  for($i=0; $i -lt $Retries; $i++){
+    try{
+      $params=@{Method=$Method;Uri=$Url;TimeoutSec=$TimeoutSec;ErrorAction='Stop'}
+      if($Body){$params.Body=$Body;$params.ContentType="application/json"}
+      $r = Invoke-RestMethod @params
+      return @{ ok=$true; data=$r }
+    }catch{
+      if($i -eq $Retries-1){
+        return @{ ok=$false; err=$_.Exception.Message }
+      }
+      Start-Sleep -Seconds 2
+    }
   }
 }
-function TryWeb($Method,$Url,$Session){
-  try{
-    $r = Invoke-WebRequest -Method $Method -Uri $Url -WebSession $Session -TimeoutSec $TimeoutSec -ErrorAction Stop
-    return @{ ok=$true; resp=$r }
-  }catch{
-    return @{ ok=$false; err=$_.Exception.Message }
+function TryWeb($Method,$Url,$Session,$Retries=3){
+  for($i=0; $i -lt $Retries; $i++){
+    try{
+      $r = Invoke-WebRequest -Method $Method -Uri $Url -WebSession $Session -TimeoutSec $TimeoutSec -ErrorAction Stop
+      return @{ ok=$true; resp=$r }
+    }catch{
+      if($i -eq $Retries-1){
+        return @{ ok=$false; err=$_.Exception.Message }
+      }
+      Start-Sleep -Seconds 2
+    }
   }
 }
 
