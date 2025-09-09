@@ -56,4 +56,4 @@ USER nodejs
 
 # Start the application
 WORKDIR /app/server
-CMD ["node", "dist/index.js"]
+CMD ["npm", "run", "start"]
