@@ -80,7 +80,7 @@ if(-not $init.ok){
 } else {
   $sc = $init.resp.Headers['Set-Cookie']
   if($sc){ Log "Set-Cookie received: $sc" } else { Log "No Set-Cookie header visible (may still store cookie)" }
-  if($webSession.Cookies.Count -gt 0){ Log "Cookies stored: $($webSession.Cookies | % { $_.Name } | Out-String)" }
+  if($webSession.Cookies.Count -gt 0){ Log "Cookies stored: $($webSession.Cookies | ForEach-Object { $_.Name } | Out-String)" }
 }
 
 $auth = TryWeb "GET" "$FrontEndUrl/api/auth/user" $webSession
