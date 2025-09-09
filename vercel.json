@@ -1,44 +1,16 @@
 {
   "version": 2,
   "builds": [
-    {
-      "src": "client/package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "dist",
-        "buildCommand": "npm run build"
-      }
-    }
+    { "src": "client/package.json", "use": "@vercel/static-build", "config": { "distDir": "dist" } }
   ],
   "rewrites": [
-    {
-      "source": "/admin",
-      "destination": "/"
-    },
-    {
-      "source": "/admin/(.*)",
-      "destination": "/"
-    },
-    {
-      "source": "/activities",
-      "destination": "/"
-    },
-    {
-      "source": "/booking",
-      "destination": "/"
-    },
-    {
-      "source": "/reviews",
-      "destination": "/"
-    },
-    {
-      "source": "/((?!api|_next|_static|favicon.ico|attached_assets|assets).*)",
-      "destination": "/"
-    }
+    { "source": "/api/:path*", "destination": "https://marrakechdunes.onrender.com/api/:path*" },
+    { "source": "/attached_assets/:path*", "destination": "https://marrakechdunes.onrender.com/attached_assets/:path*" },
+    { "source": "/(?!api|_next|_static|favicon.ico|attached_assets|assets|.*\\..*)", "destination": "/" }
   ],
   "env": {
     "NODE_VERSION": "20",
-    "VITE_API_URL": "https://marrakechdunes.onrender.com",
-    "VITE_ASSETS_BASE": "https://marrakechdunes.onrender.com/attached_assets"
+    "VITE_API_URL": "/api",
+    "VITE_ASSETS_BASE": "/attached_assets"
   }
 }

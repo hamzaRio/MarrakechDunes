@@ -1,8 +1,6 @@
-import { API_URL } from "./env";
-
-export function apiFetch(path: string, options?: RequestInit) {
-  return fetch(`${API_URL}${path}`, {
-    credentials: 'include',
-    ...options
-  });
-}
+import axios from "axios";
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_URL || "/api",
+  withCredentials: true,
+});
+export default api;

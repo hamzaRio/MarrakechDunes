@@ -35,6 +35,7 @@ import { registerRoutes } from "./routes.js";
 import { connectToDatabase } from "./db.js";
 import { globalErrorHandler, notFoundHandler } from "./error-handler.js";
 import { sessionSecurity } from "./security-middleware.js";
+import sessionRouter from "./routes/session.js";
 
 // Define CORS origins - simplified configuration
 const allowedOrigins = [/\.vercel\.app$/, "http://localhost:5173"];
@@ -85,15 +86,13 @@ app.use(express.urlencoded({ extended: false }));
 // Enable cookie parsing
 app.use(cookieParser());
 
-// Global CORS middleware to fix image cross-origin errors
-app.use((req, res, next) => {
-  res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
-  res.setHeader("Access-Control-Allow-Origin", "https://marrakech-dunes.vercel.app");
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-  res.setHeader("Access-Control-Allow-Credentials", "true");
-  next();
-});
+// CORS middleware with proper origin handling
+app.use(cors({
+  origin: [/https:\/\/.*\.vercel\.app$/, "https://marrakech-dunes.vercel.app", "http://localhost:5173"],
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"]
+}));
 
 // Session middleware
 app.use(session(sessionSecurity));
@@ -165,6 +164,9 @@ app.use((req, res, next) => {
   await connectToDatabase();
 
   const server = await registerRoutes(app);
+
+  // Mount session router
+  app.use("/api/session", sessionRouter);
 
   // Health check endpoints
   app.get('/', (req, res) => {

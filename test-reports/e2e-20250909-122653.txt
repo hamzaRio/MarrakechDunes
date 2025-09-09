@@ -1,0 +1,32 @@
+[12:26:53] 
+[12:26:53] ===== ENV =====
+[12:26:53] FRONTEND_URL: https://marrakech-dunes.vercel.app
+[12:26:53] BACKEND_URL : https://marrakechdunes.onrender.com
+[12:26:53] TIMEOUT_SEC : 12
+[12:26:53] 
+[12:26:53] ===== HEALTH =====
+[12:26:54] Backend /health OK
+[12:26:54] 
+[12:26:54] ===== ASSET DISCOVERY =====
+[12:26:54] Local asset selected: agafaypack1_1751128022717.jpeg
+[12:26:54] 
+[12:26:54] ===== BACKEND API =====
+[12:26:55] Backend activities count: 5
+[12:26:55] 
+[12:26:55] ===== PROXY API VIA FRONTEND =====
+[12:26:55] FAIL: GET frontend /api/activities via Vercel proxy failed: The remote server returned an error: (404) Not Found.
+[12:26:55] NEXT: Verify vercel.json rewrites & VITE_API_URL=/api
+[12:26:56] Frontend(proxied) activities count: 0
+[12:26:56] 
+[12:26:56] ===== SESSION + COOKIE =====
+[12:26:56] FAIL: POST /api/session/init failed: The remote server returned an error: (404) Not Found.
+[12:26:56] NEXT: Ensure session route mounted & CORS credentials true
+[12:26:56] GET /api/auth/user error: The remote server returned an error: (404) Not Found.
+[12:26:56] 
+[12:26:57] ===== ASSET VIA PROXY =====
+[12:26:57] FAIL: Asset fetch failed: The remote server returned an error: (404) Not Found.
+[12:26:57] NEXT: Verify assets exist & rewrite for /attached_assets is correct
+[12:26:57] 
+[12:26:57] ===== SUMMARY =====
+[12:26:57] === RESULT: FAILED ===
+[12:26:57] See NEXT steps above for each failure.
