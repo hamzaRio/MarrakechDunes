@@ -107,14 +107,13 @@ export function SecurityProvider({ children }: { children: ReactNode }) {
         
         apiFetch('/api/security-events', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
+          data: {
             event,
             details,
             timestamp: new Date().toISOString(),
             userAgent: navigator.userAgent,
             url: window.location.href
-          })
+          }
         }).catch(console.error);
       }
     }

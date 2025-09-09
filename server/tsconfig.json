@@ -10,16 +10,17 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "lib": ["ES2020"],
-    "types": ["node"],
     "allowSyntheticDefaultImports": true,
     "allowJs": true,
     "baseUrl": ".",
+    "typeRoots": ["./types", "./node_modules/@types"],
     "paths": {
       "@shared/*": ["../shared/*"]
     }
   },
   "include": [
     "*.ts",
+    "**/*.d.ts",
     "../shared/**/*.ts"
   ],
   "exclude": [

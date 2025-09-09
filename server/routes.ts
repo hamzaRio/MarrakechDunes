@@ -213,7 +213,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
 
       // Force session save with explicit callback
-      authReq.session.save((err) => {
+      authReq.session.save((err: any) => {
         if (err) {
           console.error('❌ Session save error:', err);
           throw new AppError("Login failed - session error", 500, 'SESSION_ERROR');
@@ -274,7 +274,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
     
-    authReq.session.destroy((err) => {
+    authReq.session.destroy((err: any) => {
       if (err) {
         console.error('❌ Logout error:', err);
         throw new AppError("Logout failed", 500, 'LOGOUT_ERROR');

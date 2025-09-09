@@ -1,6 +1,14 @@
 {
   "rewrites": [
     {
+      "source": "/api/:path*",
+      "destination": "https://marrakechdunes.onrender.com/api/:path*"
+    },
+    {
+      "source": "/attached_assets/:path*",
+      "destination": "https://marrakechdunes.onrender.com/attached_assets/:path*"
+    },
+    {
       "source": "/admin",
       "destination": "/"
     },
