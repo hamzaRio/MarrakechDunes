@@ -190,11 +190,12 @@ app.use((req, res, next) => {
     // Note: Frontend is served by Vercel, backend only serves API and static assets
     log("Backend configured for API and static assets only - frontend served by Vercel");
     // Start server
-    const port = parseInt(process.env.PORT || "5000");
-    const apiUrl = process.env.VITE_API_URL || `http://localhost:${port}`;
+    const PORT = process.env.PORT || 5000;
+    const apiUrl = process.env.VITE_API_URL || `http://localhost:${PORT}`;
     const isProduction = process.env.NODE_ENV === 'production';
-    server.listen(port, () => {
-        log(`🚀 Server started on port ${port}`);
+    server.listen(PORT, () => {
+        console.log(`✅ Server running on port ${PORT}`);
+        log(`🚀 Server started on port ${PORT}`);
         log(`🌍 NODE_ENV: ${process.env.NODE_ENV || 'development'}`);
         log(`🌐 Allowed CORS origins: ${allowedOrigins.map(o => typeof o === 'string' ? o : o.toString()).join(', ')}`);
         log(`📁 Assets path: ${assetsPath}`);
