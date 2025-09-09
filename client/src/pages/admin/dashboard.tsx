@@ -326,7 +326,7 @@ Average per booking: ${activityBookings.length ? Math.round(totalRevenue / activ
                       <div key={activity.id || activity._id || `activity-${index}`} className="border rounded-lg p-6 space-y-4">
                         <div className="flex items-start gap-4">
                           <img 
-                            src={activity.image} 
+                            src={`${import.meta.env.VITE_ASSETS_BASE || 'http://localhost:5000/attached_assets'}${activity.image}`}
                             alt={activity.name}
                             className="w-24 h-24 object-cover rounded-lg"
                           />

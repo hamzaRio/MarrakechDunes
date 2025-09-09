@@ -22,6 +22,6 @@ export function getAssetUrl(path: string): string {
     return asset(path.substring(1));
   }
   
-  // Default fallback
+  // Default fallback - ensure we use VITE_ASSETS_BASE
   return asset(path);
 }
