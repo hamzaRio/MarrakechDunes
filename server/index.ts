@@ -3,46 +3,25 @@ import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
 
-// Validate required environment variables
-const requiredEnvVars = ['DATABASE_URL'];
-const optionalEnvVars = ['CLIENT_URL', 'WHATSAPP_RECEIVERS'];
+// Strict environment validation - all critical variables must be set
+const criticalEnvVars = [
+  'DATABASE_URL',
+  'ADMIN_PASSWORD', 
+  'SUPERADMIN_PASSWORD',
+  'SESSION_SECRET',
+  'JWT_SECRET',
+  'CLIENT_URL'
+];
 
-// Safeguard: Log warning if critical vars are missing
-if (!process.env.DATABASE_URL || !process.env.SUPERADMIN_PASSWORD) {
-  console.warn("⚠️ Missing critical environment variables. Check .env or Render settings.");
-}
-
-// SESSION_SECRET is required in production, optional in development
-if (process.env.NODE_ENV === 'production') {
-  if (!process.env.SESSION_SECRET) {
-    console.error('❌ SESSION_SECRET is required in production but not set.');
-    console.error('Please set SESSION_SECRET environment variable for production deployment.');
-    process.exit(1);
-  }
-  if (process.env.SESSION_SECRET.length < 32) {
-    console.error('❌ SESSION_SECRET must be at least 32 characters long in production.');
-    process.exit(1);
-  }
-} else {
-  // In development, warn if SESSION_SECRET is not set
-  if (!process.env.SESSION_SECRET) {
-    console.warn('⚠️ SESSION_SECRET not set in development. Using default secret.');
-  }
-}
-
-for (const envVar of requiredEnvVars) {
+for (const envVar of criticalEnvVars) {
   if (!process.env[envVar]) {
-    console.error(`❌ Required environment variable ${envVar} is not set.`);
-    console.error('Please check your .env file or environment configuration.');
-    process.exit(1);
+    throw new Error(`Missing critical env: ${envVar}`);
   }
 }
 
-// Warn about missing optional environment variables
-for (const envVar of optionalEnvVars) {
-  if (!process.env[envVar]) {
-    console.warn(`⚠️ Optional environment variable ${envVar} is not set.`);
-  }
+// Additional validation for SESSION_SECRET length in production
+if (process.env.NODE_ENV === 'production' && process.env.SESSION_SECRET && process.env.SESSION_SECRET.length < 32) {
+  throw new Error('SESSION_SECRET must be at least 32 characters long in production');
 }
 
 // Now import modules that depend on environment variables
