@@ -11,6 +11,7 @@
   "scripts": {
     "build": "cd client && npm run build && cd ../server && npm run build",
     "start": "cd server && npm run start",
+    "test:production": "cross-env NODE_ENV=production npm run start --prefix server",
     "dev": "concurrently \"npm run dev -w client\" \"npm run dev -w server\"",
     "dev:frontend": "npm run dev -w client",
     "dev:backend": "npm run dev -w server",

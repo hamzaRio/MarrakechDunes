@@ -1,17 +1,16 @@
+import 'dotenv-flow/config';
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
-import dotenv from "dotenv";
-
-// ✅ Load environment variables FIRST, before any other imports
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const rootDir = path.resolve(__dirname, ".."); // Always go up 1 level to project root
-dotenv.config({ path: path.join(rootDir, ".env") });
 
 // Validate required environment variables
 const requiredEnvVars = ['DATABASE_URL'];
 const optionalEnvVars = ['CLIENT_URL', 'WHATSAPP_RECEIVERS'];
+
+// Safeguard: Log warning if critical vars are missing
+if (!process.env.DATABASE_URL || !process.env.SUPERADMIN_PASSWORD) {
+  console.warn("⚠️ Missing critical environment variables. Check .env or Render settings.");
+}
 
 // SESSION_SECRET is required in production, optional in development
 if (process.env.NODE_ENV === 'production') {
