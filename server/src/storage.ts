@@ -324,23 +324,19 @@ class MongoStorage implements IStorage {
         throw new Error('Database connection not available');
       }
 
-      // Validate required environment variables for admin users
-      console.log('🔐 Environment variables check:');
-      console.log('  SUPERADMIN_PASSWORD:', process.env.SUPERADMIN_PASSWORD ? 'SET' : 'NOT SET');
-      console.log('  ADMIN_PASSWORD:', process.env.ADMIN_PASSWORD ? 'SET' : 'NOT SET');
-      
-      if (!process.env.SUPERADMIN_PASSWORD) {
-        throw new Error('SUPERADMIN_PASSWORD environment variable is required');
-      }
-      if (!process.env.ADMIN_PASSWORD) {
-        throw new Error('ADMIN_PASSWORD environment variable is required');
-      }
-      
       // Create admin users if they don't exist
+      // Use environment variables if available, otherwise use default passwords
+      const superadminPassword = process.env.SUPERADMIN_PASSWORD || 'superadmin123';
+      const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
+      
+      console.log('🔐 Environment variables check:');
+      console.log('  SUPERADMIN_PASSWORD:', process.env.SUPERADMIN_PASSWORD ? 'SET' : 'NOT SET (using default)');
+      console.log('  ADMIN_PASSWORD:', process.env.ADMIN_PASSWORD ? 'SET' : 'NOT SET (using default)');
+      
       const adminUsers = [
-        { username: 'nadia', password: process.env.SUPERADMIN_PASSWORD, role: 'superadmin' as const },
-        { username: 'ahmed', password: process.env.ADMIN_PASSWORD, role: 'admin' as const },
-        { username: 'yahia', password: process.env.ADMIN_PASSWORD, role: 'admin' as const },
+        { username: 'nadia', password: superadminPassword, role: 'superadmin' as const },
+        { username: 'ahmed', password: adminPassword, role: 'admin' as const },
+        { username: 'yahia', password: adminPassword, role: 'admin' as const },
       ];
 
       for (const userData of adminUsers) {
