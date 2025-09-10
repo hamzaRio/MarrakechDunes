@@ -323,6 +323,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.status(200).json({ status: 'healthy' });
   }));
 
+  // Debug endpoint to check admin users (remove in production)
+  app.get('/debug/users', asyncHandler(async (_req: Request, res: Response) => {
+    try {
+      const users = await storage.getUsers();
+      const userList = users.map(user => ({
+        username: user.username,
+        role: user.role,
+        hasPassword: !!user.password,
+        passwordLength: user.password ? user.password.length : 0
+      }));
+      res.json({ users: userList, count: users.length });
+    } catch (error) {
+      console.error('Debug users error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  }));
+
   // Public routes
   app.get("/api/activities", asyncHandler(async (req: Request, res: Response) => {
     try {

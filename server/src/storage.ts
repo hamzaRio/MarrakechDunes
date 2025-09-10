@@ -81,6 +81,7 @@ const Review = mongoose.model('Review', reviewSchema);
 export interface IStorage {
   getUser(id: string): Promise<UserType | null>;
   getUserByUsername(username: string): Promise<UserType | null>;
+  getUsers(): Promise<UserType[]>;
   createUser(user: InsertUser): Promise<UserType>;
   getActivities(): Promise<ActivityType[]>;
   getActivity(id: string): Promise<ActivityType | null>;
@@ -144,6 +145,16 @@ class MongoStorage implements IStorage {
     } catch (error) {
       console.error('Error fetching user by username:', error);
       return null;
+    }
+  }
+
+  async getUsers(): Promise<UserType[]> {
+    try {
+      const users = await User.find({});
+      return users.map(user => this.transformDocument(user)).filter(Boolean) as UserType[];
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      return [];
     }
   }
 
