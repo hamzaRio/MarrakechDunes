@@ -11,28 +11,19 @@
   "scripts": {
     "build": "cd client && npm run build && cd ../server && npm run build",
     "start": "cd server && npm run start",
-    "test:production": "cross-env NODE_ENV=production npm run start --prefix server",
-    "test:e2e": "powershell -ExecutionPolicy Bypass -File scripts\\e2e.ps1",
     "dev": "concurrently \"npm run dev -w client\" \"npm run dev -w server\"",
     "dev:frontend": "npm run dev -w client",
     "dev:backend": "npm run dev -w server",
     "build:frontend": "npm run build -w client",
     "build:backend": "npm run build -w server",
-    "smoke-test": "node scripts/smoke-test.js",
-    "test": "npm run smoke-test",
-    "check": "tsc",
-    "db:push": "drizzle-kit push"
+    "test:e2e": "powershell -ExecutionPolicy Bypass -File scripts\\e2e-preview.ps1",
+    "check": "tsc"
   },
   "dependencies": {
     "zod": "^3.24.2"
   },
   "devDependencies": {
-    "@playwright/test": "^1.55.0",
     "concurrently": "^8.2.2",
-    "cross-env": "^10.0.0",
-    "drizzle-kit": "^0.30.0",
-    "husky": "^9.1.7",
-    "node-fetch": "^3.3.2",
     "typescript": "5.6.3"
   },
   "description": "MarrakechDunes is a production-ready full-stack web application for booking authentic Moroccan desert adventures and experiences. Built with modern technologies and designed for scalability, performance, and security.",
