@@ -1,7 +1,7 @@
 import { createServer } from "http";
 import bcrypt from "bcrypt";
 import { storage } from "./storage.js";
-import { insertReviewSchema } from "../shared/schema.js";
+import { insertReviewSchema } from "./shared/schema.js";
 import { whatsappService } from "./whatsapp-service.js";
 import { z } from "zod";
 import { authRateLimit, adminApiRateLimit, generalApiRateLimit, enforceHTTPS, adminSecurityMiddleware, superadminSecurityMiddleware, validateInput, securityHeaders, adminAuditLog } from "./security-middleware.js";
