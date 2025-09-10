@@ -325,6 +325,10 @@ class MongoStorage implements IStorage {
       }
 
       // Validate required environment variables for admin users
+      console.log('🔐 Environment variables check:');
+      console.log('  SUPERADMIN_PASSWORD:', process.env.SUPERADMIN_PASSWORD ? 'SET' : 'NOT SET');
+      console.log('  ADMIN_PASSWORD:', process.env.ADMIN_PASSWORD ? 'SET' : 'NOT SET');
+      
       if (!process.env.SUPERADMIN_PASSWORD) {
         throw new Error('SUPERADMIN_PASSWORD environment variable is required');
       }
@@ -342,12 +346,15 @@ class MongoStorage implements IStorage {
       for (const userData of adminUsers) {
         const existingUser = await User.findOne({ username: userData.username });
         if (!existingUser) {
+          console.log(`🔐 Creating admin user: ${userData.username} with password length: ${userData.password ? userData.password.length : 'undefined'}`);
           const hashedPassword = await bcrypt.hash(userData.password, 10);
           await User.create({
             ...userData,
             password: hashedPassword,
           });
           console.log(`✅ Created admin user: ${userData.username}`);
+        } else {
+          console.log(`ℹ️ Admin user already exists: ${userData.username}`);
         }
       }
 
