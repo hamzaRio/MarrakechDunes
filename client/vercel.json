@@ -32,5 +32,11 @@
       "source": "/((?!api|_next|_static|favicon.ico|attached_assets|assets).*)",
       "destination": "/"
     }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/"
+    }
   ]
 }
