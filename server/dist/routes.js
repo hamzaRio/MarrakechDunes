@@ -97,119 +97,59 @@ export async function registerRoutes(app) {
     }));
     app.get('/api/auth/user', asyncHandler(async (req, res) => {
         const authReq = req;
-        // Debug logging only in development
-        if (process.env.NODE_ENV === 'development') {
-            console.log('🔍 Auth check:', {
-                hasSession: !!authReq.session,
-                hasUser: !!authReq.session?.user,
-                user: authReq.session?.user?.username
+        if (authReq.session?.user) {
+            res.json({
+                username: authReq.session.user.username,
+                role: authReq.session.user.role
             });
         }
-        if (authReq.session?.user) {
-            if (process.env.NODE_ENV === 'development') {
-                console.log('✅ User authenticated:', authReq.session.user.username);
-            }
-            res.json(authReq.session.user);
-        }
         else {
-            if (process.env.NODE_ENV === 'development') {
-                console.log('❌ User not authenticated');
-            }
             throw new AuthenticationError('Not authenticated');
         }
     }));
     app.post("/api/auth/login", strictLimiter, authRateLimit, asyncHandler(async (req, res) => {
         const { username, password } = req.body;
-        // Debug logging only in development
-        if (process.env.NODE_ENV === 'development') {
-            console.log('🔐 Login attempt for:', username);
+        if (!username || !password) {
+            throw new AuthenticationError("Username and password are required");
         }
         try {
             const user = await storage.getUserByUsername(username);
             if (!user) {
-                if (process.env.NODE_ENV === 'development') {
-                    console.log('❌ User not found:', username);
-                }
-                throw new AuthenticationError("Invalid credentials");
+                throw new AuthenticationError("Invalid username or password");
             }
-            // Use bcrypt to verify password with MongoDB
             const isPasswordValid = await bcrypt.compare(password, user.password);
             if (!isPasswordValid) {
-                if (process.env.NODE_ENV === 'development') {
-                    console.log('❌ Invalid password for user:', username);
-                }
-                throw new AuthenticationError("Invalid credentials");
+                throw new AuthenticationError("Invalid username or password");
             }
             const authReq = req;
             // Set session data
             authReq.session.user = {
-                id: user._id,
+                id: user._id?.toString() || user.id?.toString() || '',
                 username: user.username,
                 role: user.role,
             };
-            // Force session save with explicit callback
-            authReq.session.save((err) => {
-                if (err) {
-                    console.error('❌ Session save error:', err);
-                    throw new AppError("Login failed - session error", 500, 'SESSION_ERROR');
-                }
-                if (process.env.NODE_ENV === 'development') {
-                    console.log('✅ Session saved successfully:', {
-                        sessionId: authReq.session.id,
-                        user: authReq.session.user,
-                        cookie: authReq.session.cookie,
-                        cookieName: authReq.session?.cookie?.name ?? 'unnamed'
-                    });
-                }
-                // Create audit log
-                storage.createAuditLog({
-                    userId: user._id,
-                    action: `User ${username} logged in`,
-                    details: `Login from IP: ${req.ip}`
-                }).catch(error => {
-                    if (process.env.NODE_ENV === 'development') {
-                        console.log('⚠️ Audit logging failed:', error);
-                    }
-                });
-                // Set explicit cookie for cross-origin support
-                const isProduction = process.env.NODE_ENV === 'production';
-                res.cookie('marrakech.session', authReq.session.id, {
-                    secure: isProduction,
-                    httpOnly: true,
-                    sameSite: isProduction ? "none" : "lax",
-                    maxAge: 24 * 60 * 60 * 1000,
-                    path: "/"
-                });
-                // Return success response with user data
-                res.json({
-                    message: "Login successful",
-                    user: authReq.session.user,
-                    sessionId: authReq.session.id
-                });
+            // Return success response
+            res.json({
+                username: user.username,
+                role: user.role
             });
         }
         catch (error) {
-            console.error("❌ Login error:", error);
-            throw new AppError("Login failed", 500, 'LOGIN_ERROR');
+            if (error instanceof AuthenticationError) {
+                throw error;
+            }
+            else {
+                console.error("Login error:", error);
+                throw new AuthenticationError("Login failed");
+            }
         }
     }));
     app.post("/api/auth/logout", strictLimiter, asyncHandler(async (req, res) => {
         const authReq = req;
-        // Only log in development
-        if (process.env.NODE_ENV === 'development') {
-            console.log('🚪 Logout attempt:', {
-                sessionId: authReq.session.id,
-                user: authReq.session?.user,
-                ip: req.ip
-            });
-        }
         authReq.session.destroy((err) => {
             if (err) {
-                console.error('❌ Logout error:', err);
-                throw new AppError("Logout failed", 500, 'LOGOUT_ERROR');
-            }
-            if (process.env.NODE_ENV === 'development') {
-                console.log('✅ Logout successful - session destroyed');
+                console.error('Logout error:', err);
+                return res.status(500).json({ error: "Logout failed" });
             }
             res.json({ message: "Logout successful" });
         });
@@ -230,6 +170,41 @@ export async function registerRoutes(app) {
     // Simple health alias
     app.get('/health', asyncHandler(async (_req, res) => {
         res.status(200).json({ status: 'healthy' });
+    }));
+    // Debug endpoint to check admin users (remove in production)
+    app.get('/api/debug/users', asyncHandler(async (_req, res) => {
+        try {
+            const users = await storage.getUsers();
+            const userList = users.map(user => ({
+                username: user.username,
+                role: user.role,
+                hasPassword: !!user.password,
+                passwordLength: user.password ? user.password.length : 0
+            }));
+            res.json({ users: userList, count: users.length });
+        }
+        catch (error) {
+            console.error('Debug users error:', error);
+            res.status(500).json({ error: error instanceof Error ? error.message : 'Unknown error' });
+        }
+    }));
+    // Debug endpoint to reset admin passwords (remove in production)
+    app.post('/api/debug/reset-passwords', asyncHandler(async (_req, res) => {
+        try {
+            const bcrypt = await import('bcrypt');
+            const adminPassword = 'admin123';
+            const superadminPassword = 'superadmin123';
+            // Update ahmed and yahia with admin password
+            await storage.updateUserPassword('ahmed', adminPassword);
+            await storage.updateUserPassword('yahia', adminPassword);
+            // Update nadia with superadmin password
+            await storage.updateUserPassword('nadia', superadminPassword);
+            res.json({ message: 'Admin passwords reset successfully' });
+        }
+        catch (error) {
+            console.error('Reset passwords error:', error);
+            res.status(500).json({ error: error instanceof Error ? error.message : 'Unknown error' });
+        }
     }));
     // Public routes
     app.get("/api/activities", asyncHandler(async (req, res) => {

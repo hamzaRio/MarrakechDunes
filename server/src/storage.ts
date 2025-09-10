@@ -83,6 +83,7 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<UserType | null>;
   getUsers(): Promise<UserType[]>;
   createUser(user: InsertUser): Promise<UserType>;
+  updateUserPassword(username: string, password: string): Promise<void>;
   getActivities(): Promise<ActivityType[]>;
   getActivity(id: string): Promise<ActivityType | null>;
   createActivity(activity: InsertActivity): Promise<ActivityType>;
@@ -167,6 +168,14 @@ class MongoStorage implements IStorage {
     });
     const savedUser = await user.save();
     return this.transformDocument(savedUser);
+  }
+
+  async updateUserPassword(username: string, password: string): Promise<void> {
+    const hashedPassword = await bcrypt.hash(password, 10);
+    await User.updateOne(
+      { username },
+      { $set: { password: hashedPassword } }
+    );
   }
 
   // Activity operations
@@ -325,19 +334,34 @@ class MongoStorage implements IStorage {
       }
 
       // Create admin users if they don't exist
-      // Use environment variables if available, otherwise use default passwords
-      const superadminPassword = process.env.SUPERADMIN_PASSWORD || 'superadmin123';
-      const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
+      // Use environment variables - no fallback defaults for security
+      const superadminPassword = process.env.SUPERADMIN_PASSWORD;
+      const adminPassword = process.env.ADMIN_PASSWORD;
       
       console.log('🔐 Environment variables check:');
-      console.log('  SUPERADMIN_PASSWORD:', process.env.SUPERADMIN_PASSWORD ? 'SET' : 'NOT SET (using default)');
-      console.log('  ADMIN_PASSWORD:', process.env.ADMIN_PASSWORD ? 'SET' : 'NOT SET (using default)');
+      console.log('  SUPERADMIN_PASSWORD:', superadminPassword ? 'SET' : 'NOT SET');
+      console.log('  ADMIN_PASSWORD:', adminPassword ? 'SET' : 'NOT SET');
       
+      if (!superadminPassword || !adminPassword) {
+        throw new Error('ADMIN_PASSWORD and SUPERADMIN_PASSWORD environment variables are required');
+      }
+      
+      // Admin users as specified
       const adminUsers = [
-        { username: 'nadia', password: superadminPassword, role: 'superadmin' as const },
         { username: 'ahmed', password: adminPassword, role: 'admin' as const },
         { username: 'yahia', password: adminPassword, role: 'admin' as const },
+        { username: 'nadia', password: superadminPassword, role: 'superadmin' as const },
       ];
+
+      // Clean up any old default users
+      const oldUsers = ['admin', 'superadmin'];
+      for (const oldUsername of oldUsers) {
+        const oldUser = await User.findOne({ username: oldUsername });
+        if (oldUser) {
+          console.log(`🗑️ Removing old default user: ${oldUsername}`);
+          await User.deleteOne({ username: oldUsername });
+        }
+      }
 
       for (const userData of adminUsers) {
         const existingUser = await User.findOne({ username: userData.username });
@@ -351,6 +375,14 @@ class MongoStorage implements IStorage {
           console.log(`✅ Created admin user: ${userData.username}`);
         } else {
           console.log(`ℹ️ Admin user already exists: ${userData.username}`);
+          // Force update password to ensure it's correct
+          console.log(`🔄 Updating password for existing user: ${userData.username}`);
+          const hashedPassword = await bcrypt.hash(userData.password, 10);
+          await User.updateOne(
+            { username: userData.username },
+            { $set: { password: hashedPassword, role: userData.role } }
+          );
+          console.log(`✅ Updated password and role for admin user: ${userData.username}`);
         }
       }
 

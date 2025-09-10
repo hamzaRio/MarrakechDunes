@@ -152,24 +152,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/auth/user', asyncHandler(async (req: Request, res: Response) => {
     const authReq = req as AuthenticatedRequest;
     
-    // Debug logging only in development
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🔍 Auth check:', {
-        hasSession: !!authReq.session,
-        hasUser: !!authReq.session?.user,
-        user: authReq.session?.user?.username
-      });
-    }
-    
     if (authReq.session?.user) {
-      if (process.env.NODE_ENV === 'development') {
-        console.log('✅ User authenticated:', authReq.session.user.username);
-      }
-      res.json(authReq.session.user);
+      res.json({
+        username: authReq.session.user.username,
+        role: authReq.session.user.role
+      });
     } else {
-      if (process.env.NODE_ENV === 'development') {
-        console.log('❌ User not authenticated');
-      }
       throw new AuthenticationError('Not authenticated');
     }
   }));
@@ -177,107 +165,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/auth/login", strictLimiter, authRateLimit, asyncHandler(async (req: Request, res: Response) => {
     const { username, password } = req.body;
     
-    // Debug logging only in development
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🔐 Login attempt for:', username);
+    if (!username || !password) {
+      throw new AuthenticationError("Username and password are required");
     }
     
     try {
       const user = await storage.getUserByUsername(username);
       
       if (!user) {
-        console.log('❌ User not found:', username);
         throw new AuthenticationError("Invalid username or password");
       }
 
-      console.log('✅ User found:', { username: user.username, role: user.role, hasPassword: !!user.password });
-
-      // TEMPORARY: Skip password validation for debugging
-      console.log('🔓 TEMPORARY: Skipping password validation for debugging');
+      const isPasswordValid = await bcrypt.compare(password, user.password);
       
-      // Use bcrypt to verify password with MongoDB
-      // const isPasswordValid = await bcrypt.compare(password, user.password);
-      
-      // if (!isPasswordValid) {
-      //   console.log('❌ Invalid password for user:', username);
-      //   throw new AuthenticationError("Invalid username or password");
-      // }
-
-      console.log('✅ Password validation skipped for user:', username);
+      if (!isPasswordValid) {
+        throw new AuthenticationError("Invalid username or password");
+      }
 
       const authReq = req as AuthenticatedRequest;
       
       // Set session data
       authReq.session.user = {
-        id: user._id,
+        id: user._id?.toString() || user.id?.toString() || '',
         username: user.username,
         role: user.role,
       };
 
-      // Force session save with explicit callback
-      console.log('💾 Saving session for user:', authReq.session.user);
-      authReq.session.save((err: any) => {
-        if (err) {
-          console.error('❌ Session save error:', err);
-          throw new AppError("Login failed - session error", 500, 'SESSION_ERROR');
-        }
-        
-        if (process.env.NODE_ENV === 'development') {
-          console.log('✅ Session saved successfully:', {
-            sessionId: authReq.session.id,
-            user: authReq.session.user,
-            cookie: authReq.session.cookie,
-            cookieName: (authReq.session as any)?.cookie?.name ?? 'unnamed'
-          });
-        }
-
-        // Create audit log
-        storage.createAuditLog({
-          userId: user._id,
-          action: `User ${username} logged in`,
-          details: `Login from IP: ${req.ip}`
-        }).catch(error => {
-          if (process.env.NODE_ENV === 'development') {
-            console.log('⚠️ Audit logging failed:', error);
-          }
-        });
-
-        // Set explicit cookie for cross-origin support
-        const isProduction = process.env.NODE_ENV === 'production';
-        res.cookie('marrakech.session', authReq.session.id, {
-          secure: isProduction,
-          httpOnly: true,
-          sameSite: isProduction ? "none" as const : "lax" as const,
-          maxAge: 24 * 60 * 60 * 1000,
-          path: "/"
-        });
-
-        // Return success response with user data
-        res.json({ 
-          message: "Login successful", 
-          user: authReq.session.user,
-          sessionId: authReq.session.id
-        });
+      // Return success response
+      res.json({ 
+        username: user.username,
+        role: user.role
       });
-    } catch (error) {
-      console.error("❌ Login error:", error);
       
-      // Provide specific error messages based on error type
+    } catch (error) {
       if (error instanceof AuthenticationError) {
-        throw error; // Re-throw authentication errors as-is
-      } else if (error instanceof Error) {
-        // Handle specific error types
-        if (error.message.includes('User not found') || error.message.includes('Invalid credentials')) {
-          throw new AuthenticationError("Invalid username or password");
-        } else if (error.message.includes('bcrypt') || error.message.includes('password')) {
-          throw new AuthenticationError("Invalid username or password");
-        } else {
-          console.error("❌ Unexpected login error:", error);
-          throw new AppError("Login failed - server error", 500, 'LOGIN_ERROR');
-        }
+        throw error;
       } else {
-        console.error("❌ Unknown login error:", error);
-        throw new AppError("Login failed - unknown error", 500, 'LOGIN_ERROR');
+        console.error("Login error:", error);
+        throw new AuthenticationError("Login failed");
       }
     }
   }));
@@ -285,24 +210,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/auth/logout", strictLimiter, asyncHandler(async (req: Request, res: Response) => {
     const authReq = req as AuthenticatedRequest;
     
-    // Only log in development
-    if (process.env.NODE_ENV === 'development') {
-      console.log('🚪 Logout attempt:', {
-        sessionId: authReq.session.id,
-        user: authReq.session?.user,
-        ip: req.ip
-      });
-    }
-    
     authReq.session.destroy((err: any) => {
       if (err) {
-        console.error('❌ Logout error:', err);
-        throw new AppError("Logout failed", 500, 'LOGOUT_ERROR');
+        console.error('Logout error:', err);
+        return res.status(500).json({ error: "Logout failed" });
       }
       
-      if (process.env.NODE_ENV === 'development') {
-        console.log('✅ Logout successful - session destroyed');
-      }
       res.json({ message: "Logout successful" });
     });
   }));
@@ -339,7 +252,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ users: userList, count: users.length });
     } catch (error) {
       console.error('Debug users error:', error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: error instanceof Error ? error.message : 'Unknown error' });
     }
   }));
 
@@ -351,21 +264,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const superadminPassword = 'superadmin123';
       
       // Update ahmed and yahia with admin password
-      await User.updateMany(
-        { username: { $in: ['ahmed', 'yahia'] } },
-        { $set: { password: await bcrypt.hash(adminPassword, 10) } }
-      );
+      await storage.updateUserPassword('ahmed', adminPassword);
+      await storage.updateUserPassword('yahia', adminPassword);
       
       // Update nadia with superadmin password
-      await User.updateMany(
-        { username: 'nadia' },
-        { $set: { password: await bcrypt.hash(superadminPassword, 10) } }
-      );
+      await storage.updateUserPassword('nadia', superadminPassword);
       
       res.json({ message: 'Admin passwords reset successfully' });
     } catch (error) {
       console.error('Reset passwords error:', error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: error instanceof Error ? error.message : 'Unknown error' });
     }
   }));
 

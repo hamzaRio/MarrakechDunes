@@ -90,6 +90,16 @@ class MongoStorage {
             return null;
         }
     }
+    async getUsers() {
+        try {
+            const users = await User.find({});
+            return users.map(user => this.transformDocument(user)).filter(Boolean);
+        }
+        catch (error) {
+            console.error('Error fetching users:', error);
+            return [];
+        }
+    }
     async createUser(userData) {
         const hashedPassword = await bcrypt.hash(userData.password, 10);
         const user = new User({
@@ -98,6 +108,10 @@ class MongoStorage {
         });
         const savedUser = await user.save();
         return this.transformDocument(savedUser);
+    }
+    async updateUserPassword(username, password) {
+        const hashedPassword = await bcrypt.hash(password, 10);
+        await User.updateOne({ username }, { $set: { password: hashedPassword } });
     }
     // Activity operations
     async getActivities() {
@@ -230,28 +244,49 @@ class MongoStorage {
             else {
                 throw new Error('Database connection not available');
             }
-            // Validate required environment variables for admin users
-            if (!process.env.SUPERADMIN_PASSWORD) {
-                throw new Error('SUPERADMIN_PASSWORD environment variable is required');
-            }
-            if (!process.env.ADMIN_PASSWORD) {
-                throw new Error('ADMIN_PASSWORD environment variable is required');
-            }
             // Create admin users if they don't exist
+            // Use environment variables - no fallback defaults for security
+            const superadminPassword = process.env.SUPERADMIN_PASSWORD;
+            const adminPassword = process.env.ADMIN_PASSWORD;
+            console.log('🔐 Environment variables check:');
+            console.log('  SUPERADMIN_PASSWORD:', superadminPassword ? 'SET' : 'NOT SET');
+            console.log('  ADMIN_PASSWORD:', adminPassword ? 'SET' : 'NOT SET');
+            if (!superadminPassword || !adminPassword) {
+                throw new Error('ADMIN_PASSWORD and SUPERADMIN_PASSWORD environment variables are required');
+            }
+            // Admin users as specified
             const adminUsers = [
-                { username: 'nadia', password: process.env.SUPERADMIN_PASSWORD, role: 'superadmin' },
-                { username: 'ahmed', password: process.env.ADMIN_PASSWORD, role: 'admin' },
-                { username: 'yahia', password: process.env.ADMIN_PASSWORD, role: 'admin' },
+                { username: 'ahmed', password: adminPassword, role: 'admin' },
+                { username: 'yahia', password: adminPassword, role: 'admin' },
+                { username: 'nadia', password: superadminPassword, role: 'superadmin' },
             ];
+            // Clean up any old default users
+            const oldUsers = ['admin', 'superadmin'];
+            for (const oldUsername of oldUsers) {
+                const oldUser = await User.findOne({ username: oldUsername });
+                if (oldUser) {
+                    console.log(`🗑️ Removing old default user: ${oldUsername}`);
+                    await User.deleteOne({ username: oldUsername });
+                }
+            }
             for (const userData of adminUsers) {
                 const existingUser = await User.findOne({ username: userData.username });
                 if (!existingUser) {
+                    console.log(`🔐 Creating admin user: ${userData.username} with password length: ${userData.password ? userData.password.length : 'undefined'}`);
                     const hashedPassword = await bcrypt.hash(userData.password, 10);
                     await User.create({
                         ...userData,
                         password: hashedPassword,
                     });
                     console.log(`✅ Created admin user: ${userData.username}`);
+                }
+                else {
+                    console.log(`ℹ️ Admin user already exists: ${userData.username}`);
+                    // Force update password to ensure it's correct
+                    console.log(`🔄 Updating password for existing user: ${userData.username}`);
+                    const hashedPassword = await bcrypt.hash(userData.password, 10);
+                    await User.updateOne({ username: userData.username }, { $set: { password: hashedPassword, role: userData.role } });
+                    console.log(`✅ Updated password and role for admin user: ${userData.username}`);
                 }
             }
             // Skip activity seeding - use existing database with authentic photos
