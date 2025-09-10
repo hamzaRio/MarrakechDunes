@@ -1,9 +1,9 @@
 import 'dotenv-flow/config';
 import { fileURLToPath } from "url";
-import { dirname, join } from "path";
-// ES module __dirname fix
+import path, { join } from "path";
+// ESM dirname helpers
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const __dirname = path.dirname(__filename);
 // Strict environment validation - all critical variables must be set
 const criticalEnvVars = [
     'DATABASE_URL',
@@ -70,30 +70,28 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 // Enable cookie parsing
 app.use(cookieParser());
-// CORS middleware with proper origin handling
+// CORS configuration
+const FRONT_ORIGINS = [
+    "https://marrakech-dunes.vercel.app",
+    /\.vercel\.app$/i
+];
 app.use(cors({
-    origin: [/https:\/\/.*\.vercel\.app$/, "https://marrakech-dunes.vercel.app", "http://localhost:5173"],
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "Cookie", "Set-Cookie"],
-    exposedHeaders: ["Set-Cookie"]
+    origin(origin, cb) {
+        if (!origin)
+            return cb(null, true);
+        if (FRONT_ORIGINS.some(o => (o instanceof RegExp ? o.test(origin) : o === origin))) {
+            return cb(null, true);
+        }
+        cb(null, false);
+    },
+    credentials: true
 }));
 // Session middleware
 app.use(session(sessionSecurity));
-// Serve static assets with proper CORS headers and security
-app.use("/attached_assets", express.static(assetsPath, {
-    setHeaders: (res, path) => {
-        // CORS headers for cross-origin access
-        res.setHeader("Access-Control-Allow-Origin", "https://marrakech-dunes.vercel.app");
-        res.setHeader("Access-Control-Allow-Credentials", "true");
-        res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
-        // Security headers
-        res.setHeader("X-Content-Type-Options", "nosniff");
-        res.setHeader("X-Frame-Options", "DENY");
-        // Cache headers for assets
-        res.setHeader("Cache-Control", "public, max-age=86400"); // 1 day cache for assets
-    }
-}));
+// 🔒 serve public assets from Render (used by Vercel proxy too)
+app.use("/attached_assets", express.static(assetsPath, { maxAge: "7d", etag: true }));
+// Health
+app.get("/health", (_req, res) => res.status(200).send("OK"));
 // Serve static client files
 const publicPath = join(__dirname, "public");
 app.use(express.static(publicPath, {
@@ -167,10 +165,6 @@ app.use((req, res, next) => {
     app.get('/favicon.ico', (req, res) => {
         res.status(204).end();
     });
-    // Stub route for security events to prevent 404 spam in logs
-    app.post('/api/security-events', (req, res) => {
-        res.status(204).send(); // no content, prevents 404 spam in logs
-    });
     // API 404 handler for undefined routes
     app.use('/api/*', notFoundHandler);
     // SPA fallback - serve index.html for all non-API routes
@@ -183,13 +177,13 @@ app.use((req, res, next) => {
     // Deployment trigger: Final production deployment with session routes fixed
     log("Backend configured for API and static assets only - frontend served by Vercel");
     // Start server
-    const PORT = process.env.PORT || 5000;
+    const PORT = process.env.PORT || 10000;
     const apiUrl = process.env.VITE_API_URL || `http://localhost:${PORT}`;
     const isProduction = process.env.NODE_ENV === 'production';
     server.listen(PORT, () => {
-        console.log(`✅ Server running on port ${PORT}`);
-        console.log("✅ Server started, session routes mounted");
-        console.log(`✅ Assets path resolved: ${assetsPath}`);
+        console.log(`[server] listening on ${PORT}`);
+        console.log(`[assets] ${assetsPath}`);
+        console.log(`[routers] /api/session mounted`);
         log(`🚀 Server started on port ${PORT}`);
         log(`🌍 NODE_ENV: ${process.env.NODE_ENV || 'development'}`);
         log(`🌐 Allowed CORS origins: ${allowedOrigins.map(o => typeof o === 'string' ? o : o.toString()).join(', ')}`);
