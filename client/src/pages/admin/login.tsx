@@ -11,7 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { apiFetch } from "@/lib/api";
 import { useLocation } from "wouter";
-import { useLanguage } from "@/hooks/useLanguage";
+import { useLanguage } from "@/hooks/use-language";
 
 const createLoginFormSchema = (t: (key: string) => string) => z.object({
   username: z.string().min(1, t('errors.usernameRequired')),

@@ -19,7 +19,7 @@ import {
   X
 } from "lucide-react";
 import { format, addDays, isSameDay, isAfter, isBefore, startOfDay } from "date-fns";
-import { useLanguage } from "@/hooks/useLanguage";
+import { useLanguage } from "@/hooks/use-language";
 
 interface TimeSlot {
   id: string;

@@ -4,7 +4,7 @@ import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
 import ActivityCard from "@/components/activity-card";
 
-import { useLanguage } from "@/hooks/useLanguage";
+import { useLanguage } from "@/hooks/use-language";
 
 export default function Activities() {
   const { t } = useLanguage();

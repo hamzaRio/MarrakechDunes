@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar, Users, TrendingUp, Activity, Settings, Crown, MessageCircle } from "lucide-react";
 import AdminRoute from "@/components/admin-route";
 import { useAuth } from "@/hooks/use-auth";
-import { useLanguage } from "@/hooks/useLanguage";
+import { useLanguage } from "@/hooks/use-language";
 import { Link } from "wouter";
 import PaymentManagement from "@/components/payment-management";
 import { WhatsAppNotificationPanel } from "@/components/whatsapp-notification-panel";
