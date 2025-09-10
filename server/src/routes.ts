@@ -340,6 +340,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   }));
 
+  // Debug endpoint to reset admin passwords (remove in production)
+  app.post('/api/debug/reset-passwords', asyncHandler(async (_req: Request, res: Response) => {
+    try {
+      const bcrypt = await import('bcrypt');
+      const adminPassword = 'admin123';
+      const superadminPassword = 'superadmin123';
+      
+      // Update ahmed and yahia with admin password
+      await User.updateMany(
+        { username: { $in: ['ahmed', 'yahia'] } },
+        { $set: { password: await bcrypt.hash(adminPassword, 10) } }
+      );
+      
+      // Update nadia with superadmin password
+      await User.updateMany(
+        { username: 'nadia' },
+        { $set: { password: await bcrypt.hash(superadminPassword, 10) } }
+      );
+      
+      res.json({ message: 'Admin passwords reset successfully' });
+    } catch (error) {
+      console.error('Reset passwords error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  }));
+
   // Public routes
   app.get("/api/activities", asyncHandler(async (req: Request, res: Response) => {
     try {
