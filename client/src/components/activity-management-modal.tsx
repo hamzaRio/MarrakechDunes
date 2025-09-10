@@ -85,7 +85,10 @@ export default function ActivityManagementModal({
   // Image upload mutation for updating existing activities
   const updateImageMutation = useMutation({
     mutationFn: async (imageURL: string) => {
-      const res = await apiRequest("PUT", `/api/admin/activities/${activity?._id}/image`, { imageURL });
+      const res = await apiRequest(`/api/admin/activities/${activity?._id}/image`, {
+        method: "PUT",
+        body: JSON.stringify({ imageURL })
+      });
       return res.json();
     },
     onSuccess: (data) => {
@@ -107,7 +110,10 @@ export default function ActivityManagementModal({
   // Create activity mutation
   const createActivityMutation = useMutation({
     mutationFn: async (data: ActivityFormData) => {
-      const res = await apiRequest("POST", "/api/admin/activities", data);
+      const res = await apiRequest("/api/admin/activities", {
+        method: "POST",
+        body: JSON.stringify(data)
+      });
       return res.json();
     },
     onSuccess: () => {
@@ -179,7 +185,10 @@ export default function ActivityManagementModal({
   // Update activity mutation
   const updateActivityMutation = useMutation({
     mutationFn: async (data: ActivityFormData) => {
-      const res = await apiRequest("PUT", `/api/admin/activities/${activity?._id}`, data);
+      const res = await apiRequest(`/api/admin/activities/${activity?._id}`, {
+        method: "PUT",
+        body: JSON.stringify(data)
+      });
       return res.json();
     },
     onSuccess: () => {
@@ -202,7 +211,9 @@ export default function ActivityManagementModal({
   // Delete activity mutation
   const deleteActivityMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest("DELETE", `/api/admin/activities/${activity?._id}`);
+      const res = await apiRequest(`/api/admin/activities/${activity?._id}`, {
+        method: "DELETE"
+      });
       return res.json();
     },
     onSuccess: () => {
@@ -225,8 +236,11 @@ export default function ActivityManagementModal({
   // Toggle activity status mutation
   const toggleActivityMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest("PUT", `/api/admin/activities/${activity?._id}`, {
-        isActive: !activity?.isActive
+      const res = await apiRequest(`/api/admin/activities/${activity?._id}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          isActive: !activity?.isActive
+        })
       });
       return res.json();
     },
@@ -475,7 +489,9 @@ export default function ActivityManagementModal({
                             maxNumberOfFiles={1}
                             maxFileSize={5242880} // 5MB
                             onGetUploadParameters={async () => {
-                              const res = await apiRequest("POST", "/api/objects/upload");
+                              const res = await apiRequest("/api/objects/upload", {
+                                method: "POST"
+                              });
                               const data = await res.json();
                               return {
                                 method: "PUT" as const,

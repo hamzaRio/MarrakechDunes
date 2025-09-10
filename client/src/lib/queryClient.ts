@@ -43,7 +43,11 @@ export async function apiRequest(
   url: string,
   options?: { method?: string; body?: string; headers?: Record<string, string> }
 ): Promise<Response> {
-  const fullUrl = url.startsWith('http') ? url : `${API_URL}${url}`;
+  // If URL already starts with /api, use it as-is (for Vercel rewrites)
+  // If URL doesn't start with /api, prepend it
+  const fullUrl = url.startsWith('http') ? url : 
+                  url.startsWith('/api') ? url : 
+                  `/api${url}`;
   const method = options?.method || 'GET';
   const body = options?.body;
   const headers = options?.headers || (body ? { "Content-Type": "application/json" } : {});
@@ -66,7 +70,11 @@ export const getQueryFn: <T>(options: {
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
     const url = queryKey[0] as string;
-    const fullUrl = url.startsWith('http') ? url : `${API_URL}${url}`;
+    // If URL already starts with /api, use it as-is (for Vercel rewrites)
+    // If URL doesn't start with /api, prepend it
+    const fullUrl = url.startsWith('http') ? url : 
+                    url.startsWith('/api') ? url : 
+                    `/api${url}`;
     const res = await fetch(fullUrl, {
       credentials: "include",
     });

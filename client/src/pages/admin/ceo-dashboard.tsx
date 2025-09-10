@@ -61,8 +61,11 @@ export default function CEODashboard() {
   // Update GetYourGuide price mutation
   const updatePriceMutation = useMutation({
     mutationFn: async ({ id, price }: { id: string; price: number }) => {
-      const res = await apiRequest("PATCH", `/api/admin/activities/${id}/getyourguide-price`, {
-        getyourguidePrice: price
+      const res = await apiRequest(`/api/admin/activities/${id}/getyourguide-price`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          getyourguidePrice: price
+        })
       });
       return res.json();
     },
