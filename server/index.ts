@@ -91,7 +91,8 @@ app.use(cors({
   origin: [/https:\/\/.*\.vercel\.app$/, "https://marrakech-dunes.vercel.app", "http://localhost:5173"],
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"]
+  allowedHeaders: ["Content-Type", "Authorization", "Cookie", "Set-Cookie"],
+  exposedHeaders: ["Set-Cookie"]
 }));
 
 // Session middleware
@@ -171,10 +172,10 @@ app.use((req, res, next) => {
   // ✅ Connect to MongoDB before starting the server
   await connectToDatabase();
 
-  const server = await registerRoutes(app);
-
-  // Mount session router
+  // Mount session router BEFORE other routes
   app.use("/api/session", sessionRouter);
+
+  const server = await registerRoutes(app);
 
   // Health check endpoints
   app.get('/', (req, res) => {
