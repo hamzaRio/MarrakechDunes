@@ -105,7 +105,7 @@ export function SecurityProvider({ children }: { children: ReactNode }) {
       if (!lastSent || (now - parseInt(lastSent)) > 30000) { // 30 seconds throttle
         localStorage.setItem(throttleKey, now.toString());
         
-        apiFetch('/api/security-events', {
+        apiFetch('/security-events', {
           method: 'POST',
           data: {
             event,

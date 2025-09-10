@@ -178,10 +178,87 @@ Test-Endpoint -Method "GET" -Url "$FrontendUrl/api/activities" -Description "Fro
 Write-Host "`nSESSION & AUTHENTICATION TESTS" -ForegroundColor Yellow
 Test-EndpointWithSession -Method "POST" -Url "$FrontendUrl/api/session/init" -Description "Session Initialization"
 
-# Test 5: Authentication Check
-Test-EndpointWithSession -Method "GET" -Url "$FrontendUrl/api/auth/user" -Description "Authentication Check"
+# Test 5: Authentication Check (should return 401 when not logged in)
+$TestResults.Total++
+Write-Info "Testing: Authentication Check (Unauthenticated)"
+Write-Info "  URL: GET $FrontendUrl/api/auth/user"
 
-# Test 6: Asset Fetch
+try {
+    $response = Invoke-WebRequest -Uri "$FrontendUrl/api/auth/user" -Method "GET" -TimeoutSec $TimeoutSec -UseBasicParsing
+    if ($response.StatusCode -eq 401) {
+        Write-Success "Authentication Check (Unauthenticated) - Status: 401 (Expected)"
+        $TestResults.Passed++
+    } else {
+        Write-Warning "Authentication Check (Unauthenticated) - Unexpected status: $($response.StatusCode)"
+        $TestResults.Failed++
+        $TestResults.Failures += @{
+            Test = "Authentication Check (Unauthenticated)"
+            Url = "$FrontendUrl/api/auth/user"
+            Error = "Expected 401, got $($response.StatusCode)"
+        }
+    }
+} catch {
+    if ($_.Exception.Message -like "*401*") {
+        Write-Success "Authentication Check (Unauthenticated) - Status: 401 (Expected)"
+        $TestResults.Passed++
+    } else {
+        Write-Error "Authentication Check (Unauthenticated) - Error: $($_.Exception.Message)"
+        $TestResults.Failed++
+        $TestResults.Failures += @{
+            Test = "Authentication Check (Unauthenticated)"
+            Url = "$FrontendUrl/api/auth/user"
+            Error = $_.Exception.Message
+        }
+    }
+}
+
+# Test 6: Auth Smoke Test (POST session init, then check auth user)
+$TestResults.Total++
+Write-Info "Testing: Auth Smoke Test (Login Flow)"
+Write-Info "  URL: POST $FrontendUrl/api/session/init then GET $FrontendUrl/api/auth/user"
+
+$session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
+try {
+    # Step 1: Initialize session
+    $initResponse = Invoke-WebRequest -Uri "$FrontendUrl/api/session/init" -Method "POST" -TimeoutSec $TimeoutSec -UseBasicParsing -WebSession $session -ContentType "application/json"
+    if ($initResponse.StatusCode -eq 200) {
+        Write-Info "  Session init successful: $($initResponse.StatusCode)"
+        
+        # Step 2: Check auth user with session
+        $authResponse = Invoke-WebRequest -Uri "$FrontendUrl/api/auth/user" -Method "GET" -TimeoutSec $TimeoutSec -UseBasicParsing -WebSession $session
+        if ($authResponse.StatusCode -eq 200) {
+            $authData = $authResponse.Content | ConvertFrom-Json
+            Write-Success "Auth Smoke Test (Login Flow) - Status: 200, User: $($authData.username)"
+            $TestResults.Passed++
+        } else {
+            Write-Warning "Auth Smoke Test (Login Flow) - Auth check failed: $($authResponse.StatusCode)"
+            $TestResults.Failed++
+            $TestResults.Failures += @{
+                Test = "Auth Smoke Test (Login Flow)"
+                Url = "$FrontendUrl/api/auth/user"
+                Error = "Expected 200 after session init, got $($authResponse.StatusCode)"
+            }
+        }
+    } else {
+        Write-Error "Auth Smoke Test (Login Flow) - Session init failed: $($initResponse.StatusCode)"
+        $TestResults.Failed++
+        $TestResults.Failures += @{
+            Test = "Auth Smoke Test (Login Flow)"
+            Url = "$FrontendUrl/api/session/init"
+            Error = "Session init returned $($initResponse.StatusCode)"
+        }
+    }
+} catch {
+    Write-Error "Auth Smoke Test (Login Flow) - Error: $($_.Exception.Message)"
+    $TestResults.Failed++
+    $TestResults.Failures += @{
+        Test = "Auth Smoke Test (Login Flow)"
+        Url = "$FrontendUrl/api/session/init"
+        Error = $_.Exception.Message
+    }
+}
+
+# Test 7: Asset Fetch
 Write-Host "`nASSET SERVING TESTS" -ForegroundColor Yellow
 Test-Endpoint -Method "GET" -Url "$FrontendUrl/attached_assets/agafaypack1_1751128022717.jpeg" -Description "Asset Fetch via Frontend Proxy"
 
