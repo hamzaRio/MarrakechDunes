@@ -186,21 +186,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = await storage.getUserByUsername(username);
       
       if (!user) {
-        if (process.env.NODE_ENV === 'development') {
-          console.log('❌ User not found:', username);
-        }
-        throw new AuthenticationError("Invalid credentials");
+        console.log('❌ User not found:', username);
+        throw new AuthenticationError("Invalid username or password");
       }
+
+      console.log('✅ User found:', { username: user.username, role: user.role, hasPassword: !!user.password });
 
       // Use bcrypt to verify password with MongoDB
       const isPasswordValid = await bcrypt.compare(password, user.password);
       
       if (!isPasswordValid) {
-        if (process.env.NODE_ENV === 'development') {
-          console.log('❌ Invalid password for user:', username);
-        }
-        throw new AuthenticationError("Invalid credentials");
+        console.log('❌ Invalid password for user:', username);
+        throw new AuthenticationError("Invalid username or password");
       }
+
+      console.log('✅ Password valid for user:', username);
 
       const authReq = req as AuthenticatedRequest;
       
@@ -212,6 +212,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
 
       // Force session save with explicit callback
+      console.log('💾 Saving session for user:', authReq.session.user);
       authReq.session.save((err: any) => {
         if (err) {
           console.error('❌ Session save error:', err);
@@ -257,7 +258,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       console.error("❌ Login error:", error);
-      throw new AppError("Login failed", 500, 'LOGIN_ERROR');
+      
+      // Provide specific error messages based on error type
+      if (error instanceof AuthenticationError) {
+        throw error; // Re-throw authentication errors as-is
+      } else if (error instanceof Error) {
+        // Handle specific error types
+        if (error.message.includes('User not found') || error.message.includes('Invalid credentials')) {
+          throw new AuthenticationError("Invalid username or password");
+        } else if (error.message.includes('bcrypt') || error.message.includes('password')) {
+          throw new AuthenticationError("Invalid username or password");
+        } else {
+          console.error("❌ Unexpected login error:", error);
+          throw new AppError("Login failed - server error", 500, 'LOGIN_ERROR');
+        }
+      } else {
+        console.error("❌ Unknown login error:", error);
+        throw new AppError("Login failed - unknown error", 500, 'LOGIN_ERROR');
+      }
     }
   }));
 
