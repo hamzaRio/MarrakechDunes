@@ -324,7 +324,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }));
 
   // Debug endpoint to check admin users (remove in production)
-  app.get('/debug/users', asyncHandler(async (_req: Request, res: Response) => {
+  app.get('/api/debug/users', asyncHandler(async (_req: Request, res: Response) => {
     try {
       const users = await storage.getUsers();
       const userList = users.map(user => ({
