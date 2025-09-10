@@ -1,11 +1,10 @@
 import { createServer } from "http";
-import session from "express-session";
 import bcrypt from "bcrypt";
 import { storage } from "./storage.js";
 import { insertReviewSchema } from "../shared/schema.js";
 import { whatsappService } from "./whatsapp-service.js";
 import { z } from "zod";
-import { authRateLimit, adminApiRateLimit, generalApiRateLimit, enforceHTTPS, adminSecurityMiddleware, superadminSecurityMiddleware, validateInput, securityHeaders, adminAuditLog, sessionSecurity } from "./security-middleware.js";
+import { authRateLimit, adminApiRateLimit, generalApiRateLimit, enforceHTTPS, adminSecurityMiddleware, superadminSecurityMiddleware, validateInput, securityHeaders, adminAuditLog } from "./security-middleware.js";
 import { strictLimiter } from './rate-limiters.js';
 import { asyncHandler, AppError, AuthenticationError, AuthorizationError, NotFoundError, handleDatabaseError } from "./error-handler.js";
 const requireAuth = (req, res, next) => {
@@ -50,8 +49,7 @@ export async function registerRoutes(app) {
             throw new AppError('Database connection failed', 503, 'DATABASE_CONNECTION_FAILED');
         }
     }));
-    // Configure secure sessions FIRST (before other middleware)
-    app.use(session(sessionSecurity));
+    // Session middleware is already configured in server/index.ts
     // Session debug middleware (reduced logging)
     app.use((req, res, next) => {
         // Debug logging only in development

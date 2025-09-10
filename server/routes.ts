@@ -92,8 +92,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   }));
 
-  // Configure secure sessions FIRST (before other middleware)
-  app.use(session(sessionSecurity));
+  // Session middleware is already configured in server/index.ts
   
   // Session debug middleware (reduced logging)
   app.use((req: Request, res: Response, next: NextFunction) => {
