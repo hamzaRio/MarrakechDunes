@@ -11,7 +11,7 @@ COPY client/package*.json ./client/
 COPY shared/package*.json ./shared/
 
 # Install dependencies (including dev dependencies for build)
-RUN npm ci
+RUN npm install --legacy-peer-deps
 
 # Copy source code
 COPY server/ ./server/
@@ -37,7 +37,7 @@ RUN mkdir -p ./dist/shared && cp -r ../shared/* ./dist/shared/
 
 # Remove dev dependencies to reduce image size
 WORKDIR /app
-RUN npm ci --only=production && npm cache clean --force
+RUN npm install --only=production --legacy-peer-deps && npm cache clean --force
 
 # Expose port
 EXPOSE 5000
