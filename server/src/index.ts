@@ -2,6 +2,11 @@ import 'dotenv-flow/config';
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
+import { dirname, join } from "path";
+
+// ES module __dirname fix
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // Strict environment validation - all critical variables must be set
 const criticalEnvVars = [
@@ -40,7 +45,7 @@ import sessionRouter from "./routes/session.js";
 // Define CORS origins - simplified configuration
 const allowedOrigins = [/\.vercel\.app$/, "http://localhost:5173"];
 
-const assetsPath = path.join(__dirname, "attached_assets");
+const assetsPath = join(__dirname, "attached_assets");
 
 // Logging helper
 const log = (
@@ -117,7 +122,7 @@ app.use("/attached_assets", express.static(assetsPath, {
 }));
 
 // Serve static client files
-const publicPath = path.join(__dirname, "public");
+const publicPath = join(__dirname, "public");
 app.use(express.static(publicPath, {
   setHeaders: (res, path) => {
     // Add caching headers for client assets
@@ -213,7 +218,7 @@ app.use((req, res, next) => {
 
   // SPA fallback - serve index.html for all non-API routes
   app.get('*', (_, res) => {
-    res.sendFile(path.join(__dirname, 'public/index.html'));
+    res.sendFile(join(__dirname, 'public/index.html'));
   });
 
   // Global error handler (must be last)
@@ -231,6 +236,7 @@ app.use((req, res, next) => {
   server.listen(PORT, () => {
     console.log(`✅ Server running on port ${PORT}`);
     console.log("✅ Server started, session routes mounted");
+    console.log(`✅ Assets path resolved: ${assetsPath}`);
     log(`🚀 Server started on port ${PORT}`);
     log(`🌍 NODE_ENV: ${process.env.NODE_ENV || 'development'}`);
     log(`🌐 Allowed CORS origins: ${allowedOrigins.map(o => typeof o === 'string' ? o : o.toString()).join(', ')}`);
