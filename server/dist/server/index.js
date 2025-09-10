@@ -175,6 +175,7 @@ app.use((req, res, next) => {
     // Global error handler (must be last)
     app.use(globalErrorHandler);
     // Note: Frontend is served by Vercel, backend only serves API and static assets
+    // Deployment trigger: Final production deployment with session routes fixed
     log("Backend configured for API and static assets only - frontend served by Vercel");
     // Start server
     const PORT = process.env.PORT || 5000;
