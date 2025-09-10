@@ -1,42 +1,7 @@
 {
   "rewrites": [
-    {
-      "source": "/api/:path*",
-      "destination": "https://marrakechdunes.onrender.com/api/:path*"
-    },
-    {
-      "source": "/attached_assets/:path*",
-      "destination": "https://marrakechdunes.onrender.com/attached_assets/:path*"
-    },
-    {
-      "source": "/admin",
-      "destination": "/"
-    },
-    {
-      "source": "/admin/(.*)",
-      "destination": "/"
-    },
-    {
-      "source": "/activities",
-      "destination": "/"
-    },
-    {
-      "source": "/booking",
-      "destination": "/"
-    },
-    {
-      "source": "/reviews",
-      "destination": "/"
-    },
-    {
-      "source": "/((?!api|_next|_static|favicon.ico|attached_assets|assets).*)",
-      "destination": "/"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "/"
-    }
+    { "source": "/api/:path*", "destination": "https://marrakechdunes.onrender.com/api/:path*" },
+    { "source": "/attached_assets/:path*", "destination": "https://marrakechdunes.onrender.com/attached_assets/:path*" },
+    { "source": "/(.*)", "destination": "/" }
   ]
 }
