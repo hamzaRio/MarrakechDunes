@@ -174,6 +174,7 @@ app.use((req, res, next) => {
 
   // Mount session router BEFORE other routes
   app.use("/api/session", sessionRouter);
+  console.log("✅ Session router mounted at /api/session");
 
   const server = await registerRoutes(app);
 
@@ -229,6 +230,7 @@ app.use((req, res, next) => {
   
   server.listen(PORT, () => {
     console.log(`✅ Server running on port ${PORT}`);
+    console.log("✅ Server started, session routes mounted");
     log(`🚀 Server started on port ${PORT}`);
     log(`🌍 NODE_ENV: ${process.env.NODE_ENV || 'development'}`);
     log(`🌐 Allowed CORS origins: ${allowedOrigins.map(o => typeof o === 'string' ? o : o.toString()).join(', ')}`);

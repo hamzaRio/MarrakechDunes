@@ -139,6 +139,7 @@ app.use((req, res, next) => {
     await connectToDatabase();
     // Mount session router BEFORE other routes
     app.use("/api/session", sessionRouter);
+    console.log("✅ Session router mounted at /api/session");
     const server = await registerRoutes(app);
     // Health check endpoints
     app.get('/', (req, res) => {
@@ -183,6 +184,7 @@ app.use((req, res, next) => {
     const isProduction = process.env.NODE_ENV === 'production';
     server.listen(PORT, () => {
         console.log(`✅ Server running on port ${PORT}`);
+        console.log("✅ Server started, session routes mounted");
         log(`🚀 Server started on port ${PORT}`);
         log(`🌍 NODE_ENV: ${process.env.NODE_ENV || 'development'}`);
         log(`🌐 Allowed CORS origins: ${allowedOrigins.map(o => typeof o === 'string' ? o : o.toString()).join(', ')}`);
