@@ -20,3 +20,12 @@ export async function apiFetch<T = any>(
 export async function sessionInit(): Promise<void> {
   try { await api.post('/session/init'); } catch {}
 }
+
+export async function logout(): Promise<void> {
+  try { 
+    await api.post('/auth/logout');
+  } catch (error) {
+    console.error('Logout error:', error);
+    // Even if logout fails, we should clear local state
+  }
+}

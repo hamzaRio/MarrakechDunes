@@ -8,6 +8,7 @@ import AdminRoute from "@/components/admin-route";
 import { useAuth } from "@/hooks/use-auth";
 import { useLanguage } from "@/hooks/use-language";
 import { Link } from "wouter";
+import { asset } from "@/lib/env";
 import PaymentManagement from "@/components/payment-management";
 import { WhatsAppNotificationPanel } from "@/components/whatsapp-notification-panel";
 import ActivityManagementModal from "@/components/activity-management-modal";
@@ -326,7 +327,7 @@ Average per booking: ${activityBookings.length ? Math.round(totalRevenue / activ
                       <div key={activity.id || activity._id || `activity-${index}`} className="border rounded-lg p-6 space-y-4">
                         <div className="flex items-start gap-4">
                           <img 
-                            src={`${import.meta.env.VITE_ASSETS_BASE || 'http://localhost:5000/attached_assets'}${activity.image}`}
+                            src={asset(activity.image)}
                             alt={activity.name}
                             className="w-24 h-24 object-cover rounded-lg"
                           />

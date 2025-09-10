@@ -35,36 +35,10 @@ export default function AdminLogin() {
 
   const mutation = useMutation({
     mutationFn: async (data: LoginFormData) => {
-        const response = await apiFetch("/api/auth/login", {
+      return await apiFetch("/auth/login", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(data),
-        credentials: "include",
+        data: data
       });
-      
-      if (!response.ok) {
-        let errorMessage = t('errors.loginFailed');
-        try {
-          const errorData = await response.json();
-          if (errorData.status === 'error') {
-            errorMessage = errorData.message || t('errors.loginFailed');
-          } else {
-            errorMessage = errorData.message || errorData.error || t('errors.loginFailed');
-          }
-        } catch {
-          // If JSON parsing fails, try text
-          try {
-            errorMessage = await response.text() || t('errors.loginFailed');
-          } catch {
-            errorMessage = t('errors.loginFailed');
-          }
-        }
-        throw new Error(errorMessage);
-      }
-      
-      return await response.json();
     },
     onSuccess: (data) => {
       toast({

@@ -2,9 +2,12 @@ import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Mountain, Menu, MapPin, Phone, Globe } from "lucide-react";
+import { Mountain, Menu, MapPin, Phone, Globe, LogOut, User } from "lucide-react";
 import { useLanguage } from "@/hooks/use-language";
 import { useAuth } from "@/hooks/use-auth";
+import { logout } from "@/lib/api";
+import { useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,6 +20,26 @@ export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const { language, changeLanguage, t } = useLanguage();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      toast({
+        title: t('success.title'),
+        description: t('admin.logoutSuccess'),
+      });
+    } catch (error) {
+      console.error('Logout error:', error);
+      toast({
+        title: "Error",
+        description: "Logout failed",
+        variant: "destructive",
+      });
+    }
+  };
 
   const navItems = [
     { href: "/", label: t('nav.home') },
@@ -76,6 +99,30 @@ export default function Navbar() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+            
+            {/* User Menu for authenticated users */}
+            {user && (user.role === 'admin' || user.role === 'superadmin') && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="flex items-center space-x-2">
+                    <User className="h-4 w-4" />
+                    <span className="text-sm">{user.username}</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuItem asChild>
+                    <Link href="/admin/dashboard" className="flex items-center">
+                      <User className="h-4 w-4 mr-2" />
+                      {t('nav.adminDashboard')}
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleLogout} className="flex items-center text-red-600">
+                    <LogOut className="h-4 w-4 mr-2" />
+                    {t('admin.logout')}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </div>
 
           {/* Mobile Navigation Trigger */}
@@ -108,7 +155,10 @@ export default function Navbar() {
                   ))}
                   {/* Only show admin access if user is authenticated and has admin role */}
                   {user && (user.role === 'admin' || user.role === 'superadmin') && (
-                    <div className="border-t pt-4 mt-4">
+                    <div className="border-t pt-4 mt-4 space-y-2">
+                      <div className="text-sm text-gray-600 mb-2">
+                        Logged in as: <span className="font-semibold">{user.username}</span>
+                      </div>
                       <Link href="/admin/dashboard">
                         <div
                           className="text-lg hover:text-moroccan-red transition-colors cursor-pointer p-2 rounded"
@@ -117,6 +167,16 @@ export default function Navbar() {
                           {t('admin.adminAccess')}
                         </div>
                       </Link>
+                      <div
+                        className="text-lg hover:text-red-600 transition-colors cursor-pointer p-2 rounded flex items-center"
+                        onClick={() => {
+                          handleLogout();
+                          setIsOpen(false);
+                        }}
+                      >
+                        <LogOut className="h-4 w-4 mr-2" />
+                        {t('admin.logout')}
+                      </div>
                     </div>
                   )}
 

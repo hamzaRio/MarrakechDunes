@@ -212,53 +212,120 @@ try {
     }
 }
 
-# Test 6: Auth Smoke Test (POST session init, then check auth user)
+# Test 6: Admin Login Test (with real credentials)
 $TestResults.Total++
-Write-Info "Testing: Auth Smoke Test (Login Flow)"
-Write-Info "  URL: POST $FrontendUrl/api/session/init then GET $FrontendUrl/api/auth/user"
+Write-Info "Testing: Admin Login Test"
+Write-Info "  URL: POST $FrontendUrl/api/auth/login"
 
-$session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
+$loginSession = New-Object Microsoft.PowerShell.Commands.WebRequestSession
 try {
-    # Step 1: Initialize session
-    $initResponse = Invoke-WebRequest -Uri "$FrontendUrl/api/session/init" -Method "POST" -TimeoutSec $TimeoutSec -UseBasicParsing -WebSession $session -ContentType "application/json"
-    if ($initResponse.StatusCode -eq 200) {
-        Write-Info "  Session init successful: $($initResponse.StatusCode)"
+    # Try to login with admin credentials (using environment variables or defaults)
+    $adminUsername = $env:ADMIN_USERNAME ?? "admin"
+    $adminPassword = $env:ADMIN_PASSWORD ?? "admin123"
+    
+    $loginBody = @{
+        username = $adminUsername
+        password = $adminPassword
+    } | ConvertTo-Json
+    
+    $loginResponse = Invoke-WebRequest -Uri "$FrontendUrl/api/auth/login" -Method "POST" -TimeoutSec $TimeoutSec -UseBasicParsing -WebSession $loginSession -ContentType "application/json" -Body $loginBody
+    
+    if ($loginResponse.StatusCode -eq 200) {
+        $loginData = $loginResponse.Content | ConvertFrom-Json
+        Write-Info "  Login successful: $($loginData.user.username) ($($loginData.user.role))"
         
-        # Step 2: Check auth user with session
-        $authResponse = Invoke-WebRequest -Uri "$FrontendUrl/api/auth/user" -Method "GET" -TimeoutSec $TimeoutSec -UseBasicParsing -WebSession $session
+        # Test auth/user after login
+        $authResponse = Invoke-WebRequest -Uri "$FrontendUrl/api/auth/user" -Method "GET" -TimeoutSec $TimeoutSec -UseBasicParsing -WebSession $loginSession
         if ($authResponse.StatusCode -eq 200) {
             $authData = $authResponse.Content | ConvertFrom-Json
-            Write-Success "Auth Smoke Test (Login Flow) - Status: 200, User: $($authData.username)"
+            Write-Success "Admin Login Test - Status: 200, User: $($authData.username), Role: $($authData.role)"
             $TestResults.Passed++
+            
+            # Test protected admin endpoint
+            $adminResponse = Invoke-WebRequest -Uri "$FrontendUrl/api/admin/bookings" -Method "GET" -TimeoutSec $TimeoutSec -UseBasicParsing -WebSession $loginSession
+            if ($adminResponse.StatusCode -eq 200) {
+                Write-Success "Admin Protected Route Test - Status: 200 (Access granted)"
+            } else {
+                Write-Warning "Admin Protected Route Test - Status: $($adminResponse.StatusCode)"
+            }
+            
+            # Test logout
+            $logoutResponse = Invoke-WebRequest -Uri "$FrontendUrl/api/auth/logout" -Method "POST" -TimeoutSec $TimeoutSec -UseBasicParsing -WebSession $loginSession
+            if ($logoutResponse.StatusCode -eq 200) {
+                Write-Success "Admin Logout Test - Status: 200 (Logout successful)"
+                
+                # Test auth/user after logout (should return 401)
+                try {
+                    $postLogoutAuth = Invoke-WebRequest -Uri "$FrontendUrl/api/auth/user" -Method "GET" -TimeoutSec $TimeoutSec -UseBasicParsing -WebSession $loginSession
+                    Write-Warning "Post-Logout Auth Test - Unexpected status: $($postLogoutAuth.StatusCode)"
+                } catch {
+                    if ($_.Exception.Message -like "*401*") {
+                        Write-Success "Post-Logout Auth Test - Status: 401 (Expected - user logged out)"
+                    } else {
+                        Write-Warning "Post-Logout Auth Test - Error: $($_.Exception.Message)"
+                    }
+                }
+            } else {
+                Write-Warning "Admin Logout Test - Status: $($logoutResponse.StatusCode)"
+            }
         } else {
-            Write-Warning "Auth Smoke Test (Login Flow) - Auth check failed: $($authResponse.StatusCode)"
+            Write-Warning "Admin Login Test - Auth check failed: $($authResponse.StatusCode)"
             $TestResults.Failed++
             $TestResults.Failures += @{
-                Test = "Auth Smoke Test (Login Flow)"
+                Test = "Admin Login Test"
                 Url = "$FrontendUrl/api/auth/user"
-                Error = "Expected 200 after session init, got $($authResponse.StatusCode)"
+                Error = "Expected 200 after login, got $($authResponse.StatusCode)"
             }
         }
     } else {
-        Write-Error "Auth Smoke Test (Login Flow) - Session init failed: $($initResponse.StatusCode)"
+        Write-Warning "Admin Login Test - Login failed: $($loginResponse.StatusCode)"
         $TestResults.Failed++
         $TestResults.Failures += @{
-            Test = "Auth Smoke Test (Login Flow)"
-            Url = "$FrontendUrl/api/session/init"
-            Error = "Session init returned $($initResponse.StatusCode)"
+            Test = "Admin Login Test"
+            Url = "$FrontendUrl/api/auth/login"
+            Error = "Login returned $($loginResponse.StatusCode)"
         }
     }
 } catch {
-    Write-Error "Auth Smoke Test (Login Flow) - Error: $($_.Exception.Message)"
+    Write-Error "Admin Login Test - Error: $($_.Exception.Message)"
     $TestResults.Failed++
     $TestResults.Failures += @{
-        Test = "Auth Smoke Test (Login Flow)"
-        Url = "$FrontendUrl/api/session/init"
+        Test = "Admin Login Test"
+        Url = "$FrontendUrl/api/auth/login"
         Error = $_.Exception.Message
     }
 }
 
-# Test 7: Asset Fetch
+# Test 7: Protected Route Access (Unauthenticated)
+$TestResults.Total++
+Write-Info "Testing: Protected Route Access (Unauthenticated)"
+Write-Info "  URL: GET $FrontendUrl/api/admin/bookings"
+
+try {
+    $protectedResponse = Invoke-WebRequest -Uri "$FrontendUrl/api/admin/bookings" -Method "GET" -TimeoutSec $TimeoutSec -UseBasicParsing
+    Write-Warning "Protected Route Test - Unexpected status: $($protectedResponse.StatusCode)"
+    $TestResults.Failed++
+    $TestResults.Failures += @{
+        Test = "Protected Route Access (Unauthenticated)"
+        Url = "$FrontendUrl/api/admin/bookings"
+        Error = "Expected 401/403, got $($protectedResponse.StatusCode)"
+    }
+} catch {
+    if ($_.Exception.Message -like "*401*" -or $_.Exception.Message -like "*403*") {
+        Write-Success "Protected Route Access (Unauthenticated) - Status: 401/403 (Expected - access denied)"
+        $TestResults.Passed++
+    } else {
+        Write-Error "Protected Route Access (Unauthenticated) - Error: $($_.Exception.Message)"
+        $TestResults.Failed++
+        $TestResults.Failures += @{
+            Test = "Protected Route Access (Unauthenticated)"
+            Url = "$FrontendUrl/api/admin/bookings"
+            Error = $_.Exception.Message
+        }
+    }
+}
+
+# Test 8: Asset Fetch
 Write-Host "`nASSET SERVING TESTS" -ForegroundColor Yellow
 Test-Endpoint -Method "GET" -Url "$FrontendUrl/attached_assets/agafaypack1_1751128022717.jpeg" -Description "Asset Fetch via Frontend Proxy"
 
