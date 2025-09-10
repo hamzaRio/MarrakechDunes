@@ -98,12 +98,20 @@ app.use(cors({
 app.use(session(sessionSecurity));
 
 
-// Serve static assets with proper CORS headers
+// Serve static assets with proper CORS headers and security
 app.use("/attached_assets", express.static(assetsPath, {
-  setHeaders: (res) => {
+  setHeaders: (res, path) => {
+    // CORS headers for cross-origin access
     res.setHeader("Access-Control-Allow-Origin", "https://marrakech-dunes.vercel.app");
     res.setHeader("Access-Control-Allow-Credentials", "true");
     res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+    
+    // Security headers
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("X-Frame-Options", "DENY");
+    
+    // Cache headers for assets
+    res.setHeader("Cache-Control", "public, max-age=86400"); // 1 day cache for assets
   }
 }));
 

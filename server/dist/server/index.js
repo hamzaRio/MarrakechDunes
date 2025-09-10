@@ -20,6 +20,7 @@ if (process.env.NODE_ENV === 'production' && process.env.SESSION_SECRET && proce
 }
 // Now import modules that depend on environment variables
 import express from "express";
+import cors from "cors";
 import cookieParser from "cookie-parser";
 import helmet from "helmet";
 import session from "express-session";
@@ -28,6 +29,7 @@ import { registerRoutes } from "./routes.js";
 import { connectToDatabase } from "./db.js";
 import { globalErrorHandler, notFoundHandler } from "./error-handler.js";
 import { sessionSecurity } from "./security-middleware.js";
+import sessionRouter from "./routes/session.js";
 // Define CORS origins - simplified configuration
 const allowedOrigins = [/\.vercel\.app$/, "http://localhost:5173"];
 const assetsPath = path.join(__dirname, "attached_assets");
@@ -64,23 +66,27 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 // Enable cookie parsing
 app.use(cookieParser());
-// Global CORS middleware to fix image cross-origin errors
-app.use((req, res, next) => {
-    res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
-    res.setHeader("Access-Control-Allow-Origin", "https://marrakech-dunes.vercel.app");
-    res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-    res.setHeader("Access-Control-Allow-Credentials", "true");
-    next();
-});
+// CORS middleware with proper origin handling
+app.use(cors({
+    origin: [/https:\/\/.*\.vercel\.app$/, "https://marrakech-dunes.vercel.app", "http://localhost:5173"],
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"]
+}));
 // Session middleware
 app.use(session(sessionSecurity));
-// Serve static assets with proper CORS headers
+// Serve static assets with proper CORS headers and security
 app.use("/attached_assets", express.static(assetsPath, {
-    setHeaders: (res) => {
+    setHeaders: (res, path) => {
+        // CORS headers for cross-origin access
         res.setHeader("Access-Control-Allow-Origin", "https://marrakech-dunes.vercel.app");
         res.setHeader("Access-Control-Allow-Credentials", "true");
         res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+        // Security headers
+        res.setHeader("X-Content-Type-Options", "nosniff");
+        res.setHeader("X-Frame-Options", "DENY");
+        // Cache headers for assets
+        res.setHeader("Cache-Control", "public, max-age=86400"); // 1 day cache for assets
     }
 }));
 // Serve static client files
@@ -131,6 +137,8 @@ app.use((req, res, next) => {
     // ✅ Connect to MongoDB before starting the server
     await connectToDatabase();
     const server = await registerRoutes(app);
+    // Mount session router
+    app.use("/api/session", sessionRouter);
     // Health check endpoints
     app.get('/', (req, res) => {
         res.json({
