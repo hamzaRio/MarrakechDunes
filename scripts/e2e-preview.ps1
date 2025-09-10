@@ -220,8 +220,8 @@ Write-Info "  URL: POST $FrontendUrl/api/auth/login"
 $loginSession = New-Object Microsoft.PowerShell.Commands.WebRequestSession
 try {
     # Try to login with admin credentials (using environment variables or defaults)
-    $adminUsername = $env:ADMIN_USERNAME ?? "admin"
-    $adminPassword = $env:ADMIN_PASSWORD ?? "admin123"
+    $adminUsername = if ($env:ADMIN_USERNAME) { $env:ADMIN_USERNAME } else { "ahmed" }
+    $adminPassword = if ($env:ADMIN_PASSWORD) { $env:ADMIN_PASSWORD } else { "admin123" }
     
     $loginBody = @{
         username = $adminUsername
