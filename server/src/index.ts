@@ -13,7 +13,8 @@ const criticalEnvVars = [
   'SUPERADMIN_PASSWORD',
   'SESSION_SECRET',
   'JWT_SECRET',
-  'CLIENT_URL'
+  'CLIENT_URL',
+  'WHATSAPP_RECEIVERS'
 ];
 
 for (const envVar of criticalEnvVars) {

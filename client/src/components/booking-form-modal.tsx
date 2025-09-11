@@ -88,7 +88,7 @@ export default function BookingFormModal({
 
   const createBookingMutation = useMutation({
     mutationFn: async (data: BookingFormData) => {
-      const response = await apiFetch("/api/bookings", {
+      const response = await apiFetch("/bookings", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -127,7 +127,7 @@ export default function BookingFormModal({
         title: "Success",
         description: "Booking created successfully",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/bookings"] });
+      queryClient.invalidateQueries({ queryKey: ["/admin/bookings"] });
       form.reset();
       setOpen(false);
     },

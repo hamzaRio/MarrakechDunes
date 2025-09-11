@@ -192,8 +192,14 @@ export async function registerRoutes(app) {
     app.post('/api/debug/reset-passwords', asyncHandler(async (_req, res) => {
         try {
             const bcrypt = await import('bcrypt');
-            const adminPassword = 'admin123';
-            const superadminPassword = 'superadmin123';
+            const adminPassword = process.env.ADMIN_PASSWORD;
+            const superadminPassword = process.env.SUPERADMIN_PASSWORD;
+            if (!adminPassword || !superadminPassword) {
+                return res.status(400).json({
+                    status: 'error',
+                    message: 'ADMIN_PASSWORD and SUPERADMIN_PASSWORD must be set in environment variables'
+                });
+            }
             // Update ahmed and yahia with admin password
             await storage.updateUserPassword('ahmed', adminPassword);
             await storage.updateUserPassword('yahia', adminPassword);

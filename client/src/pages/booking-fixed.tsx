@@ -122,14 +122,14 @@ export default function BookingFixed() {
 
   const createBookingMutation = useMutation({
     mutationFn: async (data: BookingFormData) => {
-      const response = await apiRequest("/api/bookings", {
+      const response = await apiRequest("/bookings", {
         method: "POST",
         body: JSON.stringify(data),
       });
       return response;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/bookings"] });
+      queryClient.invalidateQueries({ queryKey: ["/bookings"] });
       toast({
         title: "Booking Confirmed!",
         description: "Your booking has been submitted successfully. You'll receive a WhatsApp confirmation shortly.",

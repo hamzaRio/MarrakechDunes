@@ -84,6 +84,7 @@ uploads/
 
 # Keep project assets
 !attached_assets/
+!client/public/attached_assets/
 
 # === Large files & backups ===
 *.zip
