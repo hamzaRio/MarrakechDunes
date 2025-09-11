@@ -111,7 +111,26 @@ app.use(session(sessionSecurity));
 
 
 // 🔒 serve public assets from Render (used by Vercel proxy too)
-app.use("/attached_assets", express.static(assetsPath, { maxAge: "7d", etag: true }));
+app.use("/attached_assets", express.static(assetsPath, { 
+  maxAge: "7d", 
+  etag: true,
+  setHeaders: (res, path) => {
+    // Set proper Content-Type for images
+    if (path.match(/\.(jpg|jpeg)$/i)) {
+      res.setHeader('Content-Type', 'image/jpeg');
+    } else if (path.match(/\.png$/i)) {
+      res.setHeader('Content-Type', 'image/png');
+    } else if (path.match(/\.gif$/i)) {
+      res.setHeader('Content-Type', 'image/gif');
+    } else if (path.match(/\.webp$/i)) {
+      res.setHeader('Content-Type', 'image/webp');
+    }
+    // Add CORS headers for cross-origin requests
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  }
+}));
 
 // Health
 app.get("/health", (_req, res) => res.status(200).send("OK"));

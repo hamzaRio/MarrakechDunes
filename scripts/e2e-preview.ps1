@@ -221,7 +221,7 @@ $loginSession = New-Object Microsoft.PowerShell.Commands.WebRequestSession
 try {
     # Try to login with admin credentials (using environment variables or defaults)
     $adminUsername = if ($env:ADMIN_USERNAME) { $env:ADMIN_USERNAME } else { "ahmed" }
-    $adminPassword = if ($env:ADMIN_PASSWORD) { $env:ADMIN_PASSWORD } else { "admin123" }
+    $adminPassword = if ($env:ADMIN_PASSWORD) { $env:ADMIN_PASSWORD } else { "Marrakech@2025" }
     
     $loginBody = @{
         username = $adminUsername

@@ -10,13 +10,13 @@ param(
 $AdminPasswordPlain = if ($AdminPassword) { 
     [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($AdminPassword)) 
 } else { 
-    "admin123" 
+    "Marrakech@2025" 
 }
 
 $SuperadminPasswordPlain = if ($SuperadminPassword) { 
     [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($SuperadminPassword)) 
 } else { 
-    "superadmin123" 
+    "Marrakech@1966" 
 }
 
 if ($Remote) {
@@ -70,21 +70,21 @@ try {
 
 # Test 2: Auth User (Unauthenticated)
 Write-Host ""
-Write-Host "2. Auth User (Unauthenticated)" -ForegroundColor Yellow
+Write-Host "2. Auth User - Unauthenticated" -ForegroundColor Yellow
 try {
     $response = Invoke-WebRequest -Uri "$BaseUrl/api/auth/user" -UseBasicParsing -TimeoutSec 10
-    Write-TestResult "Auth User (Unauthenticated)" "FAIL" "Expected 401, got $($response.StatusCode)"
+    Write-TestResult "Auth User - Unauthenticated" "FAIL" "Expected 401, got $($response.StatusCode)"
 } catch {
     if ($_.Exception.Response.StatusCode -eq 401) {
-        Write-TestResult "Auth User (Unauthenticated)" "PASS" "Correctly returned 401"
+        Write-TestResult "Auth User - Unauthenticated" "PASS" "Correctly returned 401"
     } else {
-        Write-TestResult "Auth User (Unauthenticated)" "FAIL" "Expected 401, got $($_.Exception.Response.StatusCode)"
+        Write-TestResult "Auth User - Unauthenticated" "FAIL" "Expected 401, got $($_.Exception.Response.StatusCode)"
     }
 }
 
 # Test 3: Login with Ahmed (Admin)
 Write-Host ""
-Write-Host "3. Login with Ahmed (Admin)" -ForegroundColor Yellow
+Write-Host "3. Login with Ahmed - Admin" -ForegroundColor Yellow
 $session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
 try {
     $loginBody = @{
@@ -110,16 +110,16 @@ try {
 
 # Test 4: Auth User (Authenticated as Ahmed)
 Write-Host ""
-Write-Host "4. Auth User (Authenticated as Ahmed)" -ForegroundColor Yellow
+Write-Host "4. Auth User - Authenticated as Ahmed" -ForegroundColor Yellow
 try {
     $response = Invoke-WebRequest -Uri "$BaseUrl/api/auth/user" -WebSession $session -UseBasicParsing -TimeoutSec 10
     
     if ($response.StatusCode -eq 200) {
         $data = $response.Content | ConvertFrom-Json
         if ($data.username -eq "ahmed" -and $data.role -eq "admin") {
-            Write-TestResult "Auth User (Ahmed)" "PASS" "Status: $($response.StatusCode), User: $($data.username), Role: $($data.role)"
+            Write-TestResult "Auth User - Ahmed" "PASS" "Status: $($response.StatusCode), User: $($data.username), Role: $($data.role)"
         } else {
-            Write-TestResult "Auth User (Ahmed)" "FAIL" "Wrong user data: $($data | ConvertTo-Json)"
+            Write-TestResult "Auth User - Ahmed" "FAIL" "Wrong user data: $($data | ConvertTo-Json)"
         }
     } else {
         Write-TestResult "Auth User (Ahmed)" "FAIL" "Expected 200, got $($response.StatusCode)"
@@ -145,7 +145,7 @@ try {
 
 # Test 6: Auth User (After Logout)
 Write-Host ""
-Write-Host "6. Auth User (After Logout)" -ForegroundColor Yellow
+Write-Host "6. Auth User - After Logout" -ForegroundColor Yellow
 try {
     $response = Invoke-WebRequest -Uri "$BaseUrl/api/auth/user" -WebSession $session -UseBasicParsing -TimeoutSec 10
     Write-TestResult "Auth User (After Logout)" "FAIL" "Expected 401, got $($response.StatusCode)"
@@ -159,7 +159,7 @@ try {
 
 # Test 7: Login with Nadia (Superadmin)
 Write-Host ""
-Write-Host "7. Login with Nadia (Superadmin)" -ForegroundColor Yellow
+Write-Host "7. Login with Nadia - Superadmin" -ForegroundColor Yellow
 $session2 = New-Object Microsoft.PowerShell.Commands.WebRequestSession
 try {
     $loginBody = @{
@@ -185,7 +185,7 @@ try {
 
 # Test 8: Auth User (Authenticated as Nadia)
 Write-Host ""
-Write-Host "8. Auth User (Authenticated as Nadia)" -ForegroundColor Yellow
+Write-Host "8. Auth User - Authenticated as Nadia" -ForegroundColor Yellow
 try {
     $response = Invoke-WebRequest -Uri "$BaseUrl/api/auth/user" -WebSession $session2 -UseBasicParsing -TimeoutSec 10
     
@@ -205,7 +205,7 @@ try {
 
 # Test 9: Login with Yahia (Admin)
 Write-Host ""
-Write-Host "9. Login with Yahia (Admin)" -ForegroundColor Yellow
+Write-Host "9. Login with Yahia - Admin" -ForegroundColor Yellow
 $session3 = New-Object Microsoft.PowerShell.Commands.WebRequestSession
 try {
     $loginBody = @{

@@ -12,13 +12,13 @@ param(
 $AdminPasswordPlain = if ($AdminPassword) { 
     [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($AdminPassword)) 
 } else { 
-    "admin123" 
+    "Marrakech@2025" 
 }
 
 $SuperadminPasswordPlain = if ($SuperadminPassword) { 
     [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($SuperadminPassword)) 
 } else { 
-    "superadmin123" 
+    "Marrakech@1966" 
 }
 
 if ($Remote) {
