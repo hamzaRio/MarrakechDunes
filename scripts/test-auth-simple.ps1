@@ -1,10 +1,23 @@
 # MarrakechDunes Authentication Test Script
 param(
     [string]$BaseUrl = "http://localhost:5000",
-    [string]$AdminPassword = "admin123",
-    [string]$SuperadminPassword = "superadmin123",
+    [SecureString]$AdminPassword,
+    [SecureString]$SuperadminPassword,
     [switch]$Remote
 )
+
+# Convert SecureString to plain text for API calls
+$AdminPasswordPlain = if ($AdminPassword) { 
+    [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($AdminPassword)) 
+} else { 
+    "admin123" 
+}
+
+$SuperadminPasswordPlain = if ($SuperadminPassword) { 
+    [Runtime.InteropServices.Marshal]::PtrToStringAuto([Runtime.InteropServices.Marshal]::SecureStringToBSTR($SuperadminPassword)) 
+} else { 
+    "superadmin123" 
+}
 
 if ($Remote) {
     $BaseUrl = "https://marrakechdunes.onrender.com"
@@ -76,7 +89,7 @@ $session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
 try {
     $loginBody = @{
         username = "ahmed"
-        password = $AdminPassword
+        password = $AdminPasswordPlain
     } | ConvertTo-Json
     
     $response = Invoke-WebRequest -Uri "$BaseUrl/api/auth/login" -Method POST -ContentType "application/json" -Body $loginBody -WebSession $session -UseBasicParsing -TimeoutSec 10
@@ -151,7 +164,7 @@ $session2 = New-Object Microsoft.PowerShell.Commands.WebRequestSession
 try {
     $loginBody = @{
         username = "nadia"
-        password = $SuperadminPassword
+        password = $SuperadminPasswordPlain
     } | ConvertTo-Json
     
     $response = Invoke-WebRequest -Uri "$BaseUrl/api/auth/login" -Method POST -ContentType "application/json" -Body $loginBody -WebSession $session2 -UseBasicParsing -TimeoutSec 10
@@ -197,7 +210,7 @@ $session3 = New-Object Microsoft.PowerShell.Commands.WebRequestSession
 try {
     $loginBody = @{
         username = "yahia"
-        password = $AdminPassword
+        password = $AdminPasswordPlain
     } | ConvertTo-Json
     
     $response = Invoke-WebRequest -Uri "$BaseUrl/api/auth/login" -Method POST -ContentType "application/json" -Body $loginBody -WebSession $session3 -UseBasicParsing -TimeoutSec 10
