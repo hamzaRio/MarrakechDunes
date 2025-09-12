@@ -396,7 +396,13 @@ class MongoStorage implements IStorage {
             description: "Experience the magic of Marrakech from above with a sunrise hot air balloon ride over the Atlas Mountains and traditional Berber villages.",
             price: "1100",
             currency: "MAD",
-            image: "/images/balloon-ride.jpg",
+            image: "/attached_assets/montgolfiere-marrakech_1751127701687.jpg",
+            photos: [
+              "/attached_assets/montgolfiere-marrakech_1751127701687.jpg",
+              "/attached_assets/montgofliere_a_marrakech_1751127701687.jpg",
+              "/attached_assets/Hot Air Balloon Ride2_1751127701686.jpg",
+              "/attached_assets/Hot Air Balloon Ride3_1751127701686.jpg"
+            ],
             category: "Adventure",
             isActive: true,
             availability: "Daily at sunrise (6:00 AM)"
@@ -406,7 +412,11 @@ class MongoStorage implements IStorage {
             description: "Complete Agafay Desert experience with camel riding, quad biking, traditional dinner under the stars, and sunset views.",
             price: "450",
             currency: "MAD",
-            image: "/images/agafay-combo.jpg",
+            image: "/attached_assets/agafaypack1_1751128022717.jpeg",
+            photos: [
+              "/attached_assets/agafaypack1_1751128022717.jpeg",
+              "/attached_assets/agafaypack2_1751128022717.jpeg"
+            ],
             category: "Adventure",
             isActive: true,
             availability: "Daily departures"
@@ -433,7 +443,11 @@ class MongoStorage implements IStorage {
             description: "Visit Morocco's most spectacular waterfalls with 110-meter cascades, rainbow views, and Barbary macaque encounters.",
             price: "200",
             currency: "MAD",
-            image: "/images/ouzoud-waterfalls.jpg",
+            image: "/attached_assets/Ouzoud-Waterfalls_1751126328233.jpg",
+            photos: [
+              "/attached_assets/Ouzoud-Waterfalls_1751126328233.jpg",
+              "/attached_assets/Ouzoud-Waterfalls3_1751126328233.jpg"
+            ],
             category: "Nature",
             isActive: true,
             availability: "Daily 8:00 AM - 6:00 PM"

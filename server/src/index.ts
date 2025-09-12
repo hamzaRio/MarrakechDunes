@@ -1,15 +1,16 @@
 import { fileURLToPath } from "url";
 import path, { join } from "path";
-import dotenv from 'dotenv';
+import dotenvFlow from 'dotenv-flow';
 
 // Get the project root directory (one level up from server/src)
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const projectRoot = path.resolve(__dirname, '../../');
 
-// Load environment variables from project root
-dotenv.config({
-  path: path.resolve(process.cwd(), '.env'),
+// Load environment variables from project root using dotenv-flow
+dotenvFlow.config({
+  path: projectRoot,
+  silent: false
 });
 
 
