@@ -85,7 +85,7 @@ export default function ActivityManagementModal({
   // Image upload mutation for updating existing activities
   const updateImageMutation = useMutation({
     mutationFn: async (imageURL: string) => {
-      const res = await apiRequest(`/api/admin/activities/${activity?._id}/image`, {
+      const res = await apiRequest(`/admin/activities/${activity?._id}/image`, {
         method: "PUT",
         body: JSON.stringify({ imageURL })
       });
@@ -110,7 +110,7 @@ export default function ActivityManagementModal({
   // Create activity mutation
   const createActivityMutation = useMutation({
     mutationFn: async (data: ActivityFormData) => {
-      const res = await apiRequest("/api/admin/activities", {
+      const res = await apiRequest("/admin/activities", {
         method: "POST",
         body: JSON.stringify(data)
       });
@@ -185,7 +185,7 @@ export default function ActivityManagementModal({
   // Update activity mutation
   const updateActivityMutation = useMutation({
     mutationFn: async (data: ActivityFormData) => {
-      const res = await apiRequest(`/api/admin/activities/${activity?._id}`, {
+      const res = await apiRequest(`/admin/activities/${activity?._id}`, {
         method: "PUT",
         body: JSON.stringify(data)
       });
@@ -211,7 +211,7 @@ export default function ActivityManagementModal({
   // Delete activity mutation
   const deleteActivityMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest(`/api/admin/activities/${activity?._id}`, {
+      const res = await apiRequest(`/admin/activities/${activity?._id}`, {
         method: "DELETE"
       });
       return res.json();
@@ -236,7 +236,7 @@ export default function ActivityManagementModal({
   // Toggle activity status mutation
   const toggleActivityMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiRequest(`/api/admin/activities/${activity?._id}`, {
+      const res = await apiRequest(`/admin/activities/${activity?._id}`, {
         method: "PUT",
         body: JSON.stringify({
           isActive: !activity?.isActive

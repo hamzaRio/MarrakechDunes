@@ -27,7 +27,7 @@ export default function AdminDashboard() {
   const queryClient = useQueryClient();
   
   const { data: bookings = [] } = useQuery<BookingWithActivity[]>({
-    queryKey: ["/api/admin/bookings"],
+    queryKey: ["/admin/bookings"],
   });
 
   const { data: activities = [] } = useQuery<ActivityType[]>({
@@ -35,7 +35,7 @@ export default function AdminDashboard() {
   });
 
   const { data: auditLogs = [] } = useQuery<AuditLogType[]>({
-    queryKey: ["/api/admin/audit-logs"],
+    queryKey: ["/admin/audit-logs"],
     enabled: user?.role === 'superadmin',
   });
 
@@ -49,14 +49,14 @@ export default function AdminDashboard() {
   // Admin booking management functions
   const handleBookingStatusUpdate = async (bookingId: string, status: string) => {
     try {
-      await apiFetch(`/api/admin/bookings/${bookingId}/status`, {
+      await apiFetch(`/admin/bookings/${bookingId}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status }),
         credentials: 'include'
       });
       // Refresh bookings data using React Query
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/bookings"] });
+      queryClient.invalidateQueries({ queryKey: ["/admin/bookings"] });
     } catch (error) {
       console.error('Failed to update booking status:', error);
     }

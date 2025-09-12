@@ -15,15 +15,11 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: process.env.VITE_API_URL || 'http://localhost:5000',
+        target: process.env.VITE_API_URL || 'http://localhost:10000',
         changeOrigin: true,
         secure: false,
-      },
-      '/attached_assets': {
-        target: process.env.VITE_API_URL || 'http://localhost:5000',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/attached_assets/, '/attached_assets')
       }
+      // Removed /attached_assets proxy - assets are served locally from public directory
     }
   },
   build: {

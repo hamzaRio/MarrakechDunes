@@ -79,9 +79,9 @@ export default function PerformanceDashboard() {
   const [autoRefresh, setAutoRefresh] = useState(true);
 
   const { data: metrics, isLoading, refetch } = useQuery({
-    queryKey: ['/api/admin/performance-metrics', timeRange],
+    queryKey: ['/admin/performance-metrics', timeRange],
     queryFn: async () => {
-      const response = await apiFetch(`/api/admin/performance-metrics?range=${timeRange}`);
+      const response = await apiFetch(`/admin/performance-metrics?range=${timeRange}`);
       return response.json() as PerformanceMetrics;
     },
     refetchInterval: autoRefresh ? 30000 : false, // 30 seconds

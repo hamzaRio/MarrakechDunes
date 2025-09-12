@@ -41,14 +41,14 @@ export default function PaymentManagement({ booking }: PaymentManagementProps) {
       paymentMethod: string;
       depositAmount?: number;
     }) => {
-      const response = await apiRequest(`/api/admin/bookings/${data.bookingId}/payment`, {
+      const response = await apiRequest(`/admin/bookings/${data.bookingId}/payment`, {
         method: "PATCH",
         body: JSON.stringify(data)
       });
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/bookings"] });
+      queryClient.invalidateQueries({ queryKey: ["/admin/bookings"] });
       toast({
         title: "Payment Updated",
         description: "Payment status has been successfully updated.",

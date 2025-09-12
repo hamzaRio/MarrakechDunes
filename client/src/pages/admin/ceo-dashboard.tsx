@@ -43,25 +43,25 @@ export default function CEODashboard() {
 
   // Fetch analytics data
   const { data: earnings } = useQuery({
-    queryKey: ["/api/admin/analytics/earnings"],
+    queryKey: ["/admin/analytics/earnings"],
   });
 
   const { data: activities } = useQuery({
-    queryKey: ["/api/admin/analytics/activities"],
+    queryKey: ["/admin/analytics/activities"],
   });
 
   const { data: bookings } = useQuery({
-    queryKey: ["/api/admin/analytics/bookings"],
+    queryKey: ["/admin/analytics/bookings"],
   });
 
   const { data: priceComparison } = useQuery({
-    queryKey: ["/api/admin/getyourguide/comparison"],
+    queryKey: ["/admin/getyourguide/comparison"],
   });
 
   // Update GetYourGuide price mutation
   const updatePriceMutation = useMutation({
     mutationFn: async ({ id, price }: { id: string; price: number }) => {
-      const res = await apiRequest(`/api/admin/activities/${id}/getyourguide-price`, {
+      const res = await apiRequest(`/admin/activities/${id}/getyourguide-price`, {
         method: "PATCH",
         body: JSON.stringify({
           getyourguidePrice: price
@@ -70,8 +70,8 @@ export default function CEODashboard() {
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/getyourguide/comparison"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/analytics/activities"] });
+      queryClient.invalidateQueries({ queryKey: ["/admin/getyourguide/comparison"] });
+      queryClient.invalidateQueries({ queryKey: ["/admin/analytics/activities"] });
       setEditingPrice(null);
       toast({
         title: "Price Updated",
