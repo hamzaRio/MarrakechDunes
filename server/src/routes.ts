@@ -94,11 +94,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Session middleware is already configured in server/index.ts
   
-  // Session debug middleware (reduced logging)
+  // Session debug middleware (reduced logging with rate limiting)
+  const logRateLimit = new Map<string, number>();
   app.use((req: Request, res: Response, next: NextFunction) => {
-    // Debug logging only in development
+    // Debug logging only in development, with rate limiting to reduce noise
     if (process.env.NODE_ENV === 'development' && req.path.startsWith('/api/auth/')) {
-      console.log('🔧 Session middleware for:', req.path);
+      const now = Date.now();
+      const key = `${req.ip}-${req.path}`;
+      const lastLog = logRateLimit.get(key) || 0;
+      
+      // Only log once every 10 seconds per IP/path combination
+      if (now - lastLog > 10000) {
+        console.log('🔧 Session middleware for:', req.path);
+        logRateLimit.set(key, now);
+      }
     }
     next();
   });

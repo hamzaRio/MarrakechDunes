@@ -84,7 +84,21 @@ npm run dev
 This will start both frontend and backend concurrently:
 
 - **Frontend:** <http://localhost:5173>
-- **Backend API:** <http://localhost:5000>
+- **Backend API:** <http://localhost:10000>
+
+### Local Development with Production Environment
+
+To test the server locally with production environment variables:
+
+```bash
+# Set production environment and start server
+$env:NODE_ENV="production"; npm run dev:server
+```
+
+**Important Notes:**
+- Production environment variables should be set in Render and Vercel dashboards, not hardcoded
+- Local `.env.production` file is used for testing only
+- Always use HTTPS URLs for production deployments
 
 ## Environment Variables
 
@@ -111,8 +125,8 @@ SESSION_SECRET=your-session-secret-here-32-characters-minimum
 JWT_SECRET=your-jwt-secret-here-32-characters-minimum
 
 # === Frontend URLs ===
-VITE_API_URL=http://localhost:5000
-VITE_ASSETS_BASE=http://localhost:5000/attached_assets
+VITE_API_URL=http://localhost:10000
+VITE_ASSETS_BASE=http://localhost:10000/attached_assets
 
 # === CORS Configuration ===
 CLIENT_URL=http://localhost:5173,http://localhost:3000
@@ -159,8 +173,8 @@ VITE_ASSETS_BASE=https://marrakechdunes.onrender.com/attached_assets
 | DATABASE_URL | Yes | MongoDB connection string | mongodb+srv://user:pass@cluster.mongodb.net/db |
 | SESSION_SECRET | Yes | Session encryption key (32+ chars) | your-session-secret-here-32-characters-minimum |
 | JWT_SECRET | Yes | JWT token signing key (32+ chars) | your-jwt-secret-here-32-characters-minimum |
-| VITE_API_URL | Yes | Backend API URL for frontend | <http://localhost:5000> (dev) / <https://marrakechdunes.onrender.com> (prod) |
-| VITE_ASSETS_BASE | Yes | Static assets base URL | <http://localhost:5000/attached_assets> (dev) / <https://marrakechdunes.onrender.com/attached_assets> (prod) |
+| VITE_API_URL | Yes | Backend API URL for frontend | <http://localhost:10000> (dev) / <https://marrakechdunes.onrender.com> (prod) |
+| VITE_ASSETS_BASE | Yes | Static assets base URL | <http://localhost:10000/attached_assets> (dev) / <https://marrakechdunes.onrender.com/attached_assets> (prod) |
 | CLIENT_URL | Yes | Allowed CORS origins | <http://localhost:5173> (dev) / <https://marrakech-dunes.vercel.app> (prod) |
 | ADMIN_PASSWORD | Yes | Admin user password | your-secure-admin-password |
 | SUPERADMIN_PASSWORD | Yes | Superadmin user password | your-secure-superadmin-password |
@@ -254,6 +268,54 @@ This creates:
 
 - client/dist/ - Frontend production build
 - server/dist/ - Backend production build
+
+### Deployment Checklist
+
+#### Pre-Deployment Verification
+
+- [ ] **Security**: Run `npm audit` in both client and server directories
+- [ ] **Environment**: Verify all required environment variables are set
+- [ ] **Build**: Test production build locally with `npm run build`
+- [ ] **Health Check**: Verify `/api/health` endpoint responds correctly
+- [ ] **Assets**: Confirm all images load with proper Content-Type headers
+- [ ] **CSP**: Test Google Maps integration works with current CSP settings
+- [ ] **CORS**: Verify frontend can communicate with backend API
+- [ ] **Session**: Test authentication flow with secure cookies
+
+#### Render (Backend) Deployment
+
+- [ ] Connect GitHub repository to Render
+- [ ] Use `render.yaml` configuration for automatic setup
+- [ ] Set all environment variables in Render dashboard:
+  - `DATABASE_URL`
+  - `SESSION_SECRET` (32+ characters)
+  - `JWT_SECRET` (32+ characters)
+  - `ADMIN_PASSWORD`
+  - `SUPERADMIN_PASSWORD`
+  - `CLIENT_URL`
+  - `WHATSAPP_RECEIVERS`
+- [ ] Verify health check: `https://your-app.onrender.com/api/health`
+- [ ] Confirm server starts on port 10000
+
+#### Vercel (Frontend) Deployment
+
+- [ ] Connect GitHub repository to Vercel
+- [ ] Set environment variables in Vercel dashboard:
+  - `VITE_API_URL` (your Render backend URL)
+  - `VITE_ASSETS_BASE` (your Render backend URL + /attached_assets)
+- [ ] Verify `vercel.json` configuration includes SPA fallback
+- [ ] Test SPA routing: `https://your-app.vercel.app/booking?activity=test`
+- [ ] Confirm static assets load correctly
+
+#### Post-Deployment Testing
+
+- [ ] **Health Check**: `curl https://your-backend.onrender.com/api/health`
+- [ ] **Frontend**: Visit `https://your-frontend.vercel.app`
+- [ ] **Authentication**: Test admin login flow
+- [ ] **API Endpoints**: Verify all API calls work correctly
+- [ ] **Assets**: Test image loading from `/attached_assets/`
+- [ ] **Google Maps**: Verify maps load without CSP errors
+- [ ] **Performance**: Check React Query caching works correctly
 
 ### Deployment Options
 
@@ -504,8 +566,8 @@ Error: EADDRINUSE: address already in use :::5000
 1. Use `npm run check` to verify TypeScript types
 2. Check browser console for frontend errors
 3. Monitor server logs for backend issues
-4. Use the health endpoint: <http://localhost:5000/api/health>
-5. Verify environment variables are loaded: <http://localhost:5000/health>
+4. Use the health endpoint: <http://localhost:10000/api/health>
+5. Verify environment variables are loaded: <http://localhost:10000/health>
 
 ## License
 
