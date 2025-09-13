@@ -46,13 +46,17 @@ export default function ActivityCard({ activity, showDescription = false }: Acti
           style={{ objectPosition: 'center' }}
           onError={(e) => {
             const img = e.currentTarget;
-            console.warn('Image failed to load:', activity.image, '-> using fallback');
+            if (process.env.NODE_ENV === 'development') {
+              console.warn('Image failed to load:', activity.image, '-> using fallback');
+            }
             // Fallback to a known working image
             img.src = asset("riad-kheirredine_1756041288677.jpg");
             img.onerror = null; // Prevent infinite loops
           }}
           onLoad={() => {
-            console.log('Image loaded successfully:', activity.image);
+            if (process.env.NODE_ENV === 'development') {
+              console.log('Image loaded successfully:', activity.image);
+            }
           }}
           loading="lazy"
         />

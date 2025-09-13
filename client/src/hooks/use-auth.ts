@@ -19,13 +19,17 @@ export function useAuth() {
     gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)
     refetchOnMount: false,
     refetchOnWindowFocus: false,
-    // Add error logging for debugging
+    // Add error logging for debugging (production-safe)
     onError: (error) => {
-      console.error('Auth query error:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Auth query error:', error);
+      }
     },
-    // Add success logging for debugging
+    // Add success logging for debugging (development only)
     onSuccess: (data) => {
-      console.log('Auth query success:', data);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Auth query success:', data);
+      }
     }
   });
 
