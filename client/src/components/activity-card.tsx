@@ -22,11 +22,17 @@ export default function ActivityCard({ activity, showDescription = false }: Acti
   
   // Process activity image path
   const getImageSrc = (imagePath: string) => {
+    if (!imagePath) {
+      return asset("riad-kheirredine_1756041288677.jpg"); // Fallback image
+    }
+    
     if (imagePath.startsWith('/attached_assets/')) {
       // Legacy support for attached_assets paths
       const filename = imagePath.replace('/attached_assets/', '');
       return asset(filename);
     }
+    
+    // If path doesn't start with /attached_assets/, assume it's a filename
     return asset(imagePath);
   };
   
@@ -40,10 +46,13 @@ export default function ActivityCard({ activity, showDescription = false }: Acti
           style={{ objectPosition: 'center' }}
           onError={(e) => {
             const img = e.currentTarget;
-            console.log('Image failed to load:', activity.image);
+            console.warn('Image failed to load:', activity.image, '-> using fallback');
             // Fallback to a known working image
             img.src = asset("riad-kheirredine_1756041288677.jpg");
             img.onerror = null; // Prevent infinite loops
+          }}
+          onLoad={() => {
+            console.log('Image loaded successfully:', activity.image);
           }}
           loading="lazy"
         />
