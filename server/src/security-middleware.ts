@@ -168,7 +168,7 @@ export const securityHeaders = helmet({
       imgSrc: ["'self'", "data:", "https:"],
       scriptSrc: ["'self'", "'unsafe-eval'"],
       connectSrc: ["'self'"],
-      frameSrc: ["'none'"],
+      frameSrc: ["'self'", "https://www.google.com", "https://maps.googleapis.com"],
       objectSrc: ["'none'"],
       upgradeInsecureRequests: [],
     },
