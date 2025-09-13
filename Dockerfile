@@ -37,7 +37,7 @@ RUN mkdir -p ./dist/shared && cp -r ../shared/* ./dist/shared/
 
 # Remove dev dependencies to reduce image size
 WORKDIR /app
-RUN npm install --only=production --legacy-peer-deps && npm cache clean --force
+RUN npm install --omit=dev --legacy-peer-deps && npm cache clean
 
 # Expose port
 EXPOSE 5000
