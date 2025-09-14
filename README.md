@@ -40,8 +40,7 @@ MarrakechDunes/
 +-- package.json           # Root workspace configuration
 +-- vercel.json            # Vercel deployment config
 +-- render.yaml            # Render deployment config
-+-- .env.example           # Environment variables template
-+-- .env.production        # Production environment template
++-- env.production.example # Production environment template
 ```
 
 ## Quick Start
@@ -96,6 +95,7 @@ $env:NODE_ENV="production"; npm run dev:server
 ```
 
 **Important Notes:**
+
 - Production environment variables should be set in Render and Vercel dashboards, not hardcoded
 - Local `.env.production` file is used for testing only
 - Always use HTTPS URLs for production deployments
@@ -137,32 +137,6 @@ SUPERADMIN_PASSWORD=your-superadmin-password-here
 
 # === WhatsApp Integration ===
 WHATSAPP_RECEIVERS=212600623630,212693323368,212654497354
-```
-
-### Production Environment Setup
-
-#### Render (Backend) Environment Variables
-
-Set these in your Render dashboard under **Environment**:
-
-```bash
-NODE_ENV=production
-DATABASE_URL=your-mongodb-atlas-connection-string
-SESSION_SECRET=your-production-session-secret-32-characters-minimum
-JWT_SECRET=your-production-jwt-secret-32-characters-minimum
-CLIENT_URL=https://marrakech-dunes.vercel.app,http://localhost:5173
-ADMIN_PASSWORD=your-production-admin-password
-SUPERADMIN_PASSWORD=your-production-superadmin-password
-WHATSAPP_RECEIVERS=212600623630,212693323368,212654497354
-```
-
-#### Vercel (Frontend) Environment Variables
-
-Set these in your Vercel dashboard under **Settings > Environment Variables**:
-
-```bash
-VITE_API_URL=https://marrakechdunes.onrender.com
-VITE_ASSETS_BASE=https://marrakechdunes.onrender.com/attached_assets
 ```
 
 ### Environment Variable Reference
@@ -335,24 +309,6 @@ This creates:
 1. Connect repository to Render
 2. Use the included render.yaml configuration
 3. Set environment variables in Render dashboard
-
-### Production Environment Variables
-
-For each deployment platform, set these environment variables:
-
-```bash
-DATABASE_URL=your-production-mongodb-uri
-JWT_SECRET=your-production-jwt-secret-minimum-32-characters
-SESSION_SECRET=your-production-session-secret-minimum-32-characters
-ADMIN_PASSWORD=your-production-admin-password-minimum-8-characters
-SUPERADMIN_PASSWORD=your-production-superadmin-password-minimum-8-characters
-CLIENT_URL=https://your-frontend-domain.com
-VITE_API_URL=https://your-backend-domain.com
-VITE_ASSETS_BASE=https://your-backend-domain.com/assets
-WHATSAPP_RECEIVERS=your-production-phone-numbers
-NODE_ENV=production
-PORT=5000
-```
 
 **Production Security Checklist:**
 
@@ -583,6 +539,6 @@ For support and questions:
 
 ---
 
-### Built with ?? for authentic Moroccan adventures
+### Built with ❤️ for authentic Moroccan adventures
  
  
