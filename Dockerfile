@@ -37,14 +37,14 @@ RUN mkdir -p ./dist/shared && cp -r ../shared/* ./dist/shared/
 
 # Remove dev dependencies to reduce image size
 WORKDIR /app
-RUN npm install --omit=dev --legacy-peer-deps && npm cache clean
+RUN npm install --omit=dev --legacy-peer-deps
 
 # Expose port
-EXPOSE 5000
+EXPOSE 10000
 
 # Set environment variables
 ENV NODE_ENV=production
-ENV PORT=5000
+ENV PORT=10000
 
 # Create non-root user for security
 RUN addgroup -g 1001 -S nodejs && \
