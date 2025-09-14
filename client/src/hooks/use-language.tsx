@@ -10,17 +10,7 @@ interface LanguageContextType {
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
-  const [language, setLanguage] = useState<Language>(() => {
-    // Detect browser language or use saved preference
-    const saved = localStorage.getItem('marrakech-language') as Language;
-    if (saved && ['en', 'fr'].includes(saved)) {
-      return saved;
-    }
-    
-    const browserLang = navigator.language.toLowerCase();
-    if (browserLang.startsWith('fr')) return 'fr';
-    return 'en';
-  });
+  const [language, setLanguage] = useState<Language>(() => 'fr');
 
   const handleSetLanguage = (lang: Language) => {
     setLanguage(lang);
