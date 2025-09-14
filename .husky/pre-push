@@ -1,5 +1,11 @@
 #!/usr/bin/env sh
 . "$(dirname -- "$0")/_/husky.sh"
 
-echo "Running production readiness tests before push..."
+echo "Running TypeScript check..."
+npm run check
+
+echo "Running unit tests..."
+npm run test:run -w client
+
+echo "Running production readiness tests..."
 powershell -ExecutionPolicy Bypass -File scripts\\e2e.ps1
