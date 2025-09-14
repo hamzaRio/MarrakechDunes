@@ -1,0 +1,27 @@
+[13:17:09] 
+[13:17:09] ===== ENV =====
+[13:17:09] FRONTEND_URL: https://marrakech-dunes.vercel.app
+[13:17:09] BACKEND_URL : https://marrakechdunes.onrender.com
+[13:17:09] TIMEOUT_SEC : 30
+[13:17:09] 
+[13:17:10] ===== HEALTH =====
+[13:17:44] Backend /health OK
+[13:17:44] 
+[13:17:44] ===== ASSET DISCOVERY =====
+[13:17:44] Local asset selected: agafaypack1_1751128022717.jpeg
+[13:17:45] 
+[13:17:45] ===== BACKEND API =====
+[13:17:45] Backend activities count: 5
+[13:17:46] 
+[13:17:46] ===== PROXY API VIA FRONTEND =====
+[13:17:47] Frontend(proxied) activities count: 5
+[13:17:47] 
+[13:17:47] ===== SESSION + COOKIE =====
+[13:17:48] No Set-Cookie header visible (may still store cookie)
+[13:17:53] GET /api/auth/user error: The remote server returned an error: (401) Unauthorized.
+[13:17:53] 
+[13:17:53] ===== ASSET VIA PROXY =====
+[13:17:59] Asset OK: https://marrakech-dunes.vercel.app/attached_assets/agafaypack1_1751128022717.jpeg | HTTP 200
+[13:17:59] 
+[13:17:59] ===== SUMMARY =====
+[13:17:59] === RESULT: ALL CHECKS PASSED ===

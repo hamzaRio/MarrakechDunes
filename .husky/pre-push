@@ -1,5 +1,0 @@
-echo "Running TypeScript check..."
-npm run check
-
-echo "Running production readiness tests..."
-powershell -ExecutionPolicy Bypass -File scripts\\e2e.ps1

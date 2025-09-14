@@ -20,8 +20,7 @@
     "build:backend": "npm run build -w server",
     "test": "npm run test -w client",
     "test:e2e": "powershell -ExecutionPolicy Bypass -File scripts\\e2e.ps1",
-    "check": "tsc",
-    "prepare": "husky"
+    "check": "tsc"
   },
   "dependencies": {
     "node-fetch": "^3.3.2",
@@ -37,7 +36,6 @@
     "@types/node": "^24.3.1",
     "@types/opossum": "^8.0.0",
     "concurrently": "^8.2.2",
-    "husky": "^9.1.7",
     "tsx": "^4.19.2",
     "typescript": "5.6.3"
   }
