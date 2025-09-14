@@ -1,6 +1,7 @@
 {
   "rewrites": [
     { "source": "/api/(.*)", "destination": "https://marrakechdunes.onrender.com/api/$1" },
+    { "source": "/attached_assets/(.*)", "destination": "https://marrakechdunes.onrender.com/attached_assets/$1" },
     { "source": "/(.*)", "destination": "/" }
   ],
   "headers": [

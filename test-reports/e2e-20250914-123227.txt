@@ -1,0 +1,32 @@
+[12:32:27] 
+[12:32:27] ===== ENV =====
+[12:32:27] FRONTEND_URL: https://marrakech-dunes.vercel.app
+[12:32:27] BACKEND_URL : https://marrakechdunes.onrender.com
+[12:32:27] TIMEOUT_SEC : 30
+[12:32:27] 
+[12:32:27] ===== HEALTH =====
+[12:34:02] FAIL: Backend /health not OK: The operation has timed out.
+[12:34:02] NEXT: Ensure Render is live & /health reachable
+[12:34:02] 
+[12:34:02] ===== ASSET DISCOVERY =====
+[12:34:03] Local asset selected: agafaypack1_1751128022717.jpeg
+[12:34:03] 
+[12:34:03] ===== BACKEND API =====
+[12:35:38] FAIL: GET backend /api/activities failed: The operation has timed out.
+[12:35:38] NEXT: Check MongoDB, seed, server logs
+[12:35:38] 
+[12:35:38] ===== PROXY API VIA FRONTEND =====
+[12:37:12] FAIL: GET frontend /api/activities via Vercel proxy failed: The operation has timed out.
+[12:37:12] NEXT: Redeploy Vercel & verify vercel.json rewrites; VITE_API_URL must be /api
+[12:37:12] 
+[12:37:12] ===== SESSION + COOKIE =====
+[12:38:46] FAIL: POST /api/session/init failed: The operation has timed out.
+[12:38:46] NEXT: Ensure session route mounted & CORS { credentials: true } with *.vercel.app origins
+[12:40:20] GET /api/auth/user error: The operation has timed out.
+[12:40:20] 
+[12:40:20] ===== ASSET VIA PROXY =====
+[12:40:22] Asset OK: https://marrakech-dunes.vercel.app/attached_assets/agafaypack1_1751128022717.jpeg | HTTP 200
+[12:40:22] 
+[12:40:22] ===== SUMMARY =====
+[12:40:22] === RESULT: FAILED ===
+[12:40:22] See NEXT steps above for each failure.

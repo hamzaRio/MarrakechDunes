@@ -1,0 +1,5 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "Running production readiness tests before push..."
+powershell -ExecutionPolicy Bypass -File scripts\\e2e.ps1

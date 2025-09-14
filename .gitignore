@@ -8,10 +8,8 @@ yarn-error.log*
 dist/
 build/
 client/dist/
+server/dist/
 *.tsbuildinfo
-
-# Keep server build output
-!server/dist/
 
 # === Environment variables ===
 .env

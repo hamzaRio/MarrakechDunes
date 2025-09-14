@@ -223,7 +223,7 @@ const createSessionStore = () => {
       ttl: 24 * 60 * 60, // 24 hours in seconds
       autoRemove: 'native',
       crypto: {
-        secret: process.env.SESSION_SECRET || 'dev-session-secret-change-in-production'
+        secret: process.env.SESSION_SECRET!
       }
     });
   } catch (error) {
@@ -259,7 +259,7 @@ const createEnhancedSessionStore = () => {
       ttl: 24 * 60 * 60, // 24 hours in seconds
       autoRemove: 'native',
       crypto: {
-        secret: process.env.SESSION_SECRET || 'dev-session-secret-change-in-production'
+        secret: process.env.SESSION_SECRET!
       },
       // Enhanced options for better reliability
       touchAfter: 24 * 3600, // Only update session once per day
@@ -292,7 +292,7 @@ const isProduction = process.env.NODE_ENV === 'production';
 
 export const sessionSecurity = {
   name: 'marrakech.session',
-  secret: process.env.SESSION_SECRET || 'dev-session-secret-change-in-production',
+  secret: process.env.SESSION_SECRET!,
   resave: true, // Ensure session is saved
   saveUninitialized: false,
   store: createEnhancedSessionStore(),
