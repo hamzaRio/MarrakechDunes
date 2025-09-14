@@ -13,7 +13,7 @@ export function useAuth() {
   
   const { data, isLoading, error, refetch } = useQuery<User>({
     queryKey: ["/api/auth/user"],
-    enabled: hasSessionCookie, // Only run query if session cookie exists
+    enabled: !!hasSessionCookie, // Only run query if session cookie exists
     retry: false, // Stop retry loop completely for auth queries
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)

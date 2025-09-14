@@ -25,6 +25,7 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: false,
+    minify: 'terser', // Use terser instead of esbuild to avoid eval() usage
     chunkSizeWarningLimit: 1000, // Increase limit to 1MB to reduce warnings
     rollupOptions: {
       output: {

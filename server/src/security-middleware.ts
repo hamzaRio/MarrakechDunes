@@ -166,7 +166,7 @@ export const securityHeaders = helmet({
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
       imgSrc: ["'self'", "data:", "https:", "https://maps.gstatic.com"],
-      scriptSrc: ["'self'", "'unsafe-eval'", "https://maps.googleapis.com"],
+      scriptSrc: ["'self'", "https://maps.googleapis.com"],
       connectSrc: ["'self'", "https://maps.googleapis.com"],
       frameSrc: ["'self'", "https://www.google.com", "https://maps.googleapis.com"],
       objectSrc: ["'none'"],
