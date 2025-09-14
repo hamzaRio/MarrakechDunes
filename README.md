@@ -17,6 +17,7 @@ MarrakechDunes is a production-ready full-stack web application for booking auth
 ## 🛠️ Tech Stack
 
 ### Frontend
+
 - **React 18** with TypeScript
 - **Vite** for fast development and building
 - **Tailwind CSS** for styling
@@ -27,6 +28,7 @@ MarrakechDunes is a production-ready full-stack web application for booking auth
 - **Uppy** for file uploads
 
 ### Backend
+
 - **Node.js** with Express.js
 - **TypeScript** for type safety
 - **MongoDB** with Mongoose ODM
@@ -37,6 +39,7 @@ MarrakechDunes is a production-ready full-stack web application for booking auth
 - **Circuit Breakers** for resilience
 
 ### Infrastructure
+
 - **Vercel** for frontend deployment
 - **Render** for backend hosting
 - **MongoDB Atlas** for database
@@ -47,7 +50,7 @@ MarrakechDunes is a production-ready full-stack web application for booking auth
 
 ### Prerequisites
 
-- Node.js 18+ 
+- Node.js 18+
 - npm 9+
 - MongoDB Atlas account
 - AWS S3 bucket (for file uploads)
@@ -56,17 +59,20 @@ MarrakechDunes is a production-ready full-stack web application for booking auth
 ### Local Development
 
 1. **Clone the repository**
+
    ```bash
    git clone https://github.com/hamzaRio/MarrakechDunes.git
    cd MarrakechDunes
    ```
 
 2. **Install dependencies**
+
    ```bash
    npm install
    ```
 
 3. **Set up environment variables**
+
    ```bash
    # Copy the example file
    cp env.production.example .env.local
@@ -76,13 +82,15 @@ MarrakechDunes is a production-ready full-stack web application for booking auth
    ```
 
 4. **Start development servers**
+
    ```bash
    npm run dev
    ```
 
    This will start:
-   - Frontend: http://localhost:5173
-   - Backend: http://localhost:10000
+
+   - Frontend: <http://localhost:5173>
+   - Backend: <http://localhost:10000>
 
 ### Environment Variables
 
@@ -93,14 +101,14 @@ MarrakechDunes is a production-ready full-stack web application for booking auth
 | `JWT_SECRET` | Yes | JWT token signing key | `your-jwt-secret-key` |
 | `ADMIN_PASSWORD` | Yes | Admin account password | `Marrakech@2025` |
 | `SUPERADMIN_PASSWORD` | Yes | Super admin password | `Marrakech@1966` |
-| `CLIENT_URL` | Yes | Frontend URL for CORS | `https://marrakech-dunes.vercel.app` |
-| `VITE_API_URL` | Yes | Backend API URL | `https://marrakechdunes.onrender.com` |
+| `CLIENT_URL` | Yes | Frontend URL for CORS | `<https://marrakech-dunes.vercel.app>` |
+| `VITE_API_URL` | Yes | Backend API URL | `<https://marrakechdunes.onrender.com>` |
 | `VITE_ASSETS_BASE` | Yes | Assets base URL | `https://marrakechdunes.onrender.com/attached_assets` |
 | `WHATSAPP_RECEIVERS` | Yes | WhatsApp notification recipients | `212600623630,212693323368` |
 
 ## 🏗️ Project Structure
 
-```
+```text
 MarrakechDunes/
 ├── client/                 # React frontend
 │   ├── src/
@@ -125,16 +133,19 @@ MarrakechDunes/
 ## 🧪 Testing
 
 ### Unit Tests
+
 ```bash
 npm run test
 ```
 
 ### End-to-End Tests
+
 ```bash
 npm run test:e2e
 ```
 
 ### Manual Testing Checklist
+
 - [ ] Frontend loads without white screen
 - [ ] API endpoints respond correctly
 - [ ] File uploads work
@@ -180,6 +191,7 @@ npm run test:e2e
 ### Security Headers
 
 The application includes comprehensive security headers via Helmet:
+
 - Content Security Policy (CSP)
 - HTTP Strict Transport Security (HSTS)
 - X-Frame-Options
@@ -192,4 +204,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-**Built with ❤️ for authentic Moroccan experiences**
+## Acknowledgments
+
+Built with ❤️ for authentic Moroccan experiences
