@@ -540,5 +540,3 @@ For support and questions:
 ---
 
 ### Built with ❤️ for authentic Moroccan adventures
- 
- 
