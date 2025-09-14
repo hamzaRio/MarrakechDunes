@@ -12,7 +12,7 @@
     "build": "npm run build:client && npm run build:server",
     "build:client": "npm --prefix client run build",
     "build:server": "npm --prefix server run build",
-    "start:server": "node server/dist/index.js",
+    "start:server": "powershell -NoProfile -ExecutionPolicy Bypass -Command \". .\\\\scripts\\\\load-env.ps1; node server/dist/index.js\"",
     "start": "cd server && npm run start",
     "dev": "concurrently \"npm run dev:client\" \"npm run dev:server\"",
     "dev:server": "tsx server/src/index.ts",
@@ -22,8 +22,11 @@
     "build:frontend": "npm run build -w client",
     "build:backend": "npm run build -w server",
     "test": "npm run test -w client",
-    "test:e2e": "powershell -ExecutionPolicy Bypass -File scripts\\e2e.ps1",
-    "check": "tsc"
+    "test:e2e": "powershell -ExecutionPolicy Bypass -File scripts\\\\e2e.ps1",
+    "check": "tsc",
+    "health:backend": "powershell -NoProfile -ExecutionPolicy Bypass -Command \". .\\\\scripts\\\\load-env.ps1 -Silent; curl -fsS http://localhost:10000/api/health\" || exit 1",
+    "health:frontend": "powershell -NoProfile -ExecutionPolicy Bypass -Command \". .\\\\scripts\\\\load-env.ps1 -Silent; curl -fsS http://localhost:5173\" || exit 1",
+    "login:test:nadia": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\\\login-nadia.ps1"
   },
   "dependencies": {
     "node-fetch": "^3.3.2",

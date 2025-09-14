@@ -390,6 +390,7 @@ class MongoStorage implements IStorage {
       const activityCount = await Activity.countDocuments();
       console.log(`Found ${activityCount} existing activities in database`);
       if (activityCount === 0) {
+        // Seed with unique images per activity from attached_assets
         const activities = [
           {
             name: "Montgolfière (Hot Air Balloon)",
@@ -457,13 +458,13 @@ class MongoStorage implements IStorage {
             description: "Discover the stunning Ourika Valley with its colorful Berber villages, flowing rivers, snow-capped Atlas Mountains, and authentic local culture.",
             price: "150",
             currency: "MAD",
-            image: "/attached_assets/Ourika-Valley-day-trip-from-Marrakech_1751119268337.jpg",
+            image: "/attached_assets/Ourika-Valley-day-trip-from-Marrakech_1756485141180.jpg",
             photos: [
-              "/attached_assets/ourika valley3_1751119268336.jpg",
-              "/attached_assets/Ourika-Valley-day-trip-from-Marrakech_1751119268337.jpg",
-              "/attached_assets/Ourika-valley-day-trip-from-marrakech-1_1751119268337.jpg",
-              "/attached_assets/ourika-valley-1_1751119268337.jpeg",
-              "/attached_assets/ourika-valley-marrakech_1751119268337.jpg"
+              "/attached_assets/ourika valley3_1751114166832.jpg",
+              "/attached_assets/Ourika-Valley-day-trip-from-Marrakech_1756485141180.jpg",
+              "/attached_assets/ourika-valley-1_1756485141180.jpeg",
+              "/attached_assets/ourika-valley-marrakech_1756485141180.jpg",
+              "/attached_assets/ourika valley3_1756485141179.jpg"
             ],
             category: "Day Trips",
             isActive: true,

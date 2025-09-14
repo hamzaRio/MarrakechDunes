@@ -143,6 +143,8 @@ app.use("/attached_assets", express.static(assetsPath, {
 
 // Health
 app.get("/health", (_req, res) => res.status(200).send("OK"));
+// Render expects /api/health
+app.get("/api/health", (_req, res) => res.status(200).send("OK"));
 
 // Serve static client files
 const publicPath = join(__dirname, "public");

@@ -2,6 +2,7 @@ export interface Translation {
   [key: string]: string | Translation;
 }
 
+// Deprecated in favor of i18next JSON resources in client/src/locales
 export const translations = {
   en: {
     nav: {

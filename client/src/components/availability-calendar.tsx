@@ -207,7 +207,7 @@ export default function AvailabilityCalendar({
         <div className="flex items-center space-x-2">
           <CalendarIcon className="h-5 w-5 text-moroccan-blue" />
           <h3 className="text-lg font-semibold text-moroccan-blue">
-            Select Date & Time
+            {t('calendar.selectDateTime')}
           </h3>
         </div>
         <Select value={viewMode} onValueChange={(value: 'calendar' | 'list') => setViewMode(value)}>
@@ -215,8 +215,8 @@ export default function AvailabilityCalendar({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="calendar">Calendar</SelectItem>
-            <SelectItem value="list">List View</SelectItem>
+            <SelectItem value="calendar">{t('calendar.calendar')}</SelectItem>
+            <SelectItem value="list">{t('calendar.list')}</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -227,7 +227,7 @@ export default function AvailabilityCalendar({
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <CalendarIcon className="h-5 w-5" />
-              <span>Available Dates</span>
+              <span>{t('calendar.availableDates')}</span>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -266,15 +266,15 @@ export default function AvailabilityCalendar({
             <div className="mt-4 flex items-center space-x-4 text-sm">
               <div className="flex items-center space-x-1">
                 <div className="w-3 h-3 bg-green-500 rounded"></div>
-                <span>Available</span>
+                <span>{t('calendar.available')}</span>
               </div>
               <div className="flex items-center space-x-1">
                 <div className="w-3 h-3 bg-orange-500 rounded"></div>
-                <span>Limited</span>
+                <span>{t('calendar.limited')}</span>
               </div>
               <div className="flex items-center space-x-1">
                 <div className="w-3 h-3 bg-gray-300 rounded"></div>
-                <span>Unavailable</span>
+                <span>{t('calendar.unavailable')}</span>
               </div>
             </div>
           </CardContent>
@@ -286,7 +286,7 @@ export default function AvailabilityCalendar({
             <CardTitle className="flex items-center space-x-2">
               <Clock className="h-5 w-5" />
               <span>
-                {selectedDay ? format(selectedDay, 'EEEE, MMMM d') : 'Select a Date'}
+                {selectedDay ? format(selectedDay, 'EEEE, MMMM d') : t('calendar.selectDatePrompt')}
               </span>
             </CardTitle>
           </CardHeader>
@@ -296,11 +296,11 @@ export default function AvailabilityCalendar({
                 {selectedDayData.weather && (
                   <div className="p-3 bg-blue-50 rounded-lg">
                     <div className="flex items-center justify-between text-sm">
-                      <span className="font-medium">Weather Forecast</span>
+                      <span className="font-medium">{t('calendar.weatherForecast')}</span>
                       <span className={`px-2 py-1 rounded text-xs ${
                         selectedDayData.weather.suitable ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
                       }`}>
-                        {selectedDayData.weather.suitable ? 'Perfect Conditions' : 'Check Weather'}
+                        {selectedDayData.weather.suitable ? t('calendar.perfectConditions') : t('calendar.checkWeather')}
                       </span>
                     </div>
                     <div className="mt-1 text-sm text-gray-600">
@@ -376,13 +376,13 @@ export default function AvailabilityCalendar({
 
                 {selectedDayData.timeSlots.length === 0 && (
                   <div className="text-center py-8 text-gray-500">
-                    No time slots available for this date
+                    {t('calendar.unavailable')}
                   </div>
                 )}
               </div>
             ) : (
               <div className="text-center py-8 text-gray-500">
-                Please select a date to view available time slots
+                {t('calendar.selectDatePrompt')}
               </div>
             )}
           </CardContent>
@@ -395,7 +395,7 @@ export default function AvailabilityCalendar({
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <h4 className="text-lg font-semibold mb-2">Selected Booking</h4>
+                <h4 className="text-lg font-semibold mb-2">{t('calendar.selectedBooking')}</h4>
                 <div className="space-y-1">
                   <div className="flex items-center space-x-2">
                     <CalendarIcon className="h-4 w-4" />
@@ -407,7 +407,7 @@ export default function AvailabilityCalendar({
                   </div>
                   <div className="flex items-center space-x-2">
                     <DollarSign className="h-4 w-4" />
-                    <span>{selectedTimeSlot.price} MAD per person</span>
+                    <span>{selectedTimeSlot.price} MAD {t('calendar.perPerson')}</span>
                   </div>
                 </div>
               </div>
@@ -417,7 +417,7 @@ export default function AvailabilityCalendar({
                   {selectedTimeSlot.price} MAD
                 </div>
                 <div className="text-blue-100 text-sm">
-                  per person
+                  {t('calendar.perPerson')}
                 </div>
               </div>
             </div>
