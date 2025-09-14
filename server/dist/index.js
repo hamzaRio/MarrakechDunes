@@ -1,9 +1,15 @@
-import 'dotenv-flow/config';
 import { fileURLToPath } from "url";
 import path, { join } from "path";
-// ESM dirname helpers
+import dotenvFlow from 'dotenv-flow';
+// Get the project root directory (one level up from server/src)
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const projectRoot = path.resolve(__dirname, '../../');
+// Load environment variables from project root using dotenv-flow
+dotenvFlow.config({
+    path: projectRoot,
+    silent: false
+});
 // Strict environment validation - all critical variables must be set
 const criticalEnvVars = [
     'DATABASE_URL',
@@ -35,8 +41,7 @@ import { connectToDatabase } from "./db.js";
 import { globalErrorHandler, notFoundHandler } from "./error-handler.js";
 import { sessionSecurity } from "./security-middleware.js";
 import sessionRouter from "./routes/session.js";
-// Define CORS origins - simplified configuration
-const allowedOrigins = [/\.vercel\.app$/, "http://localhost:5173"];
+// CORS origins are defined below in FRONT_ORIGINS
 const assetsPath = join(__dirname, "attached_assets");
 // Logging helper
 const log = (message, source = "express", level = "info") => {
@@ -74,6 +79,7 @@ app.use(cookieParser());
 // CORS configuration
 const FRONT_ORIGINS = [
     "https://marrakech-dunes.vercel.app",
+    "http://localhost:5173", // Added for local development
     /\.vercel\.app$/i
 ];
 app.use(cors({
@@ -209,7 +215,7 @@ app.use((req, res, next) => {
         console.log(`[routers] /api/session mounted`);
         log(`🚀 Server started on port ${PORT}`);
         log(`🌍 NODE_ENV: ${process.env.NODE_ENV || 'development'}`);
-        log(`🌐 Allowed CORS origins: ${allowedOrigins.map(o => typeof o === 'string' ? o : o.toString()).join(', ')}`);
+        log(`🌐 Allowed CORS origins: ${FRONT_ORIGINS.map(o => typeof o === 'string' ? o : o.toString()).join(', ')}`);
         log(`📁 Assets path: ${assetsPath}`);
         log(`🔒 Rate limiting: ${isProduction ? '100' : '200'} req/15min (global, auth, admin, general)`);
         log(`🍪 Session cookies: secure=${isProduction}, sameSite=${isProduction ? 'none' : 'lax'}, httpOnly=true`);

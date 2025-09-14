@@ -128,7 +128,7 @@ export const validateInput = (req, res, next) => {
         if (obj && typeof obj === 'object') {
             const sanitized = {};
             for (const key in obj) {
-                if (obj.hasOwnProperty(key)) {
+                if (Object.prototype.hasOwnProperty.call(obj, key)) {
                     sanitized[key] = sanitizeObject(obj[key]);
                 }
             }
@@ -148,10 +148,10 @@ export const securityHeaders = helmet({
             defaultSrc: ["'self'"],
             styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
             fontSrc: ["'self'", "https://fonts.gstatic.com"],
-            imgSrc: ["'self'", "data:", "https:"],
-            scriptSrc: ["'self'", "'unsafe-eval'"],
-            connectSrc: ["'self'"],
-            frameSrc: ["'none'"],
+            imgSrc: ["'self'", "data:", "https:", "https://maps.gstatic.com"],
+            scriptSrc: ["'self'", "https://maps.googleapis.com"],
+            connectSrc: ["'self'", "https://maps.googleapis.com"],
+            frameSrc: ["'self'", "https://www.google.com", "https://maps.googleapis.com"],
             objectSrc: ["'none'"],
             upgradeInsecureRequests: [],
         },
