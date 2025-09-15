@@ -13,6 +13,12 @@ dotenvFlow.config({
   silent: false
 });
 
+// Debug: Check if environment variables are loaded
+console.log('🔧 Environment loading check:');
+console.log('  DATABASE_URL:', process.env.DATABASE_URL ? '✅ LOADED' : '❌ NOT FOUND');
+console.log('  NODE_ENV:', process.env.NODE_ENV || 'not set');
+console.log('  SESSION_SECRET:', process.env.SESSION_SECRET ? '✅ LOADED' : '❌ NOT FOUND');
+
 // Environment variables should be loaded by dotenv-flow above
 
 

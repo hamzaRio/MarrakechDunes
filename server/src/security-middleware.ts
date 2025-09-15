@@ -206,7 +206,8 @@ const createSessionStore = () => {
   const mongoUrl = process.env.DATABASE_URL;
   
   if (!mongoUrl) {
-    console.log('MongoDB URL not found. Using memory store for sessions.');
+    console.log('⚠️ MongoDB URL not found for sessions. Using memory store for sessions.');
+    console.log('📝 Note: Main database connection may still work via separate connection.');
     const MemoryStoreSession = MemoryStore(session);
     return new MemoryStoreSession({
       checkPeriod: 24 * 60 * 60 * 1000, // 24 hours
@@ -242,7 +243,8 @@ const createEnhancedSessionStore = () => {
   const mongoUrl = process.env.DATABASE_URL;
   
   if (!mongoUrl) {
-    console.log('⚠️ MongoDB URL not found. Using memory store for sessions.');
+    console.log('⚠️ MongoDB URL not found for admin sessions. Using memory store for admin sessions.');
+    console.log('📝 Note: Main database connection may still work via separate connection.');
     const MemoryStoreSession = MemoryStore(session);
     return new MemoryStoreSession({
       checkPeriod: 24 * 60 * 60 * 1000, // 24 hours
