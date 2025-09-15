@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState, ReactNode } from "react";
 import i18n from "../i18n";
-import type { Language } from "@/lib/translations";
+type Language = 'en' | 'fr';
 
 interface LanguageContextType {
   language: Language;

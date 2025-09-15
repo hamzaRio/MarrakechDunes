@@ -1,18 +1,21 @@
 // Image utility functions for handling asset imports in Vite
 import { asset } from "./env";
 
+// Use a stable cache buster based on build time instead of current time
+const BUILD_VERSION = '1.0.0'; // Update this when you want to bust cache
+
 export const getAssetUrl = (filename: string): string => {
-  // Force cache-busting for all authentic images
-  const cacheBuster = `?v=${Date.now()}`;
+  // Use stable cache-busting to prevent duplicate requests
+  const cacheBuster = `?v=${BUILD_VERSION}`;
   
-  // Always serve from backend assets with cache busting
+  // Always serve from backend assets with stable cache busting
   if (filename.startsWith('/attached_assets/')) {
     // Remove /attached_assets/ prefix since asset() will handle it (legacy support)
     const cleanFilename = filename.replace('/attached_assets/', '');
     return asset(cleanFilename) + cacheBuster;
   }
   
-  // Add cache busting to all image URLs
+  // Add stable cache busting to all image URLs
   return asset(filename) + cacheBuster;
 };
 

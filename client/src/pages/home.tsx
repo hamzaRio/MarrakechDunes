@@ -115,7 +115,7 @@ export default function Home() {
                   {/* Google Maps Embed */}
                   <div className="mt-4">
                     <iframe
-                      src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3396.5891234567!2d-7.989!3d31.6295!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMzHCsDM3JzQ2LjIiTiA3wrA1OScyMC40Ilc!5e0!3m2!1sen!2sma!4v1234567890123"
+                      src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3396.540!2d-7.9898!3d31.6295!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0xdafee8d96179e51%3A0x5950b6534f87adb8!2sMarrakech%2C%20Morocco!5e0!3m2!1sen!2sma!4v1647875432123"
                       width="100%"
                       height="250"
                       style={{ border: 0, borderRadius: '8px' }}
