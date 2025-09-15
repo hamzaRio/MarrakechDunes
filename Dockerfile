@@ -26,9 +26,14 @@ RUN npm run build:client
 WORKDIR /app/server
 RUN npm run build
 
-# Verify the build output exists
+# Verify the build output exists (TypeScript outputs to dist/server/ due to rootDir config)
 RUN ls -la dist/
-RUN test -f dist/index.js || (echo "ERROR: dist/index.js not found after build!" && exit 1)
+RUN ls -la dist/server/ || echo "No server subdirectory found"
+RUN test -f dist/server/src/index.js || (echo "ERROR: dist/server/src/index.js not found after build!" && exit 1)
+
+# Copy the built server files to the expected location
+RUN cp -r dist/server/src/* dist/ || echo "Failed to copy server files"
+RUN cp -r dist/shared/* dist/ || echo "No shared files to copy"
 
 # Copy shared directory to server level for runtime (matches import path ../shared)
 RUN cp -r ../shared ./shared
@@ -39,8 +44,9 @@ RUN mkdir -p ./dist/public && cp -r ../client/dist/* ./dist/public/
 # Ensure shared directory is available at runtime
 RUN mkdir -p ./dist/shared && cp -r ../shared/* ./dist/shared/
 
-# Final verification that index.js exists
-RUN test -f ./dist/index.js || (echo "CRITICAL ERROR: dist/index.js missing!" && exit 1)
+# Final verification that index.js exists in the expected location
+RUN ls -la ./dist/
+RUN test -f ./dist/index.js || (echo "CRITICAL ERROR: dist/index.js missing after file reorganization!" && exit 1)
 
 # Remove dev dependencies to reduce image size (after build is complete)
 # Note: We need to keep TypeScript available until after the build
@@ -49,6 +55,7 @@ RUN npm install --omit=dev --legacy-peer-deps
 
 # Re-verify after dependency cleanup that our built files are still there
 WORKDIR /app/server
+RUN ls -la ./dist/
 RUN test -f ./dist/index.js || (echo "CRITICAL ERROR: dist/index.js missing after cleanup!" && exit 1)
 
 # Expose port
