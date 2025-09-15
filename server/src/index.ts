@@ -13,16 +13,7 @@ dotenvFlow.config({
   silent: false
 });
 
-// Also try loading from current directory as fallback
-import dotenv from 'dotenv';
-dotenv.config({ path: path.join(projectRoot, '.env') });
-dotenv.config({ path: path.join(__dirname, '.env') });
-
-// Debug: Check if SESSION_SECRET is loaded
-console.log('🔧 Debug Environment Variables:');
-console.log('  SESSION_SECRET:', process.env.SESSION_SECRET ? 'SET ✅' : 'NOT SET ❌');
-console.log('  DATABASE_URL:', process.env.DATABASE_URL ? 'SET ✅' : 'NOT SET ❌');
-console.log('  ADMIN_PASSWORD:', process.env.ADMIN_PASSWORD ? 'SET ✅' : 'NOT SET ❌');
+// Environment variables should be loaded by dotenv-flow above
 
 
 // Strict environment validation - all critical variables must be set
