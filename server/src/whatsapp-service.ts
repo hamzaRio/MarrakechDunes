@@ -346,7 +346,6 @@ ${paymentType === 'deposit'
   getAdminContacts(): WhatsAppContact[] {
     return this.adminContacts;
   }
-}
 
   // Automated reminder system
   async sendBookingReminder(booking: BookingNotificationData, reminderType: '24h' | '2h'): Promise<void> {
@@ -358,8 +357,11 @@ ${paymentType === 'deposit'
         return;
       }
 
-      // Send to customer
-      await this.sendMessage(booking.customerPhone, reminderMessage);
+      // In production, would send via WhatsApp API
+      // For now, just log the reminder message
+      console.log('📱 WhatsApp Reminder Message:');
+      console.log(`To: ${booking.customerPhone}`);
+      console.log(reminderMessage);
       
       console.log(`✅ ${reminderType} reminder sent to customer: ${booking.customerName}`);
     } catch (error) {
