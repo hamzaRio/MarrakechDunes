@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Clock, MapPin, Users, Star, ChevronLeft, ChevronRight } from 'lucide-react';
+import { getActivityFallbackImage } from "@/lib/image-utils";
 import { useLanguage } from '@/hooks/use-language';
 import ActivityRating from './activity-rating';
 
@@ -53,7 +54,7 @@ export default function ActivityPreview({ activity, isOpen, onClose, onBookNow }
                 alt={`${activity.name} - Image ${currentImageIndex + 1}`}
                 className="w-full h-full object-cover"
                 onError={(e) => {
-                  e.currentTarget.src = asset("riad-kheirredine_1756041288677.jpg");
+                  e.currentTarget.src = getActivityFallbackImage(activity.name);
                 }}
               />
             </div>

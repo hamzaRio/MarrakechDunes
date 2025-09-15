@@ -6,6 +6,7 @@ import { Clock, MapPin } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import ActivityPreview from "./activity-preview";
 import { asset } from "@/lib/env";
+import { getActivityFallbackImage } from "@/lib/image-utils";
 import type { ActivityType } from "@shared/schema";
 
 interface ActivityCardProps {
@@ -23,7 +24,7 @@ export default function ActivityCard({ activity, showDescription = false }: Acti
   // Process activity image path
   const getImageSrc = (imagePath: string) => {
     if (!imagePath) {
-      return asset("riad-kheirredine_1756041288677.jpg"); // Fallback image
+      return getActivityFallbackImage(activity.name); // Use activity-specific fallback
     }
     
     if (imagePath.startsWith('/attached_assets/')) {
@@ -47,10 +48,10 @@ export default function ActivityCard({ activity, showDescription = false }: Acti
           onError={(e) => {
             const img = e.currentTarget;
             if (process.env.NODE_ENV === 'development') {
-              console.warn('Image failed to load:', activity.image, '-> using fallback');
+              console.warn('Image failed to load:', activity.image, '-> using activity-specific fallback');
             }
-            // Fallback to a known working image
-            img.src = asset("riad-kheirredine_1756041288677.jpg");
+            // Use activity-specific fallback instead of same image for all
+            img.src = getActivityFallbackImage(activity.name);
             img.onerror = null; // Prevent infinite loops
           }}
           onLoad={() => {

@@ -292,7 +292,7 @@ const isProduction = process.env.NODE_ENV === 'production';
 
 export const sessionSecurity = {
   name: 'marrakech.session',
-  secret: process.env.SESSION_SECRET!,
+  secret: process.env.SESSION_SECRET || '39ebf2a77f544b81c195c789ef3d1ae8d6d593bb74e482e60a80af10f94e', // Fallback from your .env
   resave: true, // Ensure session is saved
   saveUninitialized: false,
   store: createEnhancedSessionStore(),
