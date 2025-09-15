@@ -22,6 +22,10 @@ COPY shared/ ./shared/
 WORKDIR /app
 RUN npm run build
 
+# Debug: Check if server dist was created
+RUN ls -la server/dist/ || echo "Server dist directory not found"
+RUN ls -la server/dist/index.js || echo "Server index.js not found"
+
 # Copy shared directory to server level for runtime (matches import path ../shared)
 WORKDIR /app/server
 RUN cp -r ../shared ./shared
@@ -32,7 +36,11 @@ RUN mkdir -p ./dist/public && cp -r ../client/dist/* ./dist/public/
 # Ensure shared directory is available at runtime
 RUN mkdir -p ./dist/shared && cp -r ../shared/* ./dist/shared/
 
-# Remove dev dependencies to reduce image size
+# Debug: Final check of dist directory
+RUN ls -la ./dist/ || echo "Final dist directory not found"
+RUN ls -la ./dist/index.js || echo "Final index.js not found"
+
+# Remove dev dependencies to reduce image size (after build is complete)
 WORKDIR /app
 RUN npm install --omit=dev --legacy-peer-deps
 
@@ -53,4 +61,4 @@ USER nodejs
 
 # Start the application
 WORKDIR /app/server
-CMD ["node", "dist/index.js"]
+CMD ["npm", "start"]
