@@ -229,8 +229,9 @@ ${booking.notes ? `📝 Notes spéciales: ${booking.notes}` : ''}
 🎯 ACTION REQUISE:
 1. Contactez le client rapidement
 2. Confirmez la disponibilité 
-3. Organisez le point de rendez-vous
+3. Organisez le point de rendez-vous (54 Riad Zitoun Lakdim)
 4. Préparez l'expérience
+5. ⚠️ RAPPEL: ESPÈCES UNIQUEMENT - Informez le client
 
 📞 Contactez ${booking.customerName} au ${booking.customerPhone}`;
   }
@@ -307,9 +308,9 @@ ${paymentType === 'deposit'
 
   private getPaymentMethodText(method: string): string {
     switch (method) {
-      case 'cash': return 'Espèces (paiement complet)';
-      case 'cash_deposit': return 'Espèces (acompte)';
-      default: return 'Espèces';
+      case 'cash': return 'ESPÈCES UNIQUEMENT - Paiement complet sur place';
+      case 'cash_deposit': return 'ESPÈCES UNIQUEMENT - Acompte sur place';
+      default: return 'ESPÈCES UNIQUEMENT - Pas de paiement par carte';
     }
   }
 
@@ -344,6 +345,57 @@ ${paymentType === 'deposit'
   // Get admin contact information
   getAdminContacts(): WhatsAppContact[] {
     return this.adminContacts;
+  }
+}
+
+  // Automated reminder system
+  async sendBookingReminder(booking: BookingNotificationData, reminderType: '24h' | '2h'): Promise<void> {
+    try {
+      const reminderMessage = this.formatReminderMessage(booking, reminderType);
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log('📱 WhatsApp Reminder (DEV MODE):', reminderMessage);
+        return;
+      }
+
+      // Send to customer
+      await this.sendMessage(booking.customerPhone, reminderMessage);
+      
+      console.log(`✅ ${reminderType} reminder sent to customer: ${booking.customerName}`);
+    } catch (error) {
+      console.error(`❌ Failed to send ${reminderType} reminder:`, error);
+    }
+  }
+
+  private formatReminderMessage(booking: BookingNotificationData, reminderType: '24h' | '2h'): string {
+    const timeUntil = reminderType === '24h' ? '24 heures' : '2 heures';
+    const bookingDate = booking.preferredDate 
+      ? new Date(booking.preferredDate).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
+      : 'Non spécifiée';
+
+    return `🌟 RAPPEL - Votre aventure MarrakechDunes dans ${timeUntil}!
+
+🎯 VOTRE RÉSERVATION:
+• Activité: ${booking.activityName}
+• Date: ${bookingDate}
+• Participants: ${booking.numberOfPeople} personne(s)
+• Point de rendez-vous: 54 Riad Zitoun Lakdim, Marrakech
+
+💰 PAIEMENT IMPORTANT:
+⚠️ ESPÈCES UNIQUEMENT (MAD) - ${booking.totalAmount} MAD total
+❌ Aucune carte bancaire acceptée
+✅ Préparez la monnaie exacte si possible
+
+📍 INSTRUCTIONS:
+• Arrivez 15 minutes avant l'heure
+• Apportez de l'eau et une protection solaire
+• Portez des chaussures confortables
+• ${reminderType === '2h' ? 'Vérifiez la météo avant de partir' : 'Confirmez votre présence si nécessaire'}
+
+📱 Questions? Contactez-nous!
+🌟 Préparez-vous pour une expérience inoubliable!
+
+MarrakechDunes - Aventures Authentiques`;
   }
 }
 

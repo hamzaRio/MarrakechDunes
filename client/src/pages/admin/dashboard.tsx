@@ -12,6 +12,8 @@ import { asset } from "@/lib/env";
 import PaymentManagement from "@/components/payment-management";
 import { WhatsAppNotificationPanel } from "@/components/whatsapp-notification-panel";
 import ActivityManagementModal from "@/components/activity-management-modal";
+import CashAnalyticsDashboard from "@/components/cash-analytics-dashboard";
+import CashBookingReminders from "@/components/cash-booking-reminders";
 import { apiFetch } from "@/lib/api";
 
 // Removed useState import as no longer needed
@@ -187,17 +189,13 @@ Average per booking: ${activityBookings.length ? Math.round(totalRevenue / activ
           </div>
 
           <Tabs defaultValue="bookings" className="space-y-6">
-            <TabsList className={`grid w-full ${user?.role === 'superadmin' ? 'grid-cols-7' : 'grid-cols-5'}`}>
+            <TabsList className={`grid w-full ${user?.role === 'superadmin' ? 'grid-cols-8' : 'grid-cols-6'}`}>
               <TabsTrigger value="bookings">Bookings</TabsTrigger>
               <TabsTrigger value="activities">Activities</TabsTrigger>
+              <TabsTrigger value="cash-analytics">Cash Analytics</TabsTrigger>
+              <TabsTrigger value="reminders">Reminders</TabsTrigger>
               <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
               <TabsTrigger value="calendar">Calendar</TabsTrigger>
-              <TabsTrigger value="performance">
-                <Link href="/admin/performance" className="flex items-center">
-                  <TrendingUp className="h-4 w-4 mr-1" />
-                  Performance
-                </Link>
-              </TabsTrigger>
               {user?.role === 'superadmin' && (
                 <TabsTrigger value="audit">Audit Logs</TabsTrigger>
               )}
@@ -451,6 +449,16 @@ Average per booking: ${activityBookings.length ? Math.round(totalRevenue / activ
                   </div>
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            {/* Cash Analytics Tab */}
+            <TabsContent value="cash-analytics" className="space-y-4">
+              <CashAnalyticsDashboard bookings={bookings} activities={activities} />
+            </TabsContent>
+
+            {/* Cash Reminders Tab */}
+            <TabsContent value="reminders" className="space-y-4">
+              <CashBookingReminders bookings={bookings} />
             </TabsContent>
 
             {user?.role === 'superadmin' && (

@@ -15,7 +15,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Calendar, Users, Phone, User, MapPin, CheckCircle, ArrowLeft, ArrowRight, CalendarDays } from "lucide-react";
+import { Calendar, Users, Phone, User, MapPin, CheckCircle, ArrowLeft, ArrowRight, CalendarDays, Banknote } from "lucide-react";
 import { useLanguage } from "@/hooks/use-language";
 import { DayPicker } from "react-day-picker";
 import "react-day-picker/dist/style.css";
@@ -627,6 +627,17 @@ export default function BookingFixed() {
                               <ArrowLeft className="w-4 h-4 mr-2" />
                               Back
                             </Button>
+                          </div>
+
+                          {/* Cash-Only Payment Notice */}
+                          <div className="bg-moroccan-gold/20 border border-moroccan-gold p-4 rounded-lg">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Banknote className="w-5 h-5 text-moroccan-red" />
+                              <h4 className="font-semibold text-moroccan-red">{t('payment.cashOnly')}</h4>
+                            </div>
+                            <p className="text-sm text-gray-700">
+                              💰 {t('payment.cashOnlyDescription')} {t('payment.exactChangePreferred')}.
+                            </p>
                           </div>
 
                           <div className="bg-gray-50 p-6 rounded-lg">

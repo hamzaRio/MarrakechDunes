@@ -326,6 +326,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: 'pending',
         totalAmount: totalAmount,
         paymentStatus: 'unpaid',
+        paymentMethod: 'cash',
         paidAmount: 0,
       });
 

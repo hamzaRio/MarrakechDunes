@@ -143,6 +143,14 @@
     "weatherForecast": "Prévisions Météo",
     "perfectConditions": "Conditions Parfaites",
     "checkWeather": "Vérifier la Météo"
+  },
+  "payment": {
+    "cashOnly": "PAIEMENT EN ESPÈCES UNIQUEMENT",
+    "cashOnlyDescription": "Le paiement s'effectue en espèces (MAD) au point de rendez-vous. Aucune carte de crédit ou paiement en ligne accepté.",
+    "exactChangePreferred": "Monnaie exacte préférée",
+    "noCreditCards": "Aucune carte de crédit acceptée",
+    "payAtMeetingPoint": "Paiement au point de rendez-vous",
+    "cashOnArrival": "Espèces à l'arrivée"
   }
 }
 

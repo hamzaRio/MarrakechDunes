@@ -143,6 +143,14 @@
     "weatherForecast": "Weather Forecast",
     "perfectConditions": "Perfect Conditions",
     "checkWeather": "Check Weather"
+  },
+  "payment": {
+    "cashOnly": "CASH PAYMENT ONLY",
+    "cashOnlyDescription": "Payment is made in cash (MAD) at the meeting point. No credit cards or online payments accepted.",
+    "exactChangePreferred": "Exact change preferred",
+    "noCreditCards": "No credit cards accepted",
+    "payAtMeetingPoint": "Pay at meeting point",
+    "cashOnArrival": "Cash on Arrival"
   }
 }
 
