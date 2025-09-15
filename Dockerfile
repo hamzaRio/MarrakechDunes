@@ -18,15 +18,12 @@ COPY server/ ./server/
 COPY client/ ./client/
 COPY shared/ ./shared/
 
-# Build the client
-WORKDIR /app/client
-RUN npm run build
-
-# Build the server
-WORKDIR /app/server
+# Build the entire monorepo from root
+WORKDIR /app
 RUN npm run build
 
 # Copy shared directory to server level for runtime (matches import path ../shared)
+WORKDIR /app/server
 RUN cp -r ../shared ./shared
 
 # Copy client build to server for serving static files
