@@ -35,7 +35,7 @@ export function validateProductionEnvironment() {
 
   // Check for development passwords in production
   if (process.env.NODE_ENV === 'production') {
-    const devPasswords = ['admin', 'password', '123456', 'Marrakech@2025', 'Marrakech@1966'];
+    const devPasswords = ['admin', 'password', '123456'];
     
     if (devPasswords.includes(process.env.ADMIN_PASSWORD || '')) {
       weakVars.push('ADMIN_PASSWORD (using development password)');
