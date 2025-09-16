@@ -173,7 +173,8 @@ const FRONT_ORIGINS = [
   "https://marrakech-dunes.vercel.app",
   "http://localhost:5173", // Added for local development
   "http://localhost:4173", // Vite preview
-  /\.vercel\.app$/i
+  /\.vercel\.app$/i,
+  /marrakech.*\.vercel\.app$/i // Additional pattern for Vercel deployment variations
 ];
 
 app.use(cors({

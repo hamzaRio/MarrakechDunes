@@ -40,6 +40,9 @@ RUN cp -r ../shared ./shared
 # Copy client build to server for serving static files (align with Express static path)
 RUN mkdir -p ./dist/src/public && cp -r ../client/dist/* ./dist/src/public/
 
+# Copy attached_assets to the correct location for Express static serving
+RUN mkdir -p ./dist/src/attached_assets && cp -r ./attached_assets/* ./dist/src/attached_assets/ 2>/dev/null || echo "No attached_assets to copy"
+
 # Final verification
 RUN ls -la ./dist/
 RUN test -f ./dist/src/index.js || (echo "CRITICAL ERROR: dist/src/index.js missing!" && exit 1)
