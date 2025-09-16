@@ -26,7 +26,7 @@ export default function Navbar() {
   const handleLogout = async () => {
     try {
       await logout();
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      queryClient.invalidateQueries({ queryKey: ["/auth/user"] });
       toast({
         title: t('success.title'),
         description: t('admin.logoutSuccess'),

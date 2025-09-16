@@ -12,7 +12,7 @@ export function useAuth() {
   const hasSessionCookie = document.cookie.includes('marrakech.session');
   
   const { data, isLoading, error, refetch } = useQuery<User>({
-    queryKey: ["/api/auth/user"],
+    queryKey: ["/auth/user"],
     enabled: !!hasSessionCookie, // Only run query if session cookie exists
     retry: false, // Stop retry loop completely for auth queries
     staleTime: 5 * 60 * 1000, // 5 minutes
