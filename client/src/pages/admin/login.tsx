@@ -55,8 +55,8 @@ export default function AdminLogin() {
     onError: (error: any) => {
       console.error('Login error:', error);
       toast({
-        title: "Error",
-        description: error.message || "Login failed. Please check your credentials.",
+        title: t('errors.loginFailed'),
+        description: error.message || t('errors.loginFailed'),
         variant: "destructive",
       });
     },
@@ -109,7 +109,7 @@ export default function AdminLogin() {
                         <Input 
                           {...field} 
                           type="text"
-                          placeholder="Enter your username"
+                          placeholder={t('admin.username')}
                           className="h-12 border-2 border-gray-200 focus:border-moroccan-blue focus:ring-moroccan-blue/20 rounded-lg text-lg"
                         />
                       </FormControl>
@@ -130,7 +130,7 @@ export default function AdminLogin() {
                         <Input 
                           {...field} 
                           type="password"
-                          placeholder="Enter your password"
+                          placeholder={t('admin.password')}
                           className="h-12 border-2 border-gray-200 focus:border-moroccan-blue focus:ring-moroccan-blue/20 rounded-lg text-lg"
                         />
                       </FormControl>
@@ -160,12 +160,12 @@ export default function AdminLogin() {
 
         <div className="text-center">
           <p className="text-blue-100 text-sm">
-            Authorized Personnel Only • MarrakechDunes 2025
+            {t('admin.authorizedOnly')} • MarrakechDunes 2025
           </p>
           {process.env.NODE_ENV === 'development' && (
             <div className="mt-4 p-3 bg-blue-800/50 rounded-lg text-xs text-blue-100">
-              <p className="font-medium mb-1">Development Mode:</p>
-              <p className="text-xs text-blue-200">Contact system administrator for credentials</p>
+              <p className="font-medium mb-1">{t('admin.developmentMode')}:</p>
+              <p className="text-xs text-blue-200">{t('admin.contactAdmin')}</p>
             </div>
           )}
         </div>

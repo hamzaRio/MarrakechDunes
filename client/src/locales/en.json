@@ -112,7 +112,10 @@
     "logoutSuccess": "Successfully logged out",
     "bookings": "Bookings",
     "analytics": "Analytics",
-    "settings": "Settings"
+    "settings": "Settings",
+    "authorizedOnly": "Authorized Personnel Only",
+    "developmentMode": "Development Mode",
+    "contactAdmin": "Contact system administrator for credentials"
   },
   "errors": {
     "customerNameRequired": "Customer name is required",

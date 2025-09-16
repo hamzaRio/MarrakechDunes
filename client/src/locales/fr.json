@@ -112,7 +112,10 @@
     "logoutSuccess": "Déconnexion réussie",
     "bookings": "Réservations",
     "analytics": "Analyses",
-    "settings": "Paramètres"
+    "settings": "Paramètres",
+    "authorizedOnly": "Personnel Autorisé Uniquement",
+    "developmentMode": "Mode Développement",
+    "contactAdmin": "Contactez l'administrateur système pour les identifiants"
   },
   "errors": {
     "customerNameRequired": "Le nom du client est requis",
