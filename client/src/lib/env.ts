@@ -9,7 +9,7 @@ for (const envVar of criticalFrontendEnvVars) {
   }
 }
 
-export const API_URL = import.meta.env.VITE_API_URL || "http://localhost:10000";
+export const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.MODE === 'production' ? 'https://marrakechdunes.onrender.com' : "http://localhost:10000");
 
 export function asset(p: string) {
   // Always use relative path from public directory
