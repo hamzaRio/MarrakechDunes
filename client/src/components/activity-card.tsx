@@ -60,7 +60,6 @@ export default function ActivityCard({ activity, showDescription = false }: Acti
               console.log('Image loaded successfully:', activity.image);
             }
           }}
-          loading="lazy"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
         <div className="absolute top-4 right-4">

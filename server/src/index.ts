@@ -1,6 +1,7 @@
 import { fileURLToPath } from "url";
 import path, { join } from "path";
 import dotenvFlow from 'dotenv-flow';
+import { validateProductionEnvironment, getSecurityRecommendations } from './production-validator.js';
 
 // Get the project root directory (one level up from server/src)
 const __filename = fileURLToPath(import.meta.url);
@@ -47,6 +48,23 @@ for (const envVar of criticalEnvVars) {
 // Additional validation for SESSION_SECRET length in production
 if (process.env.NODE_ENV === 'production' && process.env.SESSION_SECRET && process.env.SESSION_SECRET.length < 32) {
   throw new Error('SESSION_SECRET must be at least 32 characters long in production');
+}
+
+// Production environment validation
+const envValidation = validateProductionEnvironment();
+if (!envValidation.isValid) {
+  console.error('❌ Environment validation failed');
+  if (process.env.NODE_ENV === 'production') {
+    process.exit(1);
+  } else {
+    console.log('⚠️ Continuing in development mode with warnings');
+  }
+}
+
+// Security recommendations
+if (process.env.NODE_ENV === 'production') {
+  console.log('🔒 Security recommendations:');
+  getSecurityRecommendations().forEach(rec => console.log(`  • ${rec}`));
 }
 
 // Now import modules that depend on environment variables

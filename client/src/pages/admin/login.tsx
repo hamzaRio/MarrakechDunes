@@ -164,9 +164,8 @@ export default function AdminLogin() {
           </p>
           {process.env.NODE_ENV === 'development' && (
             <div className="mt-4 p-3 bg-blue-800/50 rounded-lg text-xs text-blue-100">
-              <p className="font-medium mb-1">Development Credentials:</p>
-              <p>Admin: ahmed/yahia + Marrakech@2025</p>
-              <p>Superadmin: nadia + Marrakech@1966</p>
+              <p className="font-medium mb-1">Development Mode:</p>
+              <p className="text-xs text-blue-200">Contact system administrator for credentials</p>
             </div>
           )}
         </div>

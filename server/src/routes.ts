@@ -248,50 +248,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.status(200).json({ status: 'healthy' });
   }));
 
-  // Debug endpoint to check admin users (remove in production)
-  app.get('/api/debug/users', asyncHandler(async (_req: Request, res: Response) => {
-    try {
-      const users = await storage.getUsers();
-      const userList = users.map(user => ({
-        username: user.username,
-        role: user.role,
-        hasPassword: !!user.password,
-        passwordLength: user.password ? user.password.length : 0
-      }));
-      res.json({ users: userList, count: users.length });
-    } catch (error) {
-      console.error('Debug users error:', error);
-      res.status(500).json({ error: error instanceof Error ? error.message : 'Unknown error' });
-    }
-  }));
-
-  // Debug endpoint to reset admin passwords (remove in production)
-  app.post('/api/debug/reset-passwords', asyncHandler(async (_req: Request, res: Response) => {
-    try {
-      const bcrypt = await import('bcrypt');
-      const adminPassword = process.env.ADMIN_PASSWORD;
-      const superadminPassword = process.env.SUPERADMIN_PASSWORD;
-      
-      if (!adminPassword || !superadminPassword) {
-        return res.status(400).json({ 
-          status: 'error', 
-          message: 'ADMIN_PASSWORD and SUPERADMIN_PASSWORD must be set in environment variables' 
-        });
+  // Debug endpoints only available in development
+  if (process.env.NODE_ENV === 'development') {
+    // Debug endpoint to check admin users (development only)
+    app.get('/api/debug/users', asyncHandler(async (_req: Request, res: Response) => {
+      try {
+        const users = await storage.getUsers();
+        const userList = users.map(user => ({
+          username: user.username,
+          role: user.role,
+          hasPassword: !!user.password,
+          passwordLength: user.password ? user.password.length : 0
+        }));
+        res.json({ users: userList, count: users.length });
+      } catch (error) {
+        console.error('Debug users error:', error);
+        res.status(500).json({ error: error instanceof Error ? error.message : 'Unknown error' });
       }
-      
-      // Update ahmed and yahia with admin password
-      await storage.updateUserPassword('ahmed', adminPassword);
-      await storage.updateUserPassword('yahia', adminPassword);
-      
-      // Update nadia with superadmin password
-      await storage.updateUserPassword('nadia', superadminPassword);
-      
-      res.json({ message: 'Admin passwords reset successfully' });
-    } catch (error) {
-      console.error('Reset passwords error:', error);
-      res.status(500).json({ error: error instanceof Error ? error.message : 'Unknown error' });
-    }
-  }));
+    }));
+
+    // Debug endpoint to reset admin passwords (development only)
+    app.post('/api/debug/reset-passwords', asyncHandler(async (_req: Request, res: Response) => {
+      try {
+        const bcrypt = await import('bcrypt');
+        const adminPassword = process.env.ADMIN_PASSWORD;
+        const superadminPassword = process.env.SUPERADMIN_PASSWORD;
+        
+        if (!adminPassword || !superadminPassword) {
+          return res.status(400).json({ 
+            status: 'error', 
+            message: 'ADMIN_PASSWORD and SUPERADMIN_PASSWORD must be set in environment variables' 
+          });
+        }
+        
+        // Update ahmed and yahia with admin password
+        await storage.updateUserPassword('ahmed', adminPassword);
+        await storage.updateUserPassword('yahia', adminPassword);
+        
+        // Update nadia with superadmin password
+        await storage.updateUserPassword('nadia', superadminPassword);
+        
+        res.json({ message: 'Admin passwords reset successfully' });
+      } catch (error) {
+        console.error('Reset passwords error:', error);
+        res.status(500).json({ error: error instanceof Error ? error.message : 'Unknown error' });
+      }
+    }));
+  }
 
   // Public routes
   app.get("/api/activities", asyncHandler(async (req: Request, res: Response) => {
