@@ -4,7 +4,7 @@
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "outDir": "./dist",
-    "rootDir": "..",
+    "rootDir": ".",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
@@ -17,15 +17,15 @@
     "typeRoots": ["./types", "./node_modules/@types"],
     "paths": {
       "@shared/*": ["../shared/*"]
-    }
+    },
+    "declaration": false,
+    "declarationMap": false
   },
   "include": [
-    "src/**/*",
-    "../shared/**/*"
+    "src/**/*"
   ],
   "exclude": [
-    "../client",
-    "../node_modules",
-    "../dist"
+    "node_modules",
+    "dist"
   ]
 }

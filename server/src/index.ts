@@ -172,6 +172,7 @@ app.use(cookieParser());
 const FRONT_ORIGINS = [
   "https://marrakech-dunes.vercel.app",
   "http://localhost:5173", // Added for local development
+  "http://localhost:4173", // Vite preview
   /\.vercel\.app$/i
 ];
 

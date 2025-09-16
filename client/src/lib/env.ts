@@ -5,7 +5,7 @@ const criticalFrontendEnvVars = [
 
 for (const envVar of criticalFrontendEnvVars) {
   if (!import.meta.env[envVar] && import.meta.env.MODE === 'production') {
-    console.warn(`Warning: ${envVar} is not set in production mode`);
+    console.warn(`Warning: ${envVar} is not set in production mode. Using fallback.`);
   }
 }
 

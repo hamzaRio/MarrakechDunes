@@ -13,7 +13,7 @@ import type {
   InsertReview,
   BookingWithActivity,
   ReviewWithActivity,
-} from "../../shared/schema.js";
+} from "./shared-schema.js";
 
 // MongoDB connection string - must use DATABASE_URL
 const DATABASE_URL = process.env.DATABASE_URL;
@@ -444,10 +444,11 @@ class MongoStorage implements IStorage {
             description: "Visit Morocco's most spectacular waterfalls with 110-meter cascades, rainbow views, and Barbary macaque encounters.",
             price: "200",
             currency: "MAD",
-            image: "/attached_assets/Ouzoud-Waterfalls_1751126328233.jpg",
+            image: "/attached_assets/activities/ouzoud/Cascades_d'Ouzoud_008.JPG",
             photos: [
-              "/attached_assets/Ouzoud-Waterfalls_1751126328233.jpg",
-              "/attached_assets/Ouzoud-Waterfalls3_1751126328233.jpg"
+              "/attached_assets/activities/ouzoud/Cascades_d'Ouzoud_008.JPG",
+              "/attached_assets/activities/ouzoud/Cascades_d'Ouzoud_014.JPG",
+              "/attached_assets/activities/ouzoud/Cascades_d'Ouzoud_018.JPG"
             ],
             category: "Nature",
             isActive: true,
