@@ -26,18 +26,20 @@ RUN npm run build:client
 WORKDIR /app/server
 RUN npm run build
 
-# Verify the build output exists
+# Verify the build output exists (TypeScript creates nested structure with rootDir: "..")
 RUN ls -la dist/ || echo "No dist directory found"
-RUN test -f dist/index.js || (echo "ERROR: dist/index.js not found after build!" && exit 1)
+RUN ls -la dist/server/src/ || echo "server/src directory not found"
+RUN test -f dist/server/src/index.js && echo "✅ index.js found" || (echo "❌ ERROR: dist/server/src/index.js not found after build!" && exit 1)
+
+# Copy the built server files to the expected location
+RUN cp -r dist/server/src/* dist/ || echo "Failed to copy server files"
+RUN cp -r dist/shared/* dist/ || echo "No shared files to copy"
 
 # Copy shared directory to server level for runtime
 RUN cp -r ../shared ./shared
 
 # Copy client build to server for serving static files
 RUN mkdir -p ./dist/public && cp -r ../client/dist/* ./dist/public/
-
-# Ensure shared directory is available at runtime
-RUN mkdir -p ./dist/shared && cp -r ../shared/* ./dist/shared/
 
 # Final verification
 RUN ls -la ./dist/

@@ -29,7 +29,7 @@ export const insertBookingSchema = z.object({
     totalAmount: z.string().min(1),
     notes: z.string().optional(),
     paymentStatus: z.enum(['unpaid', 'deposit_paid', 'fully_paid']).default('unpaid'),
-    paymentMethod: z.enum(['cash', 'cash_deposit']).optional(),
+    paymentMethod: z.enum(['cash', 'cash_deposit']).default('cash'),
     paidAmount: z.number().default(0),
     depositAmount: z.number().optional(),
 });
