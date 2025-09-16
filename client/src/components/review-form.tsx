@@ -45,9 +45,9 @@ export default function ReviewForm({ activityId, activityName, bookingId, onSucc
 
   const createReviewMutation = useMutation({
     mutationFn: async (data: ReviewFormData) => {
-      return await apiRequest("/api/reviews", {
+      return await apiFetch("/reviews", {
         method: "POST",
-        body: JSON.stringify(data),
+        data: data,
       });
     },
     onSuccess: () => {
@@ -55,8 +55,8 @@ export default function ReviewForm({ activityId, activityName, bookingId, onSucc
         title: "Review Submitted",
         description: "Thank you for your feedback! Your review is pending approval.",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/reviews"] });
-      queryClient.invalidateQueries({ queryKey: [`/api/activities/${activityId}/rating`] });
+      queryClient.invalidateQueries({ queryKey: ["/reviews"] });
+      queryClient.invalidateQueries({ queryKey: [`/activities/${activityId}/rating`] });
       form.reset();
       setRating(0);
       onSuccess?.();

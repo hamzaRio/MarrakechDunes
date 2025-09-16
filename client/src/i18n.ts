@@ -18,10 +18,11 @@ void i18n
         return 'fr';
       }
     })(),
-    fallbackLng: 'fr',
+    fallbackLng: 'en',
     interpolation: { escapeValue: false },
     returnNull: false,
     returnEmptyString: false,
+    defaultValue: (key: string) => key, // Return key if translation missing
   });
 
 export default i18n;

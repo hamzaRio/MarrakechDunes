@@ -46,16 +46,23 @@ export default function SecurityWrapper({
   const [showSecurityPanel, setShowSecurityPanel] = useState(false);
   const [connectionAttempts, setConnectionAttempts] = useState(0);
 
-  // Log page view for security audit
+  // Log page view for security audit (only once per page)
   useEffect(() => {
     if (logPageView) {
-      logSecurityEvent('page_view', {
-        path: window.location.pathname,
-        referrer: document.referrer,
-        timestamp: new Date().toISOString()
-      });
+      const currentPath = window.location.pathname;
+      const lastLoggedPath = sessionStorage.getItem('lastLoggedPath');
+      
+      // Only log if this is a new page or different from last logged
+      if (lastLoggedPath !== currentPath) {
+        logSecurityEvent('page_view', {
+          path: currentPath,
+          referrer: document.referrer,
+          timestamp: new Date().toISOString()
+        });
+        sessionStorage.setItem('lastLoggedPath', currentPath);
+      }
     }
-  }, [logSecurityEvent, logPageView]);
+  }, [window.location.pathname, logSecurityEvent, logPageView]);
 
   // Monitor for suspicious activity
   useEffect(() => {
@@ -91,7 +98,7 @@ export default function SecurityWrapper({
 
       // Check for developer tools - disabled in development
       let devtools = false;
-      setInterval(() => {
+      const devtoolsInterval = setInterval(() => {
         if (window.outerHeight - window.innerHeight > 200 || 
             window.outerWidth - window.innerWidth > 200) {
           if (!devtools) {
@@ -102,7 +109,7 @@ export default function SecurityWrapper({
         } else {
           devtools = false;
         }
-      }, 1000);
+      }, 5000); // Reduced frequency from 1s to 5s
 
       document.addEventListener('click', clickHandler);
       setSecurityThreats(threats);
@@ -110,6 +117,7 @@ export default function SecurityWrapper({
       return () => {
         document.removeEventListener('click', clickHandler);
         console.log = originalConsole;
+        clearInterval(devtoolsInterval);
       };
     };
 

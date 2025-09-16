@@ -20,11 +20,9 @@ export default function ActivityRating({
   showReviewCount = true 
 }: ActivityRatingProps) {
   const { data: rating, isLoading } = useQuery<RatingData>({
-    queryKey: [`/api/activities/${activityId}/rating`],
+    queryKey: [`/activities/${activityId}/rating`],
     queryFn: async () => {
-      const response = await apiFetch(`/api/activities/${activityId}/rating`);
-      if (!response.ok) throw new Error("Failed to fetch rating");
-      return response.json();
+      return await apiFetch(`/activities/${activityId}/rating`);
     },
   });
 

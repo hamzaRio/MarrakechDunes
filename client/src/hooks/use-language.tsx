@@ -30,7 +30,10 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
   const changeLanguage = (lang: Language) => setLanguage(lang);
 
-  const t = useMemo(() => (key: string) => i18n.t(key) as string, [language]);
+  const t = useMemo(() => (key: string) => {
+    const translation = i18n.t(key);
+    return translation !== key ? translation : key; // Fallback to key if translation not found
+  }, [language]);
 
   return (
     <LanguageContext.Provider value={{ language, setLanguage, changeLanguage, t }}>

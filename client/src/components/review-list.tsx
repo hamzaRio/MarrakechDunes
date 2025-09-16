@@ -14,12 +14,10 @@ interface ReviewListProps {
 export default function ReviewList({ activityId, showActivityName = false, limit }: ReviewListProps) {
   
   const { data: reviews = [], isLoading } = useQuery<ReviewWithActivity[]>({
-    queryKey: activityId ? ["/api/reviews", { activityId }] : ["/api/reviews"],
+    queryKey: activityId ? ["/reviews", { activityId }] : ["/reviews"],
     queryFn: async () => {
-      const url = activityId ? `/api/reviews?activityId=${activityId}` : "/api/reviews";
-      const response = await apiFetch(url);
-      if (!response.ok) throw new Error("Failed to fetch reviews");
-      return response.json();
+      const url = activityId ? `/reviews?activityId=${activityId}` : "/reviews";
+      return await apiFetch(url);
     },
   });
 

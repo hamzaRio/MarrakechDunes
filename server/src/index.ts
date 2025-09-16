@@ -115,10 +115,50 @@ const app = express();
 // Set trust proxy at the top before any middleware
 app.set("trust proxy", 1);
 
-// Security middleware with CORS-friendly configuration
+// Security middleware with CORS-friendly configuration and Google Maps support
 app.use(helmet({
   crossOriginResourcePolicy: false, // Disable helmet's CORS policy to allow our custom headers
-  crossOriginEmbedderPolicy: false
+  crossOriginEmbedderPolicy: false,
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: [
+        "'self'", 
+        "'unsafe-inline'", 
+        "'unsafe-eval'",
+        "https://maps.googleapis.com",
+        "https://maps.gstatic.com",
+        "https://www.google.com"
+      ],
+      styleSrc: [
+        "'self'", 
+        "'unsafe-inline'",
+        "https://fonts.googleapis.com",
+        "https://maps.googleapis.com"
+      ],
+      fontSrc: [
+        "'self'",
+        "https://fonts.gstatic.com"
+      ],
+      imgSrc: [
+        "'self'", 
+        "data:", 
+        "https:",
+        "https://maps.googleapis.com",
+        "https://maps.gstatic.com",
+        "https://streetviewpixels-pa.googleapis.com"
+      ],
+      frameSrc: [
+        "'self'",
+        "https://www.google.com",
+        "https://maps.googleapis.com"
+      ],
+      connectSrc: [
+        "'self'",
+        "https://maps.googleapis.com"
+      ]
+    }
+  }
 }));
 
 // Enable JSON & URL-encoded
