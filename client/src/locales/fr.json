@@ -109,6 +109,7 @@
     "loginSuccess": "Connexion réussie",
     "loginFailed": "Échec de la connexion",
     "logout": "Déconnexion",
+    "logoutSuccess": "Déconnexion réussie",
     "bookings": "Réservations",
     "analytics": "Analyses",
     "settings": "Paramètres"

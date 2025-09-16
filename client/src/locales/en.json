@@ -109,6 +109,7 @@
     "loginSuccess": "Login successful",
     "loginFailed": "Login failed",
     "logout": "Logout",
+    "logoutSuccess": "Successfully logged out",
     "bookings": "Bookings",
     "analytics": "Analytics",
     "settings": "Settings"

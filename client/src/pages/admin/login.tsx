@@ -53,9 +53,10 @@ export default function AdminLogin() {
       }
     },
     onError: (error: any) => {
+      console.error('Login error:', error);
       toast({
         title: "Error",
-        description: error.message || "Login failed",
+        description: error.message || "Login failed. Please check your credentials.",
         variant: "destructive",
       });
     },
@@ -161,6 +162,13 @@ export default function AdminLogin() {
           <p className="text-blue-100 text-sm">
             Authorized Personnel Only • MarrakechDunes 2025
           </p>
+          {process.env.NODE_ENV === 'development' && (
+            <div className="mt-4 p-3 bg-blue-800/50 rounded-lg text-xs text-blue-100">
+              <p className="font-medium mb-1">Development Credentials:</p>
+              <p>Admin: ahmed/yahia + Marrakech@2025</p>
+              <p>Superadmin: nadia + Marrakech@1966</p>
+            </div>
+          )}
         </div>
       </div>
     </div>

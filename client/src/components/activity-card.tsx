@@ -45,6 +45,7 @@ export default function ActivityCard({ activity, showDescription = false }: Acti
           alt={activity.name}
           className="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-500"
           style={{ objectPosition: 'center' }}
+          loading="lazy"
           onError={(e) => {
             const img = e.currentTarget;
             if (process.env.NODE_ENV === 'development') {

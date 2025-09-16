@@ -2,7 +2,7 @@
 import { asset } from "./env";
 
 // Use a stable cache buster based on build time instead of current time
-const BUILD_VERSION = '1.0.0'; // Update this when you want to bust cache
+const BUILD_VERSION = '1.0.1'; // Update this when you want to bust cache
 
 export const getAssetUrl = (filename: string): string => {
   // Use stable cache-busting to prevent duplicate requests

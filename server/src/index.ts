@@ -8,10 +8,15 @@ const __dirname = path.dirname(__filename);
 const projectRoot = path.resolve(__dirname, '../../');
 
 // Load environment variables from project root using dotenv-flow
-dotenvFlow.config({
-  path: projectRoot,
-  silent: false
-});
+// In production (Docker), environment variables are set by deployment platform
+try {
+  dotenvFlow.config({
+    path: projectRoot,
+    silent: true // Don't error if .env files are missing in production
+  });
+} catch (error) {
+  console.log('📝 Note: .env files not found (expected in production Docker deployment)');
+}
 
 // Debug: Check if environment variables are loaded
 console.log('🔧 Environment loading check:');
