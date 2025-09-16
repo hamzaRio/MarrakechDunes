@@ -37,8 +37,8 @@ RUN test -f dist/src/index.js && echo "✅ index.js found" || (echo "❌ ERROR: 
 # Copy shared directory to server level for runtime
 RUN cp -r ../shared ./shared
 
-# Copy client build to server for serving static files
-RUN mkdir -p ./dist/public && cp -r ../client/dist/* ./dist/public/
+# Copy client build to server for serving static files (align with Express static path)
+RUN mkdir -p ./dist/src/public && cp -r ../client/dist/* ./dist/src/public/
 
 # Final verification
 RUN ls -la ./dist/
