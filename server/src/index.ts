@@ -1,5 +1,6 @@
 import { fileURLToPath } from "url";
 import path, { join } from "path";
+import fs from "fs";
 import dotenvFlow from 'dotenv-flow';
 import { validateProductionEnvironment, getSecurityRecommendations } from './production-validator.js';
 
@@ -82,7 +83,17 @@ import sessionRouter from "./routes/session.js";
 
 // CORS origins are defined below in FRONT_ORIGINS
 
-const assetsPath = join(__dirname, "attached_assets");
+const assetsRoot = path.resolve(projectRoot, "server", "attached_assets");
+const distAssetsPath = join(__dirname, "attached_assets");
+let assetsPath = assetsRoot;
+
+if (!fs.existsSync(assetsRoot)) {
+  assetsPath = distAssetsPath;
+}
+
+if (!fs.existsSync(assetsPath)) {
+  console.warn(`[static] attached_assets directory not found. Checked: ${assetsRoot}, ${distAssetsPath}`);
+}
 
 // Logging helper
 const log = (
@@ -334,7 +345,7 @@ app.use((req, res, next) => {
     log(`🚀 Server started on port ${PORT}`);
     log(`🌍 NODE_ENV: ${process.env.NODE_ENV || 'development'}`);
     log(`🌐 Allowed CORS origins: ${FRONT_ORIGINS.map(o => typeof o === 'string' ? o : o.toString()).join(', ')}`);
-    log(`📁 Assets path: ${assetsPath}`);
+    log(`Assets path: ${assetsPath}`);
     log(`🔒 Rate limiting: ${isProduction ? '100' : '200'} req/15min (global, auth, admin, general)`);
     log(`🍪 Session cookies: secure=${isProduction}, sameSite=${isProduction ? 'none' : 'lax'}, httpOnly=true`);
     log(`📡 API Base URL: ${apiUrl}`);
