@@ -26,36 +26,35 @@ RUN npm run build:client
 WORKDIR /app/server
 RUN npm run build
 
-# Verify the build output exists (TypeScript creates src structure)
+# Verify the build output exists (TypeScript now outputs to dist/ directly)
 RUN ls -la dist/ || echo "No dist directory found"
-RUN ls -la dist/src/ || echo "src directory not found"
-RUN test -f dist/src/index.js && echo "✅ index.js found" || (echo "❌ ERROR: dist/src/index.js not found after build!" && exit 1)
+RUN test -f dist/index.js && echo "✅ index.js found" || (echo "❌ ERROR: dist/index.js not found after build!" && exit 1)
 
-# Server files are already correctly built in dist/src/
-# No need to copy since package.json start script uses dist/src/index.js
+# Server files are now correctly built in dist/ directly
+# TypeScript outputs to dist/index.js with the updated tsconfig
 
 # Copy shared directory to server level for runtime
 RUN cp -r ../shared ./shared
 
 # Copy client build to server for serving static files (align with Express static path)
-RUN mkdir -p ./dist/src/public && cp -r ../client/dist/* ./dist/src/public/
+RUN mkdir -p ./dist/public && cp -r ../client/dist/* ./dist/public/
 
 # Copy attached_assets to the correct location for Express static serving
-RUN mkdir -p ./dist/src/attached_assets && cp -r ./attached_assets/* ./dist/src/attached_assets/ 2>/dev/null || echo "No attached_assets to copy"
+RUN mkdir -p ./dist/attached_assets && cp -r ./attached_assets/* ./dist/attached_assets/ 2>/dev/null || echo "No attached_assets to copy"
 
 # Final verification
 RUN ls -la ./dist/
-RUN test -f ./dist/src/index.js || (echo "CRITICAL ERROR: dist/src/index.js missing!" && exit 1)
+RUN test -f ./dist/index.js || (echo "CRITICAL ERROR: dist/index.js missing!" && exit 1)
 
 # Remove dev dependencies to reduce image size (after build is complete)
-# Note: We need to keep TypeScript available until after the build
+# Use npm prune instead of npm install to avoid wiping compiled output
 WORKDIR /app
-RUN npm install --omit=dev --legacy-peer-deps
+RUN npm prune --omit=dev
 
 # Re-verify after dependency cleanup that our built files are still there
 WORKDIR /app/server
 RUN ls -la ./dist/
-RUN test -f ./dist/src/index.js || (echo "CRITICAL ERROR: dist/src/index.js missing after cleanup!" && exit 1)
+RUN test -f ./dist/index.js || (echo "CRITICAL ERROR: dist/index.js missing after cleanup!" && exit 1)
 
 # Expose port
 EXPOSE 10000
