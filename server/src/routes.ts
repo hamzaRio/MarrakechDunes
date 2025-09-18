@@ -35,8 +35,8 @@ declare module 'express-session' {
   interface SessionData {
     user?: {
       id: string;
-      username: string;
       role: string;
+      username?: string;
     };
   }
 }
@@ -192,12 +192,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const authReq = req as AuthenticatedRequest;
 
-      const sessionUser: session.SessionData["user"] = {
+      const sessionUser = {
         id: user._id?.toString() || user.id?.toString() || "",
         role: user.role,
-      };
+      } as session.SessionData["user"];
 
-      if (user.username) {
+      if (sessionUser && user.username) {
         sessionUser.username = user.username;
       }
 
@@ -300,7 +300,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Public routes
   app.get("/api/activities", asyncHandler(async (req: Request, res: Response) => {
     try {
-      const activities = await storage.getActivities();\r\n      res.json({ activities: Array.isArray(activities) ? activities : [] });\r\n    } catch (error) {
+      const activities = await storage.getActivities();
+      res.json({ activities: Array.isArray(activities) ? activities : [] });
+    } catch (error) {
       throw handleDatabaseError(error);
     }
   }));
@@ -1064,5 +1066,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
   return httpServer;
 }
+
 
 
