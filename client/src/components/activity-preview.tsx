@@ -23,10 +23,19 @@ export default function ActivityPreview({ activity, isOpen, onClose, onBookNow }
 
   if (!activity) return null;
 
-  const photoList = ensureArray(activity.photos);
-  const images = photoList.length > 0
-    ? photoList.map(photo => getAssetUrl(photo))
-    : [getAssetUrl(activity.image)];
+  const gallerySources = ensureArray(activity.imageUrls);
+  const legacyPhotos = ensureArray((activity as any).photos);
+  if (gallerySources.length === 0 && legacyPhotos.length > 0) {
+    gallerySources.push(...legacyPhotos);
+  }
+  const legacyImage = (activity as any).image;
+  if (gallerySources.length === 0 && typeof legacyImage === 'string' && legacyImage) {
+    gallerySources.push(legacyImage);
+  }
+
+  const images = gallerySources.length > 0
+    ? gallerySources.map((photo) => getAssetUrl(photo))
+    : [getActivityFallbackImage(activity.name)];
 
   const nextImage = () => {
     setCurrentImageIndex((prev) => (prev + 1) % images.length);

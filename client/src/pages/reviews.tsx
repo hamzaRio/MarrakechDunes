@@ -45,10 +45,10 @@ export default function Reviews() {
         {/* Header */}
         <div className="text-center mb-12">
           <h1 className="font-playfair text-4xl md:text-5xl font-bold text-moroccan-blue mb-4">
-            Customer Reviews
+            {t('reviews.title')}
           </h1>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Discover what our travelers say about their authentic Moroccan experiences
+            {t('reviews.subtitle')}
           </p>
         </div>
 
@@ -72,7 +72,7 @@ export default function Reviews() {
                   className="w-full text-moroccan-blue border-moroccan-blue hover:bg-moroccan-blue hover:text-white"
                 >
                   <MessageSquare className="w-4 h-4 mr-2" />
-                  Write Review
+                  {t('reviews.writeReview')}
                 </Button>
               </CardContent>
             </Card>
@@ -85,10 +85,10 @@ export default function Reviews() {
             <Filter className="w-5 h-5 text-moroccan-blue" />
             <Select value={selectedActivity} onValueChange={setSelectedActivity}>
               <SelectTrigger className="w-64">
-                <SelectValue placeholder="Filter by activity" />
+                <SelectValue placeholder={t('reviews.filterPlaceholder')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Activities</SelectItem>
+                <SelectItem value="all">{t('reviews.filterAllActivities')}</SelectItem>
                 {activityList.map((activity) => (
                   <SelectItem key={activity.id || activity._id} value={activity.id || activity._id}>
                     {activity.name}
@@ -103,7 +103,7 @@ export default function Reviews() {
             className="bg-moroccan-red hover:bg-red-600 text-white"
           >
             <Plus className="w-4 h-4 mr-2" />
-            Write a Review
+            {t('reviews.writeReview')}
           </Button>
         </div>
 
@@ -113,7 +113,7 @@ export default function Reviews() {
             <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
               <div className="p-6">
                 <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-2xl font-bold text-moroccan-blue">Write a Review</h2>
+                  <h2 className="text-2xl font-bold text-moroccan-blue">{t('reviews.writeReview')}</h2>
                   <Button
                     variant="ghost"
                     onClick={() => setShowReviewForm(false)}
@@ -131,7 +131,7 @@ export default function Reviews() {
                   />
                 ) : (
                   <div className="space-y-4">
-                    <p className="text-gray-600">Select an activity to review:</p>
+                    <p className="text-gray-600">{t('reviews.selectActivityPrompt')}</p>
                     <div className="grid gap-2">
                       {activityList.map((activity) => (
                         <Button

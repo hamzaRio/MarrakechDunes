@@ -115,7 +115,8 @@
     "settings": "Paramètres",
     "authorizedOnly": "Personnel Autorisé Uniquement",
     "developmentMode": "Mode Développement",
-    "contactAdmin": "Contactez l'administrateur système pour les identifiants"
+    "contactAdmin": "Contactez l'administrateur système pour les identifiants",
+    "userPlaceholder": "Utilisateur administrateur"
   },
   "errors": {
     "customerNameRequired": "Le nom du client est requis",
@@ -155,7 +156,103 @@
     "noCreditCards": "Aucune carte de crédit acceptée",
     "payAtMeetingPoint": "Paiement au point de rendez-vous",
     "cashOnArrival": "Espèces à l'arrivée"
+  },
+  "home": {
+    "office": {
+      "address": "54 Riad Zitoun Lakdim, Marrakech 40000"
+    },
+    "expertise": {
+      "title": "Notre expertise et engagement",
+      "items": {
+        "localExpertise": {
+          "title": "Expertise locale",
+          "description": "Nés et élevés à Marrakech, notre équipe connaît intimement les trésors cachés du Maroc, ses lieux secrets et les expériences authentiques que seuls les locaux peuvent offrir."
+        },
+        "personalizedService": {
+          "title": "Service personnalisé",
+          "description": "Chaque aventure est adaptée à vos envies. Nous élaborons avec vous des itinéraires sur mesure qui correspondent à vos intérêts, votre rythme et votre niveau d'aventure souhaité."
+        },
+        "safetyQuality": {
+          "title": "Sécurité et qualité",
+          "description": "Des guides agréés, des activités assurées et un équipement soigneusement entretenu garantissent votre sécurité tout en préservant l'authenticité marocaine."
+        },
+        "sustainableTourism": {
+          "title": "Tourisme durable",
+          "description": "Nous collaborons avec les communautés locales et promouvons un voyage responsable qui protège l'environnement marocain et soutient les cultures berbères et arabes traditionnelles."
+        },
+        "instantBooking": {
+          "title": "Réservation instantanée",
+          "description": "Notre plateforme simplifiée confirme immédiatement votre réservation et met nos guides en contact direct via WhatsApp pour des mises à jour en temps réel."
+        },
+        "premiumExperience": {
+          "title": "Expérience premium",
+          "description": "Des vols en montgolfière au lever du soleil aux camps de luxe dans le désert, nous créons des expériences haut de gamme qui révèlent la diversité du Maroc."
+        }
+      }
+    },
+    "quote": {
+      "text": "« Chez MarrakechDunes, nous ne vous montrons pas seulement le Maroc — nous vous invitons à le vivre. Chaque aventure est un pont entre les cultures, chaque instant devient un souvenir impérissable. »",
+      "signature": "— Notre promesse d'équipe"
+    },
+    "mission": {
+      "title": "Notre mission et nos valeurs",
+      "description": "Chez MarrakechDunes, nous créons des liens authentiques entre les voyageurs et la richesse culturelle du Maroc. Notre mission est de proposer une réservation fluide et personnalisée qui ouvre la voie à des aventures inoubliables tout en soutenant les communautés locales et en préservant l'hospitalité marocaine.",
+      "values": {
+        "authenticity": {
+          "title": "Authenticité",
+          "description": "Des expériences authentiques avec des guides locaux qui partagent leur culture et leurs traditions."
+        },
+        "trust": {
+          "title": "Confiance",
+          "description": "Tarifs transparents, service fiable et engagement à chaque réservation."
+        },
+        "adventure": {
+          "title": "Aventure",
+          "description": "Des expériences sélectionnées qui mettent en valeur la diversité des paysages et de la culture marocains."
+        }
+      }
+    },
+    "testimonials": {
+      "title": "Ce que disent nos clients",
+      "subtitle": "Les témoignages de voyageurs qui nous ont confié leurs aventures marocaines",
+      "items": {
+        "sarah": {
+          "name": "Sarah M.",
+          "country": "Royaume-Uni",
+          "quote": "L'expérience en montgolfière était absolument magique ! La réservation a été simple et notre guide incroyablement expérimenté. MarrakechDunes est un incontournable !"
+        },
+        "ahmed": {
+          "name": "Ahmed K.",
+          "country": "France",
+          "quote": "Organisation parfaite pour notre excursion à Essaouira. Les paysages côtiers étaient magnifiques et nous avons énormément appris sur l'histoire marocaine. Un service professionnel du début à la fin."
+        },
+        "maria": {
+          "name": "Maria L.",
+          "country": "Espagne",
+          "quote": "L'expérience dans le désert d'Agafay a dépassé toutes nos attentes. Hospitalité berbère authentique, paysages grandioses et souvenirs pour la vie. Merci MarrakechDunes !"
+        }
+      }
+    },
+    "popular": {
+      "title": "Nos aventures les plus populaires",
+      "subtitle": "Découvrez les expériences qui séduisent les voyageurs du monde entier",
+      "cards": {
+        "balloon": {
+          "title": "Montgolfière",
+          "subtitle": "Lever de soleil sur l'Atlas",
+          "alt": "Aventure en montgolfière"
+        },
+        "agafay": {
+          "title": "Désert d'Agafay",
+          "subtitle": "Aventure désertique d'exception",
+          "alt": "Expérience désertique à Agafay"
+        },
+        "essaouira": {
+          "title": "Essaouira",
+          "subtitle": "Découverte de la côte Atlantique",
+          "alt": "Aventure côtière à Essaouira"
+        }
+      }
+    }
   }
 }
-
-

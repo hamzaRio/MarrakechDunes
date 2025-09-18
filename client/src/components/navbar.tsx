@@ -20,6 +20,7 @@ export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const { language, changeLanguage, t } = useLanguage();
   const { user } = useAuth();
+  const displayName = user?.username ?? t("admin.userPlaceholder");
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -106,7 +107,7 @@ export default function Navbar() {
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="sm" className="flex items-center space-x-2">
                     <User className="h-4 w-4" />
-                    <span className="text-sm">{user.username}</span>
+                    <span className="text-sm">{displayName}</span>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
@@ -157,7 +158,7 @@ export default function Navbar() {
                   {user && (user.role === 'admin' || user.role === 'superadmin') && (
                     <div className="border-t pt-4 mt-4 space-y-2">
                       <div className="text-sm text-gray-600 mb-2">
-                        Logged in as: <span className="font-semibold">{user.username}</span>
+                        Logged in as: <span className="font-semibold">{displayName}</span>
                       </div>
                       <Link href="/admin/dashboard">
                         <div
@@ -200,3 +201,4 @@ export default function Navbar() {
     </nav>
   );
 }
+

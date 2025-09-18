@@ -115,7 +115,8 @@
     "settings": "Settings",
     "authorizedOnly": "Authorized Personnel Only",
     "developmentMode": "Development Mode",
-    "contactAdmin": "Contact system administrator for credentials"
+    "contactAdmin": "Contact system administrator for credentials",
+    "userPlaceholder": "Admin User"
   },
   "errors": {
     "customerNameRequired": "Customer name is required",
@@ -155,7 +156,103 @@
     "noCreditCards": "No credit cards accepted",
     "payAtMeetingPoint": "Pay at meeting point",
     "cashOnArrival": "Cash on Arrival"
+  },
+  "home": {
+    "office": {
+      "address": "54 Riad Zitoun Lakdim, Marrakech 40000"
+    },
+    "expertise": {
+      "title": "Our Expertise & Commitment",
+      "items": {
+        "localExpertise": {
+          "title": "Local Expertise",
+          "description": "Born and raised in Marrakech, our team possesses intimate knowledge of Morocco's hidden treasures, secret locations, and authentic cultural experiences that only locals can provide."
+        },
+        "personalizedService": {
+          "title": "Personalized Service",
+          "description": "Every adventure is tailored to your preferences. We work closely with each traveler to create customized itineraries that match your interests, pace, and desired level of adventure."
+        },
+        "safetyQuality": {
+          "title": "Safety & Quality",
+          "description": "Licensed guides, insured activities, and carefully maintained equipment ensure your safety while preserving the authentic Moroccan experience."
+        },
+        "sustainableTourism": {
+          "title": "Sustainable Tourism",
+          "description": "We partner with local communities and promote responsible travel practices that protect Morocco's environment and support traditional Berber and Arab cultures."
+        },
+        "instantBooking": {
+          "title": "Instant Booking",
+          "description": "Our streamlined booking platform provides instant confirmation with direct WhatsApp contact to our guides for real-time updates and personalized assistance."
+        },
+        "premiumExperience": {
+          "title": "Premium Experience",
+          "description": "From sunrise balloon flights to luxury desert camps, we curate premium experiences that showcase Morocco's diverse landscapes and rich cultural heritage."
+        }
+      }
+    },
+    "quote": {
+      "text": "“At MarrakechDunes, we don't just show you Morocco — we invite you to live it. Every adventure is a bridge between cultures, every moment a memory that lasts a lifetime.”",
+      "signature": "— Our Team Promise"
+    },
+    "mission": {
+      "title": "Our Mission & Values",
+      "description": "At MarrakechDunes, we create authentic connections between travelers and Morocco's rich cultural heritage. Our mission is to provide seamless, personalized booking experiences that open doors to unforgettable adventures while supporting local communities and preserving traditional Moroccan hospitality.",
+      "values": {
+        "authenticity": {
+          "title": "Authenticity",
+          "description": "Authentic experiences with local guides who share their culture and traditions."
+        },
+        "trust": {
+          "title": "Trust",
+          "description": "Transparent pricing, reliable service, and commitment to every booking."
+        },
+        "adventure": {
+          "title": "Adventure",
+          "description": "Curated experiences that highlight Morocco's diverse landscapes and culture."
+        }
+      }
+    },
+    "testimonials": {
+      "title": "What Our Clients Say",
+      "subtitle": "Real experiences from travelers who trusted us with their Moroccan adventures",
+      "items": {
+        "sarah": {
+          "name": "Sarah M.",
+          "country": "United Kingdom",
+          "quote": "The hot air balloon experience was absolutely magical! The booking process was seamless and our guide was incredibly knowledgeable. Highly recommend MarrakechDunes!"
+        },
+        "ahmed": {
+          "name": "Ahmed K.",
+          "country": "France",
+          "quote": "Perfect organization for our Essaouira day trip. The coastal views were stunning and we learned so much about Moroccan history. Professional service from start to finish."
+        },
+        "maria": {
+          "name": "Maria L.",
+          "country": "Spain",
+          "quote": "The Agafay Desert experience exceeded all expectations. Authentic Berber hospitality, stunning landscapes, and memories for a lifetime. Thank you MarrakechDunes!"
+        }
+      }
+    },
+    "popular": {
+      "title": "Our Most Popular Adventures",
+      "subtitle": "Discover the experiences that captivate travelers from around the world",
+      "cards": {
+        "balloon": {
+          "title": "Hot Air Balloon",
+          "subtitle": "Sunrise Over Atlas Mountains",
+          "alt": "Hot Air Balloon Adventure"
+        },
+        "agafay": {
+          "title": "Agafay Desert",
+          "subtitle": "Ultimate Desert Adventure",
+          "alt": "Agafay Desert Experience"
+        },
+        "essaouira": {
+          "title": "Essaouira",
+          "subtitle": "Atlantic Coast Discovery",
+          "alt": "Essaouira Coastal Adventure"
+        }
+      }
+    }
   }
 }
-
-

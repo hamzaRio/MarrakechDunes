@@ -163,13 +163,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     if (authReq.session?.user) {
       res.json({
-        username: authReq.session.user.username,
-        role: authReq.session.user.role
+        success: true,
+        user: authReq.session.user,
       });
     } else {
       throw new AuthenticationError('Not authenticated');
-    }
-  }));
+    }  }));
 
   app.post("/api/auth/login", strictLimiter, authRateLimit, asyncHandler(async (req: Request, res: Response) => {
     const { username, password } = req.body;
@@ -192,20 +191,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const authReq = req as AuthenticatedRequest;
-      
-      // Set session data
-      authReq.session.user = {
-        id: user._id?.toString() || user.id?.toString() || '',
-        username: user.username,
+
+      const sessionUser: session.SessionData["user"] = {
+        id: user._id?.toString() || user.id?.toString() || "",
         role: user.role,
       };
 
-      // Return success response
-      res.json({ 
-        username: user.username,
-        role: user.role
-      });
-      
+      if (user.username) {
+        sessionUser.username = user.username;
+      }
+
+      authReq.session.user = sessionUser;
+
+      res.json({
+        success: true,
+        user: authReq.session.user,
+      });      
     } catch (error) {
       if (error instanceof AuthenticationError) {
         throw error;
@@ -299,9 +300,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Public routes
   app.get("/api/activities", asyncHandler(async (req: Request, res: Response) => {
     try {
-      const activities = await storage.getActivities();
-      res.json(Array.isArray(activities) ? activities : []);
-    } catch (error) {
+      const activities = await storage.getActivities();\r\n      res.json({ activities: Array.isArray(activities) ? activities : [] });\r\n    } catch (error) {
       throw handleDatabaseError(error);
     }
   }));
@@ -862,14 +861,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const objectStorageService = new ObjectStorageService();
       const objectPath = objectStorageService.normalizeObjectEntityPath(imageURL);
 
-      // Update activity with new image path
-      const activity = await storage.updateActivity(id, { image: objectPath });
-      
-      // Create audit log
+      const existingActivity = await storage.getActivity(id);
+      if (!existingActivity) {
+        return res.status(404).json({ 
+          status: 'error',
+          message: "Activity not found",
+          code: 'ACTIVITY_NOT_FOUND',
+          timestamp: new Date().toISOString(),
+          path: req.path,
+          method: req.method
+        });
+      }
+
+      const currentUrls = Array.isArray(existingActivity.imageUrls) ? existingActivity.imageUrls : [];
+      const mergedUrls = Array.from(new Set([objectPath, ...currentUrls].filter(Boolean)));
+      const activity = await storage.updateActivity(id, { imageUrls: mergedUrls });
+
       await storage.createAuditLog({
         userId: authReq.session.user!.id,
-        action: `Updated activity image: ${activity?.name}`,
-        details: JSON.stringify({ activityId: id, imagePath: objectPath })
+        action: `Updated activity images: ${activity?.name}`,
+        details: JSON.stringify({ activityId: id, imageUrls: mergedUrls })
       });
 
       res.json({ objectPath });
@@ -1053,3 +1064,5 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
   return httpServer;
 }
+
+

@@ -108,7 +108,7 @@ export default function Home() {
                     <MapPin className="text-moroccan-red text-xl mr-4 mt-1" />
                     <div>
                       <h4 className="font-bold text-gray-900 mb-2">{t('visitOffice')}</h4>
-                      <p className="text-gray-800 font-medium mb-4">54 Riad Zitoun Lakdim, Marrakech 40000</p>
+                      <p className="text-gray-800 font-medium mb-4">{t('home.office.address')}</p>
                     </div>
                   </div>
                   
@@ -172,7 +172,7 @@ export default function Home() {
               <div className="bg-gradient-to-br from-moroccan-blue/5 to-moroccan-sand/20 rounded-3xl p-8 md:p-12">
                 <div className="max-w-5xl mx-auto">
                   <h3 className="text-3xl font-playfair font-bold text-moroccan-blue mb-8 text-center">
-                    Our Expertise & Commitment
+                    {t('home.expertise.title')}
                   </h3>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -180,10 +180,9 @@ export default function Home() {
                       <div className="w-20 h-20 bg-moroccan-blue/10 rounded-full flex items-center justify-center mx-auto mb-4">
                         <span className="text-3xl text-moroccan-blue">🗺️</span>
                       </div>
-                      <h4 className="text-xl font-semibold text-moroccan-blue mb-3">Local Expertise</h4>
+                      <h4 className="text-xl font-semibold text-moroccan-blue mb-3">{t('home.expertise.items.localExpertise.title')}</h4>
                       <p className="text-gray-700">
-                        Born and raised in Marrakech, our team possesses intimate knowledge of Morocco's hidden treasures, 
-                        secret locations, and authentic cultural experiences that only locals can provide.
+                        {t('home.expertise.items.localExpertise.description')}
                       </p>
                     </div>
 
@@ -191,10 +190,9 @@ export default function Home() {
                       <div className="w-20 h-20 bg-moroccan-gold/10 rounded-full flex items-center justify-center mx-auto mb-4">
                         <span className="text-3xl text-moroccan-gold">👥</span>
                       </div>
-                      <h4 className="text-xl font-semibold text-moroccan-blue mb-3">Personalized Service</h4>
+                      <h4 className="text-xl font-semibold text-moroccan-blue mb-3">{t('home.expertise.items.personalizedService.title')}</h4>
                       <p className="text-gray-700">
-                        Every adventure is tailored to your preferences. We work closely with each traveler to create 
-                        customized itineraries that match your interests, pace, and desired level of adventure.
+                        {t('home.expertise.items.personalizedService.description')}
                       </p>
                     </div>
 
@@ -202,10 +200,9 @@ export default function Home() {
                       <div className="w-20 h-20 bg-moroccan-red/10 rounded-full flex items-center justify-center mx-auto mb-4">
                         <span className="text-3xl text-moroccan-red">🛡️</span>
                       </div>
-                      <h4 className="text-xl font-semibold text-moroccan-blue mb-3">Safety & Quality</h4>
+                      <h4 className="text-xl font-semibold text-moroccan-blue mb-3">{t('home.expertise.items.safetyQuality.title')}</h4>
                       <p className="text-gray-700">
-                        Licensed guides, insured activities, and carefully maintained equipment ensure your safety. 
-                        We maintain the highest standards while preserving the authentic Moroccan experience.
+                        {t('home.expertise.items.safetyQuality.description')}
                       </p>
                     </div>
 
@@ -213,10 +210,9 @@ export default function Home() {
                       <div className="w-20 h-20 bg-moroccan-blue/10 rounded-full flex items-center justify-center mx-auto mb-4">
                         <span className="text-3xl text-moroccan-blue">🌍</span>
                       </div>
-                      <h4 className="text-xl font-semibold text-moroccan-blue mb-3">Sustainable Tourism</h4>
+                      <h4 className="text-xl font-semibold text-moroccan-blue mb-3">{t('home.expertise.items.sustainableTourism.title')}</h4>
                       <p className="text-gray-700">
-                        We partner with local communities and promote responsible travel practices that benefit 
-                        Morocco's environment and support traditional Berber and Arab cultures.
+                        {t('home.expertise.items.sustainableTourism.description')}
                       </p>
                     </div>
 
@@ -224,10 +220,9 @@ export default function Home() {
                       <div className="w-20 h-20 bg-moroccan-gold/10 rounded-full flex items-center justify-center mx-auto mb-4">
                         <span className="text-3xl text-moroccan-gold">⚡</span>
                       </div>
-                      <h4 className="text-xl font-semibold text-moroccan-blue mb-3">Instant Booking</h4>
+                      <h4 className="text-xl font-semibold text-moroccan-blue mb-3">{t('home.expertise.items.instantBooking.title')}</h4>
                       <p className="text-gray-700">
-                        Our streamlined booking platform allows instant confirmations with direct WhatsApp communication 
-                        to our guides for real-time updates and personalized assistance.
+                        {t('home.expertise.items.instantBooking.description')}
                       </p>
                     </div>
 
@@ -235,10 +230,9 @@ export default function Home() {
                       <div className="w-20 h-20 bg-moroccan-red/10 rounded-full flex items-center justify-center mx-auto mb-4">
                         <span className="text-3xl text-moroccan-red">💎</span>
                       </div>
-                      <h4 className="text-xl font-semibold text-moroccan-blue mb-3">Premium Experience</h4>
+                      <h4 className="text-xl font-semibold text-moroccan-blue mb-3">{t('home.expertise.items.premiumExperience.title')}</h4>
                       <p className="text-gray-700">
-                        From sunrise balloon flights to luxury desert camps, we curate premium experiences 
-                        that showcase Morocco's diverse landscapes and rich cultural heritage.
+                        {t('home.expertise.items.premiumExperience.description')}
                       </p>
                     </div>
                   </div>
@@ -246,10 +240,9 @@ export default function Home() {
                   <div className="mt-12 text-center">
                     <div className="bg-white/80 rounded-2xl p-6 shadow-lg">
                       <p className="text-lg text-gray-700 italic">
-                        "At MarrakechDunes, we don't just show you Morocco – we invite you to live it. 
-                        Every adventure is a bridge between cultures, every moment a memory that lasts a lifetime."
+                        {t('home.quote.text')}
                       </p>
-                      <p className="text-moroccan-blue font-semibold mt-4">— Our Team Promise</p>
+                      <p className="text-moroccan-blue font-semibold mt-4">{t('home.quote.signature')}</p>
                     </div>
                   </div>
                 </div>
@@ -260,35 +253,31 @@ export default function Home() {
           {/* Agency Mission & Values */}
           <div className="text-center mb-16">
             <h3 className="font-playfair text-3xl md:text-4xl font-bold text-moroccan-blue mb-6">
-              Our Mission & Values
+              {t('home.mission.title')}
             </h3>
             <div className="max-w-4xl mx-auto">
-              <p className="text-lg text-gray-700 leading-relaxed mb-8">
-                At MarrakechDunes, we believe in creating authentic connections between travelers and Morocco's rich cultural heritage. 
-                Our mission is to provide seamless, personalized booking experiences that open doors to unforgettable adventures while 
-                supporting local communities and preserving traditional Moroccan hospitality.
-              </p>
+              <p className="text-lg text-gray-700 leading-relaxed mb-8">{t('home.mission.description')}</p>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 <div className="text-center">
                   <div className="w-16 h-16 bg-moroccan-blue/10 rounded-full flex items-center justify-center mx-auto mb-4">
                     <span className="text-2xl text-moroccan-blue">⭐</span>
                   </div>
-                  <h4 className="font-semibold text-moroccan-blue mb-2">Authenticity</h4>
-                  <p className="text-gray-600 text-sm">Genuine experiences with local guides who share their culture and traditions</p>
+                  <h4 className="font-semibold text-moroccan-blue mb-2">{t('home.mission.values.authenticity.title')}</h4>
+                  <p className="text-gray-600 text-sm">{t('home.mission.values.authenticity.description')}</p>
                 </div>
                 <div className="text-center">
                   <div className="w-16 h-16 bg-moroccan-gold/10 rounded-full flex items-center justify-center mx-auto mb-4">
                     <span className="text-2xl text-moroccan-gold">🤝</span>
                   </div>
-                  <h4 className="font-semibold text-moroccan-blue mb-2">Trust</h4>
-                  <p className="text-gray-600 text-sm">Transparent pricing, reliable service, and commitment to every booking</p>
+                  <h4 className="font-semibold text-moroccan-blue mb-2">{t('home.mission.values.trust.title')}</h4>
+                  <p className="text-gray-600 text-sm">{t('home.mission.values.trust.description')}</p>
                 </div>
                 <div className="text-center">
                   <div className="w-16 h-16 bg-moroccan-red/10 rounded-full flex items-center justify-center mx-auto mb-4">
                     <span className="text-2xl text-moroccan-red">🏔️</span>
                   </div>
-                  <h4 className="font-semibold text-moroccan-blue mb-2">Adventure</h4>
-                  <p className="text-gray-600 text-sm">Curated experiences that showcase Morocco's diverse landscapes and culture</p>
+                  <h4 className="font-semibold text-moroccan-blue mb-2">{t('home.mission.values.adventure.title')}</h4>
+                  <p className="text-gray-600 text-sm">{t('home.mission.values.adventure.description')}</p>
                 </div>
               </div>
             </div>
@@ -298,10 +287,10 @@ export default function Home() {
           <div className="bg-moroccan-sand/20 rounded-3xl p-8 md:p-12 mb-16">
             <div className="text-center mb-12">
               <h3 className="font-playfair text-3xl md:text-4xl font-bold text-moroccan-blue mb-4">
-                What Our Clients Say
+                {t('home.testimonials.title')}
               </h3>
               <p className="text-lg text-gray-600">
-                Real experiences from travelers who trusted us with their Moroccan adventures
+                {t('home.testimonials.subtitle')}
               </p>
             </div>
             
@@ -312,12 +301,12 @@ export default function Home() {
                     <span className="text-white font-semibold text-lg">SM</span>
                   </div>
                   <div>
-                    <h4 className="font-semibold text-moroccan-blue">Sarah M.</h4>
-                    <p className="text-sm text-gray-500">United Kingdom</p>
+                    <h4 className="font-semibold text-moroccan-blue">{t('home.testimonials.items.sarah.name')}</h4>
+                    <p className="text-sm text-gray-500">{t('home.testimonials.items.sarah.country')}</p>
                   </div>
                 </div>
                 <p className="text-gray-700 italic">
-                  "The hot air balloon experience was absolutely magical! The booking process was seamless and our guide was incredibly knowledgeable. Highly recommend MarrakechDunes!"
+                  {t('home.testimonials.items.sarah.quote')}
                 </p>
                 <div className="flex mt-4">
                   {[...Array(5)].map((_, i) => (
@@ -332,12 +321,12 @@ export default function Home() {
                     <span className="text-white font-semibold text-lg">AK</span>
                   </div>
                   <div>
-                    <h4 className="font-semibold text-moroccan-blue">Ahmed K.</h4>
-                    <p className="text-sm text-gray-500">France</p>
+                    <h4 className="font-semibold text-moroccan-blue">{t('home.testimonials.items.ahmed.name')}</h4>
+                    <p className="text-sm text-gray-500">{t('home.testimonials.items.ahmed.country')}</p>
                   </div>
                 </div>
                 <p className="text-gray-700 italic">
-                  "Perfect organization for our Essaouira day trip. The coastal views were stunning and we learned so much about Moroccan history. Professional service from start to finish."
+                  {t('home.testimonials.items.ahmed.quote')}
                 </p>
                 <div className="flex mt-4">
                   {[...Array(5)].map((_, i) => (
@@ -352,12 +341,12 @@ export default function Home() {
                     <span className="text-white font-semibold text-lg">ML</span>
                   </div>
                   <div>
-                    <h4 className="font-semibold text-moroccan-blue">Maria L.</h4>
-                    <p className="text-sm text-gray-500">Spain</p>
+                    <h4 className="font-semibold text-moroccan-blue">{t('home.testimonials.items.maria.name')}</h4>
+                    <p className="text-sm text-gray-500">{t('home.testimonials.items.maria.country')}</p>
                   </div>
                 </div>
                 <p className="text-gray-700 italic">
-                  "The Agafay Desert experience exceeded all expectations. Authentic Berber hospitality, stunning landscapes, and memories for a lifetime. Thank you MarrakechDunes!"
+                  {t('home.testimonials.items.maria.quote')}
                 </p>
                 <div className="flex mt-4">
                   {[...Array(5)].map((_, i) => (
@@ -371,10 +360,10 @@ export default function Home() {
           {/* Top Activities Highlight */}
           <div className="text-center mb-16">
             <h3 className="font-playfair text-3xl md:text-4xl font-bold text-moroccan-blue mb-6">
-              Our Most Popular Adventures
+              {t('home.popular.title')}
             </h3>
             <p className="text-lg text-gray-600 mb-12">
-              Discover the experiences that captivate travelers from around the world
+              {t('home.popular.subtitle')}
             </p>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -382,7 +371,7 @@ export default function Home() {
                 <div className="relative overflow-hidden rounded-2xl shadow-lg group-hover:shadow-xl transition-shadow duration-300">
                   <img
                     src={asset("Hot Air Balloon Ride2_1751127701686.jpg")}
-                    alt="Hot Air Balloon Adventure"
+                    alt={t('home.popular.cards.balloon.alt')}
                     className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300"
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
@@ -391,8 +380,8 @@ export default function Home() {
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                   <div className="absolute bottom-4 left-4 text-white">
-                    <h4 className="text-xl font-playfair font-bold">Hot Air Balloon</h4>
-                    <p className="text-sm opacity-90">Sunrise Over Atlas Mountains</p>
+                    <h4 className="text-xl font-playfair font-bold">{t('home.popular.cards.balloon.title')}</h4>
+                    <p className="text-sm opacity-90">{t('home.popular.cards.balloon.subtitle')}</p>
                   </div>
                 </div>
               </div>
@@ -401,7 +390,7 @@ export default function Home() {
                 <div className="relative overflow-hidden rounded-2xl shadow-lg group-hover:shadow-xl transition-shadow duration-300">
                   <img
                     src={asset("agafaypack1_1751128022717.jpeg")}
-                    alt="Agafay Desert Experience"
+                    alt={t('home.popular.cards.agafay.alt')}
                     className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300"
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
@@ -410,8 +399,8 @@ export default function Home() {
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                   <div className="absolute bottom-4 left-4 text-white">
-                    <h4 className="text-xl font-playfair font-bold">Agafay Desert</h4>
-                    <p className="text-sm opacity-90">Ultimate Desert Adventure</p>
+                    <h4 className="text-xl font-playfair font-bold">{t('home.popular.cards.agafay.title')}</h4>
+                    <p className="text-sm opacity-90">{t('home.popular.cards.agafay.subtitle')}</p>
                   </div>
                 </div>
               </div>
@@ -420,7 +409,7 @@ export default function Home() {
                 <div className="relative overflow-hidden rounded-2xl shadow-lg group-hover:shadow-xl transition-shadow duration-300">
                   <img
                     src={asset("Essaouira Day Trip1_1751124502666.jpg")}
-                    alt="Essaouira Coastal Adventure"
+                    alt={t('home.popular.cards.essaouira.alt')}
                     className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300"
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
@@ -429,8 +418,8 @@ export default function Home() {
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                   <div className="absolute bottom-4 left-4 text-white">
-                    <h4 className="text-xl font-playfair font-bold">Essaouira</h4>
-                    <p className="text-sm opacity-90">Atlantic Coast Discovery</p>
+                    <h4 className="text-xl font-playfair font-bold">{t('home.popular.cards.essaouira.title')}</h4>
+                    <p className="text-sm opacity-90">{t('home.popular.cards.essaouira.subtitle')}</p>
                   </div>
                 </div>
               </div>
@@ -442,7 +431,7 @@ export default function Home() {
                 className="bg-moroccan-blue hover:bg-moroccan-blue/90 text-white px-8 py-3"
                 onClick={() => window.location.href = '/activities'}
               >
-                View All Activities
+                {t('home.viewAllActivities')}
               </Button>
             </div>
           </div>
@@ -454,25 +443,25 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="font-playfair text-4xl font-black mb-4 text-white" 
-                style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}>Ready to Book Your Adventure?</h2>
+                style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.5)' }}>{t('home.readyTitle')}</h2>
             <p className="text-xl text-white font-semibold" 
-               style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.5)' }}>Contact our expert guides directly via WhatsApp</p>
+               style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.5)' }}>{t('home.readySubtitle')}</p>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <WhatsAppButton
               name="Ahmed"
-              role="Desert Specialist"
+              role={t('home.whatsapp.roles.desertSpecialist')}
               phone="+212600623630"
             />
             <WhatsAppButton
               name="Yahia"
-              role="Mountain Guide"
+              role={t('home.whatsapp.roles.mountainGuide')}
               phone="+212693323368"
             />
             <WhatsAppButton
               name="Nadia"
-              role="Cultural Expert"
+              role={t('home.whatsapp.roles.culturalExpert')}
               phone="+212654497354"
             />
           </div>

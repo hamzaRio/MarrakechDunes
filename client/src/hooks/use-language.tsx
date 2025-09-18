@@ -6,7 +6,7 @@ interface LanguageContextType {
   language: Language;
   setLanguage: (lang: Language) => void;
   changeLanguage: (lang: Language) => void;
-  t: (key: string) => string;
+  t: <T = string>(key: string, options?: Record<string, unknown>) => T;
 }
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
@@ -30,9 +30,14 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
   const changeLanguage = (lang: Language) => setLanguage(lang);
 
-  const t = useMemo(() => (key: string) => {
-    const translation = i18n.t(key);
-    return translation !== key ? translation : key; // Fallback to key if translation not found
+  const t = useMemo(() => {
+    return <T = string>(key: string, options?: Record<string, unknown>): T => {
+      const translation = i18n.t(key, options);
+      if (translation === key && (!options || !Object.prototype.hasOwnProperty.call(options, "defaultValue"))) {
+        return key as unknown as T;
+      }
+      return translation as T;
+    };
   }, [language]);
 
   return (

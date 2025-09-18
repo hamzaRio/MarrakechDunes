@@ -5,11 +5,16 @@ const criticalFrontendEnvVars = [
 
 for (const envVar of criticalFrontendEnvVars) {
   if (!import.meta.env[envVar] && import.meta.env.MODE === 'production') {
-    console.warn(`Warning: ${envVar} is not set in production mode. Using fallback.`);
+    console.warn(`Warning: ${envVar} is not set in production mode. This may break API requests.`);
   }
 }
 
-export const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.MODE === 'production' ? 'https://marrakechdunes.onrender.com' : "http://localhost:10000");
+const apiUrl = (import.meta.env.VITE_API_URL || '').trim();
+if (!apiUrl) {
+  throw new Error('VITE_API_URL must be defined');
+}
+
+export const API_URL = apiUrl;
 
 const ASSETS_BASE = import.meta.env.VITE_ASSETS_BASE || (import.meta.env.MODE === 'production' ? 'https://marrakechdunes.onrender.com/attached_assets' : '/attached_assets');
 

@@ -30,8 +30,7 @@ const activitySchema = new mongoose.Schema({
   description: { type: String, required: true },
   price: { type: String, required: true },
   currency: { type: String, default: 'MAD' },
-  image: { type: String, required: true },
-  photos: [{ type: String }],
+  imageUrls: { type: [String], required: true, default: [] },
   category: { type: String, required: true },
   isActive: { type: Boolean, default: true },
   seasonalPricing: { type: mongoose.Schema.Types.Mixed },
@@ -125,6 +124,17 @@ class MongoStorage implements IStorage {
     const obj = doc.toObject ? doc.toObject() : doc;
     obj._id = obj._id.toString();
     obj.id = obj._id;
+
+    if (Object.prototype.hasOwnProperty.call(obj, 'imageUrls') || Object.prototype.hasOwnProperty.call(obj, 'image') || Object.prototype.hasOwnProperty.call(obj, 'photos')) {
+      const urls = Array.isArray(obj.imageUrls) ? obj.imageUrls.filter(Boolean) : [];
+      const legacyPhotos = Array.isArray(obj.photos) ? obj.photos.filter(Boolean) : [];
+      const legacyImage = typeof obj.image === 'string' && obj.image ? [obj.image] : [];
+      const merged = [...legacyImage, ...urls, ...legacyPhotos];
+      obj.imageUrls = Array.from(new Set(merged)).filter(Boolean);
+      delete obj.image;
+      delete obj.photos;
+    }
+
     return obj;
   }
 
@@ -201,13 +211,30 @@ class MongoStorage implements IStorage {
   }
 
   async createActivity(activityData: InsertActivity): Promise<ActivityType> {
-    const activity = new Activity(activityData);
+    const imageUrls = (activityData.imageUrls ?? []).filter(Boolean);
+    if (imageUrls.length === 0) {
+      throw new Error('imageUrls must contain at least one entry');
+    }
+
+    const activity = new Activity({
+      ...activityData,
+      imageUrls,
+    });
     const savedActivity = await activity.save();
     return this.transformDocument(savedActivity);
   }
 
   async updateActivity(id: string, activityData: Partial<InsertActivity>): Promise<ActivityType | null> {
-    const activity = await Activity.findByIdAndUpdate(id, activityData, { new: true });
+    const updatedFields: Partial<InsertActivity> = { ...activityData };
+    if (activityData.imageUrls) {
+      const normalized = activityData.imageUrls.filter(Boolean);
+      if (normalized.length === 0) {
+        throw new Error('imageUrls must contain at least one entry');
+      }
+      updatedFields.imageUrls = normalized;
+    }
+
+    const activity = await Activity.findByIdAndUpdate(id, updatedFields, { new: true });
     return this.transformDocument(activity);
   }
 
@@ -397,8 +424,7 @@ class MongoStorage implements IStorage {
             description: "Experience the magic of Marrakech from above with a sunrise hot air balloon ride over the Atlas Mountains and traditional Berber villages.",
             price: "1100",
             currency: "MAD",
-            image: "/attached_assets/montgolfiere-marrakech_1751127701687.jpg",
-            photos: [
+            imageUrls: [
               "/attached_assets/montgolfiere-marrakech_1751127701687.jpg",
               "/attached_assets/montgofliere_a_marrakech_1751127701687.jpg",
               "/attached_assets/Hot Air Balloon Ride2_1751127701686.jpg",
@@ -413,8 +439,7 @@ class MongoStorage implements IStorage {
             description: "Complete Agafay Desert experience with camel riding, quad biking, traditional dinner under the stars, and sunset views.",
             price: "450",
             currency: "MAD",
-            image: "/attached_assets/agafaypack1_1751128022717.jpeg",
-            photos: [
+            imageUrls: [
               "/attached_assets/agafaypack1_1751128022717.jpeg",
               "/attached_assets/agafaypack2_1751128022717.jpeg"
             ],
@@ -427,8 +452,7 @@ class MongoStorage implements IStorage {
             description: "Discover the coastal charm of Essaouira with its historic medina, fishing port, and beautiful Atlantic beaches.",
             price: "200",
             currency: "MAD",
-            image: "/attached_assets/Essaouira Day Trip1_1751124502666.jpg",
-            photos: [
+            imageUrls: [
               "/attached_assets/Essaouira Day Trip1_1751124502666.jpg",
               "/attached_assets/Essaouira day trip 3_1751122022832.jpg",
               "/attached_assets/Essaouira day trip 4_1751122022833.jpg",
@@ -444,8 +468,7 @@ class MongoStorage implements IStorage {
             description: "Visit Morocco's most spectacular waterfalls with 110-meter cascades, rainbow views, and Barbary macaque encounters.",
             price: "200",
             currency: "MAD",
-            image: "/attached_assets/activities/ouzoud/Cascades_d'Ouzoud_008.JPG",
-            photos: [
+            imageUrls: [
               "/attached_assets/activities/ouzoud/Cascades_d'Ouzoud_008.JPG",
               "/attached_assets/activities/ouzoud/Cascades_d'Ouzoud_014.JPG",
               "/attached_assets/activities/ouzoud/Cascades_d'Ouzoud_018.JPG"
@@ -459,8 +482,7 @@ class MongoStorage implements IStorage {
             description: "Discover the stunning Ourika Valley with its colorful Berber villages, flowing rivers, snow-capped Atlas Mountains, and authentic local culture.",
             price: "150",
             currency: "MAD",
-            image: "/attached_assets/Ourika-Valley-day-trip-from-Marrakech_1756485141180.jpg",
-            photos: [
+            imageUrls: [
               "/attached_assets/ourika valley3_1751114166832.jpg",
               "/attached_assets/Ourika-Valley-day-trip-from-Marrakech_1756485141180.jpg",
               "/attached_assets/ourika-valley-1_1756485141180.jpeg",

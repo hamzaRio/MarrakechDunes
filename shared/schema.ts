@@ -18,8 +18,7 @@ export interface ActivityType {
   description: string;
   price: string;
   currency: string;
-  image: string;
-  photos?: string[];
+  imageUrls: string[];
   category: string;
   isActive: boolean;
   seasonalPricing?: any;
@@ -94,8 +93,7 @@ export const insertActivitySchema = z.object({
   description: z.string().min(1),
   price: z.string().min(1),
   currency: z.string().default('MAD'),
-  image: z.string().min(1),
-  photos: z.array(z.string()).optional(),
+  imageUrls: z.array(z.string().min(1)),
   category: z.string().min(1),
   isActive: z.boolean().default(true),
   seasonalPricing: z.any().optional(),

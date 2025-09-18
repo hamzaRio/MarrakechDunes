@@ -31,7 +31,8 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { Plus, Settings, Trash2, Power, PowerOff, Upload, Image, Search, ExternalLink } from "lucide-react";
+import { getAssetUrl } from "@/lib/utils";
+import { Plus, Settings, Trash2, Power, PowerOff, Upload, Search, ExternalLink } from "lucide-react";
 import { ObjectUploader } from "@/components/ObjectUploader";
 import type { ActivityType } from "@shared/schema";
 import type { UploadResult } from "@uppy/core";
@@ -43,7 +44,7 @@ const activityFormSchema = z.object({
   currency: z.string().default("MAD"),
   category: z.string().min(1, "Category is required"),
   availability: z.string().optional(),
-  image: z.string().min(1, "Image is required"),
+  imageUrls: z.array(z.string().min(1, "Image URL is required")).min(1, "At least one image is required"),
   isActive: z.boolean().default(true),
 });
 
@@ -61,7 +62,6 @@ export default function ActivityManagementModal({
   trigger 
 }: ActivityManagementModalProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [uploadedImageUrl, setUploadedImageUrl] = useState<string>("");
   const [priceSearchQuery, setPriceSearchQuery] = useState<string>("");
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -77,7 +77,7 @@ export default function ActivityManagementModal({
       currency: activity?.currency || "MAD",
       category: activity?.category || "",
       availability: activity?.availability || "",
-      image: activity?.image || uploadedImageUrl || "",
+      imageUrls: activity?.imageUrls ?? ((activity as any)?.photos ?? ((activity as any)?.image ? [(activity as any).image] : [])),
       isActive: activity?.isActive ?? true,
     },
   });
@@ -110,9 +110,13 @@ export default function ActivityManagementModal({
   // Create activity mutation
   const createActivityMutation = useMutation({
     mutationFn: async (data: ActivityFormData) => {
+      const payload = {
+        ...data,
+        imageUrls: data.imageUrls.filter((url) => !!url?.trim()),
+      };
       const res = await apiRequest("/admin/activities", {
         method: "POST",
-        body: JSON.stringify(data)
+        body: JSON.stringify(payload)
       });
       return res.json();
     },
@@ -478,59 +482,85 @@ export default function ActivityManagementModal({
                 </div>
 
                 <FormField
-                  control={form.control}
-                  name="image"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Activity Image</FormLabel>
-                      <FormControl>
-                        <div className="space-y-2">
-                          <ObjectUploader
-                            maxNumberOfFiles={1}
-                            maxFileSize={5242880} // 5MB
-                            onGetUploadParameters={async () => {
-                              const res = await apiRequest("/api/objects/upload", {
-                                method: "POST"
-                              });
-                              const data = await res.json();
-                              return {
-                                method: "PUT" as const,
-                                url: data.uploadURL,
-                              };
-                            }}
-                            onComplete={(result) => {
-                              if (result.successful && result.successful.length > 0) {
-                                const uploadedFile = result.successful[0];
-                                const imageUrl = uploadedFile.uploadURL;
-                                setUploadedImageUrl(imageUrl);
-                                field.onChange(imageUrl);
-                                toast({
-                                  title: "Image Uploaded",
-                                  description: "Activity image has been uploaded successfully.",
-                                });
-                              }
-                            }}
-                            buttonClassName="w-full"
-                          >
-                            <Upload className="h-4 w-4 mr-2" />
-                            Upload Activity Image
-                          </ObjectUploader>
-                          {field.value && (
-                            <div className="flex items-center space-x-2 text-sm text-green-600">
-                              <Image className="h-4 w-4" />
-                              <span>Image uploaded successfully</span>
-                            </div>
-                          )}
-                          <Input 
-                            type="hidden" 
-                            {...field} 
+          control={form.control}
+          name="imageUrls"
+          render={({ field }) => {
+            const urls = (field.value ?? []) as string[];
+
+            const handleManualChange = (value: string) => {
+              const list = value
+                .split('\n')
+                .map((url) => url.trim())
+                .filter(Boolean);
+              field.onChange(list);
+            };
+
+            const handleUploadComplete = (uploadedUrl: string) => {
+              const normalized = uploadedUrl.trim();
+              if (!normalized) {
+                return;
+              }
+              const next = [normalized, ...urls.filter((url) => url !== normalized)];
+              field.onChange(next);
+            };
+
+            return (
+              <FormItem>
+                <FormLabel>Activity Images</FormLabel>
+                <FormControl>
+                  <div className="space-y-3">
+                    <Textarea
+                      value={urls.join("\n")}
+                      onChange={(event) => handleManualChange(event.target.value)}
+                      placeholder="Enter one image URL per line"
+                      className="min-h-[100px]"
+                    />
+                    <ObjectUploader
+                      maxNumberOfFiles={3}
+                      maxFileSize={5242880}
+                      onGetUploadParameters={async () => {
+                        const res = await apiRequest("/api/objects/upload", {
+                          method: "POST"
+                        });
+                        const data = await res.json();
+                        return {
+                          method: "PUT" as const,
+                          url: data.uploadURL,
+                        };
+                      }}
+                      onComplete={(result) => {
+                        if (result.successful && result.successful.length > 0) {
+                          result.successful.forEach((file) => handleUploadComplete(file.uploadURL));
+                          toast({
+                            title: "Image Uploaded",
+                            description: "Activity image has been uploaded successfully.",
+                          });
+                        }
+                      }}
+                      buttonClassName="w-full"
+                    >
+                      <Upload className="h-4 w-4 mr-2" />
+                      Upload Activity Image
+                    </ObjectUploader>
+                    {urls.length > 0 && (
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        {urls.map((src, index) => (
+                          <img
+                            key={`${src}-${index}`}
+                            src={getAssetUrl(src)}
+                            alt={`Activity image ${index + 1}`}
+                            className="h-16 w-16 object-cover rounded-md border border-white/40 shadow-sm"
                           />
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            );
+          }}
+        />
 
                 <FormField
                   control={form.control}

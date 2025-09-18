@@ -1,19 +1,15 @@
 import axios from 'axios';
 
-// Get API base URL - if VITE_API_URL already includes /api, use as-is, otherwise add /api
-const getApiBaseUrl = () => {
-  const envUrl = import.meta.env.VITE_API_URL;
-  if (envUrl) {
-    // If env URL already includes /api, use it directly
-    return envUrl.endsWith('/api') ? envUrl : `${envUrl}/api`;
-  }
-  // Fallback for development/production
-  return import.meta.env.MODE === 'production' 
-    ? 'https://marrakechdunes.onrender.com/api' 
-    : 'http://localhost:10000/api';
-};
+const envApiUrl = (import.meta.env.VITE_API_URL || '').trim();
+if (!envApiUrl) {
+  throw new Error('VITE_API_URL must be defined');
+}
 
-const baseURL = getApiBaseUrl();
+const normalizedApiUrl = envApiUrl.endsWith('/api')
+  ? envApiUrl
+  : `${envApiUrl.replace(/\/$/, '')}/api`;
+
+const baseURL = normalizedApiUrl;
 
 export const api = axios.create({
   baseURL,

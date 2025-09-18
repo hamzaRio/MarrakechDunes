@@ -8,7 +8,8 @@ import AdminRoute from "@/components/admin-route";
 import { useAuth } from "@/hooks/use-auth";
 import { useLanguage } from "@/hooks/use-language";
 import { Link } from "wouter";
-import { asset } from "@/lib/env";
+import { getActivityFallbackImage } from "@/lib/image-utils";
+import { ensureArray, getAssetUrl } from "@/lib/utils";
 import PaymentManagement from "@/components/payment-management";
 import { WhatsAppNotificationPanel } from "@/components/whatsapp-notification-panel";
 import ActivityManagementModal from "@/components/activity-management-modal";
@@ -85,6 +86,20 @@ Notes: ${booking.notes || 'None'}`);
     const message = `Hello ${booking.customerName}, regarding your booking for ${booking.activity.name} for ${booking.numberOfPeople} people. Status: ${booking.status}. Total: ${booking.totalAmount} MAD.`;
     const phone = booking.customerPhone.replace(/[^0-9]/g, '');
     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
+  };
+
+  const resolveActivityImage = (activity: ActivityType) => {
+    const sources = ensureArray(activity.imageUrls);
+    const legacyPhotos = ensureArray((activity as any).photos);
+    if (sources.length === 0 && legacyPhotos.length > 0) {
+      sources.push(...legacyPhotos);
+    }
+    const legacyImage = (activity as any).image;
+    if (sources.length === 0 && typeof legacyImage === 'string' && legacyImage) {
+      sources.push(legacyImage);
+    }
+    const primary = sources[0];
+    return primary ? getAssetUrl(primary) : getActivityFallbackImage(activity.name);
   };
 
   // Admin activity management functions
@@ -325,7 +340,7 @@ Average per booking: ${activityBookings.length ? Math.round(totalRevenue / activ
                       <div key={activity.id || activity._id || `activity-${index}`} className="border rounded-lg p-6 space-y-4">
                         <div className="flex items-start gap-4">
                           <img 
-                            src={asset(activity.image)}
+                            src={resolveActivityImage(activity)}
                             alt={activity.name}
                             className="w-24 h-24 object-cover rounded-lg"
                           />

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -23,18 +23,48 @@ import "react-day-picker/dist/style.css";
 import PhoneInput from 'react-phone-input-2';
 import 'react-phone-input-2/lib/style.css';
 
-const bookingFormSchema = z.object({
-  customerName: z.string().min(2, "Full name is required (minimum 2 characters)").regex(/^[a-zA-ZÀ-ÿ\s'-]+$/, "Name can only contain letters, spaces, apostrophes, and hyphens"),
-  customerPhone: z.string().min(8, "Phone number is required").regex(/^\+\d{8,15}$/, "Please enter a valid international phone number"),
-  customerEmail: z.string().email("Please enter a valid email address").optional().or(z.literal("")),
-  activityId: z.string().min(1, "Activity is required"),
-  numberOfPeople: z.number().min(1, "At least 1 person required").max(20, "Maximum 20 people per booking"),
-  preferredDate: z.string().min(1, "Date is required"),
-  participantNames: z.array(z.string().min(2, "Full name is required (minimum 2 characters)").regex(/^[a-zA-ZÀ-ÿ\s'-]+$/, "Name can only contain letters, spaces, apostrophes, and hyphens")),
-  notes: z.string().max(500, "Notes cannot exceed 500 characters").optional(),
-});
+const namePattern = /^[a-zA-ZÀ-ÖØ-öø-ÿ\s'-]+$/u;
 
-type BookingFormData = z.infer<typeof bookingFormSchema>;
+const createBookingFormSchema = (t: (key: string, options?: Record<string, unknown>) => string) =>
+  z.object({
+    customerName: z
+      .string()
+      .min(2, t('errors.customerNameRequired'))
+      .regex(namePattern, t('errors.nameInvalidChars')),
+    customerPhone: z
+      .string()
+      .min(8, t('errors.validPhoneRequired'))
+      .regex(/^\+\d{8,15}$/, t('errors.phoneInvalid')),
+    customerEmail: z
+      .string()
+      .email(t('errors.emailInvalid'))
+      .optional()
+      .or(z.literal('')),
+    activityId: z
+      .string()
+      .min(1, t('errors.activitySelectionRequired')),
+    numberOfPeople: z
+      .number()
+      .min(1, t('errors.atLeastOnePerson'))
+      .max(20, t('errors.maximumTwentyPeople')),
+    preferredDate: z
+      .string()
+      .min(1, t('errors.dateRequired')),
+    participantNames: z.array(
+      z
+        .string()
+        .min(2, t('errors.customerNameRequired'))
+        .regex(namePattern, t('errors.nameInvalidChars')),
+    ),
+    notes: z
+      .string()
+      .max(500, t('errors.notesTooLong'))
+      .optional(),
+  });
+
+type BookingFormSchema = ReturnType<typeof createBookingFormSchema>;
+type BookingFormData = z.infer<BookingFormSchema>;
+
 
 export default function BookingFixed() {
   const { toast } = useToast();
@@ -51,6 +81,8 @@ export default function BookingFixed() {
     queryKey: ["/activities"],
   });
   const activityList = ensureArray(activities);
+
+  const bookingFormSchema = useMemo(() => createBookingFormSchema(t), [t]);
 
   const form = useForm<BookingFormData>({
     resolver: zodResolver(bookingFormSchema),
@@ -166,6 +198,15 @@ export default function BookingFixed() {
 
   const watchedActivityId = form.watch("activityId");
   const watchedActivity = activityList.find(a => a.id === watchedActivityId || a._id === watchedActivityId);
+  const bookingSteps = useMemo(() => [
+    { key: 'activity' as const, label: t('booking.steps.selectActivity'), icon: MapPin },
+    { key: 'date' as const, label: t('booking.steps.selectDate'), icon: Calendar },
+    { key: 'details' as const, label: t('booking.steps.details'), icon: User },
+    { key: 'confirmation' as const, label: t('booking.steps.confirmation'), icon: CheckCircle },
+  ], [t]);
+  const stepOrder = useMemo(() => bookingSteps.map((step) => step.key), [bookingSteps]);
+
+
   const totalAmount = watchedActivity ? parseInt(watchedActivity.price) * form.watch("numberOfPeople") : 0;
 
   // Handle activity selection
@@ -201,10 +242,10 @@ export default function BookingFixed() {
       <section className="bg-moroccan-blue text-white py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h1 className="font-playfair text-4xl md:text-5xl font-bold mb-4">
-            Book Your Adventure
+            {t('booking.title')}
           </h1>
           <p className="text-xl text-blue-100">
-            Discover authentic Moroccan experiences
+            {t('bookingSubtitle')}
           </p>
         </div>
       </section>
@@ -218,22 +259,17 @@ export default function BookingFixed() {
               <Card className="shadow-xl bg-white/95 backdrop-blur-sm border-2 border-gray-200">
                 <CardHeader className="bg-moroccan-blue/5 border-b border-moroccan-blue/20">
                   <CardTitle className="text-2xl font-playfair text-moroccan-blue">
-                    Booking Details
+                    {t('booking.bookingDetails')}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="bg-white/98">
                   {/* Step Indicator */}
                   <div className="mb-8">
                     <div className="flex items-center justify-between">
-                      {[
-                        { key: 'activity', label: 'Select Activity', icon: MapPin },
-                        { key: 'date', label: 'Select Date', icon: Calendar },
-                        { key: 'details', label: 'Your Details', icon: User },
-                        { key: 'confirmation', label: 'Confirmation', icon: CheckCircle }
-                      ].map((step, index) => {
+                      {bookingSteps.map((step, index) => {
                         const Icon = step.icon;
                         const isActive = currentStep === step.key;
-                        const isCompleted = ['activity', 'date', 'details', 'confirmation'].indexOf(currentStep) > index;
+                        const isCompleted = stepOrder.indexOf(currentStep) > index;
                         
                         return (
                           <div key={step.key} className="flex items-center">

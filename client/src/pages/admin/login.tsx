@@ -9,7 +9,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { apiFetch, api } from "@/lib/api";
+import { apiFetch } from "@/lib/api";
 import { useLocation } from "wouter";
 import { useLanguage } from "@/hooks/use-language";
 
@@ -22,7 +22,8 @@ type LoginFormData = z.infer<ReturnType<typeof createLoginFormSchema>>;
 
 export default function AdminLogin() {
   const { toast } = useToast();
-  const [, setLocation] = useLocation();
+  const [, navigate] = useLocation();
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { t } = useLanguage();
 
   const form = useForm<LoginFormData>({
@@ -33,53 +34,46 @@ export default function AdminLogin() {
     },
   });
 
-  const mutation = useMutation({
-    mutationFn: async (data: LoginFormData) => {
-      return await apiFetch("/auth/login", {
-        method: "POST",
-        data: data
-      });
-    },
-    onSuccess: async (data) => {
+const mutation = useMutation({
+  mutationFn: async (data: LoginFormData) => {
+    return await apiFetch("/auth/login", {
+      method: "POST",
+      data,
+    });
+  },
+  onSuccess: (response) => {
+    if (response?.success) {
+      setErrorMessage(null);
+      localStorage.setItem("user", JSON.stringify(response.user));
       toast({
-        title: t('success.title'), 
+        title: t('success.title'),
         description: t('admin.loginSuccess'),
       });
-      
-      // Wait a moment then redirect and verify session
-      setTimeout(async () => {
-        // Redirect based on user role
-        if (data.user?.role === "superadmin") {
-          setLocation("/admin/ceo");
-        } else {
-          setLocation("/admin");
-        }
-        
-        // Immediately test the session by fetching admin data
-        try {
-          await api.get("/admin/bookings");
-          console.log("Admin session verified successfully");
-        } catch (error) {
-          console.error("Session verification failed:", error);
-          toast({
-            title: "Session Error",
-            description: "Authentication may have failed. Please try logging in again.",
-            variant: "destructive"
-          });
-        }
-      }, 1000);
-    },
-    onError: (error: any) => {
-      console.error('Login error:', error);
+      navigate("/admin/dashboard");
+    } else {
+      const message = response?.message || t('errors.loginFailed');
+      setErrorMessage(message);
       toast({
         title: t('errors.loginFailed'),
-        description: error.message || t('errors.loginFailed'),
+        description: message,
         variant: "destructive",
       });
-    },
-  });
+    }
+  },
+  onError: (error: any) => {
+    console.error('Login error:', error);
+    const message = error?.message || t('errors.loginFailed');
+    setErrorMessage(message);
+    toast({
+      title: t('errors.loginFailed'),
+      description: message,
+      variant: "destructive",
+    });
+  },
+});
 
   const onSubmit = async (data: LoginFormData) => {
+    setErrorMessage(null);
     mutation.mutate(data);
   };
 
@@ -107,11 +101,16 @@ export default function AdminLogin() {
         <Card className="bg-white/95 backdrop-blur-sm shadow-2xl border-0 rounded-2xl overflow-hidden">
           <CardHeader className="bg-gradient-to-r from-moroccan-gold to-yellow-500 text-white text-center py-8">
             <CardTitle className="text-2xl font-bold">
-              MarrakechDunes Admin
+              {t('admin.portalTitle')}
             </CardTitle>
-            <p className="text-yellow-100 mt-2">Management Portal</p>
+            <p className="text-yellow-100 mt-2">{t('admin.portalSubtitle')}</p>
           </CardHeader>
           <CardContent className="p-8">
+            {errorMessage && (
+              <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                {errorMessage}
+              </div>
+            )}
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                 <FormField
@@ -190,3 +189,4 @@ export default function AdminLogin() {
     </div>
   );
 }
+

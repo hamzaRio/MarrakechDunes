@@ -6,8 +6,9 @@ declare module 'express-session' {
     userId?: string | null;
     user?: {
       id: string;
-      username: string;
       role: string;
+      username?: string;
     };
   }
 }
+
