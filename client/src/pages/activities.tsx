@@ -9,7 +9,7 @@ import { useLanguage } from "@/hooks/use-language";
 export default function Activities() {
   const { t } = useLanguage();
   const { data: activities = [], isLoading } = useQuery<ActivityType[]>({
-    queryKey: ["/api/activities"],
+    queryKey: ["/activities"],
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
     refetchOnMount: false,

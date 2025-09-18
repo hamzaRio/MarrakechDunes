@@ -9,7 +9,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, api } from "@/lib/api";
 import { useLocation } from "wouter";
 import { useLanguage } from "@/hooks/use-language";
 
@@ -40,17 +40,34 @@ export default function AdminLogin() {
         data: data
       });
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       toast({
         title: t('success.title'), 
         description: t('admin.loginSuccess'),
       });
-      // Redirect based on user role
-      if (data.user?.role === "superadmin") {
-        setLocation("/admin/ceo");
-      } else {
-        setLocation("/admin");
-      }
+      
+      // Wait a moment then redirect and verify session
+      setTimeout(async () => {
+        // Redirect based on user role
+        if (data.user?.role === "superadmin") {
+          setLocation("/admin/ceo");
+        } else {
+          setLocation("/admin");
+        }
+        
+        // Immediately test the session by fetching admin data
+        try {
+          await api.get("/admin/bookings");
+          console.log("Admin session verified successfully");
+        } catch (error) {
+          console.error("Session verification failed:", error);
+          toast({
+            title: "Session Error",
+            description: "Authentication may have failed. Please try logging in again.",
+            variant: "destructive"
+          });
+        }
+      }, 1000);
     },
     onError: (error: any) => {
       console.error('Login error:', error);

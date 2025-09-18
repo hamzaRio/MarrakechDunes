@@ -65,7 +65,7 @@ export default function BookingFormModal({
   const queryClient = useQueryClient();
 
   const { data: fetchedActivities } = useQuery({
-    queryKey: ["/api/activities"],
+    queryKey: ["/activities"],
     enabled: !passedActivities,
   });
 

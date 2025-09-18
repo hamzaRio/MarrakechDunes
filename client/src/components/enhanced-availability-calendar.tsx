@@ -38,7 +38,7 @@ export default function EnhancedAvailabilityCalendar({
   
   // Fetch availability data for the activity
   const { data: availability = [] } = useQuery<AvailabilityData[]>({
-    queryKey: ["/api/activities", activity._id, "availability"],
+    queryKey: ["/activities", activity._id, "availability"],
     queryFn: async () => {
       // Mock data for now - in real implementation, this would fetch from backend
       const today = new Date();

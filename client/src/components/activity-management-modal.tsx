@@ -92,7 +92,7 @@ export default function ActivityManagementModal({
       return res.json();
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/activities"] });
+      queryClient.invalidateQueries({ queryKey: ["/activities"] });
       toast({
         title: "Image Updated",
         description: "Activity image has been updated successfully.",
@@ -117,7 +117,7 @@ export default function ActivityManagementModal({
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/activities"] });
+      queryClient.invalidateQueries({ queryKey: ["/activities"] });
       setIsOpen(false);
       form.reset();
       toast({
@@ -192,7 +192,7 @@ export default function ActivityManagementModal({
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/activities"] });
+      queryClient.invalidateQueries({ queryKey: ["/activities"] });
       setIsOpen(false);
       toast({
         title: "Activity Updated",
@@ -217,7 +217,7 @@ export default function ActivityManagementModal({
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/activities"] });
+      queryClient.invalidateQueries({ queryKey: ["/activities"] });
       setIsOpen(false);
       toast({
         title: "Activity Deleted",
@@ -245,7 +245,7 @@ export default function ActivityManagementModal({
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/activities"] });
+      queryClient.invalidateQueries({ queryKey: ["/activities"] });
       setIsOpen(false);
       toast({
         title: activity?.isActive ? "Activity Deactivated" : "Activity Activated",

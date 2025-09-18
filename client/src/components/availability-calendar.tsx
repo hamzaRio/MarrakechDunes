@@ -168,7 +168,7 @@ export default function AvailabilityCalendar({
   };
 
   const { data: availability } = useQuery({
-    queryKey: [`/api/activities/${activityId}/availability`, currentMonth],
+    queryKey: [`/activities/${activityId}/availability`, currentMonth],
     queryFn: () => {
       // Generate availability for the current month
       const days: DayAvailability[] = [];

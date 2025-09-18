@@ -1,5 +1,5 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
-import { API_URL } from "./env";
+import { api } from "./api";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
@@ -69,22 +69,17 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    const url = queryKey[0] as string;
-    // If URL already starts with /api, use it as-is (for Vercel rewrites)
-    // If URL doesn't start with /api, prepend it
-    const fullUrl = url.startsWith('http') ? url : 
-                    url.startsWith('/api') ? url : 
-                    `/api${url}`;
-    const res = await fetch(fullUrl, {
-      credentials: "include",
-    });
-
-    if (unauthorizedBehavior === "returnNull" && res.status === 401) {
-      return null;
+    const path = queryKey[0] as string;
+    
+    try {
+      // Use the unified API client instead of fetch to prevent duplication
+      return await api.get(path);
+    } catch (error: any) {
+      if (unauthorizedBehavior === "returnNull" && error?.response?.status === 401) {
+        return null;
+      }
+      throw error;
     }
-
-    await throwIfResNotOk(res);
-    return await res.json();
   };
 
 export const queryClient = new QueryClient({

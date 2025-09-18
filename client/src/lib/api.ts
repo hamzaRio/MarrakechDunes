@@ -1,11 +1,36 @@
 import axios from 'axios';
 
-const baseURL = import.meta.env.VITE_API_URL || (import.meta.env.MODE === 'production' ? 'https://marrakechdunes.onrender.com' : 'http://localhost:10000');
+// Get API base URL - if VITE_API_URL already includes /api, use as-is, otherwise add /api
+const getApiBaseUrl = () => {
+  const envUrl = import.meta.env.VITE_API_URL;
+  if (envUrl) {
+    // If env URL already includes /api, use it directly
+    return envUrl.endsWith('/api') ? envUrl : `${envUrl}/api`;
+  }
+  // Fallback for development/production
+  return import.meta.env.MODE === 'production' 
+    ? 'https://marrakechdunes.onrender.com/api' 
+    : 'http://localhost:10000/api';
+};
+
+const baseURL = getApiBaseUrl();
 
 export const api = axios.create({
-  baseURL: `${baseURL}/api`,
+  baseURL,
   withCredentials: true,
 });
+
+// Test function to verify API base URL resolution
+export function __testApiBase() {
+  const testUrl = `${baseURL}/activities`;
+  console.log(`[API Test] api.get("/activities") resolves to: ${testUrl}`);
+  return testUrl;
+}
+
+// Make test function available in browser console
+if (typeof window !== 'undefined') {
+  (window as any).__testApiBase = __testApiBase;
+}
 
 // Used by hooks, including use-security.tsx
 export async function apiFetch<T = any>(

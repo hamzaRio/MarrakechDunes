@@ -47,7 +47,7 @@ export default function BookingFixed() {
   const [viewMode, setViewMode] = useState<'calendar' | 'list'>('calendar');
 
   const { data: activities = [], isLoading } = useQuery<ActivityType[]>({
-    queryKey: ["/api/activities"],
+    queryKey: ["/activities"],
   });
 
   const form = useForm<BookingFormData>({

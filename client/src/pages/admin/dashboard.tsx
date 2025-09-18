@@ -33,7 +33,7 @@ export default function AdminDashboard() {
   });
 
   const { data: activities = [] } = useQuery<ActivityType[]>({
-    queryKey: ["/api/activities"],
+    queryKey: ["/activities"],
   });
 
   const { data: auditLogs = [] } = useQuery<AuditLogType[]>({
