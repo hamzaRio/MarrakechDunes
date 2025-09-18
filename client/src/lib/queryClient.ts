@@ -73,7 +73,8 @@ export const getQueryFn: <T>(options: {
     
     try {
       // Use the unified API client instead of fetch to prevent duplication
-      return await api.get(path);
+      const response = await api.get(path);
+      return response.data;
     } catch (error: any) {
       if (unauthorizedBehavior === "returnNull" && error?.response?.status === 401) {
         return null;
