@@ -7,8 +7,7 @@ import { getActivityFallbackImage } from "@/lib/image-utils";
 import { useLanguage } from '@/hooks/use-language';
 import ActivityRating from './activity-rating';
 
-import { getAssetUrl } from '@/lib/utils';
-import { asset } from '@/lib/env';
+import { getAssetUrl, ensureArray } from '@/lib/utils';
 import type { ActivityType } from '@shared/schema';
 
 interface ActivityPreviewProps {
@@ -24,8 +23,9 @@ export default function ActivityPreview({ activity, isOpen, onClose, onBookNow }
 
   if (!activity) return null;
 
-  const images = activity.photos && activity.photos.length > 0 
-    ? activity.photos.map(photo => getAssetUrl(photo))
+  const photoList = ensureArray(activity.photos);
+  const images = photoList.length > 0
+    ? photoList.map(photo => getAssetUrl(photo))
     : [getAssetUrl(activity.image)];
 
   const nextImage = () => {

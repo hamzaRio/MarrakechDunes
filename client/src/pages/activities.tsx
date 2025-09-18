@@ -3,6 +3,7 @@ import { ActivityType } from "@shared/schema";
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
 import ActivityCard from "@/components/activity-card";
+import { ensureArray } from "@/lib/utils";
 
 import { useLanguage } from "@/hooks/use-language";
 
@@ -15,6 +16,7 @@ export default function Activities() {
     refetchOnMount: false,
     refetchOnWindowFocus: false,
   });
+  const activityList = ensureArray(activities);
 
   return (
     <div className="min-h-screen bg-moroccan-sand">
@@ -50,14 +52,14 @@ export default function Activities() {
           ) : (
             <>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {activities.map((activity: ActivityType) => (
+                {activityList.map((activity: ActivityType) => (
                   <div key={activity._id} className="transform hover:scale-105 transition-transform duration-300">
                     <ActivityCard activity={activity} showDescription />
                   </div>
                 ))}
               </div>
               
-              {activities.length === 0 && (
+              {activityList.length === 0 && (
                 <div className="text-center py-20">
                   <h3 className="text-2xl font-bold text-gray-600 mb-4">{t('noActivities')}</h3>
                   <p className="text-gray-500">{t('checkBackLater')}</p>

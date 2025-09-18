@@ -300,7 +300,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/activities", asyncHandler(async (req: Request, res: Response) => {
     try {
       const activities = await storage.getActivities();
-      res.json(activities);
+      res.json(Array.isArray(activities) ? activities : []);
     } catch (error) {
       throw handleDatabaseError(error);
     }
@@ -364,7 +364,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/admin/bookings", adminSecurityMiddleware, asyncHandler(async (req: Request, res: Response) => {
     try {
       const bookings = await storage.getBookings();
-      res.json(bookings);
+      res.json(Array.isArray(bookings) ? bookings : []);
     } catch (error) {
       console.error("Error fetching bookings:", error);
       res.status(500).json({ 
@@ -381,7 +381,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/admin/audit-logs", superadminSecurityMiddleware, asyncHandler(async (req: Request, res: Response) => {
     try {
       const logs = await storage.getAuditLogs();
-      res.json(logs);
+      res.json(Array.isArray(logs) ? logs : []);
     } catch (error) {
       console.error("Error fetching audit logs:", error);
       res.status(500).json({ 
@@ -890,7 +890,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/reviews", asyncHandler(async (req: Request, res: Response) => {
     const activityId = req.query.activityId as string;
     const reviews = await storage.getReviews(activityId);
-    res.json(reviews);
+    res.json(Array.isArray(reviews) ? reviews : []);
   }));
 
   app.get("/api/activities/:id/rating", asyncHandler(async (req: Request, res: Response) => {
@@ -914,7 +914,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Admin review management
   app.get("/api/admin/reviews", adminSecurityMiddleware, asyncHandler(async (req: Request, res: Response) => {
     const reviews = await storage.getReviews();
-    res.json(reviews);
+    res.json(Array.isArray(reviews) ? reviews : []);
   }));
 
   app.patch("/api/admin/reviews/:id/approval", adminSecurityMiddleware, asyncHandler(async (req: Request, res: Response) => {
@@ -941,7 +941,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/admin/analytics/bookings", adminSecurityMiddleware, asyncHandler(async (req: Request, res: Response) => {
     const analytics = await storage.getBookingAnalytics();
-    res.json(analytics);
+    res.json(Array.isArray(analytics) ? analytics : []);
   }));
 
   // GetYourGuide price comparison

@@ -25,3 +25,7 @@ export function getAssetUrl(path: string): string {
   // Default fallback - ensure we use VITE_ASSETS_BASE
   return asset(path);
 }
+
+export function ensureArray<T>(value: T[] | null | undefined): T[] {
+  return Array.isArray(value) ? value : [];
+}

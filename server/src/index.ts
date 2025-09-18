@@ -171,6 +171,20 @@ app.use(helmet({
     }
   }
 }));
+// Ensure Google Maps iframes allowed in CSP
+app.use((_, res, next) => {
+  const existingCsp = res.getHeader('Content-Security-Policy');
+  const mapsDirective = "frame-src 'self' https://www.google.com https://maps.googleapis.com;";
+  if (typeof existingCsp === "string") {
+    if (!existingCsp.includes("frame-src")) {
+      const updatedValue = (existingCsp + "; " + mapsDirective).trim();
+      res.setHeader('Content-Security-Policy', updatedValue);
+    }
+  } else {
+    res.setHeader('Content-Security-Policy', mapsDirective);
+  }
+  next();
+});
 
 // Enable JSON & URL-encoded
 app.use(express.json());

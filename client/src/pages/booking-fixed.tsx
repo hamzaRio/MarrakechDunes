@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { ActivityType } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
+import { ensureArray } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
@@ -49,6 +50,7 @@ export default function BookingFixed() {
   const { data: activities = [], isLoading } = useQuery<ActivityType[]>({
     queryKey: ["/activities"],
   });
+  const activityList = ensureArray(activities);
 
   const form = useForm<BookingFormData>({
     resolver: zodResolver(bookingFormSchema),
@@ -76,8 +78,8 @@ export default function BookingFixed() {
     const urlParams = new URLSearchParams(window.location.search);
     const activityId = urlParams.get('activity');
     
-    if (activityId && activities.length > 0) {
-      const activity = activities.find(a => a.id === activityId || a._id === activityId);
+    if (activityId && activityList.length > 0) {
+      const activity = activityList.find(a => a.id === activityId || a._id === activityId);
       if (activity) {
         setCurrentActivity(activity);
         form.setValue("activityId", activity.id || activity._id);
@@ -88,11 +90,11 @@ export default function BookingFixed() {
 
     // Fallback to localStorage
     const selectedActivity = localStorage.getItem('selectedActivity');
-    if (selectedActivity && activities.length > 0) {
+    if (selectedActivity && activityList.length > 0) {
       try {
         const activity = JSON.parse(selectedActivity) as ActivityType;
         // Find the activity in the current activities list to ensure it's still valid
-        const validActivity = activities.find(a => a.id === activity.id || a._id === activity._id);
+        const validActivity = activityList.find(a => a.id === activity.id || a._id === activity._id);
         if (validActivity) {
           setCurrentActivity(validActivity);
           form.setValue("activityId", validActivity.id || validActivity._id);
@@ -104,7 +106,7 @@ export default function BookingFixed() {
         console.error('Error parsing selected activity:', error);
       }
     }
-  }, [activities.length]);
+  }, [activityList.length]);
 
   const { fields, replace } = useFieldArray({
     control: form.control,
@@ -163,12 +165,12 @@ export default function BookingFixed() {
   };
 
   const watchedActivityId = form.watch("activityId");
-  const watchedActivity = activities.find(a => a.id === watchedActivityId || a._id === watchedActivityId);
+  const watchedActivity = activityList.find(a => a.id === watchedActivityId || a._id === watchedActivityId);
   const totalAmount = watchedActivity ? parseInt(watchedActivity.price) * form.watch("numberOfPeople") : 0;
 
   // Handle activity selection
   const handleActivitySelect = (activityId: string) => {
-    const selectedActivity = activities.find(a => a.id === activityId || a._id === activityId);
+    const selectedActivity = activityList.find(a => a.id === activityId || a._id === activityId);
     setCurrentActivity(selectedActivity || null);
     form.setValue("activityId", activityId);
     setCurrentStep('date');
@@ -268,7 +270,7 @@ export default function BookingFixed() {
                           <h3 className="text-lg font-semibold text-moroccan-blue">Choose Your Activity</h3>
                           
                           <div className="grid grid-cols-1 gap-4">
-                            {activities.map((activity) => (
+                            {activityList.map((activity) => (
                               <div
                                 key={activity.id || activity._id}
                                 className={`p-4 border rounded-lg cursor-pointer transition-all hover:shadow-md ${

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Navbar from "@/components/navbar";
+import { ensureArray } from "@/lib/utils";
 import Footer from "@/components/footer";
 import ReviewList from "@/components/review-list";
 import ReviewForm from "@/components/review-form";
@@ -21,6 +22,8 @@ export default function Reviews() {
   const { data: activities = [], isLoading: activitiesLoading } = useQuery<ActivityType[]>({
     queryKey: ["/activities"],
   });
+
+  const activityList = ensureArray(activities);
 
   const handleWriteReview = (activity?: ActivityType) => {
     if (activity) {
@@ -51,7 +54,7 @@ export default function Reviews() {
 
         {/* Activity Stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {activities.slice(0, 4).map((activity) => (
+          {activityList.slice(0, 4).map((activity) => (
             <Card key={activity.id || activity._id} className="border-moroccan-gold/20">
               <CardContent className="p-6">
                 <h3 className="font-semibold text-moroccan-blue mb-2 truncate">
@@ -86,7 +89,7 @@ export default function Reviews() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Activities</SelectItem>
-                {activities.map((activity) => (
+                {activityList.map((activity) => (
                   <SelectItem key={activity.id || activity._id} value={activity.id || activity._id}>
                     {activity.name}
                   </SelectItem>
@@ -130,7 +133,7 @@ export default function Reviews() {
                   <div className="space-y-4">
                     <p className="text-gray-600">Select an activity to review:</p>
                     <div className="grid gap-2">
-                      {activities.map((activity) => (
+                      {activityList.map((activity) => (
                         <Button
                           key={activity.id || activity._id}
                           variant="outline"
