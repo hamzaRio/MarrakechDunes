@@ -451,17 +451,17 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <WhatsAppButton
               name="Ahmed"
-              role={t('home.whatsapp.roles.desertSpecialist')}
+              role="Desert Specialist"
               phone="+212600623630"
             />
             <WhatsAppButton
               name="Yahia"
-              role={t('home.whatsapp.roles.mountainGuide')}
+              role="Mountain Guide"
               phone="+212693323368"
             />
             <WhatsAppButton
               name="Nadia"
-              role={t('home.whatsapp.roles.culturalExpert')}
+              role="Cultural Expert"
               phone="+212654497354"
             />
           </div>

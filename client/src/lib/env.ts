@@ -26,17 +26,17 @@ if (!apiUrl) {
 
 export const API_URL = apiUrl;
 
-const ASSETS_BASE = import.meta.env.VITE_ASSETS_BASE || (import.meta.env.MODE === 'production' ? 'https://marrakechdunes.onrender.com/attached_assets' : '/attached_assets');
+const ASSETS_BASE = import.meta.env.VITE_ASSETS_BASE || '/attached_assets';
 
 export function asset(p: string) {
   // Clean the path
   const cleanPath = String(p).replace(/^[\\/]/, '');
   
-  // In production, use full URL to backend server for assets
-  if (import.meta.env.MODE === 'production') {
+  // If ASSETS_BASE is absolute (starts with http), use as-is
+  if (ASSETS_BASE.startsWith('http')) {
     return `${ASSETS_BASE}/${cleanPath}`;
   }
   
-  // In development, use relative path
-  return `/attached_assets/${cleanPath}`;
+  // Otherwise, use relative path (works for both dev and prod with Vercel proxy)
+  return `${ASSETS_BASE}/${cleanPath}`;
 }

@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Star, User, Calendar, CheckCircle } from "lucide-react";
 import type { ReviewWithActivity } from "@shared/schema";
 import { apiFetch } from "@/lib/api";
+import { ensureArray } from "@/lib/utils";
 
 interface ReviewListProps {
   activityId?: string;
@@ -13,7 +14,7 @@ interface ReviewListProps {
 
 export default function ReviewList({ activityId, showActivityName = false, limit }: ReviewListProps) {
   
-  const { data: reviews = [], isLoading } = useQuery<ReviewWithActivity[]>({
+  const { data: reviewsData, isLoading } = useQuery<ReviewWithActivity[]>({
     queryKey: activityId ? ["/reviews", { activityId }] : ["/reviews"],
     queryFn: async () => {
       const url = activityId ? `/reviews?activityId=${activityId}` : "/reviews";
@@ -21,6 +22,8 @@ export default function ReviewList({ activityId, showActivityName = false, limit
     },
   });
 
+  // Ensure reviews is always an array to prevent .map crashes
+  const reviews = ensureArray(reviewsData);
   const displayedReviews = limit ? reviews.slice(0, limit) : reviews;
 
   const renderStars = (rating: number) => {
@@ -69,7 +72,7 @@ export default function ReviewList({ activityId, showActivityName = false, limit
       <Card>
         <CardContent className="p-8 text-center">
           <Star className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gray-600 mb-2">No Reviews Yet</h3>
+          <h3 className="text-lg font-semibold text-gray-600 mb-2">No reviews yet</h3>
           <p className="text-gray-500">
             Be the first to share your experience with this activity!
           </p>

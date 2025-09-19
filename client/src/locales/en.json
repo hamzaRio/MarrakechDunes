@@ -76,7 +76,13 @@
     "people": "people",
     "personalInformation": "Personal Information",
     "selectExperience": "Select Your Experience",
-    "bookingDetailsSection": "Booking Details"
+    "bookingDetailsSection": "Booking Details",
+    "steps": {
+      "selectActivity": "Select Activity",
+      "selectDate": "Select Date",
+      "details": "Customer Details",
+      "confirmation": "Confirmation"
+    }
   },
   "reviews": {
     "title": "Customer Reviews",

@@ -25,12 +25,13 @@ if (!envApiUrl) {
 const envAssetsBase = (import.meta.env.VITE_ASSETS_BASE || '').trim();
 if (!envAssetsBase) {
   if (isProduction) {
-    throw new Error('VITE_ASSETS_BASE is required in production. Please set it to https://marrakechdunes.onrender.com/attached_assets');
+    console.warn('[API Config] VITE_ASSETS_BASE is missing, using default path');
   } else {
     console.warn('[API Config] VITE_ASSETS_BASE is missing, falling back to http://localhost:5000/attached_assets');
   }
 }
 
+// Handle both absolute and relative paths for assets
 export const ASSETS_BASE = envAssetsBase || DEFAULT_ASSETS_BASE;
 const baseURL = envApiUrl ? normalizeApiUrl(envApiUrl) : DEFAULT_API_URL;
 

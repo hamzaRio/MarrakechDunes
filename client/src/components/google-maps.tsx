@@ -23,10 +23,10 @@ export default function GoogleMaps({
       console.warn('Google Maps API key not found. Please set VITE_GOOGLE_MAPS_KEY in your environment variables.');
       if (mapRef.current) {
         mapRef.current.innerHTML = `
-          <div style="display: flex; align-items: center; justify-content: center; height: 100%; background: #f3f4f6; color: #6b7280; border-radius: 8px;">
+          <div style="display: flex; align-items: center; justify-content: center; height: 100%; background: #3b82f6; color: white; border: 2px solid white; border-radius: 8px;">
             <div style="text-align: center;">
-              <p>🗺️ Google Maps</p>
-              <p style="font-size: 14px;">API key not configured</p>
+              <p style="font-size: 18px; font-weight: bold; margin: 0 0 8px 0;">🗺️ Google Maps</p>
+              <p style="font-size: 14px; margin: 0;">Google Maps disabled</p>
             </div>
           </div>
         `;
@@ -56,10 +56,10 @@ export default function GoogleMaps({
       console.error('Failed to load Google Maps API');
       if (mapRef.current) {
         mapRef.current.innerHTML = `
-          <div style="display: flex; align-items: center; justify-content: center; height: 100%; background: #f3f4f6; color: #6b7280; border-radius: 8px;">
+          <div style="display: flex; align-items: center; justify-content: center; height: 100%; background: #3b82f6; color: white; border: 2px solid white; border-radius: 8px;">
             <div style="text-align: center;">
-              <p>🗺️ Google Maps</p>
-              <p style="font-size: 14px;">Failed to load map</p>
+              <p style="font-size: 18px; font-weight: bold; margin: 0 0 8px 0;">🗺️ Google Maps</p>
+              <p style="font-size: 14px; margin: 0;">Google Maps disabled</p>
             </div>
           </div>
         `;
@@ -100,10 +100,10 @@ export default function GoogleMaps({
         console.error('Error initializing Google Maps:', error);
         if (mapRef.current) {
           mapRef.current.innerHTML = `
-            <div style="display: flex; align-items: center; justify-content: center; height: 100%; background: #f3f4f6; color: #6b7280; border-radius: 8px;">
+            <div style="display: flex; align-items: center; justify-content: center; height: 100%; background: #3b82f6; color: white; border: 2px solid white; border-radius: 8px;">
               <div style="text-align: center;">
-                <p>🗺️ Google Maps</p>
-                <p style="font-size: 14px;">Error loading map</p>
+                <p style="font-size: 18px; font-weight: bold; margin: 0 0 8px 0;">🗺️ Google Maps</p>
+                <p style="font-size: 14px; margin: 0;">Google Maps disabled</p>
               </div>
             </div>
           `;

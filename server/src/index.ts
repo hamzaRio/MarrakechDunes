@@ -196,11 +196,10 @@ app.use(cookieParser());
 // CORS configuration - must be defined BEFORE routes
 const FRONT_ORIGINS = [
   "https://marrakech-dunes.vercel.app",
-  "https://*.vercel.app",
   "http://localhost:5173", // Vite dev server
   "http://localhost:4173", // Vite preview
-  /^https:\/\/.*\.vercel\.app$/i, // All Vercel subdomains
-  /^https:\/\/marrakech.*\.vercel\.app$/i // Marrakech-specific Vercel deployments
+  /^https:\/\/marrakech-dunes-.*\.vercel\.app$/i, // Vercel preview deployments
+  /^https:\/\/.*\.vercel\.app$/i // All Vercel subdomains
 ];
 
 app.use(cors({

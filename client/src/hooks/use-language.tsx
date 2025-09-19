@@ -33,9 +33,20 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   const t = useMemo(() => {
     return <T = string>(key: string, options?: Record<string, unknown>): T => {
       const translation = i18n.t(key, options);
+      
+      // If translation is missing (returns the key), provide a fallback
       if (translation === key && (!options || !Object.prototype.hasOwnProperty.call(options, "defaultValue"))) {
-        return key as unknown as T;
+        // Convert key to readable text as fallback
+        const fallbackText = key
+          .split('.')
+          .pop() // Get the last part
+          ?.replace(/([A-Z])/g, ' $1') // Add space before capital letters
+          .replace(/^./, str => str.toUpperCase()) // Capitalize first letter
+          .trim() || key;
+        
+        return fallbackText as unknown as T;
       }
+      
       return translation as T;
     };
   }, [language]);

@@ -76,7 +76,13 @@
     "people": "personnes",
     "personalInformation": "Informations Personnelles",
     "selectExperience": "Sélectionnez Votre Expérience",
-    "bookingDetailsSection": "Détails de la Réservation"
+    "bookingDetailsSection": "Détails de la Réservation",
+    "steps": {
+      "selectActivity": "Sélectionner l'Activité",
+      "selectDate": "Sélectionner la Date",
+      "details": "Détails du Client",
+      "confirmation": "Confirmation"
+    }
   },
   "reviews": {
     "title": "Avis Clients",
