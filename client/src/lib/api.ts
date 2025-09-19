@@ -1,24 +1,22 @@
 import axios from 'axios';
 
 const DEFAULT_API_URL = 'http://localhost:5000/api';
+const DEFAULT_ASSETS_BASE = 'http://localhost:5000/attached_assets';
 
 function normalizeApiUrl(url: string): string {
-  let normalized = url;
-  while (normalized.endsWith('/')) {
-    normalized = normalized.slice(0, -1);
-  }
-  return normalized.endsWith('/api') ? normalized : `${normalized}/api`;
+  const trimmed = url.replace(/\/+$/, '');
+  return trimmed.endsWith('/api') ? trimmed : `${trimmed}/api`;
 }
 
 const envApiUrl = (import.meta.env.VITE_API_URL || '').trim();
+export const ASSETS_BASE = (import.meta.env.VITE_ASSETS_BASE || '').trim() || DEFAULT_ASSETS_BASE;
 
-let baseURL = normalizeApiUrl(DEFAULT_API_URL);
-
-if (!envApiUrl) {
-  console.warn('[API Config] VITE_API_URL is missing, falling back to default http://localhost:5000/api');
-} else {
-  baseURL = normalizeApiUrl(envApiUrl);
-}
+const baseURL = envApiUrl
+  ? normalizeApiUrl(envApiUrl)
+  : (() => {
+      console.warn('[API Config] VITE_API_URL is missing, falling back to http://localhost:5000/api');
+      return DEFAULT_API_URL;
+    })();
 
 export const api = axios.create({
   baseURL,
