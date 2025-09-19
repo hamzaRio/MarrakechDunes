@@ -8,15 +8,31 @@ function normalizeApiUrl(url: string): string {
   return trimmed.endsWith('/api') ? trimmed : `${trimmed}/api`;
 }
 
-const envApiUrl = (import.meta.env.VITE_API_URL || '').trim();
-export const ASSETS_BASE = (import.meta.env.VITE_ASSETS_BASE || '').trim() || DEFAULT_ASSETS_BASE;
+// Environment variable validation for production
+const isProduction = import.meta.env.MODE === 'production';
 
-const baseURL = envApiUrl
-  ? normalizeApiUrl(envApiUrl)
-  : (() => {
-      console.warn('[API Config] VITE_API_URL is missing, falling back to http://localhost:5000/api');
-      return DEFAULT_API_URL;
-    })();
+// Validate VITE_API_URL
+const envApiUrl = (import.meta.env.VITE_API_URL || '').trim();
+if (!envApiUrl) {
+  if (isProduction) {
+    throw new Error('VITE_API_URL is required in production. Please set it to https://marrakechdunes.onrender.com/api');
+  } else {
+    console.warn('[API Config] VITE_API_URL is missing, falling back to http://localhost:5000/api');
+  }
+}
+
+// Validate VITE_ASSETS_BASE
+const envAssetsBase = (import.meta.env.VITE_ASSETS_BASE || '').trim();
+if (!envAssetsBase) {
+  if (isProduction) {
+    throw new Error('VITE_ASSETS_BASE is required in production. Please set it to https://marrakechdunes.onrender.com/attached_assets');
+  } else {
+    console.warn('[API Config] VITE_ASSETS_BASE is missing, falling back to http://localhost:5000/attached_assets');
+  }
+}
+
+export const ASSETS_BASE = envAssetsBase || DEFAULT_ASSETS_BASE;
+const baseURL = envApiUrl ? normalizeApiUrl(envApiUrl) : DEFAULT_API_URL;
 
 export const api = axios.create({
   baseURL,

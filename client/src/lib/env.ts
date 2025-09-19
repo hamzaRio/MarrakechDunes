@@ -3,9 +3,19 @@ const criticalFrontendEnvVars = [
   'VITE_API_URL'
 ];
 
+const optionalFrontendEnvVars = [
+  'VITE_GOOGLE_MAPS_KEY'
+];
+
 for (const envVar of criticalFrontendEnvVars) {
   if (!import.meta.env[envVar] && import.meta.env.MODE === 'production') {
     console.warn(`Warning: ${envVar} is not set in production mode. This may break API requests.`);
+  }
+}
+
+for (const envVar of optionalFrontendEnvVars) {
+  if (!import.meta.env[envVar] && import.meta.env.MODE === 'production') {
+    console.warn(`Info: ${envVar} is not set. Google Maps features will be disabled.`);
   }
 }
 

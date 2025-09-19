@@ -193,50 +193,84 @@ app.use(express.urlencoded({ extended: false }));
 // Enable cookie parsing
 app.use(cookieParser());
 
-// CORS configuration
+// CORS configuration - must be defined BEFORE routes
 const FRONT_ORIGINS = [
   "https://marrakech-dunes.vercel.app",
-  "http://localhost:5173", // Added for local development
+  "https://*.vercel.app",
+  "http://localhost:5173", // Vite dev server
   "http://localhost:4173", // Vite preview
-  /\.vercel\.app$/i,
-  /marrakech.*\.vercel\.app$/i // Additional pattern for Vercel deployment variations
+  /^https:\/\/.*\.vercel\.app$/i, // All Vercel subdomains
+  /^https:\/\/marrakech.*\.vercel\.app$/i // Marrakech-specific Vercel deployments
 ];
 
 app.use(cors({
   origin(origin, cb) {
+    // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return cb(null, true);
-    if (FRONT_ORIGINS.some(o => (o instanceof RegExp ? o.test(origin) : o === origin))) {
+    
+    // Check exact matches first
+    if (FRONT_ORIGINS.includes(origin)) {
       return cb(null, true);
     }
+    
+    // Check regex patterns
+    const isAllowed = FRONT_ORIGINS.some(pattern => {
+      if (pattern instanceof RegExp) {
+        return pattern.test(origin);
+      }
+      return false;
+    });
+    
+    if (isAllowed) {
+      return cb(null, true);
+    }
+    
+    // Log rejected origins for debugging
+    console.warn(`[CORS] Rejected origin: ${origin}`);
     cb(null, false);
   },
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  optionsSuccessStatus: 200
 }));
 
 // Session middleware
 app.use(session(sessionSecurity));
 
 
-// 🔒 serve public assets from Render (used by Vercel proxy too)
-app.use("/attached_assets", express.static(assetsPath, { 
+// 🔒 serve public assets from Render (used by Vercel proxy too) with filename sanitization
+app.use("/attached_assets", (req, res, next) => {
+  // Handle URL-encoded filenames (spaces, special characters)
+  const decodedPath = decodeURIComponent(req.url);
+  
+  // Sanitize filename to prevent directory traversal
+  const sanitizedPath = decodedPath.replace(/\.\./g, '').replace(/[^a-zA-Z0-9._-]/g, '_');
+  
+  // Set proper Content-Type for images based on extension
+  const ext = path.extname(sanitizedPath).toLowerCase();
+  if (ext.match(/\.(jpg|jpeg)$/)) {
+    res.setHeader('Content-Type', 'image/jpeg');
+  } else if (ext.match(/\.png$/)) {
+    res.setHeader('Content-Type', 'image/png');
+  } else if (ext.match(/\.gif$/)) {
+    res.setHeader('Content-Type', 'image/gif');
+  } else if (ext.match(/\.webp$/)) {
+    res.setHeader('Content-Type', 'image/webp');
+  }
+  
+  // Add CORS headers for cross-origin requests
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  
+  next();
+}, express.static(assetsPath, { 
   maxAge: "7d", 
   etag: true,
-  setHeaders: (res, path) => {
-    // Set proper Content-Type for images
-    if (path.match(/\.(jpg|jpeg)$/i)) {
-      res.setHeader('Content-Type', 'image/jpeg');
-    } else if (path.match(/\.png$/i)) {
-      res.setHeader('Content-Type', 'image/png');
-    } else if (path.match(/\.gif$/i)) {
-      res.setHeader('Content-Type', 'image/gif');
-    } else if (path.match(/\.webp$/i)) {
-      res.setHeader('Content-Type', 'image/webp');
-    }
-    // Add CORS headers for cross-origin requests
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  }
+  // Custom file resolver to handle spaces in filenames
+  index: false,
+  dotfiles: 'ignore'
 }));
 
 // Health
