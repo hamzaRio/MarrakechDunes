@@ -1,15 +1,24 @@
 import axios from 'axios';
 
-const envApiUrl = (import.meta.env.VITE_API_URL || '').trim();
-if (!envApiUrl) {
-  throw new Error('VITE_API_URL must be defined');
+const DEFAULT_API_URL = 'http://localhost:5000/api';
+
+function normalizeApiUrl(url: string): string {
+  let normalized = url;
+  while (normalized.endsWith('/')) {
+    normalized = normalized.slice(0, -1);
+  }
+  return normalized.endsWith('/api') ? normalized : `${normalized}/api`;
 }
 
-const normalizedApiUrl = envApiUrl.endsWith('/api')
-  ? envApiUrl
-  : `${envApiUrl.replace(/\/$/, '')}/api`;
+const envApiUrl = (import.meta.env.VITE_API_URL || '').trim();
 
-const baseURL = normalizedApiUrl;
+let baseURL = normalizeApiUrl(DEFAULT_API_URL);
+
+if (!envApiUrl) {
+  console.warn('[API Config] VITE_API_URL is missing, falling back to default http://localhost:5000/api');
+} else {
+  baseURL = normalizeApiUrl(envApiUrl);
+}
 
 export const api = axios.create({
   baseURL,
@@ -43,7 +52,7 @@ export async function sessionInit(): Promise<void> {
 }
 
 export async function logout(): Promise<void> {
-  try { 
+  try {
     await api.post('/auth/logout');
   } catch (error) {
     console.error('Logout error:', error);
