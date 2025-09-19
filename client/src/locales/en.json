@@ -116,8 +116,21 @@
     "authorizedOnly": "Authorized Personnel Only",
     "developmentMode": "Development Mode",
     "contactAdmin": "Contact system administrator for credentials",
-    "userPlaceholder": "Admin User"
+    "userPlaceholder": "Admin User",
+    "portalTitle": "Administrator Portal",
+    "portalSubtitle": "Connect to manage bookings and activities"
   },
+  "dashboard": "Dashboard",
+  "welcome": "Welcome",
+  "totalRevenue": "Total Revenue",
+  "totalBookings": "Total Bookings",
+  "pendingBookings": "Pending Bookings",
+  "confirmedBookings": "Confirmed Bookings",
+  "recentBookings": "Recent Bookings",
+  "quickActions": "Quick Actions",
+  "manageActivities": "Manage Activities",
+  "viewReports": "View Reports",
+  "systemSettings": "System Settings",
   "errors": {
     "customerNameRequired": "Customer name is required",
     "validPhoneRequired": "Valid phone number is required",

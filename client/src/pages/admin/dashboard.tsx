@@ -24,7 +24,7 @@ interface BookingWithActivity extends BookingType {
   activity: ActivityType;
 }
 
-export default function AdminDashboard() {
+function AdminDashboardContent() {
   const { user } = useAuth();
   const { t } = useLanguage();
   const queryClient = useQueryClient();
@@ -132,8 +132,7 @@ Average per booking: ${activityBookings.length ? Math.round(totalRevenue / activ
   };
 
   return (
-    <AdminRoute>
-      <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-gray-50 p-6">
         <div className="max-w-7xl mx-auto">
           <div className="mb-8">
             <div className="flex items-center justify-between">
@@ -520,6 +519,13 @@ Average per booking: ${activityBookings.length ? Math.round(totalRevenue / activ
         </div>
       </div>
 
+  );
+}
+
+export default function AdminDashboard() {
+  return (
+    <AdminRoute>
+      <AdminDashboardContent />
     </AdminRoute>
   );
 }

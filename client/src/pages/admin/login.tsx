@@ -42,6 +42,7 @@ const mutation = useMutation({
     });
   },
   onSuccess: (response) => {
+    console.log('Login response:', response); // Debug log
     if (response?.success) {
       setErrorMessage(null);
       localStorage.setItem("user", JSON.stringify(response.user));
@@ -49,7 +50,10 @@ const mutation = useMutation({
         title: t('success.title'),
         description: t('admin.loginSuccess'),
       });
-      navigate("/admin/dashboard");
+      // Small delay to ensure localStorage is set
+      setTimeout(() => {
+        navigate("/admin/dashboard");
+      }, 100);
     } else {
       const message = response?.message || t('errors.loginFailed');
       setErrorMessage(message);

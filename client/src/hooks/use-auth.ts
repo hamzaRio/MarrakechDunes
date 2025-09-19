@@ -12,21 +12,32 @@ interface AuthUserResponse {
 }
 
 export function useAuth() {
-  // Check if we have a session cookie or token
+  // Check if we have a session cookie or localStorage user data
   const hasSessionCookie = document.cookie.includes('marrakech.session');
+  const hasLocalStorageUser = localStorage.getItem('user');
   
   const { data, isLoading, error, refetch } = useQuery<AuthUserResponse | null>({
     queryKey: ["/auth/user"],
-    enabled: !!hasSessionCookie, // Only run query if session cookie exists
-    retry: false, // Stop retry loop completely for auth queries
+    enabled: hasSessionCookie || !!hasLocalStorageUser, // Enable if we have cookie or localStorage
+    retry: (failureCount, error: any) => {
+      // Don't retry on 401/403 errors
+      if (error?.response?.status === 401 || error?.response?.status === 403) {
+        return false;
+      }
+      return failureCount < 1; // Only retry once for other errors
+    },
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)
-    refetchOnMount: false,
+    refetchOnMount: true, // Allow refetch on mount for auth
     refetchOnWindowFocus: false,
     // Add error logging for debugging (production-safe)
     onError: (error) => {
       if (process.env.NODE_ENV === 'development') {
         console.error('Auth query error:', error);
+      }
+      // Clear localStorage if auth fails
+      if (error?.response?.status === 401 || error?.response?.status === 403) {
+        localStorage.removeItem('user');
       }
     },
     // Add success logging for debugging (development only)
@@ -37,7 +48,17 @@ export function useAuth() {
     }
   });
 
-  const user = data?.user ?? null;
+  // Try to get user from localStorage as fallback if query fails
+  let user = data?.user ?? null;
+  if (!user && hasLocalStorageUser && !isLoading) {
+    try {
+      const localUser = JSON.parse(hasLocalStorageUser);
+      user = localUser;
+    } catch (error) {
+      // Clear invalid localStorage data
+      localStorage.removeItem('user');
+    }
+  }
 
   return {
     user,

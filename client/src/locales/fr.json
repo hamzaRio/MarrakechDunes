@@ -116,8 +116,21 @@
     "authorizedOnly": "Personnel Autorisé Uniquement",
     "developmentMode": "Mode Développement",
     "contactAdmin": "Contactez l'administrateur système pour les identifiants",
-    "userPlaceholder": "Utilisateur administrateur"
+    "userPlaceholder": "Utilisateur administrateur",
+    "portalTitle": "Portail Administrateur",
+    "portalSubtitle": "Connectez-vous pour gérer les réservations et activités"
   },
+  "dashboard": "Tableau de Bord",
+  "welcome": "Bienvenue",
+  "totalRevenue": "Revenus Totaux",
+  "totalBookings": "Réservations Totales",
+  "pendingBookings": "Réservations en Attente",
+  "confirmedBookings": "Réservations Confirmées",
+  "recentBookings": "Réservations Récentes",
+  "quickActions": "Actions Rapides",
+  "manageActivities": "Gérer les Activités",
+  "viewReports": "Voir les Rapports",
+  "systemSettings": "Paramètres Système",
   "errors": {
     "customerNameRequired": "Le nom du client est requis",
     "validPhoneRequired": "Un numéro de téléphone valide est requis",
