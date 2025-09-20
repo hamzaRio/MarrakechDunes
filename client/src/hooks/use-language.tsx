@@ -28,7 +28,11 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     document.documentElement.lang = language;
   }, [language]);
 
-  const changeLanguage = (lang: Language) => setLanguage(lang);
+  const changeLanguage = (lang: Language) => {
+    setLanguage(lang);
+    i18n.changeLanguage(lang);
+    localStorage.setItem('i18nextLng', lang);
+  };
 
   const t = useMemo(() => {
     return <T = string>(key: string, options?: Record<string, unknown>): T => {

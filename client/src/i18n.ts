@@ -4,22 +4,19 @@ import { initReactI18next } from 'react-i18next';
 import fr from './locales/fr.json';
 import en from './locales/en.json';
 
-void i18n
+i18n
   .use(initReactI18next)
   .init({
+    fallbackLng: 'en',
+    supportedLngs: ['en','fr'],
+    ns: ['common','home','activities','booking','reviews','admin'],
+    defaultNS: 'common',
     resources: {
       fr: { translation: fr },
       en: { translation: en }
     },
-    lng: (() => {
-      try {
-        return (localStorage.getItem('marrakech-language') as 'fr' | 'en') || 'fr';
-      } catch {
-        return 'fr';
-      }
-    })(),
-    fallbackLng: 'en',
     interpolation: { escapeValue: false },
+    detection: { order: ['querystring','localStorage','navigator'] },
     returnNull: false,
     returnEmptyString: false,
     defaultValue: (key: string) => key, // Return key if translation missing

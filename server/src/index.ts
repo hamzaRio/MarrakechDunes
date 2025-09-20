@@ -151,19 +151,8 @@ app.use(helmet({
         "'self'",
         "https://fonts.gstatic.com"
       ],
-      imgSrc: [
-        "'self'", 
-        "data:", 
-        "https:",
-        "https://maps.googleapis.com",
-        "https://maps.gstatic.com",
-        "https://streetviewpixels-pa.googleapis.com"
-      ],
-      frameSrc: [
-        "'self'",
-        "https://www.google.com",
-        "https://maps.googleapis.com"
-      ],
+      imgSrc: ["'self'", "data:", "https:", "blob:"],
+      frameSrc: ["'self'", "https://www.google.com"],
       connectSrc: [
         "'self'",
         "https://maps.googleapis.com"
@@ -194,44 +183,15 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 
 // CORS configuration - must be defined BEFORE routes
-const FRONT_ORIGINS = [
-  "https://marrakech-dunes.vercel.app",
-  "http://localhost:5173", // Vite dev server
-  "http://localhost:4173", // Vite preview
-  /^https:\/\/marrakech-dunes-.*\.vercel\.app$/i, // Vercel preview deployments
-  /^https:\/\/.*\.vercel\.app$/i // All Vercel subdomains
-];
+const origins = (process.env.CLIENT_URL || '').split(',').map(s => s.trim()).filter(Boolean);
 
 app.use(cors({
-  origin(origin, cb) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return cb(null, true);
-    
-    // Check exact matches first
-    if (FRONT_ORIGINS.includes(origin)) {
-      return cb(null, true);
-    }
-    
-    // Check regex patterns
-    const isAllowed = FRONT_ORIGINS.some(pattern => {
-      if (pattern instanceof RegExp) {
-        return pattern.test(origin);
-      }
-      return false;
-    });
-    
-    if (isAllowed) {
-      return cb(null, true);
-    }
-    
-    // Log rejected origins for debugging
-    console.warn(`[CORS] Rejected origin: ${origin}`);
-    cb(null, false);
+  origin: (origin, cb) => {
+    if (!origin) return cb(null, true); // allow server-side / health checks
+    const ok = origins.some(o => origin === o || (o.includes('*') && new RegExp('^' + o.replace(/\*/g,'.*') + '$').test(origin)));
+    cb(ok ? null : new Error('CORS blocked'), ok);
   },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  optionsSuccessStatus: 200
 }));
 
 // Session middleware
@@ -276,6 +236,9 @@ app.use("/attached_assets", (req, res, next) => {
 app.get("/health", (_req, res) => res.status(200).send("OK"));
 // Render expects /api/health
 app.get("/api/health", (_req, res) => res.status(200).send("OK"));
+
+// Session init route
+app.post('/api/session/init', (_req, res) => res.sendStatus(204));
 
 // Serve static client files
 const publicPath = join(__dirname, "public");
@@ -391,7 +354,7 @@ app.use((req, res, next) => {
     console.log(`[routers] /api/session mounted`);
     log(`🚀 Server started on port ${PORT}`);
     log(`🌍 NODE_ENV: ${process.env.NODE_ENV || 'development'}`);
-    log(`🌐 Allowed CORS origins: ${FRONT_ORIGINS.map(o => typeof o === 'string' ? o : o.toString()).join(', ')}`);
+    log(`🌐 Allowed CORS origins: ${origins.join(', ')}`);
     log(`Assets path: ${assetsPath}`);
     log(`🔒 Rate limiting: ${isProduction ? '100' : '200'} req/15min (global, auth, admin, general)`);
     log(`🍪 Session cookies: secure=${isProduction}, sameSite=${isProduction ? 'none' : 'lax'}, httpOnly=true`);

@@ -3,7 +3,7 @@ import { ActivityType } from "@shared/schema";
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
 import ActivityCard from "@/components/activity-card";
-import { ensureArray } from "@/lib/utils";
+import { ensureArray } from "@/lib/ensureArray";
 
 import { useLanguage } from "@/hooks/use-language";
 

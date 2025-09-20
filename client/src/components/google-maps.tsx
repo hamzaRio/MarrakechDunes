@@ -20,7 +20,7 @@ export default function GoogleMaps({
     const googleMapsKey = import.meta.env.VITE_GOOGLE_MAPS_KEY;
     
     if (!googleMapsKey) {
-      console.warn('Google Maps API key not found. Please set VITE_GOOGLE_MAPS_KEY in your environment variables.');
+      // optional: console.info('[Maps] Key not set, using iframe fallback'); // or remove
       if (mapRef.current) {
         mapRef.current.innerHTML = `
           <div style="display: flex; align-items: center; justify-content: center; height: 100%; background: #3b82f6; color: white; border: 2px solid white; border-radius: 8px;">

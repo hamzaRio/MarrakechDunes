@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Navbar from "@/components/navbar";
-import { ensureArray } from "@/lib/utils";
+import { ensureArray } from "@/lib/ensureArray";
 import Footer from "@/components/footer";
 import ReviewList from "@/components/review-list";
 import ReviewForm from "@/components/review-form";
