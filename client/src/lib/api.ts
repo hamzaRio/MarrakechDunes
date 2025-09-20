@@ -11,11 +11,16 @@ function normalizeApiUrl(raw: string | undefined) {
 
   // Final safety net: throw only in production when still empty
   if (!base && import.meta.env.PROD) {
-    throw new Error('VITE_API_URL is required in production. Set it to https://marrakechdunes.onrender.com or https://marrakechdunes.onrender.com/api');
+    throw new Error('VITE_API_URL is required in production. Set it to https://marrakechdunes.onrender.com/api');
   }
 
+  // Normalize URL - ensure /api is appended once (no apihttps://...)
   base = (base || '').replace(/\/$/, '');
   if (!base.endsWith('/api')) base += '/api';
+  
+  // Log final resolved URL once for debugging
+  console.log('[API Config] Final resolved API URL:', base);
+  
   return base;
 }
 

@@ -20,15 +20,18 @@ export default function GoogleMaps({
     const googleMapsKey = import.meta.env.VITE_GOOGLE_MAPS_KEY;
     
     if (!googleMapsKey) {
-      // optional: console.info('[Maps] Key not set, using iframe fallback'); // or remove
+      // Use iframe embed without API key - works without API key
       if (mapRef.current) {
         mapRef.current.innerHTML = `
-          <div style="display: flex; align-items: center; justify-content: center; height: 100%; background: #3b82f6; color: white; border: 2px solid white; border-radius: 8px;">
-            <div style="text-align: center;">
-              <p style="font-size: 18px; font-weight: bold; margin: 0 0 8px 0;">🗺️ Google Maps</p>
-              <p style="font-size: 14px; margin: 0;">Google Maps disabled</p>
-            </div>
-          </div>
+          <iframe 
+            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3398.5!2d-7.9811!3d31.6295!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0xda76c8d5b9c8c8d%3A0xda76c8d5b9c8c8d!2sMarrakech%2C%20Morocco!5e0!3m2!1sen!2s!4v1234567890"
+            width="100%" 
+            height="100%" 
+            style="border:0; border-radius: 8px;" 
+            allowfullscreen="" 
+            loading="lazy" 
+            referrerpolicy="no-referrer-when-downgrade">
+          </iframe>
         `;
       }
       return;
