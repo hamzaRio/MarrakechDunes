@@ -1,4 +1,4 @@
-# === Dependencies === 
+# === Dependencies ===
 node_modules/
 npm-debug.log*
 yarn-debug.log*
@@ -11,7 +11,8 @@ client/dist/
 server/dist/
 *.tsbuildinfo
 
-# === Environment variables ===
+# === Environment files ===
+# Ignore all real env files
 .env
 .env.local
 .env.development
@@ -19,31 +20,34 @@ server/dist/
 .env.staging
 .env.production
 
-# Keep only example env files in Git
-!.env.example
-!.env.production.example
+# Keep only safe examples under Git
+!/.env.example
+!/.env.production.example
+!/server/.env.example
+!/server/.env.production.example
+!/client/.env.example
+!/client/.env.production.example
 
-
-# === IDE ===
+# === IDE configs ===
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
 
-# === Local development files ===
+# === Local development ===
 .local/
 
-# === OS ===
+# === OS files ===
 .DS_Store
 Thumbs.db
 
 # === Logs ===
-logs
+logs/
 *.log
 
 # === Runtime data ===
-pids
+pids/
 *.pid
 *.seed
 *.pid.lock
@@ -64,27 +68,25 @@ tests/
 *.spec.ts
 
 # === Cache ===
-.npm
+.npm/
 .eslintcache
 .cache/
 .parcel-cache
 
-# === Temporary folders ===
+# === Temp ===
 tmp/
 temp/
 
-# === Database files ===
+# === Database dumps ===
 *.db
 *.sqlite
 
-# === Object storage uploads ===
+# === Uploads (but keep attached_assets for project) ===
 uploads/
-
-# Keep project assets
 !attached_assets/
 !client/public/attached_assets/
 
-# === Large files & backups ===
+# === Archives ===
 *.zip
 *.rar
 *.7z
