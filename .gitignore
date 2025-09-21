@@ -37,6 +37,8 @@ server/dist/
 
 # === Local development ===
 .local/
+.replit/
+agent_state
 
 # === OS files ===
 .DS_Store

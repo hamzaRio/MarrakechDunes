@@ -30,7 +30,7 @@ RUN npm run build
 RUN mkdir -p dist/public && cp -r ../client/dist/. dist/public/
 RUN if [ -d ../attached_assets ]; then mkdir -p dist/attached_assets && cp -r ../attached_assets/. dist/attached_assets/; fi
 
-# Runtime configuration (safe defaults, override in Render)
+# Runtime configuration (safe defaults, override in production)
 ENV NODE_ENV=production
 ENV PORT=10000
 EXPOSE 10000
