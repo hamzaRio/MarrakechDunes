@@ -18,6 +18,10 @@ COPY client client
 COPY server server
 COPY shared shared
 
+# Build shared package before other builds
+WORKDIR /app
+RUN npm run build:shared
+
 # Build frontend
 WORKDIR /app/client
 RUN npm run build

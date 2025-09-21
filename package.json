@@ -27,8 +27,7 @@
     "health:backend": "powershell -NoProfile -ExecutionPolicy Bypass -Command \". .\\\\scripts\\\\load-env.ps1 -Silent; curl -fsS http://localhost:10000/api/health\" || exit 1",
     "health:frontend": "powershell -NoProfile -ExecutionPolicy Bypass -Command \". .\\\\scripts\\\\load-env.ps1 -Silent; curl -fsS http://localhost:5173\" || exit 1",
     "login:test:nadia": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\\\login-nadia.ps1",
-    "build:shared": "npm --prefix shared run build",
-    "postinstall": "npm run build:shared"
+    "build:shared": "npm --prefix shared run build"
   },
   "dependencies": {
     "node-fetch": "^3.3.2",
