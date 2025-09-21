@@ -18,18 +18,22 @@ COPY client client
 COPY server server
 COPY shared shared
 
-# Build frontend and backend
-RUN npm run build:client
-RUN npm run build:server
+# Build frontend
+WORKDIR /app/client
+RUN npm run build
 
-# Prepare server runtime assets
+# Build backend
 WORKDIR /app/server
-RUN mkdir -p dist/public && cp -r ../client/dist/. dist/public/
-RUN if [ -d attached_assets ]; then mkdir -p dist/attached_assets && cp -r attached_assets/. dist/attached_assets/; fi
+RUN npm run build
 
-# Runtime configuration
+# Prepare server runtime assets (copy frontend build → backend public)
+RUN mkdir -p dist/public && cp -r ../client/dist/. dist/public/
+RUN if [ -d ../attached_assets ]; then mkdir -p dist/attached_assets && cp -r ../attached_assets/. dist/attached_assets/; fi
+
+# Runtime configuration (safe defaults, override in Render)
 ENV NODE_ENV=production
 ENV PORT=10000
 EXPOSE 10000
 
+# Start server
 CMD ["node", "dist/index.js"]
