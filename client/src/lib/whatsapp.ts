@@ -1,4 +1,4 @@
-import type { BookingType, ActivityType } from "@shared/schema";
+import type { BookingType, ActivityType } from "marrakechdunes-shared/schema";
 
 interface WhatsAppContact {
   name: string;

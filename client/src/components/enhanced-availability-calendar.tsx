@@ -7,7 +7,7 @@ import { Calendar, Clock, Users, AlertTriangle, CheckCircle, Banknote } from "lu
 import { DayPicker } from "react-day-picker";
 import { useLanguage } from "@/hooks/use-language";
 import { apiRequest } from "@/lib/queryClient";
-import type { ActivityType } from "@shared/schema";
+import type { ActivityType } from "marrakechdunes-shared/schema";
 
 interface AvailabilityData {
   date: string;

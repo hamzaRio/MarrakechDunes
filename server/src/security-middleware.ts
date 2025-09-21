@@ -5,6 +5,13 @@ import MemoryStore from 'memorystore';
 import session from 'express-session';
 import { Request, Response, NextFunction } from 'express';
 
+const isProduction = process.env.NODE_ENV === 'production';
+const sessionSecret = process.env.SESSION_SECRET;
+
+if (!sessionSecret) {
+  throw new Error('SESSION_SECRET environment variable is required for session security.');
+}
+
 // Rate limiting for authentication attempts
 export const authRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
@@ -224,7 +231,7 @@ const createSessionStore = () => {
       ttl: 24 * 60 * 60, // 24 hours in seconds
       autoRemove: 'native',
       crypto: {
-        secret: process.env.SESSION_SECRET!
+        secret: sessionSecret
       }
     });
   } catch (error) {
@@ -261,7 +268,7 @@ const createEnhancedSessionStore = () => {
       ttl: 24 * 60 * 60, // 24 hours in seconds
       autoRemove: 'native',
       crypto: {
-        secret: process.env.SESSION_SECRET!
+        secret: sessionSecret
       },
       // Enhanced options for better reliability
       touchAfter: 24 * 3600, // Only update session once per day
@@ -290,17 +297,20 @@ const createEnhancedSessionStore = () => {
 };
 
 // Session security configuration - environment-aware
-const isProduction = process.env.NODE_ENV === 'production';
+const sessionCookieConfig = {
+  sameSite: isProduction ? 'none' as const : 'lax' as const,
+  secure: isProduction,
+};
 
 export const sessionSecurity = {
   name: 'marrakech.session',
-  secret: process.env.SESSION_SECRET || '39ebf2a77f544b81c195c789ef3d1ae8d6d593bb74e482e60a80af10f94e', // Fallback from your .env
-  resave: true, // Ensure session is saved
+  secret: sessionSecret,
+  resave: false,
   saveUninitialized: false,
   store: createEnhancedSessionStore(),
   cookie: {
-    sameSite: process.env.NODE_ENV === "production" ? "none" as const : "lax" as const,
-    secure: process.env.NODE_ENV === "production",
+    sameSite: sessionCookieConfig.sameSite,
+    secure: sessionCookieConfig.secure,
     httpOnly: true,
     maxAge: 24 * 60 * 60 * 1000,
     path: "/"

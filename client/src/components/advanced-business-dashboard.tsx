@@ -20,7 +20,7 @@ import {
   Filter,
   Eye
 } from "lucide-react";
-import type { BookingType, ActivityType } from "@shared/schema";
+import type { BookingType, ActivityType } from "marrakechdunes-shared/schema";
 
 interface BookingWithActivity extends BookingType {
   activity: ActivityType;

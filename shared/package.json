@@ -3,11 +3,25 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "main": "schema.ts",
+  "main": "dist/schema.js",
   "dependencies": {
     "zod": "^3.24.2"
   },
   "devDependencies": {
     "typescript": "5.6.3"
+  },
+  "types": "schema.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/schema.js",
+      "types": "./schema.ts"
+    },
+    "./schema": {
+      "import": "./dist/schema.js",
+      "types": "./schema.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
   }
 }

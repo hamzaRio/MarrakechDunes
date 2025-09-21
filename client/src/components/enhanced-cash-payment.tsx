@@ -20,7 +20,7 @@ import {
   AlertCircle
 } from "lucide-react";
 import { useLanguage } from "@/hooks/use-language";
-import type { ActivityType } from "@shared/schema";
+import type { ActivityType } from "marrakechdunes-shared/schema";
 
 interface EnhancedCashPaymentProps {
   activity: ActivityType;

@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { CheckCircle, Clock, MapPin, Phone, Calendar, Users, Banknote, User } from "lucide-react";
 import { useLanguage } from "@/hooks/use-language";
-import type { ActivityType } from "@shared/schema";
+import type { ActivityType } from "marrakechdunes-shared/schema";
 
 interface CashPaymentConfirmationProps {
   activity: ActivityType;

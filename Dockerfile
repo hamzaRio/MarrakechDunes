@@ -26,9 +26,12 @@ RUN npm run build
 WORKDIR /app/server
 RUN npm run build
 
-# Prepare server runtime assets (copy frontend build → backend public)
+# Prepare server runtime assets (copy frontend build and backend public assets)
 RUN mkdir -p dist/public && cp -r ../client/dist/. dist/public/
-RUN if [ -d ../attached_assets ]; then mkdir -p dist/attached_assets && cp -r ../attached_assets/. dist/attached_assets/; fi
+RUN if [ -d ./attached_assets ]; then mkdir -p dist/attached_assets && cp -r ./attached_assets/. dist/attached_assets/; fi
+
+# Strip dev dependencies for lean runtime
+RUN npm prune --omit=dev
 
 # Runtime configuration (safe defaults, override in production)
 ENV NODE_ENV=production

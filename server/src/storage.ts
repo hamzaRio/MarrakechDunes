@@ -13,7 +13,7 @@ import type {
   InsertReview,
   BookingWithActivity,
   ReviewWithActivity,
-} from "./shared-schema.js";
+} from "marrakechdunes-shared/schema";
 
 // MongoDB connection string - must use DATABASE_URL
 const DATABASE_URL = process.env.DATABASE_URL;
@@ -568,3 +568,5 @@ class MongoStorage implements IStorage {
 }
 
 export const storage = new MongoStorage();
+
+

@@ -141,6 +141,10 @@ export function globalErrorHandler(
     statusCode = 500;
     message = 'Database error';
     code = 'DATABASE_ERROR';
+  } else if ((error as any)?.code === 'EBADCSRFTOKEN') {
+    statusCode = 403;
+    message = 'Invalid CSRF token';
+    code = 'CSRF_ERROR';
   } else if (error.status || error.statusCode) {
     statusCode = error.status || error.statusCode;
     message = error.message || message;

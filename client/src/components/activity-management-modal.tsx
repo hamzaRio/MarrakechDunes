@@ -34,7 +34,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { getAssetUrl } from "@/lib/utils";
 import { Plus, Settings, Trash2, Power, PowerOff, Upload, Search, ExternalLink } from "lucide-react";
 import { ObjectUploader } from "@/components/ObjectUploader";
-import type { ActivityType } from "@shared/schema";
+import type { ActivityType } from "marrakechdunes-shared/schema";
 import type { UploadResult } from "@uppy/core";
 
 const activityFormSchema = z.object({

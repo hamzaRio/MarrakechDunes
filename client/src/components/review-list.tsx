@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Star, User, Calendar, CheckCircle } from "lucide-react";
-import type { ReviewWithActivity } from "@shared/schema";
+import type { ReviewWithActivity } from "marrakechdunes-shared/schema";
 import { apiFetch } from "@/lib/api";
 import { ensureArray } from "@/lib/ensureArray";
 

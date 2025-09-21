@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiFetch } from "@/lib/api";
-import type { BookingType, ActivityType } from "@shared/schema";
+import type { BookingType, ActivityType } from "marrakechdunes-shared/schema";
 
 interface BookingWithActivity extends BookingType {
   activity: ActivityType;

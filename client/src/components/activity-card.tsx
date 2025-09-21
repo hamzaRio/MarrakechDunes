@@ -16,7 +16,7 @@ import { getActivityFallbackImage } from "@/lib/image-utils";
 
 import { ensureArray, getAssetUrl } from "@/lib/utils";
 
-import type { ActivityType } from "@shared/schema";
+import type { ActivityType } from "marrakechdunes-shared/schema";
 
 
 

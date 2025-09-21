@@ -1,0 +1,35 @@
+services:
+  - type: web
+    name: marrakechdunes-backend
+    runtime: node
+    plan: free
+    buildCommand: |
+      npm ci --legacy-peer-deps
+      npm run build
+      npm prune --omit=dev
+    startCommand: cd server && npm start
+    healthCheckPath: /api/health
+    port: 10000
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: CLIENT_URL
+        value: https://marrakech-dunes.vercel.app,https://*.vercel.app,http://localhost:5173
+      - key: VITE_API_URL
+        value: https://marrakechdunes.onrender.com
+      - key: VITE_ASSETS_BASE
+        value: https://marrakechdunes.onrender.com/attached_assets
+      - key: DATABASE_URL
+        sync: false
+      - key: SESSION_SECRET
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: WHATSAPP_RECEIVERS
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: SUPERADMIN_PASSWORD
+        sync: false

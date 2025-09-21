@@ -26,7 +26,12 @@ function normalizeApiUrl(raw: string | undefined) {
 
 export const baseURL = normalizeApiUrl(import.meta.env.VITE_API_URL);
 
+const CSRF_COOKIE = "marrakech.csrf";
+const CSRF_HEADER = "X-CSRF-Token";
+
 export const api = axios.create({ baseURL, withCredentials: true });
+api.defaults.xsrfCookieName = CSRF_COOKIE;
+api.defaults.xsrfHeaderName = CSRF_HEADER;
 
 // test helper
 export function __testApiBase() {
@@ -44,5 +49,5 @@ export async function apiFetch<T = any>(
   return res.data;
 }
 
-export async function sessionInit() { try { await api.post('/session/init'); } catch {} }
+export async function sessionInit() { try { await api.get('/session/init'); } catch {} }
 export async function logout() { try { await api.post('/auth/logout'); } catch (e) { console.error('Logout error:', e); } }

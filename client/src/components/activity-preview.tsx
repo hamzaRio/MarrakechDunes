@@ -8,7 +8,7 @@ import { useLanguage } from '@/hooks/use-language';
 import ActivityRating from './activity-rating';
 
 import { getAssetUrl, ensureArray } from '@/lib/utils';
-import type { ActivityType } from '@shared/schema';
+import type { ActivityType } from 'marrakechdunes-shared/schema';
 
 interface ActivityPreviewProps {
   activity: ActivityType | null;

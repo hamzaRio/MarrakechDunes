@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { ActivityType } from "@shared/schema";
+import { ActivityType } from "marrakechdunes-shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { ensureArray } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";

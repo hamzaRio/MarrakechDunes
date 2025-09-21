@@ -20,7 +20,7 @@ import {
   Calculator,
   CreditCard
 } from "lucide-react";
-import type { BookingWithActivity } from "@shared/schema";
+import type { BookingWithActivity } from "marrakechdunes-shared/schema";
 
 interface PaymentManagementProps {
   booking: BookingWithActivity;

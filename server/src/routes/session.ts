@@ -8,7 +8,10 @@ interface SessionRequest extends Request {
 
 const router = Router();
 
-router.post("/init", (req, res) => res.json({ ok: true }));
+const respond = (_req: Request, res: Response) => res.sendStatus(204);
+
+router.get("/init", respond);
+router.post("/init", respond);
 router.get("/test", (req, res) => res.json({ ok: true }));
 
 export default router;

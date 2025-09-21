@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Star, MessageSquare, Filter, Plus } from "lucide-react";
 import { useLanguage } from "@/hooks/use-language";
-import type { ActivityType } from "@shared/schema";
+import type { ActivityType } from "marrakechdunes-shared/schema";
 
 export default function Reviews() {
   const { t } = useLanguage();

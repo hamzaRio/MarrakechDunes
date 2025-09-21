@@ -86,7 +86,6 @@ temp/
 # === Uploads (but keep attached_assets for project) ===
 uploads/
 !attached_assets/
-!client/public/attached_assets/
 
 # === Archives ===
 *.zip
@@ -100,7 +99,6 @@ uploads/
 
 # === Hosting configs (keep only Render + Vercel) ===
 .vercel
-render.yaml
 
 # Ignore unused deployment configs
 netlify.toml

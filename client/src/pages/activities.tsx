@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { ActivityType } from "@shared/schema";
+import { ActivityType } from "marrakechdunes-shared/schema";
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
 import ActivityCard from "@/components/activity-card";

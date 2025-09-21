@@ -14,7 +14,7 @@ import {
   Zap
 } from "lucide-react";
 import { useLanguage } from "@/hooks/use-language";
-import type { ActivityType, BookingType } from "@shared/schema";
+import type { ActivityType, BookingType } from "marrakechdunes-shared/schema";
 
 interface AdvancedAvailabilityCalendarProps {
   activity: ActivityType;

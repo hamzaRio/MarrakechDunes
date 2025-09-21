@@ -18,7 +18,7 @@ import CashBookingReminders from "@/components/cash-booking-reminders";
 import { apiFetch } from "@/lib/api";
 
 // Removed useState import as no longer needed
-import type { BookingType, ActivityType, AuditLogType } from "@shared/schema";
+import type { BookingType, ActivityType, AuditLogType } from "marrakechdunes-shared/schema";
 
 interface BookingWithActivity extends BookingType {
   activity: ActivityType;

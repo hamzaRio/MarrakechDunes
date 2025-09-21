@@ -9,7 +9,7 @@
     "shared"
   ],
   "scripts": {
-    "build": "npm run build:client && npm run build:server",
+    "build": "npm run build:shared && npm run build:client && npm run build:server",
     "build:client": "npm --prefix client run build",
     "build:server": "npm --prefix server run build",
     "start:server": "powershell -NoProfile -ExecutionPolicy Bypass -Command \". .\\\\scripts\\\\load-env.ps1; node server/dist/index.js\"",
@@ -26,7 +26,9 @@
     "check": "tsc",
     "health:backend": "powershell -NoProfile -ExecutionPolicy Bypass -Command \". .\\\\scripts\\\\load-env.ps1 -Silent; curl -fsS http://localhost:10000/api/health\" || exit 1",
     "health:frontend": "powershell -NoProfile -ExecutionPolicy Bypass -Command \". .\\\\scripts\\\\load-env.ps1 -Silent; curl -fsS http://localhost:5173\" || exit 1",
-    "login:test:nadia": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\\\login-nadia.ps1"
+    "login:test:nadia": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\\\login-nadia.ps1",
+    "build:shared": "npm --prefix shared run build",
+    "postinstall": "npm run build:shared"
   },
   "dependencies": {
     "node-fetch": "^3.3.2",

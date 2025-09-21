@@ -16,7 +16,7 @@ import {
   Heart
 } from "lucide-react";
 import { useLanguage } from "@/hooks/use-language";
-import type { ActivityType } from "@shared/schema";
+import type { ActivityType } from "marrakechdunes-shared/schema";
 
 interface SmartBookingAssistantProps {
   activities: ActivityType[];

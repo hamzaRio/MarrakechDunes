@@ -69,11 +69,12 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 // Now import modules that depend on environment variables
-import express, { type Request, Response, NextFunction } from "express";
+import express, { type Request, type Response, type NextFunction, type CookieOptions } from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import helmet from "helmet";
 import session from "express-session";
+import csrf from "csurf";
 import { globalLimiter, strictLimiter } from "./rate-limiters.js";
 import { registerRoutes } from "./routes.js";
 import { connectToDatabase } from "./db.js";
@@ -122,6 +123,26 @@ const log = (
 };
 
 const app = express();
+
+const isProduction = process.env.NODE_ENV === 'production';
+const csrfCookieName = 'marrakech.csrf';
+const csrfCookieOptions: CookieOptions = {
+  httpOnly: false,
+  secure: isProduction,
+  sameSite: isProduction ? 'none' : 'lax',
+  path: '/',
+};
+
+const csrfProtection = csrf({
+  cookie: {
+    key: csrfCookieName,
+    httpOnly: false,
+    secure: isProduction,
+    sameSite: isProduction ? 'none' : 'lax',
+    path: '/',
+  },
+});
+
 
 // Set trust proxy at the top before any middleware
 app.set("trust proxy", 1);
@@ -196,6 +217,26 @@ app.use(cors({
 
 // Session middleware
 app.use(session(sessionSecurity));
+
+// CSRF protection with double-submit cookie
+app.use(csrfProtection);
+
+app.use((req: Request, res: Response, next: NextFunction) => {
+  const csrfTokenFactory = (req as any).csrfToken;
+
+  if (typeof csrfTokenFactory === 'function') {
+    try {
+      const token = csrfTokenFactory.call(req);
+      res.cookie(csrfCookieName, token, csrfCookieOptions);
+      res.locals.csrfToken = token;
+      res.setHeader('X-CSRF-Token', token);
+    } catch (error) {
+      return next(error as Error);
+    }
+  }
+
+  next();
+});
 
 
 // 🔒 serve public assets from Render (used by Vercel proxy too) with filename sanitization
@@ -346,8 +387,7 @@ app.use((req, res, next) => {
   // Start server
   const PORT = process.env.PORT || 10000;
   const apiUrl = process.env.VITE_API_URL || `http://localhost:${PORT}`;
-  const isProduction = process.env.NODE_ENV === 'production';
-  
+
   server.listen(PORT, () => {
     console.log(`[server] listening on ${PORT}`);
     console.log(`[assets] ${assetsPath}`);
