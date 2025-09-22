@@ -20,7 +20,7 @@ services:
       - key: VITE_API_URL
         value: https://marrakechdunes.onrender.com/api
       - key: VITE_ASSETS_BASE
-        value: /attached_assets
+        value: https://marrakechdunes.onrender.com/assets
       - key: MAP_PROVIDER
         value: iframe
       - key: LEAFLET_ENABLED

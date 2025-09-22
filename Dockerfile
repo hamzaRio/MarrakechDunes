@@ -44,7 +44,6 @@ COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/node_modules ./node_modules
 
 COPY --from=builder /app/shared/package*.json ./shared/
-COPY --from=builder /app/shared/node_modules ./shared/node_modules
 COPY --from=builder /app/shared/dist ./shared/dist
 
 COPY --from=builder /app/server/package*.json ./server/

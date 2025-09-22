@@ -244,9 +244,14 @@ if (existingAssetDirs.length === 0) {
   console.warn(`[static] No asset directories found for /assets. Checked: ${assetDirectories.map(dir => dir.path).join(", ")}`);
 }
 
-for (const dir of existingAssetDirs) {
-  console.log(`[static] Serving /assets from ${dir.path}`);
-  app.use("/assets", express.static(dir.path, assetStaticOptions));
+// Explicitly mount both attached and client asset directories to /assets
+if (fs.existsSync(attachedAssetsDir)) {
+  console.log(`[static] Serving /assets from ${attachedAssetsDir}`);
+  app.use("/assets", express.static(attachedAssetsDir, assetStaticOptions));
+}
+if (fs.existsSync(clientDistAssetsDir)) {
+  console.log(`[static] Serving /assets from ${clientDistAssetsDir}`);
+  app.use("/assets", express.static(clientDistAssetsDir, assetStaticOptions));
 }
 
 const jsonBodyParser = express.json();
