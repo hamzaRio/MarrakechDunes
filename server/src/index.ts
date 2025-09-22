@@ -232,6 +232,12 @@ app.use((_, res, next) => {
 
 // Static assets for images/css served before JSON body parsing to avoid capture
 app.use("/assets", assetHeaders);
+
+// Explicit mount for attached assets at /attached_assets (in addition to /assets)
+app.use(
+  "/attached_assets",
+  express.static(attachedAssetsDir, assetStaticOptions)
+);
 const existingAssetDirs = getExistingAssetDirectories();
 
 if (existingAssetDirs.length === 0) {
@@ -328,18 +334,13 @@ app.get("/health", (_req, res) => res.status(200).send("OK"));
 // Render expects /api/health
 app.get("/api/health", (_req, res) => res.status(200).send("OK"));
 
-// CSRF session init route
-app.get('/api/session/init', (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const token = (res.locals?.csrfToken as string) || (typeof (req as any).csrfToken === "function" ? (req as any).csrfToken() : undefined);
-    if (!token) {
-      throw new Error("Failed to generate CSRF token");
-    }
-    res.cookie(csrfCookieName, token, csrfCookieOptions);
-    res.json({ csrfToken: token });
-  } catch (error) {
-    next(error as Error);
-  }
+// CSRF session init route (must be defined before session router)
+app.get('/api/session/init', (req: Request, res: Response) => {
+  const token = (req as any).csrfToken();
+  res
+    .cookie(csrfCookieName, token, csrfCookieOptions)
+    .status(200)
+    .json({ csrfToken: token });
 });
 
 // Serve static client files
