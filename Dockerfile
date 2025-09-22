@@ -1,16 +1,15 @@
-# Base image
-FROM node:20-alpine
+# Builder stage
+FROM node:20-alpine AS builder
 
-# Set working directory
 WORKDIR /app
 
-# Copy package manifests
+# Copy workspace manifests
 COPY package*.json ./
 COPY client/package*.json client/
 COPY server/package*.json server/
 COPY shared/package*.json shared/
 
-# Install dependencies for all workspaces
+# Install dependencies across workspaces
 RUN npm ci --legacy-peer-deps
 
 # Copy source code
@@ -18,29 +17,44 @@ COPY client client
 COPY server server
 COPY shared shared
 
-# Build shared package before other builds
-WORKDIR /app
+# Build shared package before others
 RUN npm run build:shared
+RUN npm run build:client
+RUN npm run build:server
 
-# Build frontend
-WORKDIR /app/client
-RUN npm run build
-
-# Build backend
+# Prepare server runtime assets (frontend build + attached assets)
 WORKDIR /app/server
-RUN npm run build
-
-# Prepare server runtime assets (copy frontend build and backend public assets)
 RUN mkdir -p dist/public && cp -r ../client/dist/. dist/public/
 RUN if [ -d ./attached_assets ]; then mkdir -p dist/attached_assets && cp -r ./attached_assets/. dist/attached_assets/; fi
 
-# Strip dev dependencies for lean runtime
+# Strip development dependencies
+WORKDIR /app
 RUN npm prune --omit=dev
 
-# Runtime configuration (safe defaults, override in production)
+# Runtime stage
+FROM node:20-alpine AS runner
+
 ENV NODE_ENV=production
 ENV PORT=10000
-EXPOSE 10000
 
-# Start server
+WORKDIR /app
+
+# Copy production dependencies and workspace outputs
+COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/node_modules ./node_modules
+
+COPY --from=builder /app/shared/package*.json ./shared/
+COPY --from=builder /app/shared/node_modules ./shared/node_modules
+COPY --from=builder /app/shared/dist ./shared/dist
+
+COPY --from=builder /app/server/package*.json ./server/
+COPY --from=builder /app/server/node_modules ./server/node_modules
+COPY --from=builder /app/server/dist ./server/dist
+COPY --from=builder /app/server/attached_assets ./server/attached_assets
+
+COPY --from=builder /app/client/dist ./client/dist
+
+EXPOSE 10000
+WORKDIR /app/server
+
 CMD ["node", "dist/index.js"]

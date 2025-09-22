@@ -69,7 +69,8 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 // Now import modules that depend on environment variables
-import express, { type Request, type Response, type NextFunction, type CookieOptions } from "express";
+import express, { type Request, type Response, type NextFunction, type CookieOptions, type RequestHandler } from "express";
+import type { ServeStaticOptions } from "serve-static";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import helmet from "helmet";
@@ -84,17 +85,56 @@ import sessionRouter from "./routes/session.js";
 
 // CORS origins are defined below in FRONT_ORIGINS
 
-const assetsRoot = path.resolve(projectRoot, "server", "attached_assets");
-const distAssetsPath = join(__dirname, "attached_assets");
-let assetsPath = assetsRoot;
+const attachedAssetsDir = path.join(__dirname, "../attached_assets");
+const clientDistAssetsDir = path.join(__dirname, "../../client/dist/assets");
 
-if (!fs.existsSync(assetsRoot)) {
-  assetsPath = distAssetsPath;
-}
+const assetDirectories = [
+  { label: "server/attached_assets", path: attachedAssetsDir },
+  { label: "client/dist/assets", path: clientDistAssetsDir },
+];
 
-if (!fs.existsSync(assetsPath)) {
-  console.warn(`[static] attached_assets directory not found. Checked: ${assetsRoot}, ${distAssetsPath}`);
-}
+const getExistingAssetDirectories = () =>
+  assetDirectories.filter(({ path }) => fs.existsSync(path));
+
+const assetStaticOptions: ServeStaticOptions = {
+  fallthrough: true,
+  maxAge: "7d",
+  etag: true,
+  index: false,
+  setHeaders: (res, filePath) => {
+    if (res.getHeader("Content-Type")) {
+      return;
+    }
+    const ext = path.extname(filePath).toLowerCase();
+    if (ext === ".css") {
+      res.setHeader("Content-Type", "text/css; charset=UTF-8");
+      return;
+    }
+
+    const imageTypes: Record<string, string> = {
+      ".jpg": "image/jpeg",
+      ".jpeg": "image/jpeg",
+      ".png": "image/png",
+      ".gif": "image/gif",
+      ".webp": "image/webp",
+      ".svg": "image/svg+xml",
+    };
+
+    const contentType = imageTypes[ext];
+    if (contentType) {
+      res.setHeader("Content-Type", contentType);
+    }
+  },
+};
+
+const assetHeaders: RequestHandler = (_req, res, next) => {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, X-CSRF-Token");
+  next();
+};
+
+
 
 // Logging helper
 const log = (
@@ -147,47 +187,41 @@ const csrfProtection = csrf({
 // Set trust proxy at the top before any middleware
 app.set("trust proxy", 1);
 
-// Security middleware with CORS-friendly configuration and Google Maps support
+// Security middleware with CORS-friendly configuration and map support
 app.use(helmet({
   crossOriginResourcePolicy: false, // Disable helmet's CORS policy to allow our custom headers
   crossOriginEmbedderPolicy: false,
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: [
-        "'self'", 
-        "'unsafe-inline'", 
-        "'unsafe-eval'",
-        "https://maps.googleapis.com",
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://maps.googleapis.com", "https://*.googleapis.com"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://maps.googleapis.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      imgSrc: [
+        "'self'",
+        "data:",
+        "https:",
+        "blob:",
+        "https://www.openstreetmap.org",
+        "https://tile.openstreetmap.org",
+        "https://*.tile.openstreetmap.org",
         "https://maps.gstatic.com",
-        "https://www.google.com"
+        "https://maps.google.com",
+        "https://*.google.com",
+        "https://*.googleapis.com"
       ],
-      styleSrc: [
-        "'self'", 
-        "'unsafe-inline'",
-        "https://fonts.googleapis.com",
-        "https://maps.googleapis.com"
-      ],
-      fontSrc: [
-        "'self'",
-        "https://fonts.gstatic.com"
-      ],
-      imgSrc: ["'self'", "data:", "https:", "blob:"],
-      frameSrc: ["'self'", "https://www.google.com"],
-      connectSrc: [
-        "'self'",
-        "https://maps.googleapis.com"
-      ]
+      frameSrc: ["'self'", "https://www.openstreetmap.org", "https://www.google.com", "https://maps.google.com"],
+      connectSrc: ["'self'", "https://api.whatsapp.com", "https://maps.googleapis.com", "https://*.googleapis.com"],
     }
   }
 }));
-// Ensure Google Maps iframes allowed in CSP
+// Ensure OpenStreetMap iframes allowed in CSP
 app.use((_, res, next) => {
   const existingCsp = res.getHeader('Content-Security-Policy');
-  const mapsDirective = "frame-src 'self' https://www.google.com https://maps.googleapis.com;";
-  if (typeof existingCsp === "string") {
-    if (!existingCsp.includes("frame-src")) {
-      const updatedValue = (existingCsp + "; " + mapsDirective).trim();
+  const mapsDirective = "frame-src 'self' https://www.openstreetmap.org https://www.google.com https://maps.google.com;";
+  if (typeof existingCsp === 'string') {
+    if (!existingCsp.includes('frame-src')) {
+      const updatedValue = (existingCsp + '; ' + mapsDirective).trim();
       res.setHeader('Content-Security-Policy', updatedValue);
     }
   } else {
@@ -196,25 +230,73 @@ app.use((_, res, next) => {
   next();
 });
 
-// Enable JSON & URL-encoded
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+// Static assets for images/css served before JSON body parsing to avoid capture
+app.use("/assets", assetHeaders);
+const existingAssetDirs = getExistingAssetDirectories();
+
+if (existingAssetDirs.length === 0) {
+  console.warn(`[static] No asset directories found for /assets. Checked: ${assetDirectories.map(dir => dir.path).join(", ")}`);
+}
+
+for (const dir of existingAssetDirs) {
+  console.log(`[static] Serving /assets from ${dir.path}`);
+  app.use("/assets", express.static(dir.path, assetStaticOptions));
+}
+
+const jsonBodyParser = express.json();
+const urlencodedBodyParser = express.urlencoded({ extended: false });
+
+// Enable JSON & URL-encoded (skip /assets to prevent JSON middleware from handling static requests)
+app.use((req: Request, res: Response, next: NextFunction) => {
+  if (req.path.startsWith("/assets")) {
+    return next();
+  }
+  return jsonBodyParser(req, res, next);
+});
+
+app.use((req: Request, res: Response, next: NextFunction) => {
+  if (req.path.startsWith("/assets")) {
+    return next();
+  }
+  return urlencodedBodyParser(req, res, next);
+});
 
 // Enable cookie parsing
 app.use(cookieParser());
 
 // CORS configuration - must be defined BEFORE routes
-const origins = (process.env.CLIENT_URL || '').split(',').map(s => s.trim()).filter(Boolean);
+const configuredOrigins = (process.env.CLIENT_URL || '')
+  .split(',')
+  .map(s => s.trim())
+  .filter(Boolean);
+
+const explicitOrigins = [
+  "https://marrakech-dunes.vercel.app",
+  "http://localhost:5173",
+];
+
+const wildcardOriginPatterns = [
+  /^https:\/\/marrakech-dunes-[^.]+\.vercel\.app$/i,
+];
+
+const allowedOrigins = Array.from(new Set([...explicitOrigins, ...configuredOrigins]));
+const wildcardOriginsForLog = ["https://marrakech-dunes-*.vercel.app"];
 
 app.use(cors({
   origin: (origin, cb) => {
     if (!origin) return cb(null, true); // allow server-side / health checks
-    const ok = origins.some(o => origin === o || (o.includes('*') && new RegExp('^' + o.replace(/\*/g,'.*') + '$').test(origin)));
-    cb(ok ? null : new Error('CORS blocked'), ok);
+    if (allowedOrigins.includes(origin) || wildcardOriginPatterns.some(pattern => pattern.test(origin))) {
+      return cb(null, true);
+    }
+    return cb(new Error(`CORS blocked: ${origin}`));
   },
   credentials: true,
+  methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-CSRF-Token"],
+  optionsSuccessStatus: 204,
 }));
 
+// Session middleware
 // Session middleware
 app.use(session(sessionSecurity));
 
@@ -239,47 +321,26 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 });
 
 
-// 🔒 serve public assets from Render (used by Vercel proxy too) with filename sanitization
-app.use("/attached_assets", (req, res, next) => {
-  // Handle URL-encoded filenames (spaces, special characters)
-  const decodedPath = decodeURIComponent(req.url);
-  
-  // Sanitize filename to prevent directory traversal
-  const sanitizedPath = decodedPath.replace(/\.\./g, '').replace(/[^a-zA-Z0-9._-]/g, '_');
-  
-  // Set proper Content-Type for images based on extension
-  const ext = path.extname(sanitizedPath).toLowerCase();
-  if (ext.match(/\.(jpg|jpeg)$/)) {
-    res.setHeader('Content-Type', 'image/jpeg');
-  } else if (ext.match(/\.png$/)) {
-    res.setHeader('Content-Type', 'image/png');
-  } else if (ext.match(/\.gif$/)) {
-    res.setHeader('Content-Type', 'image/gif');
-  } else if (ext.match(/\.webp$/)) {
-    res.setHeader('Content-Type', 'image/webp');
-  }
-  
-  // Add CORS headers for cross-origin requests
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  
-  next();
-}, express.static(assetsPath, { 
-  maxAge: "7d", 
-  etag: true,
-  // Custom file resolver to handle spaces in filenames
-  index: false,
-  dotfiles: 'ignore'
-}));
+
 
 // Health
 app.get("/health", (_req, res) => res.status(200).send("OK"));
 // Render expects /api/health
 app.get("/api/health", (_req, res) => res.status(200).send("OK"));
 
-// Session init route
-app.post('/api/session/init', (_req, res) => res.sendStatus(204));
+// CSRF session init route
+app.get('/api/session/init', (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const token = (res.locals?.csrfToken as string) || (typeof (req as any).csrfToken === "function" ? (req as any).csrfToken() : undefined);
+    if (!token) {
+      throw new Error("Failed to generate CSRF token");
+    }
+    res.cookie(csrfCookieName, token, csrfCookieOptions);
+    res.json({ csrfToken: token });
+  } catch (error) {
+    next(error as Error);
+  }
+});
 
 // Serve static client files
 const publicPath = join(__dirname, "public");
@@ -390,12 +451,13 @@ app.use((req, res, next) => {
 
   server.listen(PORT, () => {
     console.log(`[server] listening on ${PORT}`);
-    console.log(`[assets] ${assetsPath}`);
+    const servedAssetDirs = getExistingAssetDirectories().map(dir => dir.path);
+    console.log(`[assets] ${servedAssetDirs.length ? servedAssetDirs.join(", ") : "none"}`);
     console.log(`[routers] /api/session mounted`);
     log(`🚀 Server started on port ${PORT}`);
     log(`🌍 NODE_ENV: ${process.env.NODE_ENV || 'development'}`);
-    log(`🌐 Allowed CORS origins: ${origins.join(', ')}`);
-    log(`Assets path: ${assetsPath}`);
+    log(`🌐 Allowed CORS origins: ${[...allowedOrigins, ...wildcardOriginsForLog].join(', ')}`);
+    log(`Assets directories: ${servedAssetDirs.length ? servedAssetDirs.join(", ") : "none"}`);
     log(`🔒 Rate limiting: ${isProduction ? '100' : '200'} req/15min (global, auth, admin, general)`);
     log(`🍪 Session cookies: secure=${isProduction}, sameSite=${isProduction ? 'none' : 'lax'}, httpOnly=true`);
     log(`📡 API Base URL: ${apiUrl}`);

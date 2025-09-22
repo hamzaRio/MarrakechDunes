@@ -365,7 +365,7 @@ class MongoStorage implements IStorage {
       const superadminPassword = process.env.SUPERADMIN_PASSWORD;
       const adminPassword = process.env.ADMIN_PASSWORD;
       
-      console.log('🔐 Environment variables check:');
+      console.log('ðŸ” Environment variables check:');
       console.log('  SUPERADMIN_PASSWORD:', superadminPassword ? 'SET' : 'NOT SET');
       console.log('  ADMIN_PASSWORD:', adminPassword ? 'SET' : 'NOT SET');
       
@@ -385,7 +385,7 @@ class MongoStorage implements IStorage {
       for (const oldUsername of oldUsers) {
         const oldUser = await User.findOne({ username: oldUsername });
         if (oldUser) {
-          console.log(`🗑️ Removing old default user: ${oldUsername}`);
+          console.log(`ðŸ—‘ï¸ Removing old default user: ${oldUsername}`);
           await User.deleteOne({ username: oldUsername });
         }
       }
@@ -393,23 +393,23 @@ class MongoStorage implements IStorage {
       for (const userData of adminUsers) {
         const existingUser = await User.findOne({ username: userData.username });
         if (!existingUser) {
-          console.log(`🔐 Creating admin user: ${userData.username} with password length: ${userData.password ? userData.password.length : 'undefined'}`);
+          console.log(`ðŸ” Creating admin user: ${userData.username} with password length: ${userData.password ? userData.password.length : 'undefined'}`);
           const hashedPassword = await bcrypt.hash(userData.password, 10);
           await User.create({
             ...userData,
             password: hashedPassword,
           });
-          console.log(`✅ Created admin user: ${userData.username}`);
+          console.log(`âœ… Created admin user: ${userData.username}`);
         } else {
-          console.log(`ℹ️ Admin user already exists: ${userData.username}`);
+          console.log(`â„¹ï¸ Admin user already exists: ${userData.username}`);
           // Force update password to ensure it's correct
-          console.log(`🔄 Updating password for existing user: ${userData.username}`);
+          console.log(`ðŸ”„ Updating password for existing user: ${userData.username}`);
           const hashedPassword = await bcrypt.hash(userData.password, 10);
           await User.updateOne(
             { username: userData.username },
             { $set: { password: hashedPassword, role: userData.role } }
           );
-          console.log(`✅ Updated password and role for admin user: ${userData.username}`);
+          console.log(`âœ… Updated password and role for admin user: ${userData.username}`);
         }
       }
 
@@ -417,18 +417,18 @@ class MongoStorage implements IStorage {
       const activityCount = await Activity.countDocuments();
       console.log(`Found ${activityCount} existing activities in database`);
       if (activityCount === 0) {
-        // Seed with unique images per activity from attached_assets
+        // Seed with unique images per activity from assets
         const activities = [
           {
-            name: "Montgolfière (Hot Air Balloon)",
+            name: "MontgolfiÃ¨re (Hot Air Balloon)",
             description: "Experience the magic of Marrakech from above with a sunrise hot air balloon ride over the Atlas Mountains and traditional Berber villages.",
             price: "1100",
             currency: "MAD",
             imageUrls: [
-              "/attached_assets/montgolfiere-marrakech_1751127701687.jpg",
-              "/attached_assets/montgofliere_a_marrakech_1751127701687.jpg",
-              "/attached_assets/Hot Air Balloon Ride2_1751127701686.jpg",
-              "/attached_assets/Hot Air Balloon Ride3_1751127701686.jpg"
+              "/assets/montgolfiere-marrakech_1751127701687.jpg",
+              "/assets/montgofliere_a_marrakech_1751127701687.jpg",
+              "/assets/Hot Air Balloon Ride2_1751127701686.jpg",
+              "/assets/Hot Air Balloon Ride3_1751127701686.jpg"
             ],
             category: "Adventure",
             isActive: true,
@@ -440,8 +440,8 @@ class MongoStorage implements IStorage {
             price: "450",
             currency: "MAD",
             imageUrls: [
-              "/attached_assets/agafaypack1_1751128022717.jpeg",
-              "/attached_assets/agafaypack2_1751128022717.jpeg"
+              "/assets/agafaypack1_1751128022717.jpeg",
+              "/assets/agafaypack2_1751128022717.jpeg"
             ],
             category: "Adventure",
             isActive: true,
@@ -453,11 +453,11 @@ class MongoStorage implements IStorage {
             price: "200",
             currency: "MAD",
             imageUrls: [
-              "/attached_assets/Essaouira Day Trip1_1751124502666.jpg",
-              "/attached_assets/Essaouira day trip 3_1751122022832.jpg",
-              "/attached_assets/Essaouira day trip 4_1751122022833.jpg",
-              "/attached_assets/Essaouira Day Trip_1751122022833.jpg",
-              "/attached_assets/Essaouira Day Trip2_1751122022833.jpg"
+              "/assets/Essaouira Day Trip1_1751124502666.jpg",
+              "/assets/Essaouira day trip 3_1751122022832.jpg",
+              "/assets/Essaouira day trip 4_1751122022833.jpg",
+              "/assets/Essaouira Day Trip_1751122022833.jpg",
+              "/assets/Essaouira Day Trip2_1751122022833.jpg"
             ],
             category: "Day Trips",
             isActive: true,
@@ -469,9 +469,9 @@ class MongoStorage implements IStorage {
             price: "200",
             currency: "MAD",
             imageUrls: [
-              "/attached_assets/activities/ouzoud/Cascades_d'Ouzoud_008.JPG",
-              "/attached_assets/activities/ouzoud/Cascades_d'Ouzoud_014.JPG",
-              "/attached_assets/activities/ouzoud/Cascades_d'Ouzoud_018.JPG"
+              "/assets/activities/ouzoud/Cascades_d'Ouzoud_008.JPG",
+              "/assets/activities/ouzoud/Cascades_d'Ouzoud_014.JPG",
+              "/assets/activities/ouzoud/Cascades_d'Ouzoud_018.JPG"
             ],
             category: "Nature",
             isActive: true,
@@ -483,11 +483,11 @@ class MongoStorage implements IStorage {
             price: "150",
             currency: "MAD",
             imageUrls: [
-              "/attached_assets/ourika valley3_1751114166832.jpg",
-              "/attached_assets/Ourika-Valley-day-trip-from-Marrakech_1756485141180.jpg",
-              "/attached_assets/ourika-valley-1_1756485141180.jpeg",
-              "/attached_assets/ourika-valley-marrakech_1756485141180.jpg",
-              "/attached_assets/ourika valley3_1756485141179.jpg"
+              "/assets/ourika valley3_1751114166832.jpg",
+              "/assets/Ourika-Valley-day-trip-from-Marrakech_1756485141180.jpg",
+              "/assets/ourika-valley-1_1756485141180.jpeg",
+              "/assets/ourika-valley-marrakech_1756485141180.jpg",
+              "/assets/ourika valley3_1756485141179.jpg"
             ],
             category: "Day Trips",
             isActive: true,
@@ -496,12 +496,12 @@ class MongoStorage implements IStorage {
         ];
 
         await Activity.insertMany(activities);
-        console.log(`✅ Created ${activities.length} initial activities`);
+        console.log(`âœ… Created ${activities.length} initial activities`);
       }
 
-      console.log('✅ MongoDB seed data initialized successfully');
+      console.log('âœ… MongoDB seed data initialized successfully');
     } catch (error) {
-      console.error('❌ Error seeding data:', error);
+      console.error('âŒ Error seeding data:', error);
     }
   }
 

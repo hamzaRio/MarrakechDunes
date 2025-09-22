@@ -3,6 +3,7 @@ import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
 import WhatsAppButton from "@/components/whatsapp-button";
 import PhotoSlideshow from "@/components/photo-slideshow";
+import MapView from "@/components/MapView";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Star, Award, MapPin, Calendar } from "lucide-react";
@@ -112,19 +113,11 @@ export default function Home() {
                     </div>
                   </div>
                   
-                  {/* Google Maps Embed */}
-                  <div className="mt-4">
-                    <iframe
-                      src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3396.540!2d-7.9898!3d31.6295!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0xdafee8d96179e51%3A0x5950b6534f87adb8!2sMarrakech%2C%20Morocco!5e0!3m2!1sen!2sma!4v1647875432123"
-                      width="100%"
-                      height="250"
-                      style={{ border: 0, borderRadius: '8px' }}
-                      allowFullScreen
-                      loading="lazy"
-                      referrerPolicy="no-referrer-when-downgrade"
-                      title="MarrakechDeserts Location"
-                      className="shadow-md"
-                    ></iframe>
+                  {/* Location Map */}
+                  <MapView className="mt-4 shadow-md" height="250px" />
+                  <div className="mt-3 text-sm text-moroccan-blue bg-moroccan-sand/50 px-4 py-2 rounded-lg border border-moroccan-blue/30">
+                    <p className="font-semibold tracking-wide">{t('home.office.hoursTitle')}</p>
+                    <p className="text-moroccan-blue/90">{t('home.office.hours')}</p>
                   </div>
                 </CardContent>
               </Card>
@@ -474,3 +467,4 @@ export default function Home() {
     </div>
   );
 }
+

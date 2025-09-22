@@ -4,6 +4,7 @@ import MongoStore from 'connect-mongo';
 import MemoryStore from 'memorystore';
 import session from 'express-session';
 import { Request, Response, NextFunction } from 'express';
+import { resolveDatabaseUrl, getRedactedDatabaseUrl } from './utils/database-url.js';
 
 const isProduction = process.env.NODE_ENV === 'production';
 const sessionSecret = process.env.SESSION_SECRET;
@@ -170,12 +171,12 @@ export const securityHeaders = helmet({
   contentSecurityPolicy: process.env.NODE_ENV === 'production' ? {
     directives: {
       defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://maps.googleapis.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
-      imgSrc: ["'self'", "data:", "https:", "https://maps.gstatic.com", "https://*.googleapis.com", "https://maps.google.com", "https://*.google.com", "https://images.unsplash.com", "https://*.unsplash.com"],
-      scriptSrc: ["'self'", "'unsafe-eval'", "https://maps.googleapis.com", "https://*.googleapis.com", "https://maps.google.com", "https://*.google.com"],
-      connectSrc: ["'self'", "https://marrakechdunes.onrender.com", "https://maps.googleapis.com", "https://*.googleapis.com", "https://maps.google.com", "https://*.google.com", "https://api.whatsapp.com"],
-      frameSrc: ["'self'", "https://www.google.com", "https://maps.googleapis.com", "https://maps.google.com", "https://*.google.com"],
+      imgSrc: ["'self'", "data:", "https:", "blob:", "https://www.openstreetmap.org", "https://tile.openstreetmap.org", "https://*.tile.openstreetmap.org", "https://images.unsplash.com", "https://*.unsplash.com"],
+      scriptSrc: ["'self'", "'unsafe-eval'"],
+      connectSrc: ["'self'", "https://marrakechdunes.onrender.com", "https://api.whatsapp.com"],
+      frameSrc: ["'self'", "https://www.openstreetmap.org"],
       objectSrc: ["'none'"],
       upgradeInsecureRequests: [],
     },
@@ -209,90 +210,82 @@ export const adminAuditLog = (req: Request, res: Response, next: NextFunction) =
 };
 
 // Create session store with MongoDB fallback to memory store
+const memoryStoreFactory = () => {
+  const MemoryStoreSession = MemoryStore(session);
+  return new MemoryStoreSession({
+    checkPeriod: 24 * 60 * 60 * 1000,
+    ttl: 24 * 60 * 60 * 1000,
+    max: 1000,
+  });
+};
+
 const createSessionStore = () => {
-  const mongoUrl = process.env.DATABASE_URL;
-  
-  if (!mongoUrl) {
-    console.log('⚠️ MongoDB URL not found for sessions. Using memory store for sessions.');
-    console.log('📝 Note: Main database connection may still work via separate connection.');
-    const MemoryStoreSession = MemoryStore(session);
-    return new MemoryStoreSession({
-      checkPeriod: 24 * 60 * 60 * 1000, // 24 hours
-      ttl: 24 * 60 * 60 * 1000, // 24 hours
-      max: 1000 // Maximum number of sessions
-    });
-  }
-  
+  let mongoUrl: string | undefined;
   try {
-    console.log('Using MongoDB store for sessions.');
+    mongoUrl = resolveDatabaseUrl();
+  } catch (error) {
+    console.log('[session] DATABASE_URL not found for sessions. Using in-memory session store.');
+  }
+
+  if (!mongoUrl) {
+    return memoryStoreFactory();
+  }
+
+  try {
+    console.log(`[session] Using MongoDB session store ${getRedactedDatabaseUrl(mongoUrl)}`);
     return MongoStore.create({
-      mongoUrl: mongoUrl,
+      mongoUrl,
       collectionName: 'sessions',
-      ttl: 24 * 60 * 60, // 24 hours in seconds
+      ttl: 24 * 60 * 60,
       autoRemove: 'native',
       crypto: {
-        secret: sessionSecret
-      }
+        secret: sessionSecret,
+      },
     });
   } catch (error) {
-    console.log('MongoDB session store failed, falling back to memory store:', error);
-    const MemoryStoreSession = MemoryStore(session);
-    return new MemoryStoreSession({
-      checkPeriod: 24 * 60 * 60 * 1000, // 24 hours
-      ttl: 24 * 60 * 60 * 1000, // 24 hours
-      max: 1000 // Maximum number of sessions
-    });
+    console.log('[session] MongoDB session store failed, falling back to in-memory store:', error);
+    return memoryStoreFactory();
   }
 };
 
 // Enhanced session store with better error handling
 const createEnhancedSessionStore = () => {
-  const mongoUrl = process.env.DATABASE_URL;
-  
-  if (!mongoUrl) {
-    console.log('⚠️ MongoDB URL not found for admin sessions. Using memory store for admin sessions.');
-    console.log('📝 Note: Main database connection may still work via separate connection.');
-    const MemoryStoreSession = MemoryStore(session);
-    return new MemoryStoreSession({
-      checkPeriod: 24 * 60 * 60 * 1000, // 24 hours
-      ttl: 24 * 60 * 60 * 1000, // 24 hours
-      max: 1000 // Maximum number of sessions
-    });
-  }
-  
+  let mongoUrl: string | undefined;
   try {
-    console.log('✅ Using MongoDB store for sessions.');
+    mongoUrl = resolveDatabaseUrl();
+  } catch (error) {
+    console.log('[session] DATABASE_URL not found for enhanced sessions. Using in-memory session store.');
+  }
+
+  if (!mongoUrl) {
+    return memoryStoreFactory();
+  }
+
+  try {
     const store = MongoStore.create({
-      mongoUrl: mongoUrl,
+      mongoUrl,
       collectionName: 'sessions',
-      ttl: 24 * 60 * 60, // 24 hours in seconds
+      ttl: 24 * 60 * 60,
       autoRemove: 'native',
       crypto: {
-        secret: sessionSecret
+        secret: sessionSecret,
       },
-      // Enhanced options for better reliability
-      touchAfter: 24 * 3600, // Only update session once per day
-      stringify: false, // Use native JSON serialization
+      touchAfter: 24 * 3600,
+      stringify: false,
     });
-    
-    // Test the store
+
     (store as any).on('connect', () => {
-      console.log('✅ MongoDB session store connected successfully');
+      console.log('[session] MongoDB session store connected');
     });
-    
+
     (store as any).on('error', (error: unknown) => {
-      console.error('❌ MongoDB session store error:', error);
+      console.error('[session] MongoDB session store error:', error);
     });
-    
+
     return store;
   } catch (error) {
-    console.log('❌ MongoDB session store failed, falling back to memory store:', error);
-    const MemoryStoreSession = MemoryStore(session);
-    return new MemoryStoreSession({
-      checkPeriod: 24 * 60 * 60 * 1000, // 24 hours
-      ttl: 24 * 60 * 60 * 1000, // 24 hours
-      max: 1000 // Maximum number of sessions
-    });
+    console.log('[session] MongoDB session store failed, falling back to in-memory store:', error);
+    return memoryStoreFactory();
   }
 };
 

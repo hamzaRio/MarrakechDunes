@@ -4,7 +4,7 @@ import '@testing-library/jest-dom'
 Object.defineProperty(import.meta, 'env', {
   value: {
     VITE_API_URL: 'http://localhost:10000',
-    VITE_ASSETS_BASE: 'http://localhost:10000/attached_assets',
+    VITE_ASSETS_BASE: 'http://localhost:10000/assets',
     MODE: 'test',
     DEV: false,
     PROD: false

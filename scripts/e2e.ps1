@@ -55,7 +55,7 @@ $h = TryRest GET "$BackEndUrl/health"
 if(-not $h.ok){ Fail "Backend /health not OK: $($h.err)" "Ensure Render is live & /health reachable" } else { Log "Backend /health OK" }
 
 Section "ASSET DISCOVERY"
-$assetPath = Join-Path -Path "server" -ChildPath "attached_assets"
+$assetPath = Join-Path -Path "server" -ChildPath "assets"
 $SampleAsset = $null
 if (Test-Path $assetPath){
   $file = Get-ChildItem $assetPath -File | Select-Object -First 1
@@ -98,10 +98,10 @@ if($auth.ok){ Log "GET /api/auth/user status: $($auth.resp.StatusCode)" }
 else{ Log "GET /api/auth/user error: $($auth.err)" }
 
 Section "ASSET VIA PROXY"
-$assetUrl = "$FrontEndUrl/attached_assets/$SampleAsset"
+$assetUrl = "$FrontEndUrl/assets/$SampleAsset"
 $a = TryWeb "GET" $assetUrl $webSession
 if(-not $a.ok){
-  Fail "Asset fetch failed: $($a.err)" "Redeploy Vercel & confirm rewrite for /attached_assets; confirm filename exists on Render"
+  Fail "Asset fetch failed: $($a.err)" "Redeploy Vercel & confirm rewrite for /assets; confirm filename exists on Render"
 } else {
   Log "Asset OK: $assetUrl | HTTP $($a.resp.StatusCode)"
 }

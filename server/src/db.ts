@@ -1,79 +1,77 @@
-import mongoose from 'mongoose';
+﻿import mongoose from 'mongoose';
+import { resolveDatabaseUrl, getRedactedDatabaseUrl } from './utils/database-url.js';
 
 export async function connectToDatabase(): Promise<void> {
-  // Check for required environment variable
-  if (!process.env.DATABASE_URL) {
-    console.error('❌ DATABASE_URL environment variable is required but not set.');
-    console.error('Please set DATABASE_URL to your MongoDB connection string.');
+  let databaseUrl: string;
+
+  try {
+    databaseUrl = resolveDatabaseUrl();
+  } catch (error) {
+    console.error('[db] DATABASE_URL environment variable is required but missing or invalid.');
+    if (error instanceof Error) {
+      console.error(`[db] ${error.message}`);
+    }
     process.exit(1);
   }
 
+  const redactedDatabaseUrl = getRedactedDatabaseUrl(databaseUrl);
   const maxRetries = 5;
   const retryDelay = 5000; // 5 seconds
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      // Clear any existing connections
       if (mongoose.connection.readyState !== 0) {
         await mongoose.disconnect();
       }
 
-      console.log(`🔄 Attempting to connect to MongoDB (attempt ${attempt}/${maxRetries})...`);
+      console.log(`[db] Attempting MongoDB connection (${attempt}/${maxRetries}) using ${redactedDatabaseUrl}`);
 
-      // Connect to MongoDB with enhanced options for production reliability
-      await mongoose.connect(process.env.DATABASE_URL, {
+      await mongoose.connect(databaseUrl, {
         maxPoolSize: process.env.NODE_ENV === 'production' ? 20 : 10,
         minPoolSize: process.env.NODE_ENV === 'production' ? 5 : 1,
         serverSelectionTimeoutMS: 10000,
         socketTimeoutMS: 15000,
         connectTimeoutMS: 10000,
-        family: 4, // Force IPv4 resolution
-        // Enhanced options for better reliability
+        family: 4,
         bufferCommands: false,
         autoIndex: true,
         autoCreate: true,
-        // Additional production optimizations
         maxIdleTimeMS: 30000,
         heartbeatFrequencyMS: 10000,
-        // Retry configuration
         retryReads: true,
         retryWrites: true,
-        // Write concern for better durability
         writeConcern: {
           w: 'majority',
           j: true,
-          wtimeout: 10000
-        }
+          wtimeout: 10000,
+        },
       });
 
-      console.log('✅ Connected to MongoDB Atlas');
-      
-      // Handle connection events
+      console.log('[db] Connected to MongoDB');
+
       mongoose.connection.on('error', (error) => {
-        console.error('❌ MongoDB connection error:', error);
-        // Don't exit immediately, let the reconnection logic handle it
+        console.error('[db] MongoDB connection error:', error);
       });
 
       mongoose.connection.on('disconnected', () => {
-        console.log('⚠️ MongoDB disconnected - attempting to reconnect...');
+        console.warn('[db] MongoDB disconnected - retrying');
       });
 
       mongoose.connection.on('reconnected', () => {
-        console.log('✅ MongoDB reconnected');
+        console.log('[db] MongoDB reconnected');
       });
 
-      return; // Success, exit the retry loop
-
+      return;
     } catch (error) {
-      console.error(`❌ MongoDB connection attempt ${attempt} failed:`, error);
-      
+      console.error(`[db] MongoDB connection attempt ${attempt} failed`, error);
+
       if (attempt === maxRetries) {
-        console.error('❌ Failed after all attempts. Exiting...');
+        console.error('[db] Failed to connect to MongoDB after all attempts. Exiting.');
         process.exit(1);
       }
-      
-      console.log(`⏳ Retrying in ${retryDelay/1000} seconds...`);
-      await new Promise(resolve => setTimeout(resolve, retryDelay));
+
+      console.log(`[db] Retrying in ${retryDelay / 1000} seconds...`);
+      await new Promise((resolve) => setTimeout(resolve, retryDelay));
     }
   }
 }
@@ -81,8 +79,8 @@ export async function connectToDatabase(): Promise<void> {
 export async function disconnectFromDatabase(): Promise<void> {
   try {
     await mongoose.disconnect();
-    console.log('✅ Disconnected from MongoDB Atlas');
+    console.log('[db] Disconnected from MongoDB');
   } catch (error) {
-    console.error('❌ Error disconnecting from MongoDB:', error);
+    console.error('[db] Error disconnecting from MongoDB:', error);
   }
 }

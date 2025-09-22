@@ -13,6 +13,7 @@ const Home = lazy(() => import("@/pages/home"));
 const Activities = lazy(() => import("@/pages/activities"));
 const Booking = lazy(() => import("@/pages/booking-fixed"));
 const Reviews = lazy(() => import("@/pages/reviews"));
+const Contact = lazy(() => import("@/pages/contact"));
 const AdminLogin = lazy(() => import("@/pages/admin/login"));
 const AdminDashboard = lazy(() => import("@/pages/admin/dashboard"));
 const CEODashboard = lazy(() => import("@/pages/admin/ceo-dashboard"));
@@ -60,6 +61,7 @@ function Router() {
       <Route path="/" component={withSecurity(Home, PUBLIC_ROUTE)} />
       <Route path="/activities" component={withSecurity(Activities, PUBLIC_ROUTE)} />
       <Route path="/reviews" component={withSecurity(Reviews, PUBLIC_ROUTE)} />
+      <Route path="/contact" component={withSecurity(Contact, PUBLIC_ROUTE)} />
       <Route path="/booking" component={withSecurity(Booking, BOOKING_ROUTE)} />
       <Route path="/admin/login" component={withSecurity(AdminLogin, ADMIN_ROUTE)} />
       <Route path="/admin/ceo" component={withSecurity(CEODashboard, ADMIN_ROUTE)} />

@@ -327,7 +327,7 @@ try {
 
 # Test 8: Asset Fetch
 Write-Host "`nASSET SERVING TESTS" -ForegroundColor Yellow
-Test-Endpoint -Method "GET" -Url "$FrontendUrl/attached_assets/agafaypack1_1751128022717.jpeg" -Description "Asset Fetch via Frontend Proxy"
+Test-Endpoint -Method "GET" -Url "$FrontendUrl/assets/agafaypack1_1751128022717.jpeg" -Description "Asset Fetch via Frontend Proxy"
 
 # Final Summary
 Write-Host "`nTEST SUMMARY" -ForegroundColor Magenta
@@ -349,7 +349,7 @@ if ($TestResults.Failed -gt 0) {
     Write-Host "  • Verify Vercel deployment: $FrontendUrl" -ForegroundColor Gray
     Write-Host "  • Check Vercel rewrites in client/vercel.json" -ForegroundColor Gray
     Write-Host "  • Ensure CORS allows *.vercel.app origins" -ForegroundColor Gray
-    Write-Host "  • Verify asset files exist in server/attached_assets/" -ForegroundColor Gray
+    Write-Host "  • Verify asset files exist in server/assets/" -ForegroundColor Gray
 } else {
     Write-Host "`nALL TESTS PASSED!" -ForegroundColor Green
     Write-Host "Your deployment is ready for production!" -ForegroundColor Green

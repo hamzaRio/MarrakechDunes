@@ -1,12 +1,12 @@
 {
   "rewrites": [
     { "source": "/api/:path*", "destination": "https://marrakechdunes.onrender.com/api/:path*" },
-    { "source": "/attached_assets/:path*", "destination": "https://marrakechdunes.onrender.com/attached_assets/:path*" },
+    { "source": "/assets/:path*", "destination": "https://marrakechdunes.onrender.com/assets/:path*" },
     { "source": "/(.*)", "destination": "/" }
   ],
   "headers": [
     {
-      "source": "/attached_assets/(.*)",
+      "source": "/assets/(.*)",
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=604800, immutable" },
         { "key": "Access-Control-Allow-Origin", "value": "*" },

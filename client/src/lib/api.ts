@@ -49,5 +49,14 @@ export async function apiFetch<T = any>(
   return res.data;
 }
 
-export async function sessionInit() { try { await api.get('/session/init'); } catch {} }
+export async function sessionInit() {
+  try {
+    const { data } = await api.get<{ csrfToken?: string }>('/session/init');
+    if (data?.csrfToken) {
+      api.defaults.headers.common[CSRF_HEADER] = data.csrfToken;
+    }
+  } catch (error) {
+    console.warn('[API] Failed to initialize session', error);
+  }
+}
 export async function logout() { try { await api.post('/auth/logout'); } catch (e) { console.error('Logout error:', e); } }
