@@ -10,7 +10,8 @@ const router = Router();
 
 const respond = (_req: Request, res: Response) => res.sendStatus(204);
 
-router.get("/init", respond);
+// Remove GET /init to prevent shadowing of /api/session/init handler
+// Keep POST /init if needed by other flows
 router.post("/init", respond);
 router.get("/test", (req, res) => res.json({ ok: true }));
 

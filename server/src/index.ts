@@ -335,8 +335,20 @@ app.get("/health", (_req, res) => res.status(200).send("OK"));
 app.get("/api/health", (_req, res) => res.status(200).send("OK"));
 
 // CSRF session init route (must be defined before session router)
-app.get('/api/session/init', (req: Request, res: Response) => {
-  const token = (req as any).csrfToken();
+// High-priority CSRF init route: always 200 JSON + cookie, cannot be shadowed
+const csrfInitRouteProtection = csrf({
+  cookie: {
+    key: csrfCookieName,
+    httpOnly: false,
+    secure: isProduction,
+    sameSite: isProduction ? 'none' : 'lax',
+    path: '/',
+  },
+});
+
+app.get('/api/session/init', csrfInitRouteProtection, (req: Request, res: Response) => {
+  const token = (req as any).csrfToken?.() ?? '';
+  res.setHeader('X-Session-Init', 'new-handler');
   res
     .cookie(csrfCookieName, token, csrfCookieOptions)
     .status(200)
