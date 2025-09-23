@@ -281,24 +281,32 @@ const configuredOrigins = (process.env.CLIENT_URL || '')
   .map(s => s.trim())
   .filter(Boolean);
 
-const explicitOrigins = [
+// Required allowlist entries
+const baseAllowedOrigins: (string | RegExp)[] = [
   "https://marrakech-dunes.vercel.app",
+  /^https:\/\/marrakech-dunes-[^.]+\.vercel\.app$/i,
   "http://localhost:5173",
 ];
 
-const wildcardOriginPatterns = [
-  /^https:\/\/marrakech-dunes-[^.]+\.vercel\.app$/i,
+// Merge configured explicit origins while preserving types
+const allowedOriginsList: (string | RegExp)[] = [
+  ...baseAllowedOrigins,
+  ...configuredOrigins,
 ];
 
-const allowedOrigins = Array.from(new Set([...explicitOrigins, ...configuredOrigins]));
+// Back-compat alias for logging and joins
+const allowedOrigins = allowedOriginsList;
+
+// For logging clarity
 const wildcardOriginsForLog = ["https://marrakech-dunes-*.vercel.app"];
 
 app.use(cors({
   origin: (origin, cb) => {
     if (!origin) return cb(null, true); // allow server-side / health checks
-    if (allowedOrigins.includes(origin) || wildcardOriginPatterns.some(pattern => pattern.test(origin))) {
-      return cb(null, true);
-    }
+    const isAllowed = allowedOriginsList.some(o =>
+      o instanceof RegExp ? o.test(origin) : o === origin
+    );
+    if (isAllowed) return cb(null, true);
     return cb(new Error(`CORS blocked: ${origin}`));
   },
   credentials: true,

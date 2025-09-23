@@ -9,7 +9,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { api, sessionInit } from "@/lib/api";
+import { api } from "@/lib/api";
 import { useLocation } from "wouter";
 import { useLanguage } from "@/hooks/use-language";
 
@@ -34,22 +34,18 @@ export default function AdminLogin() {
     },
   });
 
+// Always initialize CSRF and pass header explicitly
+const initSession = async (): Promise<string> => {
+  const { data } = await api.get<{ csrfToken: string }>("/session/init", { withCredentials: true });
+  return data?.csrfToken ?? "";
+};
+
 const mutation = useMutation({
   mutationFn: async (data: LoginFormData) => {
-    // Ensure CSRF token is initialized before attempting login
-    await sessionInit();
-
-    // Read CSRF token from axios defaults or cookie as fallback
-    const defaults: any = api.defaults.headers.common || {};
-    let csrf: string | undefined = defaults['X-CSRF-Token'] as string | undefined;
-    if (!csrf && typeof document !== 'undefined') {
-      const match = document.cookie.split('; ').find(c => c.startsWith('marrakech.csrf='));
-      csrf = match ? decodeURIComponent(match.split('=')[1]) : undefined;
-    }
-
+    const csrf = await initSession();
     const res = await api.post('/auth/login', data, {
       withCredentials: true,
-      headers: csrf ? { 'X-CSRF-Token': csrf } : undefined,
+      headers: { 'X-CSRF-Token': csrf },
     });
     return res.data;
   },
