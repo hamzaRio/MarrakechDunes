@@ -7,7 +7,8 @@ export const ASSETS_BASE = (() => {
     return '';
   }
   if (raw.startsWith('http')) return raw.replace(/\/$/, '');
-  return `${window.location.origin}/${raw.replace(/^\/+/, '').replace(/\/$/, '')}`;
+  // Do not depend on window.location; use relative root-based prefix
+  return `/${raw.replace(/^\/+/, '').replace(/\/$/, '')}`;
 })();
 
 // URL-safe join (spaces etc.) - always prefix with VITE_ASSETS_BASE

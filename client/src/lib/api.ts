@@ -1,34 +1,17 @@
 import axios from 'axios';
 
-function normalizeApiUrl(raw: string | undefined) {
-  let base = (raw ?? '').trim();
+// Frontend API base URL resolution: use VITE_API_URL only
+const API_URL = import.meta.env.VITE_API_URL as string | undefined;
 
-  // If missing, try window origin (works on Render where client+server share host)
-  if (!base && typeof window !== 'undefined') {
-    console.warn('[API Config] VITE_API_URL is missing, falling back to window.origin');
-    base = window.location.origin;
+if (!API_URL) {
+  if (import.meta.env.MODE === 'production') {
+    throw new Error('VITE_API_URL is not defined in production build');
+  } else {
+    console.warn('⚠️ VITE_API_URL not defined, defaulting to localhost:5000');
   }
-
-  if (!base) {
-    if (import.meta.env.DEV) {
-      base = 'http://localhost:5173';
-      console.warn('[API Config] Falling back to dev API URL:', base);
-    } else {
-      throw new Error('VITE_API_URL must be defined in production');
-    }
-  }
-
-  // Normalize URL - ensure /api is appended once (no apihttps://...)
-  base = (base || '').replace(/\/$/, '');
-  if (!base.endsWith('/api')) base += '/api';
-  
-  // Log final resolved URL once for debugging
-  console.log('[API Config] Final resolved API URL:', base);
-  
-  return base;
 }
 
-export const baseURL = normalizeApiUrl(import.meta.env.VITE_API_URL);
+export const baseURL = (API_URL || 'http://localhost:5000/api').replace(/\/$/, '');
 
 const CSRF_COOKIE = "marrakech.csrf";
 const CSRF_HEADER = "X-CSRF-Token";

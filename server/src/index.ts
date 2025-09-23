@@ -285,6 +285,7 @@ const configuredOrigins = (process.env.CLIENT_URL || '')
 const baseAllowedOrigins: (string | RegExp)[] = [
   "https://marrakech-dunes.vercel.app",
   /^https:\/\/marrakech-dunes-[^.]+\.vercel\.app$/i,
+  /\.vercel\.app$/i,
   "http://localhost:5173",
 ];
 

@@ -1,5 +1,5 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
-import { api } from "./api";
+import { api, baseURL } from "./api";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
@@ -43,11 +43,16 @@ export async function apiRequest(
   url: string,
   options?: { method?: string; body?: string; headers?: Record<string, string> }
 ): Promise<Response> {
-  // If URL already starts with /api, use it as-is (for Vercel rewrites)
-  // If URL doesn't start with /api, prepend it
-  const fullUrl = url.startsWith('http') ? url : 
-                  url.startsWith('/api') ? url : 
-                  `/api${url}`;
+  // Always route through configured API base URL
+  let fullUrl: string;
+  if (url.startsWith('http')) {
+    fullUrl = url;
+  } else if (url.startsWith('/api')) {
+    // baseURL already includes /api suffix; remove leading /api from path to avoid duplication
+    fullUrl = `${baseURL}${url.replace(/^\/api/, '')}`;
+  } else {
+    fullUrl = `${baseURL}${url.startsWith('/') ? '' : '/'}${url}`;
+  }
   const method = options?.method || 'GET';
   const body = options?.body;
   const headers = options?.headers || (body ? { "Content-Type": "application/json" } : {});
