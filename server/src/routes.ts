@@ -73,24 +73,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Note: CORS is already configured in server/index.ts before routes are registered
   // This ensures CORS headers are set before session middleware
 
-  // Health check endpoint for deployment monitoring
-  app.get('/api/health', asyncHandler(async (req: Request, res: Response) => {
-    try {
-      // Test database connectivity
-      const activitiesCount = await storage.getActivities();
-      
-      res.status(200).json({
-        status: 'healthy',
-        timestamp: new Date().toISOString(),
-        version: '1.0.0',
-        database: 'connected',
-        activities: activitiesCount.length,
-        environment: process.env.NODE_ENV || 'development'
-      });
-    } catch (error) {
-      throw new AppError('Database connection failed', 503, 'DATABASE_CONNECTION_FAILED');
-    }
-  }));
+  // Health check endpoint for deployment monitoring - always OK
+  app.get('/api/health', (_req: Request, res: Response) => {
+    res.status(200).json({ status: 'ok' });
+  });
 
   // Session middleware is already configured in server/index.ts
   

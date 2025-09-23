@@ -276,39 +276,28 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 app.use(cookieParser());
 
 // CORS configuration - must be defined BEFORE routes
-const configuredOrigins = (process.env.CLIENT_URL || '')
-  .split(',')
-  .map(s => s.trim())
-  .filter(Boolean);
-
-// Required allowlist entries
-const baseAllowedOrigins: (string | RegExp)[] = [
-  "https://marrakech-dunes.vercel.app",
-  /^https:\/\/marrakech-dunes-[^.]+\.vercel\.app$/i,
-  /\.vercel\.app$/i,
-  "http://localhost:5173",
-];
-
-// Merge configured explicit origins while preserving types
-const allowedOriginsList: (string | RegExp)[] = [
-  ...baseAllowedOrigins,
-  ...configuredOrigins,
-];
-
-// Back-compat alias for logging and joins
-const allowedOrigins = allowedOriginsList;
-
-// For logging clarity
-const wildcardOriginsForLog = ["https://*.vercel.app"];
-
 app.use(cors({
-  origin: (origin, cb) => {
-    if (!origin) return cb(null, true); // allow server-side / health checks
-    const isAllowed = allowedOriginsList.some(o =>
-      o instanceof RegExp ? o.test(origin) : o === origin
-    );
-    if (isAllowed) return cb(null, true);
-    return cb(new Error(`CORS blocked: ${origin}`));
+  origin: (origin, callback) => {
+    const allowedFromEnv = (process.env.CLIENT_URL || '')
+      .split(',')
+      .map(s => s.trim())
+      .filter(Boolean);
+
+    // Defaults per requirement
+    const defaults = [
+      'http://localhost:5173',
+      'https://marrakech-dunes.vercel.app',
+    ];
+
+    const allowed = [...defaults, ...allowedFromEnv];
+
+    const isVercel = !!(origin && /\.vercel\.app$/i.test(origin));
+    const isRenderPreview = !!(origin && (/^https:\/\/.*\.onrender\.com$/i.test(origin) || origin === 'https://marrakechdunes.onrender.com'));
+
+    if (!origin || allowed.includes(origin) || isVercel || isRenderPreview) {
+      return callback(null, true);
+    }
+    return callback(new Error(`CORS blocked: ${origin}`));
   },
   credentials: true,
   methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
