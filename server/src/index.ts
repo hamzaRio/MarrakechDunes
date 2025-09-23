@@ -276,27 +276,23 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 app.use(cookieParser());
 
 // CORS configuration - must be defined BEFORE routes
-app.use(cors({
-  origin: (origin, callback) => {
-    const allowedFromEnv = (process.env.CLIENT_URL || '')
-      .split(',')
-      .map(s => s.trim())
-      .filter(Boolean);
-
-    // Defaults per requirement
-    const defaults = [
+const allowedOriginsEnv = (process.env.CLIENT_URL || '')
+  .split(',')
+  .map(s => s.trim())
+  .filter(Boolean);
+const allowedOrigins = allowedOriginsEnv.length
+  ? allowedOriginsEnv
+  : [
       'http://localhost:5173',
       'https://marrakech-dunes.vercel.app',
     ];
+const wildcardOriginsForLog = [/\.vercel\.app$/];
 
-    const allowed = [...defaults, ...allowedFromEnv];
-
-    const isVercel = !!(origin && /\.vercel\.app$/i.test(origin));
-    const isRenderPreview = !!(origin && (/^https:\/\/.*\.onrender\.com$/i.test(origin) || origin === 'https://marrakechdunes.onrender.com'));
-
-    if (!origin || allowed.includes(origin) || isVercel || isRenderPreview) {
-      return callback(null, true);
-    }
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    if (/\.vercel\.app$/i.test(origin)) return callback(null, true);
     return callback(new Error(`CORS blocked: ${origin}`));
   },
   credentials: true,
