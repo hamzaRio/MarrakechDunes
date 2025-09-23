@@ -284,7 +284,7 @@ const configuredOrigins = (process.env.CLIENT_URL || '')
 // Required allowlist entries
 const baseAllowedOrigins: (string | RegExp)[] = [
   "https://marrakech-dunes.vercel.app",
-  /\.vercel\.app$/,
+  /^https:\/\/marrakech-dunes-[^.]+\.vercel\.app$/i,
   "http://localhost:5173",
 ];
 
@@ -345,7 +345,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 // Health
 app.get("/health", (_req, res) => res.status(200).send("OK"));
 // Render expects /api/health
-app.get("/api/health", (_req, res) => res.status(200).send("OK"));
+app.get("/api/health", (_req, res) => res.status(200).json({ status: "ok" }));
 
 // CSRF session init route (must be defined before session router)
 // High-priority CSRF init route: always 200 JSON + cookie, cannot be shadowed

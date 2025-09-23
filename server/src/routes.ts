@@ -235,6 +235,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // Only log in production to reduce console noise
     if (process.env.NODE_ENV === 'production') {
       console.log("Security event:", {
+        origin: req.headers.origin || null,
+        ip: req.ip,
         event: req.body?.event,
         timestamp: req.body?.timestamp,
         url: req.body?.url,
