@@ -284,7 +284,7 @@ const configuredOrigins = (process.env.CLIENT_URL || '')
 // Required allowlist entries
 const baseAllowedOrigins: (string | RegExp)[] = [
   "https://marrakech-dunes.vercel.app",
-  /^https:\/\/marrakech-dunes-[^.]+\.vercel\.app$/i,
+  /\.vercel\.app$/,
   "http://localhost:5173",
 ];
 
@@ -298,7 +298,7 @@ const allowedOriginsList: (string | RegExp)[] = [
 const allowedOrigins = allowedOriginsList;
 
 // For logging clarity
-const wildcardOriginsForLog = ["https://marrakech-dunes-*.vercel.app"];
+const wildcardOriginsForLog = ["https://*.vercel.app"];
 
 app.use(cors({
   origin: (origin, cb) => {
