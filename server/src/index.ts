@@ -3,7 +3,7 @@ import path, { join } from "path";
 import fs from "fs";
 import dotenvFlow from 'dotenv-flow';
 import { validateProductionEnvironment, getSecurityRecommendations } from './production-validator.js';
-import { serverEnv } from './config/env.js';
+import { config as serverEnv } from './env.js';
 
 // Get the project root directory (one level up from server/src)
 const __filename = fileURLToPath(import.meta.url);
@@ -37,8 +37,7 @@ const criticalEnvVars = [
   'SUPERADMIN_PASSWORD',
   'SESSION_SECRET',
   'JWT_SECRET',
-  'CLIENT_URL',
-  'WHATSAPP_RECEIVERS'
+  'CLIENT_URL'
 ];
 
 for (const envVar of criticalEnvVars) {

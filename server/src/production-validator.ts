@@ -8,10 +8,7 @@ export function validateProductionEnvironment() {
     'SUPERADMIN_PASSWORD',
     'CLIENT_URL',
     'NODE_ENV',
-    'PORT',
-    'WHATSAPP_RECEIVERS',
-    'MAP_PROVIDER',
-    'LEAFLET_ENABLED'
+    'PORT'
   ];
 
   const missingVars: string[] = [];
