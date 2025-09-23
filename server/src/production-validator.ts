@@ -3,10 +3,15 @@ export function validateProductionEnvironment() {
   const requiredEnvVars = [
     'DATABASE_URL',
     'SESSION_SECRET',
+    'JWT_SECRET',
     'ADMIN_PASSWORD',
     'SUPERADMIN_PASSWORD',
     'CLIENT_URL',
-    'VITE_API_URL'
+    'NODE_ENV',
+    'PORT',
+    'WHATSAPP_RECEIVERS',
+    'MAP_PROVIDER',
+    'LEAFLET_ENABLED'
   ];
 
   const missingVars: string[] = [];
