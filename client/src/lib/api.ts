@@ -9,10 +9,13 @@ function normalizeApiUrl(raw: string | undefined) {
     base = window.location.origin;
   }
 
-  // Final safety net: default to Render backend in production if still missing
-  if (!base && import.meta.env.PROD) {
-    base = 'https://marrakechdunes.onrender.com';
-    console.warn('[API Config] Defaulting API URL to Render backend:', base);
+  if (!base) {
+    if (import.meta.env.DEV) {
+      base = 'http://localhost:5173';
+      console.warn('[API Config] Falling back to dev API URL:', base);
+    } else {
+      throw new Error('VITE_API_URL must be defined in production');
+    }
   }
 
   // Normalize URL - ensure /api is appended once (no apihttps://...)
