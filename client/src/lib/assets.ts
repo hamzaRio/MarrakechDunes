@@ -1,20 +1,14 @@
-// Guard against missing VITE_ASSETS_BASE, fallback to empty string to avoid broken <img> paths
-export const ASSETS_BASE = (() => {
-  const raw = (import.meta.env.VITE_ASSETS_BASE || '').trim();
-  // If missing, return empty string to avoid broken paths
-  if (!raw) {
-    console.warn('[Assets] VITE_ASSETS_BASE is missing, using fallback');
-    return '';
-  }
-  if (raw.startsWith('http')) return raw.replace(/\/$/, '');
-  // Do not depend on window.location; use relative root-based prefix
-  return `/${raw.replace(/^\/+/, '').replace(/\/$/, '')}`;
-})();
+const RAW_API = import.meta.env.VITE_API_URL || "";
+const BACKEND_HOST = RAW_API.replace(/\/api\/?$/, "");
+const raw = import.meta.env.VITE_ASSETS_BASE || "";
 
-// URL-safe join (spaces etc.) - always prefix with VITE_ASSETS_BASE
+export const ASSETS_BASE = () => {
+  if (raw.startsWith("http")) return raw;
+  return `${BACKEND_HOST}/assets`;
+};
+
 export function assetUrl(path: string) {
-  if (!path) return '';
-  const clean = path.replace(/^\/+/, '');
-  if (!ASSETS_BASE) return clean; // Fallback to just the path if no base
-  return encodeURI(`${ASSETS_BASE}/${clean}`);
+  if (!path) return "";
+  const clean = path.replace(/^\/+/, "").replace(/^attached_assets\//, "");
+  return `${ASSETS_BASE()}/${clean}`;
 }

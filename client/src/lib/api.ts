@@ -1,17 +1,13 @@
 import axios from 'axios';
 
-// Frontend API base URL resolution: use VITE_API_URL only
 const API_URL = import.meta.env.VITE_API_URL as string | undefined;
-
 if (!API_URL) {
-  if (import.meta.env.MODE === 'production') {
-    throw new Error('VITE_API_URL is not defined in production build');
-  } else {
-    console.warn('⚠️ VITE_API_URL not defined, defaulting to localhost:5000');
+  if (import.meta.env.MODE === "production") {
+    throw new Error("VITE_API_URL is not defined in production build");
   }
+  console.warn("VITE_API_URL missing, defaulting to http://localhost:5000/api");
 }
-
-export const baseURL = (API_URL || 'http://localhost:5000/api').replace(/\/$/, '');
+export const baseURL = API_URL || "http://localhost:5000/api";
 
 const CSRF_COOKIE = "marrakech.csrf";
 const CSRF_HEADER = "X-CSRF-Token";

@@ -305,8 +305,12 @@ app.use(cors({
 // Session middleware
 app.use(session(sessionSecurity));
 
-// CSRF protection with double-submit cookie
-app.use(csrfProtection);
+// CSRF protection with double-submit cookie - exclude security-events
+const csrfRequired = csrfProtection;
+app.use((req: Request, res: Response, next: NextFunction) => {
+  if (req.path === "/api/security-events") return next();
+  return csrfRequired(req, res, next);
+});
 
 app.use((req: Request, res: Response, next: NextFunction) => {
   const csrfTokenFactory = (req as any).csrfToken;
