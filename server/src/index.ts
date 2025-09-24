@@ -305,12 +305,19 @@ app.use(cors({
 // Session middleware
 app.use(session(sessionSecurity));
 
-// CSRF protection with double-submit cookie - exclude security-events
+// CSRF protection with double-submit cookie
+// Exclude /api/security-events and /api/auth/* (login, register) from CSRF
 const csrfRequired = csrfProtection;
 app.use((req: Request, res: Response, next: NextFunction) => {
-  if (req.path === "/api/security-events") return next();
+  if (
+    req.path === "/api/security-events" ||
+    req.path.startsWith("/api/auth")
+  ) {
+    return next();
+  }
   return csrfRequired(req, res, next);
 });
+
 
 app.use((req: Request, res: Response, next: NextFunction) => {
   const csrfTokenFactory = (req as any).csrfToken;
