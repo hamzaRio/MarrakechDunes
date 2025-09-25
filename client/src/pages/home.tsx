@@ -34,12 +34,12 @@ export default function Home() {
           <div className="max-w-4xl">
             <h1 className="font-playfair text-5xl md:text-6xl lg:text-7xl font-black mb-6 leading-tight text-white" 
                 style={{ textShadow: '3px 3px 6px rgba(0,0,0,0.8), 1px 1px 3px rgba(0,0,0,0.6)' }}>
-              {t('heroTitle')}
-              <span className="text-moroccan-gold font-black"> {t('heroTitleHighlight')}</span>
+              Authentic Moroccan Desert
+              <span className="text-moroccan-gold font-black"> Adventures</span>
             </h1>
             <p className="text-xl md:text-2xl mb-8 text-white max-w-2xl mx-auto font-semibold" 
                style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.8), 1px 1px 2px rgba(0,0,0,0.6)' }}>
-              {t('heroSubtitle')}
+              Book unforgettable experiences across Morocco's most spectacular destinations
             </p>
             <div className="flex justify-center">
               <Button 
@@ -48,7 +48,7 @@ export default function Home() {
                 onClick={() => window.location.href = '/booking'}
               >
                 <Calendar className="w-5 h-5 mr-2" />
-                {t('bookAdventure')}
+                Book Your Adventure
               </Button>
             </div>
           </div>
@@ -65,10 +65,10 @@ export default function Home() {
           <div className="bg-moroccan-sand/30 rounded-3xl p-8 md:p-12">
             <div className="max-w-4xl mx-auto text-center">
               <h3 className="font-playfair text-3xl md:text-4xl font-black text-gray-900 mb-6">
-                {t('agencyIntroTitle')}
+                Your Trusted Morocco Travel Partner
               </h3>
               <p className="text-lg text-gray-800 font-medium leading-relaxed mb-8">
-                {t('agencyDescription')}
+                Experience the magic of Morocco with our carefully curated adventures
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Button 
@@ -76,7 +76,7 @@ export default function Home() {
                   className="bg-moroccan-red hover:bg-red-600 text-white px-8 py-3"
                   onClick={() => window.location.href = '/activities'}
                 >
-                  {t('exploreActivities')}
+                  Explore Activities
                 </Button>
                 <Button 
                   size="lg"
@@ -84,7 +84,7 @@ export default function Home() {
                   className="border-moroccan-blue text-moroccan-blue hover:bg-moroccan-blue hover:text-white px-8 py-3"
                   onClick={() => window.location.href = '/booking'}
                 >
-                  {t('bookNow')}
+                  Book Now
                 </Button>
               </div>
             </div>
@@ -98,18 +98,18 @@ export default function Home() {
           <div className="max-w-4xl mx-auto">
             <div>
               <h2 className="font-playfair text-4xl font-black text-gray-900 mb-6">
-                {t('aboutTitle')}
+                About MarrakechDunes
               </h2>
               <p className="text-lg text-gray-800 font-medium mb-6">
-                {t('aboutText')}
+                We are passionate about sharing Morocco's incredible beauty and rich culture with travelers from around the world.
               </p>
               <Card className="mb-6 shadow-lg">
                 <CardContent className="p-6">
                   <div className="flex items-start mb-4">
                     <MapPin className="text-moroccan-red text-xl mr-4 mt-1" />
                     <div>
-                      <h4 className="font-bold text-gray-900 mb-2">{t('visitOffice')}</h4>
-                      <p className="text-gray-800 font-medium mb-4">{t('home.office.address')}</p>
+                      <h4 className="font-bold text-gray-900 mb-2">Visit Our Office</h4>
+                      <p className="text-gray-800 font-medium mb-4">54 Riad Zitoun Lakdim, Marrakech 40000</p>
                     </div>
                   </div>
                   
