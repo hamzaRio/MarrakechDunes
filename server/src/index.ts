@@ -276,29 +276,23 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 app.use(cookieParser());
 
 // CORS configuration - must be defined BEFORE routes
-const allowedOriginsEnv = (process.env.CLIENT_URL || '')
-  .split(',')
-  .map(s => s.trim())
-  .filter(Boolean);
-const allowedOrigins = allowedOriginsEnv.length
-  ? allowedOriginsEnv
-  : [
-      'http://localhost:5173',
-      'https://marrakech-dunes.vercel.app',
-    ];
-const wildcardOriginsForLog = [/\.vercel\.app$/];
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://marrakech-dunes.vercel.app",
+  /\.vercel\.app$/ // allow all preview deployments
+];
 
 app.use(cors({
   origin: (origin, callback) => {
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin)) return callback(null, true);
-    if (/\.vercel\.app$/i.test(origin)) return callback(null, true);
-    return callback(new Error(`CORS blocked: ${origin}`));
+    if (!origin || allowedOrigins.some(o =>
+      o instanceof RegExp ? o.test(origin) : o === origin
+    )) {
+      callback(null, true);
+    } else {
+      callback(new Error("CORS not allowed"));
+    }
   },
-  credentials: true,
-  methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "X-CSRF-Token"],
-  optionsSuccessStatus: 204,
+  credentials: true
 }));
 
 // Session middleware

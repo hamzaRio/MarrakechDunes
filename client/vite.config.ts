@@ -18,7 +18,7 @@ export default defineConfig(({ mode }) => {
       port: 5173,
       proxy: {
         '/api': {
-          target: env.VITE_API_URL || 'http://localhost:10000',
+          target: 'http://localhost:10000',
           changeOrigin: true,
           secure: false,
         },
@@ -70,6 +70,8 @@ export default defineConfig(({ mode }) => {
     },
     define: {
       'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development'),
+      'import.meta.env.VITE_API_URL': JSON.stringify(env.VITE_API_URL || ''),
+      'import.meta.env.VITE_ASSETS_BASE': JSON.stringify(env.VITE_ASSETS_BASE || ''),
       'import.meta.env.MAP_PROVIDER': JSON.stringify(env.MAP_PROVIDER || ''),
       'import.meta.env.LEAFLET_ENABLED': JSON.stringify(env.LEAFLET_ENABLED || ''),
       'import.meta.env.VITE_MAP_PROVIDER': JSON.stringify(env.VITE_MAP_PROVIDER || env.MAP_PROVIDER || ''),
