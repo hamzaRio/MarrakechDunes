@@ -38,17 +38,14 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     return <T = string>(key: string, options?: Record<string, unknown>): T => {
       const translation = i18n.t(key, options);
       
-      // If translation is missing (returns the key), provide a fallback
+      // If translation is missing (returns the key), log for debugging and return key
       if (translation === key && (!options || !Object.prototype.hasOwnProperty.call(options, "defaultValue"))) {
-        // Convert key to readable text as fallback
-        const fallbackText = key
-          .split('.')
-          .pop() // Get the last part
-          ?.replace(/([A-Z])/g, ' $1') // Add space before capital letters
-          .replace(/^./, str => str.toUpperCase()) // Capitalize first letter
-          .trim() || key;
+        if (import.meta.env.MODE === 'development') {
+          console.warn(`Missing translation for key: ${key}`);
+        }
         
-        return fallbackText as unknown as T;
+        // Return the key itself to make missing translations obvious
+        return key as unknown as T;
       }
       
       return translation as T;

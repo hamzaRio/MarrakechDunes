@@ -42,4 +42,26 @@ export async function sessionInit() {
     console.warn('[API] Failed to initialize session', error);
   }
 }
-export async function logout() { try { await api.post('/auth/logout'); } catch (e) { console.error('Logout error:', e); } }
+export async function logout() {
+  try {
+    await api.post('/auth/logout');
+    
+    // Enhanced session cleanup
+    localStorage.clear();
+    sessionStorage.clear();
+    
+    // Clear all cookies by setting them to expire
+    document.cookie.split(";").forEach(function(c) { 
+      document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+    });
+    
+    // Force redirect to login page
+    window.location.href = '/admin/login';
+  } catch (e) {
+    console.error('Logout error:', e);
+    // Force logout even if server request fails
+    localStorage.clear();
+    sessionStorage.clear();
+    window.location.href = '/admin/login';
+  }
+}

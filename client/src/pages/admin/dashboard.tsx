@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ import ActivityManagementModal from "@/components/activity-management-modal";
 import CashAnalyticsDashboard from "@/components/cash-analytics-dashboard";
 import CashBookingReminders from "@/components/cash-booking-reminders";
 import { apiFetch } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
 
 // Removed useState import as no longer needed
 import type { BookingType, ActivityType, AuditLogType } from "marrakechdunes-shared/schema";
@@ -28,6 +29,7 @@ function AdminDashboardContent() {
   const { user } = useAuth();
   const { t } = useLanguage();
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   
   const { data: bookings = [] } = useQuery<BookingWithActivity[]>({
     queryKey: ["/admin/bookings"],
@@ -62,6 +64,36 @@ function AdminDashboardContent() {
       queryClient.invalidateQueries({ queryKey: ["/admin/bookings"] });
     } catch (error) {
       console.error('Failed to update booking status:', error);
+    }
+  };
+
+  // Delete booking mutation
+  const deleteBookingMutation = useMutation({
+    mutationFn: async (bookingId: string) => {
+      const res = await apiFetch(`/admin/bookings/${bookingId}`, {
+        method: "DELETE"
+      });
+      return res;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/admin/bookings"] });
+      toast({
+        title: "Booking Deleted",
+        description: "Booking has been deleted successfully.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Deletion Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleDeleteBooking = (bookingId: string, customerName: string) => {
+    if (confirm(`Are you sure you want to delete the booking for ${customerName}? This action cannot be undone.`)) {
+      deleteBookingMutation.mutate(bookingId);
     }
   };
 
@@ -319,6 +351,14 @@ Average per booking: ${activityBookings.length ? Math.round(totalRevenue / activ
                             onClick={() => handleSendWhatsApp(booking)}
                           >
                             Send WhatsApp
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => handleDeleteBooking(booking._id, booking.customerName)}
+                            className="ml-2"
+                          >
+                            Delete
                           </Button>
                         </div>
                       </div>
