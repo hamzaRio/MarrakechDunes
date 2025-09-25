@@ -3,9 +3,15 @@ const BACKEND_HOST = RAW_API.replace(/\/api\/?$/, "");
 const raw = import.meta.env.VITE_ASSETS_BASE || "";
 
 export const ASSETS_BASE = () => {
-  if (raw.startsWith("http")) return raw;
-  // Point to the correct backend assets path where images are actually stored
-  return `${BACKEND_HOST}/attached_assets`;
+  // Always use full backend URL for assets
+  // Images are stored on the backend (Render), not frontend (Vercel)
+  if (raw.startsWith("http")) {
+    return raw;
+  }
+  
+  // Even if VITE_ASSETS_BASE is just "/assets", always point to backend
+  const backendHost = RAW_API.replace(/\/api\/?$/, "");
+  return `${backendHost}/attached_assets`;
 };
 
 export function assetUrl(path: string) {
