@@ -473,7 +473,7 @@ app.use((req, res, next) => {
     console.log(`[routers] /api/session mounted`);
     log(`🚀 Server started on port ${PORT}`);
     log(`🌍 NODE_ENV: ${process.env.NODE_ENV || 'development'}`);
-    log(`🌐 Allowed CORS origins: ${[...allowedOrigins, ...wildcardOriginsForLog].join(', ')}`);
+    log(`🌐 Allowed CORS origins: ${allowedOrigins.map(o => o instanceof RegExp ? o.toString() : o).join(', ')}`);
     log(`Assets directories: ${servedAssetDirs.length ? servedAssetDirs.join(", ") : "none"}`);
     log(`🔒 Rate limiting: ${isProduction ? '100' : '200'} req/15min (global, auth, admin, general)`);
     log(`🍪 Session cookies: secure=${isProduction}, sameSite=${isProduction ? 'none' : 'lax'}, httpOnly=true`);
