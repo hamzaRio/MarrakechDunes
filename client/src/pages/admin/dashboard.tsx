@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, Users, TrendingUp, Activity, Settings, Crown, MessageCircle } from "lucide-react";
+import { Calendar, Users, TrendingUp, Activity, Settings, Crown, MessageCircle, LogOut } from "lucide-react";
 import AdminRoute from "@/components/admin-route";
 import { useAuth } from "@/hooks/use-auth";
 import { useLanguage } from "@/hooks/use-language";
@@ -15,7 +15,7 @@ import { WhatsAppNotificationPanel } from "@/components/whatsapp-notification-pa
 import ActivityManagementModal from "@/components/activity-management-modal";
 import CashAnalyticsDashboard from "@/components/cash-analytics-dashboard";
 import CashBookingReminders from "@/components/cash-booking-reminders";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, logout } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 
 // Removed useState import as no longer needed
@@ -134,6 +134,26 @@ Notes: ${booking.notes || 'None'}`);
     return primary ? getAssetUrl(primary) : getActivityFallbackImage(activity.name);
   };
 
+  // Logout handler
+  const handleLogout = async () => {
+    if (confirm('Are you sure you want to logout?')) {
+      try {
+        await logout();
+        toast({
+          title: "Logged Out",
+          description: "You have been successfully logged out.",
+        });
+      } catch (error) {
+        console.error('Logout error:', error);
+        toast({
+          title: "Logout Error",
+          description: "There was an issue logging out, but you will be redirected.",
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
   // Admin activity management functions
   const handleEditPricing = (activity: ActivityType) => {
     const newPrice = prompt(`Edit price for ${activity.name} (current: ${activity.price} MAD):`, activity.price.toString());
@@ -172,14 +192,24 @@ Average per booking: ${activityBookings.length ? Math.round(totalRevenue / activ
                 <h1 className="text-3xl font-bold text-moroccan-blue">{t('dashboard')}</h1>
                 <p className="text-gray-600">Welcome back, {user?.username}</p>
               </div>
-              {user?.role === 'superadmin' && (
-                <Link href="/admin/ceo">
-                  <Button className="bg-gradient-to-r from-yellow-400 to-yellow-600 hover:from-yellow-500 hover:to-yellow-700 text-black font-semibold">
-                    <Crown className="h-4 w-4 mr-2" />
-                    CEO Dashboard
-                  </Button>
-                </Link>
-              )}
+              <div className="flex gap-3">
+                {user?.role === 'superadmin' && (
+                  <Link href="/admin/ceo">
+                    <Button className="bg-gradient-to-r from-yellow-400 to-yellow-600 hover:from-yellow-500 hover:to-yellow-700 text-black font-semibold">
+                      <Crown className="h-4 w-4 mr-2" />
+                      CEO Dashboard
+                    </Button>
+                  </Link>
+                )}
+                <Button 
+                  onClick={handleLogout}
+                  variant="outline" 
+                  className="border-red-500 text-red-500 hover:bg-red-500 hover:text-white"
+                >
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Logout
+                </Button>
+              </div>
             </div>
           </div>
 
@@ -370,8 +400,14 @@ Average per booking: ${activityBookings.length ? Math.round(totalRevenue / activ
 
             <TabsContent value="activities" className="space-y-4">
               <Card>
-                <CardHeader>
+                <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle>Activity Management & Pricing</CardTitle>
+                  <ActivityManagementModal mode="create">
+                    <Button className="bg-moroccan-blue hover:bg-blue-700 text-white">
+                      <Activity className="h-4 w-4 mr-2" />
+                      Add New Activity
+                    </Button>
+                  </ActivityManagementModal>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-6">
