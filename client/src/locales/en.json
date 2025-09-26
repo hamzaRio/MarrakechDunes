@@ -88,6 +88,7 @@
   },
   "reviews": {
     "title": "Customer Reviews",
+    "subtitle": "Read what others experienced with Marrakech Dunes",
     "writeReview": "Write a Review",
     "rating": "Rating",
     "verified": "Verified Booking",
@@ -180,7 +181,9 @@
   },
   "home": {
     "office": {
-      "address": "54 Riad Zitoun Lakdim, Marrakech 40000"
+      "address": "54 Riad Zitoun Lakdim, Marrakech 40000",
+      "hoursTitle": "Business Hours",
+      "hours": "Daily 8:00 AM - 8:00 PM"
     },
     "expertise": {
       "title": "Our Expertise & Commitment",
