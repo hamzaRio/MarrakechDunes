@@ -200,8 +200,8 @@ app.use(cookieParser());
 // CORS configuration - must be defined BEFORE routes
 const allowedOrigins = [
   "http://localhost:5173",
-  process.env.CLIENT_URL || "https://marrakech-dunes.vercel.app",
-  /\.vercel\.app$/ // allow all preview deployments
+  "https://marrakech-dunes.vercel.app",
+  /https:\/\/.*\.vercel\.app$/ // allow all preview deployments
 ];
 
 app.use(cors({

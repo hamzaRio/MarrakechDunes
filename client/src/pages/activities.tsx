@@ -11,12 +11,17 @@ import { useLanguage } from "@/hooks/use-language";
 export default function Activities() {
   const { t, language } = useLanguage();
   const seoConfig = seoConfigs.activities(language);
-  const { data: activities = [], isLoading } = useQuery<ActivityType[]>({
+  const { data: activities = [], isLoading, error } = useQuery<ActivityType[]>({
     queryKey: ["/activities"],
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
     refetchOnMount: false,
     refetchOnWindowFocus: false,
+    retry: (failureCount, error) => {
+      // Retry up to 2 times for network errors
+      return failureCount < 2;
+    },
+    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
   const activityList = ensureArray(activities);
 
@@ -45,7 +50,27 @@ export default function Activities() {
       {/* Activities Grid */}
       <section className="py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {isLoading ? (
+          {error ? (
+            <div className="text-center py-20">
+              <div className="max-w-md mx-auto bg-red-50 border border-red-200 rounded-lg p-8">
+                <div className="text-red-600 mb-4">
+                  <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <h3 className="text-2xl font-bold text-red-800 mb-4">Server Error</h3>
+                <p className="text-red-700 mb-6">
+                  We're having trouble loading our activities. Please try again later.
+                </p>
+                <button 
+                  onClick={() => window.location.reload()} 
+                  className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg transition-colors"
+                >
+                  Try Again
+                </button>
+              </div>
+            </div>
+          ) : isLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {[1, 2, 3, 4, 5, 6].map((i) => (
                 <div key={i} className="space-y-4 animate-pulse">

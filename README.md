@@ -103,7 +103,6 @@ MarrakechDunes is a production-ready full-stack web application for booking auth
 | `SUPERADMIN_PASSWORD` | Yes | Super admin password | `Marrakech@1966` |
 | `CLIENT_URL` | Yes | Frontend URL for CORS | `<https://marrakech-dunes.vercel.app>` |
 | `VITE_API_URL` | Yes | Backend API URL | `<https://marrakechdunes.onrender.com>` |
-| `VITE_ASSETS_BASE` | Yes | Assets base URL | `https://marrakechdunes.onrender.com/assets` |
 | `WHATSAPP_RECEIVERS` | Yes | WhatsApp notification recipients | `212600623630,212693323368` |
 
 ## 🏗️ Project Structure
@@ -161,7 +160,6 @@ npm run test:e2e
 1. **Connect repository** to Vercel
 2. **Set environment variables** in Vercel dashboard:
    - `VITE_API_URL`: Your Render backend URL
-   - `VITE_ASSETS_BASE`: Your Render assets URL
 3. **Deploy** automatically on push to main
 
 ### Backend (Render)

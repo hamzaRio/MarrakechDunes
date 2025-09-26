@@ -79,8 +79,12 @@ export default function BookingFixed() {
   const [currentStep, setCurrentStep] = useState<'activity' | 'date' | 'details' | 'confirmation'>('activity');
   const [viewMode, setViewMode] = useState<'calendar' | 'list'>('calendar');
 
-  const { data: activities = [], isLoading } = useQuery<ActivityType[]>({
+  const { data: activities = [], isLoading, error } = useQuery<ActivityType[]>({
     queryKey: ["/activities"],
+    retry: (failureCount, error) => {
+      return failureCount < 2;
+    },
+    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
   const activityList = ensureArray(activities);
 
@@ -227,6 +231,30 @@ export default function BookingFixed() {
   };
 
 
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-moroccan-sand flex items-center justify-center">
+        <div className="max-w-md mx-auto bg-red-50 border border-red-200 rounded-lg p-8">
+          <div className="text-red-600 mb-4">
+            <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <h3 className="text-2xl font-bold text-red-800 mb-4 text-center">Server Error</h3>
+          <p className="text-red-700 mb-6 text-center">
+            We're having trouble loading our booking system. Please try again later.
+          </p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="w-full bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg transition-colors"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (

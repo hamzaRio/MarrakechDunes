@@ -17,6 +17,7 @@ import CashAnalyticsDashboard from "@/components/cash-analytics-dashboard";
 import CashBookingReminders from "@/components/cash-booking-reminders";
 import { apiFetch, logout } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+import SEOHead from "@/components/seo-head";
 
 // Removed useState import as no longer needed
 import type { BookingType, ActivityType, AuditLogType } from "marrakechdunes-shared/schema";
@@ -184,7 +185,13 @@ Average per booking: ${activityBookings.length ? Math.round(totalRevenue / activ
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <>
+      <SEOHead 
+        title="Admin Dashboard - MarrakechDunes"
+        description="Manage bookings, activities, and analytics for MarrakechDunes tour operations."
+        keywords="admin, dashboard, MarrakechDunes, booking management, activities"
+      />
+      <div className="min-h-screen bg-gray-50 p-6">
         <div className="max-w-7xl mx-auto">
           <div className="mb-8">
             <div className="flex items-center justify-between">
@@ -594,7 +601,7 @@ Average per booking: ${activityBookings.length ? Math.round(totalRevenue / activ
           </Tabs>
         </div>
       </div>
-
+    </>
   );
 }
 

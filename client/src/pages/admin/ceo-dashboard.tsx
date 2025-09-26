@@ -35,6 +35,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import SuperAdminRoute from "@/components/superadmin-route";
 import ActivityManagementModal from "@/components/activity-management-modal";
+import SEOHead from "@/components/seo-head";
 
 export default function CEODashboard() {
   const { toast } = useToast();
@@ -103,6 +104,11 @@ export default function CEODashboard() {
 
   return (
     <SuperAdminRoute>
+      <SEOHead 
+        title="CEO Dashboard - MarrakechDunes"
+        description="Executive analytics and financial overview for MarrakechDunes operations."
+        keywords="CEO, analytics, financial, MarrakechDunes, executive dashboard"
+      />
       <div className="min-h-screen bg-gray-50 p-6">
         <div className="max-w-7xl mx-auto space-y-6">
       {/* Header */}

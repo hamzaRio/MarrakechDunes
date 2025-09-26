@@ -37,7 +37,7 @@ console.log("[Env] Loaded server variables OK:", {
 
 // Simple self-check to ensure VITE_* variables are not required on backend
 export function __envSelfTest__() {
-  const ignored = ["VITE_API_URL", "VITE_ASSETS_BASE", "VITE_MAP_PROVIDER", "VITE_LEAFLET_ENABLED"];
+  const ignored = ["VITE_API_URL", "VITE_MAP_PROVIDER", "VITE_LEAFLET_ENABLED"];
   for (const key of ignored) {
     // No-op: presence or absence must not throw
     if (process.env[key]) {
