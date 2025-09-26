@@ -230,43 +230,31 @@ app.use((_, res, next) => {
   next();
 });
 
-// Static assets for images/css served before JSON body parsing to avoid capture
-app.use("/assets", assetHeaders);
+// Static assets served only at /attached_assets to avoid routing conflicts
+// Apply headers middleware before static serving
+app.use("/attached_assets", assetHeaders);
 
-// Explicit mount for attached assets at /attached_assets (in addition to /assets)
-app.use(
-  "/attached_assets",
-  express.static(attachedAssetsDir, assetStaticOptions)
-);
-const existingAssetDirs = getExistingAssetDirectories();
-
-if (existingAssetDirs.length === 0) {
-  console.warn(`[static] No asset directories found for /assets. Checked: ${assetDirectories.map(dir => dir.path).join(", ")}`);
-}
-
-// Explicitly mount both attached and client asset directories to /assets
+// Serve uploaded assets at /attached_assets only (single clean route)
 if (fs.existsSync(attachedAssetsDir)) {
-  console.log(`[static] Serving /assets from ${attachedAssetsDir}`);
-  app.use("/assets", express.static(attachedAssetsDir, assetStaticOptions));
-}
-if (fs.existsSync(clientDistAssetsDir)) {
-  console.log(`[static] Serving /assets from ${clientDistAssetsDir}`);
-  app.use("/assets", express.static(clientDistAssetsDir, assetStaticOptions));
+  console.log(`[static] Serving /attached_assets from ${attachedAssetsDir}`);
+  app.use("/attached_assets", express.static(attachedAssetsDir, assetStaticOptions));
+} else {
+  console.warn(`[static] Attached assets directory not found: ${attachedAssetsDir}`);
 }
 
 const jsonBodyParser = express.json();
 const urlencodedBodyParser = express.urlencoded({ extended: false });
 
-// Enable JSON & URL-encoded (skip /assets to prevent JSON middleware from handling static requests)
+// Enable JSON & URL-encoded (skip /attached_assets to prevent JSON middleware from handling static requests)
 app.use((req: Request, res: Response, next: NextFunction) => {
-  if (req.path.startsWith("/assets")) {
+  if (req.path.startsWith("/attached_assets")) {
     return next();
   }
   return jsonBodyParser(req, res, next);
 });
 
 app.use((req: Request, res: Response, next: NextFunction) => {
-  if (req.path.startsWith("/assets")) {
+  if (req.path.startsWith("/attached_assets")) {
     return next();
   }
   return urlencodedBodyParser(req, res, next);
@@ -450,8 +438,12 @@ app.use((req, res, next) => {
   // API 404 handler for undefined routes
   app.use('/api/*', notFoundHandler);
 
-  // SPA fallback - serve index.html for all non-API routes
-  app.get('*', (_, res) => {
+  // SPA fallback - serve index.html for all non-API, non-asset routes
+  app.get('*', (req, res) => {
+    // Ensure static assets are not caught by SPA fallback
+    if (req.path.startsWith('/attached_assets') || req.path.startsWith('/api')) {
+      return res.status(404).json({ error: 'Not found' });
+    }
     res.sendFile(join(__dirname, 'public/index.html'));
   });
 
@@ -464,20 +456,19 @@ app.use((req, res, next) => {
 
   // Start server
   const PORT = process.env.PORT || 10000;
-  const apiUrl = process.env.VITE_API_URL || `http://localhost:${PORT}`;
 
   server.listen(PORT, () => {
     console.log(`[server] listening on ${PORT}`);
-    const servedAssetDirs = getExistingAssetDirectories().map(dir => dir.path);
-    console.log(`[assets] ${servedAssetDirs.length ? servedAssetDirs.join(", ") : "none"}`);
+    const attachedAssetsExists = fs.existsSync(attachedAssetsDir);
+    console.log(`[assets] /attached_assets served from: ${attachedAssetsExists ? attachedAssetsDir : 'NOT FOUND'}`);
     console.log(`[routers] /api/session mounted`);
     log(`🚀 Server started on port ${PORT}`);
     log(`🌍 NODE_ENV: ${process.env.NODE_ENV || 'development'}`);
     log(`🌐 Allowed CORS origins: ${allowedOrigins.map(o => o instanceof RegExp ? o.toString() : o).join(', ')}`);
-    log(`Assets directories: ${servedAssetDirs.length ? servedAssetDirs.join(", ") : "none"}`);
+    log(`📁 Assets: /attached_assets -> ${attachedAssetsExists ? attachedAssetsDir : 'NOT FOUND'}`);
     log(`🔒 Rate limiting: ${isProduction ? '100' : '200'} req/15min (global, auth, admin, general)`);
     log(`🍪 Session cookies: secure=${isProduction}, sameSite=${isProduction ? 'none' : 'lax'}, httpOnly=true`);
-    log(`📡 API Base URL: ${apiUrl}`);
+    log(`📡 Server URL: http://localhost:${PORT}`);
     log(`🔧 Trust proxy: ${app.get('trust proxy')}`);
     log(`🔑 Session secret: ${process.env.SESSION_SECRET ? '✅ SET' : '❌ NOT SET'}`);
     log(`🌐 CLIENT_URL: ${process.env.CLIENT_URL || 'not set'}`);

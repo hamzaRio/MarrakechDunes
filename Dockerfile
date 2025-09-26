@@ -17,6 +17,9 @@ COPY client client
 COPY server server
 COPY shared shared
 
+# Copy environment files separately for proper separation (handled at runtime)
+# Environment files should be mounted or configured at deployment time
+
 # Build shared package before others
 RUN npm run build:shared
 RUN npm run build:client
