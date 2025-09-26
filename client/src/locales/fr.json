@@ -54,6 +54,8 @@
   },
   "booking": {
     "title": "Réservez Votre Aventure",
+    "subtitle": "Réservez votre expérience marocaine authentique",
+    "bookingDetails": "Détails de Réservation",
     "customerName": "Nom Complet",
     "customerPhone": "Numéro de Téléphone",
     "email": "Adresse Email",
@@ -79,11 +81,35 @@
     "personalInformation": "Informations Personnelles",
     "selectExperience": "Sélectionnez Votre Expérience",
     "bookingDetailsSection": "Détails de la Réservation",
+    "activitySelection": {
+      "title": "Choisissez Votre Aventure",
+      "subtitle": "Sélectionnez parmi nos expériences marocaines soignées",
+      "noActivities": "Aucune activité disponible pour le moment",
+      "loading": "Chargement des activités..."
+    },
+    "dateSelection": {
+      "title": "Sélectionnez Votre Date",
+      "subtitle": "Choisissez votre date et heure préférées",
+      "selectDate": "Veuillez sélectionner une date",
+      "availableSlots": "Créneaux disponibles"
+    },
+    "customerDetailsForm": {
+      "title": "Vos Informations",
+      "subtitle": "Parlez-nous de votre groupe",
+      "required": "Informations requises",
+      "optional": "Informations optionnelles"
+    },
+    "confirmationStep": {
+      "title": "Vérifier et Confirmer",
+      "subtitle": "Veuillez vérifier les détails de votre réservation",
+      "bookingSummary": "Résumé de la Réservation",
+      "paymentInfo": "Informations de Paiement"
+    },
     "steps": {
-      "selectActivity": "Sélectionner l'Activité",
+      "selectActivity": "Choisir l'Activité",
       "selectDate": "Sélectionner la Date",
-      "details": "Détails du Client",
-      "confirmation": "Confirmation"
+      "details": "Vos Détails", 
+      "confirmation": "Confirmer et Payer"
     }
   },
   "reviews": {

@@ -54,6 +54,8 @@
   },
   "booking": {
     "title": "Book Your Adventure",
+    "subtitle": "Reserve your authentic Moroccan experience",
+    "bookingDetails": "Booking Details",
     "customerName": "Full Name",
     "customerPhone": "Phone Number",
     "email": "Email Address",
@@ -79,11 +81,35 @@
     "personalInformation": "Personal Information",
     "selectExperience": "Select Your Experience",
     "bookingDetailsSection": "Booking Details",
+    "activitySelection": {
+      "title": "Choose Your Adventure",
+      "subtitle": "Select from our curated Moroccan experiences",
+      "noActivities": "No activities available at the moment",
+      "loading": "Loading activities..."
+    },
+    "dateSelection": {
+      "title": "Select Your Date",
+      "subtitle": "Choose your preferred date and time",
+      "selectDate": "Please select a date",
+      "availableSlots": "Available time slots"
+    },
+    "customerDetailsForm": {
+      "title": "Your Information",
+      "subtitle": "Tell us about your group",
+      "required": "Required information",
+      "optional": "Optional information"
+    },
+    "confirmationStep": {
+      "title": "Review & Confirm",
+      "subtitle": "Please review your booking details",
+      "bookingSummary": "Booking Summary",
+      "paymentInfo": "Payment Information"
+    },
     "steps": {
-      "selectActivity": "Select Activity",
-      "selectDate": "Select Date",
-      "details": "Customer Details",
-      "confirmation": "Confirmation"
+      "selectActivity": "Choose Activity",
+      "selectDate": "Select Date", 
+      "details": "Your Details",
+      "confirmation": "Confirm & Pay"
     }
   },
   "reviews": {

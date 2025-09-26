@@ -2,18 +2,19 @@
 import { assetUrl } from "./assets";
 
 // Use a stable cache buster based on build time instead of current time
-const BUILD_VERSION = '1.0.1'; // Update this when you want to bust cache
+const BUILD_VERSION = '1.0.2'; // Updated for new asset system
 
 export const getAssetUrl = (filename: string): string => {
-  // Use stable cache-busting to prevent duplicate requests
-  const cacheBuster = `?v=${BUILD_VERSION}`;
-  return assetUrl(filename) + cacheBuster;
+  if (!filename) return "";
+  
+  // No cache busting needed for static assets served by Vercel
+  return assetUrl(filename);
 };
 
 export const getActivityFallbackImage = (activityName: string): string => {
   const name = activityName.toLowerCase();
   
-  // Try to use real uploaded images first
+  // Try to use real uploaded images first based on activity type
   if (name.includes('ourika')) {
     return assetUrl("Ourika Valley Day Trip1_1751114166831.jpg");
   } else if (name.includes('ouzoud')) {
@@ -26,6 +27,39 @@ export const getActivityFallbackImage = (activityName: string): string => {
     return assetUrl("agafaypack1_1751128022717.jpeg");
   }
   
-  // No fallback - return empty string to force use of actual uploaded images
-  return "";
+  // Default fallback image - use a generic Morocco landscape
+  return assetUrl("riad-kheirredine_1756041288677.jpg");
+};
+
+// Helper function to handle image loading errors
+export const handleImageError = (event: React.SyntheticEvent<HTMLImageElement>, fallbackUrl?: string) => {
+  const target = event.currentTarget;
+  
+  // If we already tried the fallback, don't loop
+  if (target.dataset.fallbackAttempted === "true") {
+    target.style.display = "none";
+    return;
+  }
+  
+  // Try fallback image
+  if (fallbackUrl) {
+    target.dataset.fallbackAttempted = "true";
+    target.src = fallbackUrl;
+  } else {
+    // Hide broken image
+    target.style.display = "none";
+  }
+};
+
+// Get multiple images for an activity with error handling
+export const getActivityImages = (imageUrls: string[] | string | undefined, activityName: string): string[] => {
+  if (!imageUrls) return [getActivityFallbackImage(activityName)];
+  
+  const urls = Array.isArray(imageUrls) ? imageUrls : [imageUrls];
+  
+  if (urls.length === 0) {
+    return [getActivityFallbackImage(activityName)];
+  }
+  
+  return urls.map(url => getAssetUrl(url)).filter(Boolean);
 };

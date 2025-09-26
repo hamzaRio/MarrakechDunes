@@ -3,11 +3,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Clock, MapPin, Users, Star, ChevronLeft, ChevronRight } from 'lucide-react';
-import { getActivityFallbackImage } from "@/lib/image-utils";
+import { getActivityFallbackImage, handleImageError, getActivityImages } from "@/lib/image-utils";
 import { useLanguage } from '@/hooks/use-language';
 import ActivityRating from './activity-rating';
 
-import { getAssetUrl, ensureArray } from '@/lib/utils';
+import { ensureArray } from '@/lib/utils';
 import type { ActivityType } from 'marrakechdunes-shared/schema';
 
 interface ActivityPreviewProps {
@@ -23,6 +23,7 @@ export default function ActivityPreview({ activity, isOpen, onClose, onBookNow }
 
   if (!activity) return null;
 
+  // Use improved image handling
   const gallerySources = ensureArray(activity.imageUrls);
   const legacyPhotos = ensureArray((activity as any).photos);
   if (gallerySources.length === 0 && legacyPhotos.length > 0) {
@@ -33,9 +34,8 @@ export default function ActivityPreview({ activity, isOpen, onClose, onBookNow }
     gallerySources.push(legacyImage);
   }
 
-  const images = gallerySources.length > 0
-    ? gallerySources.map((photo) => getAssetUrl(photo))
-    : [getActivityFallbackImage(activity.name)];
+  const images = getActivityImages(gallerySources, activity.name);
+  const fallbackImage = getActivityFallbackImage(activity.name);
 
   const nextImage = () => {
     setCurrentImageIndex((prev) => (prev + 1) % images.length);
@@ -62,9 +62,7 @@ export default function ActivityPreview({ activity, isOpen, onClose, onBookNow }
                 src={images[currentImageIndex]}
                 alt={`${activity.name} - Image ${currentImageIndex + 1}`}
                 className="w-full h-full object-cover"
-                onError={(e) => {
-                  e.currentTarget.src = getActivityFallbackImage(activity.name);
-                }}
+                onError={(e) => handleImageError(e, fallbackImage)}
               />
             </div>
             

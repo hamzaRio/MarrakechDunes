@@ -12,9 +12,9 @@ import { useAuth } from "@/hooks/use-auth";
 
 import ActivityPreview from "./activity-preview";
 
-import { getActivityFallbackImage } from "@/lib/image-utils";
+import { getActivityFallbackImage, handleImageError, getActivityImages } from "@/lib/image-utils";
 
-import { ensureArray, getAssetUrl } from "@/lib/utils";
+import { ensureArray } from "@/lib/utils";
 
 import type { ActivityType } from "marrakechdunes-shared/schema";
 
@@ -44,73 +44,21 @@ export default function ActivityCard({ activity, showDescription = false }: Acti
 
 
 
-  const resolveImageSrc = (source: string) => {
-
-    if (!source) {
-
-      return getActivityFallbackImage(activity.name);
-
-    }
-
-
-
-    try {
-
-      return getAssetUrl(source);
-
-    } catch {
-
-      return getActivityFallbackImage(activity.name);
-
-    }
-
-  };
-
-
-
+  // Get all activity images with better handling
   const imageSources = ensureArray(activity.imageUrls);
-
   const legacyPhotos = ensureArray((activity as any).photos);
-
   if (imageSources.length === 0 && legacyPhotos.length > 0) {
-
     imageSources.push(...legacyPhotos);
-
   }
-
   const legacyImage = (activity as any).image;
-
   if (imageSources.length === 0 && typeof legacyImage === 'string' && legacyImage) {
-
     imageSources.push(legacyImage);
-
   }
 
-
-
-  const galleryImages = imageSources.length > 0
-
-    ? imageSources.map((src) => ({
-
-        original: src,
-
-        resolved: resolveImageSrc(src),
-
-      }))
-
-    : [{
-
-        original: '',
-
-        resolved: getActivityFallbackImage(activity.name),
-
-      }];
-
-
-
-  const primarySource = galleryImages[0]?.original ?? '';
-
-  const primaryImage = galleryImages[0]?.resolved ?? getActivityFallbackImage(activity.name);
+  // Use improved image handling
+  const galleryImages = getActivityImages(imageSources, activity.name);
+  const primaryImage = galleryImages[0] || getActivityFallbackImage(activity.name);
+  const fallbackImage = getActivityFallbackImage(activity.name);
 
 
 
@@ -132,21 +80,7 @@ export default function ActivityCard({ activity, showDescription = false }: Acti
 
           loading="lazy"
 
-          onError={(e) => {
-
-            const img = e.currentTarget;
-
-            if (process.env.NODE_ENV === 'development') {
-
-              console.warn('Image failed to load:', primarySource, '-> using activity-specific fallback');
-
-            }
-
-            img.src = getActivityFallbackImage(activity.name);
-
-            img.onerror = null; // Prevent infinite loops
-
-          }}
+          onError={(e) => handleImageError(e, fallbackImage)}
 
           onLoad={() => {
 
@@ -207,29 +141,18 @@ export default function ActivityCard({ activity, showDescription = false }: Acti
 
 
         {galleryImages.length > 1 && (
-
           <div className="flex gap-2 overflow-x-auto py-3">
-
             {galleryImages.map((image, index) => (
-
               <img
-
                 key={`${activity._id || activity.id || 'activity'}-image-${index}`}
-
-                src={image.resolved}
-
+                src={image}
                 alt={`${activity.name} image ${index + 1}`}
-
                 className="h-16 w-16 object-cover rounded-md border border-white/40 shadow-sm"
-
                 loading="lazy"
-
+                onError={(e) => handleImageError(e, fallbackImage)}
               />
-
             ))}
-
           </div>
-
         )}
 
 

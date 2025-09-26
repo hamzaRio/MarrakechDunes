@@ -4,6 +4,7 @@ import Footer from "@/components/footer";
 import WhatsAppButton from "@/components/whatsapp-button";
 import PhotoSlideshow from "@/components/photo-slideshow";
 import MapView from "@/components/MapView";
+import SEOHead, { seoConfigs } from "@/components/seo-head";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Star, Award, MapPin, Calendar } from "lucide-react";
@@ -13,12 +14,17 @@ import { asset } from "@/lib/env";
 const heroBackgroundImage = asset("riad-kheirredine_1756041288677.jpg");
 
 export default function Home() {
-  const { t } = useLanguage();
-
-
+  const { t, language } = useLanguage();
+  const seoConfig = seoConfigs.home(language);
 
   return (
     <div className="min-h-screen bg-moroccan-sand">
+      <SEOHead 
+        title={seoConfig.title}
+        description={seoConfig.description}
+        keywords={seoConfig.keywords}
+        image={heroBackgroundImage}
+      />
       <Navbar />
       
       {/* Hero Section */}

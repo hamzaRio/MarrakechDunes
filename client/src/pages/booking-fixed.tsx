@@ -18,6 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Calendar, Users, Phone, User, MapPin, CheckCircle, ArrowLeft, ArrowRight, CalendarDays, Banknote } from "lucide-react";
 import { useLanguage } from "@/hooks/use-language";
+import SEOHead, { seoConfigs } from "@/components/seo-head";
 import { DayPicker } from "react-day-picker";
 import "react-day-picker/dist/style.css";
 import PhoneInput from 'react-phone-input-2';
@@ -69,7 +70,8 @@ type BookingFormData = z.infer<BookingFormSchema>;
 export default function BookingFixed() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const seoConfig = seoConfigs.booking(language);
   const [showPaymentConfirmation, setShowPaymentConfirmation] = useState(false);
   const [pendingBookingData, setPendingBookingData] = useState<BookingFormData | null>(null);
   const [currentActivity, setCurrentActivity] = useState<ActivityType | null>(null);
@@ -236,6 +238,11 @@ export default function BookingFixed() {
 
   return (
     <div className="min-h-screen bg-moroccan-sand">
+      <SEOHead 
+        title={seoConfig.title}
+        description={seoConfig.description}
+        keywords={seoConfig.keywords}
+      />
       <Navbar />
       
       {/* Header */}
@@ -303,7 +310,14 @@ export default function BookingFixed() {
                       {/* Step 1: Activity Selection */}
                       {currentStep === 'activity' && (
                         <div className="space-y-6">
-                          <h3 className="text-lg font-semibold text-moroccan-blue">Choose Your Activity</h3>
+                          <div className="text-center mb-6">
+                            <h3 className="text-2xl font-playfair font-bold text-moroccan-blue mb-2">
+                              {t('booking.activitySelection.title')}
+                            </h3>
+                            <p className="text-gray-600">
+                              {t('booking.activitySelection.subtitle')}
+                            </p>
+                          </div>
                           
                           <div className="grid grid-cols-1 gap-4">
                             {activityList.map((activity) => (
@@ -335,15 +349,22 @@ export default function BookingFixed() {
                       {/* Step 2: Date Selection */}
                       {currentStep === 'date' && (
                         <div className="space-y-6">
-                          <div className="flex items-center justify-between">
-                            <h3 className="text-lg font-semibold text-moroccan-blue">Select Date</h3>
+                          <div className="text-center mb-6">
+                            <h3 className="text-2xl font-playfair font-bold text-moroccan-blue mb-2">
+                              {t('booking.dateSelection.title')}
+                            </h3>
+                            <p className="text-gray-600">
+                              {t('booking.dateSelection.subtitle')}
+                            </p>
+                          </div>
+                          <div className="flex justify-end mb-4">
                             <Button
                               type="button"
                               variant="outline"
                               onClick={() => setCurrentStep('activity')}
                             >
                               <ArrowLeft className="w-4 h-4 mr-2" />
-                              Back
+                              {t('booking.previous')}
                             </Button>
                           </div>
 
@@ -394,8 +415,15 @@ export default function BookingFixed() {
                       {/* Step 3: Details */}
                       {currentStep === 'details' && (
                         <div className="space-y-6">
-                          <div className="flex items-center justify-between">
-                            <h3 className="text-lg font-semibold text-moroccan-blue">Your Details</h3>
+                          <div className="text-center mb-6">
+                            <h3 className="text-2xl font-playfair font-bold text-moroccan-blue mb-2">
+                              {t('booking.customerDetailsForm.title')}
+                            </h3>
+                            <p className="text-gray-600">
+                              {t('booking.customerDetailsForm.subtitle')}
+                            </p>
+                          </div>
+                          <div className="flex justify-end mb-4">
                             <Button
                               type="button"
                               variant="outline"
@@ -655,15 +683,22 @@ export default function BookingFixed() {
                       {/* Step 4: Confirmation */}
                       {currentStep === 'confirmation' && (
                         <div className="space-y-6">
-                          <div className="flex items-center justify-between">
-                            <h3 className="text-lg font-semibold text-moroccan-blue">Confirm Your Booking</h3>
+                          <div className="text-center mb-6">
+                            <h3 className="text-2xl font-playfair font-bold text-moroccan-blue mb-2">
+                              {t('booking.confirmationStep.title')}
+                            </h3>
+                            <p className="text-gray-600">
+                              {t('booking.confirmationStep.subtitle')}
+                            </p>
+                          </div>
+                          <div className="flex justify-end mb-4">
                             <Button
                               type="button"
                               variant="outline"
                               onClick={() => setCurrentStep('details')}
                             >
                               <ArrowLeft className="w-4 h-4 mr-2" />
-                              Back
+                              {t('booking.previous')}
                             </Button>
                           </div>
 
@@ -678,8 +713,10 @@ export default function BookingFixed() {
                             </p>
                           </div>
 
-                          <div className="bg-gray-50 p-6 rounded-lg">
-                            <h4 className="font-semibold text-moroccan-blue mb-4">Booking Summary</h4>
+                          <div className="bg-gray-50 p-6 rounded-lg border">
+                            <h4 className="font-semibold text-moroccan-blue mb-4 text-lg">
+                              {t('booking.confirmationStep.bookingSummary')}
+                            </h4>
                             
                             <div className="space-y-3">
                               <div className="flex justify-between">

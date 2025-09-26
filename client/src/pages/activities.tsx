@@ -3,12 +3,14 @@ import { ActivityType } from "marrakechdunes-shared/schema";
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
 import ActivityCard from "@/components/activity-card";
+import SEOHead, { seoConfigs } from "@/components/seo-head";
 import { ensureArray } from "@/lib/ensureArray";
 
 import { useLanguage } from "@/hooks/use-language";
 
 export default function Activities() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const seoConfig = seoConfigs.activities(language);
   const { data: activities = [], isLoading } = useQuery<ActivityType[]>({
     queryKey: ["/activities"],
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -20,6 +22,11 @@ export default function Activities() {
 
   return (
     <div className="min-h-screen bg-moroccan-sand">
+      <SEOHead 
+        title={seoConfig.title}
+        description={seoConfig.description}
+        keywords={seoConfig.keywords}
+      />
       <Navbar />
       
       {/* Header Section */}
