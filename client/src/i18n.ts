@@ -9,17 +9,36 @@ i18n
   .init({
     fallbackLng: 'en',
     supportedLngs: ['en','fr'],
-    ns: ['common','home','activities','booking','reviews','admin'],
-    defaultNS: 'common',
+    // Remove namespace configuration since we're using a single flat structure
     resources: {
-      fr: { translation: fr },
-      en: { translation: en }
+      fr: { 
+        translation: fr,
+        common: fr,
+        home: fr,
+        activities: fr,
+        booking: fr,
+        reviews: fr,
+        admin: fr 
+      },
+      en: { 
+        translation: en,
+        common: en,
+        home: en,
+        activities: en,
+        booking: en,
+        reviews: en,
+        admin: en 
+      }
     },
     interpolation: { escapeValue: false },
     detection: { order: ['querystring','localStorage','navigator'] },
     returnNull: false,
     returnEmptyString: false,
-    defaultValue: (key: string) => key, // Return key if translation missing
+    defaultValue: (key: string) => {
+      console.warn(`Translation missing for key: ${key}`);
+      return key; // Return key if translation missing
+    },
+    debug: import.meta.env.MODE === 'development' // Enable debug in development
   });
 
 export default i18n;

@@ -6,7 +6,7 @@ interface ImportMetaEnv {
   readonly PROD: boolean;
   readonly SSR: boolean;
   readonly VITE_API_URL: string;
-  readonly VITE_ASSETS_BASE?: string;
+  // VITE_ASSETS_BASE removed - static assets served from /images/
   readonly MAP_PROVIDER?: string;
   readonly VITE_MAP_PROVIDER?: string;
   readonly LEAFLET_ENABLED?: string;

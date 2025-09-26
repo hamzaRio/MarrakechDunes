@@ -25,10 +25,9 @@ RUN npm run build:shared
 RUN npm run build:client
 RUN npm run build:server
 
-# Prepare server runtime assets (frontend build + attached assets)
+# Prepare server runtime assets (frontend build only - static assets served by Vercel)
 WORKDIR /app/server
 RUN mkdir -p dist/public && cp -r ../client/dist/. dist/public/
-RUN if [ -d ./attached_assets ]; then mkdir -p dist/attached_assets && cp -r ./attached_assets/. dist/attached_assets/; fi
 
 # Strip development dependencies
 WORKDIR /app
@@ -38,7 +37,7 @@ RUN npm prune --omit=dev
 FROM node:20-alpine AS runner
 
 ENV NODE_ENV=production
-ENV PORT=10000
+# PORT will be provided by Render dynamically
 
 WORKDIR /app
 
@@ -52,11 +51,11 @@ COPY --from=builder /app/shared/dist ./shared/dist
 COPY --from=builder /app/server/package*.json ./server/
 COPY --from=builder /app/server/node_modules ./server/node_modules
 COPY --from=builder /app/server/dist ./server/dist
-COPY --from=builder /app/server/attached_assets ./server/attached_assets
+# attached_assets no longer copied - static assets served by frontend
 
 COPY --from=builder /app/client/dist ./client/dist
 
-EXPOSE 10000
+EXPOSE $PORT
 WORKDIR /app/server
 
 CMD ["node", "dist/index.js"]

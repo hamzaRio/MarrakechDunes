@@ -16,7 +16,7 @@ if (!apiUrl) {
 
 export const API_URL = apiUrl;
 
-const ASSETS_BASE = import.meta.env.VITE_ASSETS_BASE || '/assets';
+const ASSETS_BASE = '/images'; // Static assets served from client/public/images
 
 export function asset(p: string) {
   const cleanPath = String(p).replace(/^[\\/]/, '');

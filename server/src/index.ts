@@ -85,54 +85,7 @@ import sessionRouter from "./routes/session.js";
 
 // CORS origins are defined below in FRONT_ORIGINS
 
-const attachedAssetsDir = path.join(__dirname, "../attached_assets");
-const clientDistAssetsDir = path.join(__dirname, "../../client/dist/assets");
-
-const assetDirectories = [
-  { label: "server/attached_assets", path: attachedAssetsDir },
-  { label: "client/dist/assets", path: clientDistAssetsDir },
-];
-
-const getExistingAssetDirectories = () =>
-  assetDirectories.filter(({ path }) => fs.existsSync(path));
-
-const assetStaticOptions: ServeStaticOptions = {
-  fallthrough: true,
-  maxAge: "7d",
-  etag: true,
-  index: false,
-  setHeaders: (res, filePath) => {
-    if (res.getHeader("Content-Type")) {
-      return;
-    }
-    const ext = path.extname(filePath).toLowerCase();
-    if (ext === ".css") {
-      res.setHeader("Content-Type", "text/css; charset=UTF-8");
-      return;
-    }
-
-    const imageTypes: Record<string, string> = {
-      ".jpg": "image/jpeg",
-      ".jpeg": "image/jpeg",
-      ".png": "image/png",
-      ".gif": "image/gif",
-      ".webp": "image/webp",
-      ".svg": "image/svg+xml",
-    };
-
-    const contentType = imageTypes[ext];
-    if (contentType) {
-      res.setHeader("Content-Type", contentType);
-    }
-  },
-};
-
-const assetHeaders: RequestHandler = (_req, res, next) => {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, HEAD, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, X-CSRF-Token");
-  next();
-};
+// Asset serving removed - all static assets served by frontend at /images/
 
 
 
@@ -230,35 +183,16 @@ app.use((_, res, next) => {
   next();
 });
 
-// Static assets served only at /attached_assets to avoid routing conflicts
-// Apply headers middleware before static serving
-app.use("/attached_assets", assetHeaders);
-
-// Serve uploaded assets at /attached_assets only (single clean route)
-if (fs.existsSync(attachedAssetsDir)) {
-  console.log(`[static] Serving /attached_assets from ${attachedAssetsDir}`);
-  app.use("/attached_assets", express.static(attachedAssetsDir, assetStaticOptions));
-} else {
-  console.warn(`[static] Attached assets directory not found: ${attachedAssetsDir}`);
-}
+// Static assets moved to frontend - no longer served from backend
+// All images are now served from client/public/images/ by Vercel
+console.log(`[static] Asset serving disabled - images served by frontend at /images/`);
 
 const jsonBodyParser = express.json();
 const urlencodedBodyParser = express.urlencoded({ extended: false });
 
-// Enable JSON & URL-encoded (skip /attached_assets to prevent JSON middleware from handling static requests)
-app.use((req: Request, res: Response, next: NextFunction) => {
-  if (req.path.startsWith("/attached_assets")) {
-    return next();
-  }
-  return jsonBodyParser(req, res, next);
-});
-
-app.use((req: Request, res: Response, next: NextFunction) => {
-  if (req.path.startsWith("/attached_assets")) {
-    return next();
-  }
-  return urlencodedBodyParser(req, res, next);
-});
+// Enable JSON & URL-encoded body parsing for all routes
+app.use(jsonBodyParser);
+app.use(urlencodedBodyParser);
 
 // Enable cookie parsing
 app.use(cookieParser());
@@ -438,11 +372,11 @@ app.use((req, res, next) => {
   // API 404 handler for undefined routes
   app.use('/api/*', notFoundHandler);
 
-  // SPA fallback - serve index.html for all non-API, non-asset routes
+  // SPA fallback - serve index.html for all non-API routes
   app.get('*', (req, res) => {
-    // Ensure static assets are not caught by SPA fallback
-    if (req.path.startsWith('/attached_assets') || req.path.startsWith('/api')) {
-      return res.status(404).json({ error: 'Not found' });
+    // Static assets no longer served by backend
+    if (req.path.startsWith('/api')) {
+      return res.status(404).json({ error: 'API endpoint not found' });
     }
     res.sendFile(join(__dirname, 'public/index.html'));
   });
@@ -459,13 +393,12 @@ app.use((req, res, next) => {
 
   server.listen(PORT, () => {
     console.log(`[server] listening on ${PORT}`);
-    const attachedAssetsExists = fs.existsSync(attachedAssetsDir);
-    console.log(`[assets] /attached_assets served from: ${attachedAssetsExists ? attachedAssetsDir : 'NOT FOUND'}`);
+    console.log(`[assets] Static assets served by frontend at /images/`);
     console.log(`[routers] /api/session mounted`);
     log(`🚀 Server started on port ${PORT}`);
     log(`🌍 NODE_ENV: ${process.env.NODE_ENV || 'development'}`);
     log(`🌐 Allowed CORS origins: ${allowedOrigins.map(o => o instanceof RegExp ? o.toString() : o).join(', ')}`);
-    log(`📁 Assets: /attached_assets -> ${attachedAssetsExists ? attachedAssetsDir : 'NOT FOUND'}`);
+    log(`📁 Assets: Served by frontend (Vercel) at /images/`);
     log(`🔒 Rate limiting: ${isProduction ? '100' : '200'} req/15min (global, auth, admin, general)`);
     log(`🍪 Session cookies: secure=${isProduction}, sameSite=${isProduction ? 'none' : 'lax'}, httpOnly=true`);
     log(`📡 Server URL: http://localhost:${PORT}`);

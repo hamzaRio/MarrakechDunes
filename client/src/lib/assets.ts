@@ -1,27 +1,26 @@
-const RAW_API = import.meta.env.VITE_API_URL || "";
-const BACKEND_HOST = RAW_API.replace(/\/api\/?$/, "");
-const raw = import.meta.env.VITE_ASSETS_BASE || "";
+// Static assets are now served from client/public/images
+// All images are available at /images/ path (served by Vercel/frontend)
 
-export const ASSETS_BASE = () => {
-  // If VITE_ASSETS_BASE is a full URL, use it directly
-  if (raw.startsWith("http")) {
-    return raw;
-  }
-  
-  // If VITE_ASSETS_BASE is a path (like "/attached_assets"), combine with backend host
-  if (raw) {
-    const cleanPath = raw.replace(/^\/+/, '').replace(/\/+$/, '');
-    return `${BACKEND_HOST}/${cleanPath}`;
-  }
-  
-  // Default fallback to /attached_assets
-  return `${BACKEND_HOST}/attached_assets`;
-};
-
-export function assetUrl(path: string) {
+export function assetUrl(path: string): string {
   if (!path) return "";
-  // Keep the path structure as the backend expects it
-  const clean = path.replace(/^\/+/, "");
-  // Don't remove attached_assets prefix since that's where images are stored
-  return `${ASSETS_BASE()}/${clean}`;
+  
+  // Clean the path - remove leading slashes and any attached_assets prefix
+  let clean = path.replace(/^\/+/, "");
+  clean = clean.replace(/^attached_assets\//, "");
+  
+  // Return path relative to public directory (served by Vercel)
+  return `/images/${clean}`;
+}
+
+// Helper function for background images in CSS
+export function assetCssUrl(path: string): string {
+  return `url('${assetUrl(path)}')`;
+}
+
+// Legacy function for backward compatibility
+export const ASSETS_BASE = () => "/images";
+
+// Helper to get specific activity images
+export function getActivityImage(filename: string): string {
+  return assetUrl(filename);
 }
