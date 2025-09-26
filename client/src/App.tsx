@@ -7,6 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { SecurityProvider } from "@/hooks/use-security";
 import { LanguageProvider } from "@/hooks/use-language";
 import SecurityWrapper from "@/components/security-wrapper";
+import AutoLogout from "@/components/auto-logout";
 import { ErrorBoundary } from "@/components/error-boundary";
 
 const Home = lazy(() => import("@/pages/home"));
@@ -92,6 +93,7 @@ function App() {
                 rel="stylesheet"
               />
               <Toaster />
+              <AutoLogout timeoutMinutes={5} warningMinutes={1} />
               <Router />
             </TooltipProvider>
           </LanguageProvider>

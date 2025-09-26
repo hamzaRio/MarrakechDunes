@@ -765,6 +765,123 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Activity approval routes (superadmin only)
+  app.get("/api/admin/activities/pending", adminSecurityMiddleware, async (req: Request, res) => {
+    try {
+      const activities = await storage.getPendingActivities();
+      res.json(activities);
+    } catch (error) {
+      console.error("Error fetching pending activities:", error);
+      res.status(500).json({ 
+        status: 'error',
+        message: "Failed to fetch pending activities",
+        code: 'FETCH_PENDING_ACTIVITIES_ERROR',
+        timestamp: new Date().toISOString(),
+        path: req.path,
+        method: req.method
+      });
+    }
+  });
+
+  app.get("/api/admin/activities/all", adminSecurityMiddleware, async (req: Request, res) => {
+    try {
+      const activities = await storage.getAllActivities();
+      res.json(activities);
+    } catch (error) {
+      console.error("Error fetching all activities:", error);
+      res.status(500).json({ 
+        status: 'error',
+        message: "Failed to fetch all activities",
+        code: 'FETCH_ALL_ACTIVITIES_ERROR',
+        timestamp: new Date().toISOString(),
+        path: req.path,
+        method: req.method
+      });
+    }
+  });
+
+  app.post("/api/admin/activities/:id/approve", adminSecurityMiddleware, async (req: Request, res) => {
+    const authReq = req as AuthenticatedRequest;
+    try {
+      const { id } = req.params;
+      const user = authReq.session.user;
+      
+      // Only superadmin can approve activities
+      if (user?.role !== 'superadmin') {
+        return res.status(403).json({ 
+          status: 'error',
+          message: "Only superadmin can approve activities",
+          code: 'INSUFFICIENT_PERMISSIONS',
+          timestamp: new Date().toISOString(),
+          path: req.path,
+          method: req.method
+        });
+      }
+
+      const activity = await storage.approveActivity(id, user.id);
+      
+      // Create audit log
+      await storage.createAuditLog({
+        userId: user.id,
+        action: `Approved activity: ${activity?.name}`,
+        details: JSON.stringify({ activityId: id })
+      });
+      
+      res.json(activity);
+    } catch (error) {
+      console.error("Error approving activity:", error);
+      res.status(500).json({ 
+        status: 'error',
+        message: "Failed to approve activity",
+        code: 'APPROVE_ACTIVITY_ERROR',
+        timestamp: new Date().toISOString(),
+        path: req.path,
+        method: req.method
+      });
+    }
+  });
+
+  app.post("/api/admin/activities/:id/reject", adminSecurityMiddleware, async (req: Request, res) => {
+    const authReq = req as AuthenticatedRequest;
+    try {
+      const { id } = req.params;
+      const user = authReq.session.user;
+      
+      // Only superadmin can reject activities
+      if (user?.role !== 'superadmin') {
+        return res.status(403).json({ 
+          status: 'error',
+          message: "Only superadmin can reject activities",
+          code: 'INSUFFICIENT_PERMISSIONS',
+          timestamp: new Date().toISOString(),
+          path: req.path,
+          method: req.method
+        });
+      }
+
+      const activity = await storage.rejectActivity(id, user.id);
+      
+      // Create audit log
+      await storage.createAuditLog({
+        userId: user.id,
+        action: `Rejected activity: ${activity?.name}`,
+        details: JSON.stringify({ activityId: id })
+      });
+      
+      res.json(activity);
+    } catch (error) {
+      console.error("Error rejecting activity:", error);
+      res.status(500).json({ 
+        status: 'error',
+        message: "Failed to reject activity",
+        code: 'REJECT_ACTIVITY_ERROR',
+        timestamp: new Date().toISOString(),
+        path: req.path,
+        method: req.method
+      });
+    }
+  });
+
   // Object storage routes for activity image uploads
   app.get("/public-objects/:filePath", async (req, res) => {
     const filePath = req.params.filePath;

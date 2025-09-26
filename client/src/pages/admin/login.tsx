@@ -12,6 +12,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { api } from "@/lib/api";
 import { useLocation } from "wouter";
 import { useLanguage } from "@/hooks/use-language";
+import SEOHead, { seoConfigs } from "@/components/seo-head";
 
 const createLoginFormSchema = (t: (key: string) => string) => z.object({
   username: z.string().min(1, t('errors.usernameRequired')),
@@ -24,7 +25,8 @@ export default function AdminLogin() {
   const { toast } = useToast();
   const [, navigate] = useLocation();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const seoConfig = seoConfigs.admin(language);
 
   const form = useForm<LoginFormData>({
     resolver: zodResolver(createLoginFormSchema(t)),
@@ -90,7 +92,13 @@ const mutation = useMutation({
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-moroccan-blue via-blue-900 to-moroccan-blue flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+    <>
+      <SEOHead 
+        title={seoConfig.title}
+        description={seoConfig.description}
+        keywords={seoConfig.keywords}
+      />
+      <div className="min-h-screen bg-gradient-to-br from-moroccan-blue via-blue-900 to-moroccan-blue flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
       <div className="absolute inset-0 opacity-10">
         <div className="absolute inset-0 bg-repeat bg-gradient-to-r from-transparent via-white to-transparent"></div>
       </div>
@@ -199,6 +207,7 @@ const mutation = useMutation({
         </div>
       </div>
     </div>
+    </>
   );
 }
 

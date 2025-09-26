@@ -152,6 +152,10 @@
     "developmentMode": "Development Mode",
     "contactAdmin": "Contact system administrator for credentials",
     "userPlaceholder": "Admin User",
+    "sessionExpired": "Session Expired",
+    "sessionExpiredDescription": "Your session has expired due to inactivity. Please log in again.",
+    "sessionWarning": "Session Warning",
+    "sessionWarningDescription": "Your session will expire in {{minutes}} minute(s) due to inactivity.",
     "portalTitle": "Administrator Portal",
     "portalSubtitle": "Connect to manage bookings and activities"
   },

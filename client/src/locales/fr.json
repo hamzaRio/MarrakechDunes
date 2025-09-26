@@ -152,6 +152,10 @@
     "developmentMode": "Mode Développement",
     "contactAdmin": "Contactez l'administrateur système pour les identifiants",
     "userPlaceholder": "Utilisateur administrateur",
+    "sessionExpired": "Session Expirée",
+    "sessionExpiredDescription": "Votre session a expiré en raison d'inactivité. Veuillez vous reconnecter.",
+    "sessionWarning": "Avertissement de Session",
+    "sessionWarningDescription": "Votre session expirera dans {{minutes}} minute(s) en raison d'inactivité.",
     "portalTitle": "Portail Administrateur",
     "portalSubtitle": "Connectez-vous pour gérer les réservations et activités"
   },

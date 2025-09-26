@@ -1,8 +1,8 @@
 ﻿import { useEffect, useMemo, useState } from 'react';
 import { MAP_PROVIDER } from '@/lib/env';
 
-const GOOGLE_EMBED_URL = 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3396.540211384448!2d-7.9898!3d31.6295!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0xdafee8d96179e51%3A0x5950b6534f87adb8!2sMarrakech%2C%20Morocco!5e0!3m2!1sen!2sma!4v1647875432123';
-const MAP_CENTER: [number, number] = [31.6295, -7.9811];
+const GOOGLE_EMBED_URL = 'https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3396.5636074242!2d-7.988845!3d31.628746!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0xdafee8d84b23469%3A0x7d5e3e12a5b8c2d4!2s54%20Riad%20Zitoun%20Lakdim%2C%20Marrakech%2040000%2C%20Morocco!5e0!3m2!1sen!2sma!4v1647875432123';
+const MAP_CENTER: [number, number] = [31.628746, -7.988845];
 
 type LeafletModuleSet = {
   MapContainer: typeof import('react-leaflet').MapContainer;
@@ -95,7 +95,7 @@ export default function MapView({
         />
         <div className="bg-moroccan-sand/40 px-3 py-2 text-sm text-moroccan-blue font-medium">
           <a
-            href="https://maps.google.com/?q=Marrakech+Dunes"
+            href="https://maps.google.com/?q=54+Riad+Zitoun+Lakdim,+Marrakech+40000,+Morocco"
             target="_blank"
             rel="noreferrer"
             className="underline hover:text-moroccan-red transition-colors"
@@ -136,7 +136,7 @@ export default function MapView({
           <Popup>
             <span className="font-semibold">Marrakech Dunes Tours</span>
             <br />
-            31.6295, -7.9811
+            54 Riad Zitoun Lakdim, Marrakech 40000
           </Popup>
         </Marker>
       </MapContainer>

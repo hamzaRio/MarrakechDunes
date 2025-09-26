@@ -6,6 +6,7 @@ import Footer from "@/components/footer";
 import ReviewList from "@/components/review-list";
 import ReviewForm from "@/components/review-form";
 import ActivityRating from "@/components/activity-rating";
+import SEOHead, { seoConfigs } from "@/components/seo-head";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -14,7 +15,8 @@ import { useLanguage } from "@/hooks/use-language";
 import type { ActivityType } from "marrakechdunes-shared/schema";
 
 export default function Reviews() {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const seoConfig = seoConfigs.reviews(language);
   const [selectedActivity, setSelectedActivity] = useState<string>("all");
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [selectedActivityForReview, setSelectedActivityForReview] = useState<ActivityType | null>(null);
@@ -39,6 +41,11 @@ export default function Reviews() {
 
   return (
     <div className="min-h-screen bg-moroccan-sand">
+      <SEOHead 
+        title={seoConfig.title}
+        description={seoConfig.description}
+        keywords={seoConfig.keywords}
+      />
       <Navbar />
       
       <div className="container mx-auto px-4 py-8 mt-20">

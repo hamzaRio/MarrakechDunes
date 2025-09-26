@@ -2,12 +2,22 @@
 import Footer from "@/components/footer";
 import MapView from "@/components/MapView";
 import WhatsAppButton from "@/components/whatsapp-button";
+import SEOHead, { seoConfigs } from "@/components/seo-head";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Mail, MapPin, Phone } from "lucide-react";
+import { useLanguage } from "@/hooks/use-language";
 
 export default function Contact() {
+  const { language } = useLanguage();
+  const seoConfig = seoConfigs.contact(language);
+
   return (
     <div className="flex min-h-screen flex-col bg-moroccan-sand">
+      <SEOHead 
+        title={seoConfig.title}
+        description={seoConfig.description}
+        keywords={seoConfig.keywords}
+      />
       <Navbar />
 
       <main className="flex-1">
@@ -31,7 +41,7 @@ export default function Contact() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4 text-muted-foreground">
-                  <p>Riad Kheirredine, Derb Sidi Safi 14, Marrakech Medina</p>
+                  <p>54 Riad Zitoun Lakdim, Marrakech 40000</p>
                   <div>
                     <p className="font-semibold text-moroccan-blue">Office Hours</p>
                     <p>Monday – Sunday: 08:00 – 20:00</p>

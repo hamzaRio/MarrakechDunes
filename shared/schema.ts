@@ -21,6 +21,9 @@ export interface ActivityType {
   imageUrls: string[];
   category: string;
   isActive: boolean;
+  approvalStatus: 'pending' | 'approved' | 'rejected';
+  approvedBy?: string;
+  approvedAt?: Date;
   seasonalPricing?: any;
   getyourguidePrice?: number;
   availability?: string;
@@ -96,9 +99,13 @@ export const insertActivitySchema = z.object({
   imageUrls: z.array(z.string().min(1)),
   category: z.string().min(1),
   isActive: z.boolean().default(true),
+  approvalStatus: z.enum(['pending', 'approved', 'rejected']).default('pending'),
+  approvedBy: z.string().optional(),
+  approvedAt: z.date().optional(),
   seasonalPricing: z.any().optional(),
   getyourguidePrice: z.number().optional(),
   availability: z.string().optional(),
+  duration: z.string().optional(),
 });
 
 export const insertBookingSchema = z.object({

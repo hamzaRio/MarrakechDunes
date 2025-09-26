@@ -33,9 +33,13 @@ const activitySchema = new mongoose.Schema({
   imageUrls: { type: [String], required: true, default: [] },
   category: { type: String, required: true },
   isActive: { type: Boolean, default: true },
+  approvalStatus: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
+  approvedBy: { type: String },
+  approvedAt: { type: Date },
   seasonalPricing: { type: mongoose.Schema.Types.Mixed },
   getyourguidePrice: { type: Number },
   availability: { type: String },
+  duration: { type: String },
 }, { timestamps: true });
 
 const bookingSchema = new mongoose.Schema({
@@ -84,9 +88,13 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<UserType>;
   updateUserPassword(username: string, password: string): Promise<void>;
   getActivities(): Promise<ActivityType[]>;
+  getPendingActivities(): Promise<ActivityType[]>;
+  getAllActivities(): Promise<ActivityType[]>;
   getActivity(id: string): Promise<ActivityType | null>;
   createActivity(activity: InsertActivity): Promise<ActivityType>;
   updateActivity(id: string, activity: Partial<InsertActivity>): Promise<ActivityType | null>;
+  approveActivity(id: string, approvedBy: string): Promise<ActivityType | null>;
+  rejectActivity(id: string, approvedBy: string): Promise<ActivityType | null>;
   deleteActivity(id: string): Promise<void>;
   getBookings(): Promise<BookingWithActivity[]>;
   getBooking(id: string): Promise<BookingWithActivity | null>;
@@ -192,10 +200,34 @@ class MongoStorage implements IStorage {
 
   async getActivities(): Promise<ActivityType[]> {
     try {
-      const activities = await Activity.find({ isActive: true });
+      // Public endpoint - only return approved and active activities
+      const activities = await Activity.find({ 
+        isActive: true, 
+        approvalStatus: 'approved'
+      });
       return activities.map(activity => this.transformDocument(activity));
     } catch (error) {
       console.error('Error fetching activities:', error);
+      throw error;
+    }
+  }
+
+  async getPendingActivities(): Promise<ActivityType[]> {
+    try {
+      const activities = await Activity.find({ approvalStatus: 'pending' });
+      return activities.map(activity => this.transformDocument(activity));
+    } catch (error) {
+      console.error('Error fetching pending activities:', error);
+      throw error;
+    }
+  }
+
+  async getAllActivities(): Promise<ActivityType[]> {
+    try {
+      const activities = await Activity.find({});
+      return activities.map(activity => this.transformDocument(activity));
+    } catch (error) {
+      console.error('Error fetching all activities:', error);
       throw error;
     }
   }
@@ -236,6 +268,42 @@ class MongoStorage implements IStorage {
 
     const activity = await Activity.findByIdAndUpdate(id, updatedFields, { new: true });
     return this.transformDocument(activity);
+  }
+
+  async approveActivity(id: string, approvedBy: string): Promise<ActivityType | null> {
+    try {
+      const activity = await Activity.findByIdAndUpdate(
+        id, 
+        { 
+          approvalStatus: 'approved',
+          approvedBy,
+          approvedAt: new Date()
+        }, 
+        { new: true }
+      );
+      return this.transformDocument(activity);
+    } catch (error) {
+      console.error('Error approving activity:', error);
+      throw error;
+    }
+  }
+
+  async rejectActivity(id: string, approvedBy: string): Promise<ActivityType | null> {
+    try {
+      const activity = await Activity.findByIdAndUpdate(
+        id, 
+        { 
+          approvalStatus: 'rejected',
+          approvedBy,
+          approvedAt: new Date()
+        }, 
+        { new: true }
+      );
+      return this.transformDocument(activity);
+    } catch (error) {
+      console.error('Error rejecting activity:', error);
+      throw error;
+    }
   }
 
   async deleteActivity(id: string): Promise<void> {
