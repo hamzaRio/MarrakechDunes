@@ -98,7 +98,6 @@ MarrakechDunes is a production-ready full-stack web application for booking auth
 |----------|----------|-------------|---------|
 | `DATABASE_URL` | Yes | MongoDB connection string | `mongodb+srv://user:pass@cluster.mongodb.net/marrakechdunes` |
 | `SESSION_SECRET` | Yes | Session encryption key (32+ chars) | `your-super-secure-session-secret` |
-| `JWT_SECRET` | Yes | JWT token signing key | `your-jwt-secret-key` |
 | `ADMIN_PASSWORD` | Yes | Admin account password | `Marrakech@2025` |
 | `SUPERADMIN_PASSWORD` | Yes | Super admin password | `Marrakech@1966` |
 | `CLIENT_URL` | Yes | Frontend URL for CORS | `<https://marrakech-dunes.vercel.app>` |

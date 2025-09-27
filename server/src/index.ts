@@ -78,7 +78,7 @@ import csrf from "csurf";
 import { globalLimiter, strictLimiter } from "./rate-limiters.js";
 import { registerRoutes } from "./routes.js";
 import { connectToDatabase } from "./db.js";
-import { globalErrorHandler, notFoundHandler } from "./error-handler.js";
+import { notFoundHandler } from "./error-handler.js";
 import { sessionSecurity } from "./security-middleware.js";
 import sessionRouter from "./routes/session.js";
 
@@ -140,18 +140,18 @@ const csrfProtection = csrf({
 app.set("trust proxy", 1);
 
 // CORS configuration - must be defined BEFORE all other middleware
-const allowedOrigins = [
+const allowedOrigins: (string | RegExp)[] = [
   "http://localhost:5173",
   "https://marrakech-dunes.vercel.app",
+  /\.vercel\.app$/
 ];
 
 app.use(cors({
   origin: (origin, callback) => {
     if (!origin) return callback(null, true); // allow server-to-server or curl
-    if (
-      allowedOrigins.includes(origin) ||
-      /\.vercel\.app$/.test(origin)
-    ) {
+    if (allowedOrigins.some(o => 
+      typeof o === 'string' ? o === origin : o.test(origin)
+    )) {
       return callback(null, true);
     }
     return callback(new Error("CORS not allowed"));
@@ -391,7 +391,7 @@ app.use((req, res, next) => {
     console.log(`[routers] /api/session mounted`);
     log(`🚀 Server started on port ${PORT}`);
     log(`🌍 NODE_ENV: ${process.env.NODE_ENV || 'development'}`);
-    log(`🌐 Allowed CORS origins: ${allowedOrigins.map(o => typeof o === 'object' ? o.toString() : o).join(', ')}`);
+    log(`🌐 Allowed CORS origins: ${allowedOrigins.map(o => typeof o === 'string' ? o : o.toString()).join(', ')}`);
     log(`📁 Assets: Served by frontend (Vercel) at /images/`);
     log(`🔒 Rate limiting: ${isProduction ? '100' : '200'} req/15min (global, auth, admin, general)`);
     log(`🍪 Session cookies: secure=${isProduction}, sameSite=${isProduction ? 'none' : 'lax'}, httpOnly=true`);
