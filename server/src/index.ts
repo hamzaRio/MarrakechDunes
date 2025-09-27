@@ -241,17 +241,25 @@ app.use(cookieParser());
 // CORS already configured at the top of middleware stack
 
 // Session middleware
-// Session middleware
 app.use(session(sessionSecurity));
 
+// CSRF session init route (must be defined BEFORE global CSRF middleware)
+app.get('/api/session/init', (req: Request, res: Response) => {
+  const token = (req as any).csrfToken?.() ?? '';
+  res.setHeader('X-Session-Init', 'new-handler');
+  res
+    .cookie(csrfCookieName, token, csrfCookieOptions)
+    .status(200)
+    .json({ csrfToken: token });
+});
+
 // CSRF protection with double-submit cookie
-// Exclude /api/security-events, /api/auth/* (login, register), and /api/session/init from CSRF
+// Exclude /api/security-events and /api/auth/* (login, register) from CSRF
 const csrfRequired = csrfProtection;
 app.use((req: Request, res: Response, next: NextFunction) => {
   if (
     req.path === "/api/security-events" ||
-    req.path.startsWith("/api/auth") ||
-    req.path === "/api/session/init"
+    req.path.startsWith("/api/auth")
   ) {
     return next();
   }
@@ -292,15 +300,6 @@ const csrfInitRouteProtection = csrf({
     sameSite: isProduction ? 'none' : 'lax',
     path: '/',
   },
-});
-
-app.get('/api/session/init', (req: Request, res: Response) => {
-  const token = (req as any).csrfToken?.() ?? '';
-  res.setHeader('X-Session-Init', 'new-handler');
-  res
-    .cookie(csrfCookieName, token, csrfCookieOptions)
-    .status(200)
-    .json({ csrfToken: token });
 });
 
 // Static assets are now served by frontend (Vercel)
