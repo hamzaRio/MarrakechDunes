@@ -106,6 +106,7 @@ MarrakechDunes/
 ### Environment Variables
 
 #### Backend (Render) - Server Environment
+
 | Variable | Required | Description | Example |
 |----------|----------|-------------|---------|
 | `DATABASE_URL` | Yes | MongoDB connection string | `mongodb+srv://user:pass@cluster.mongodb.net/marrakechdunes` |
@@ -117,6 +118,7 @@ MarrakechDunes/
 | `WHATSAPP_RECEIVERS` | Yes | WhatsApp notification recipients | `212600623630,212693323368` |
 
 #### Frontend (Vercel) - Client Environment
+
 | Variable | Required | Description | Example |
 |----------|----------|-------------|---------|
 | `VITE_API_URL` | Yes | Backend API URL | `https://marrakechdunes-sppy.onrender.com` |
