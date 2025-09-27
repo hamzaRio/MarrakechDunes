@@ -5,9 +5,9 @@ if (!API_URL) {
   if (import.meta.env.MODE === "production") {
     throw new Error("VITE_API_URL is not defined in production build");
   }
-  console.warn("VITE_API_URL missing, defaulting to http://localhost:5000/api");
+  console.warn("VITE_API_URL missing, defaulting to http://localhost:10000/api");
 }
-export const baseURL = API_URL || "http://localhost:5000/api";
+export const baseURL = API_URL || "http://localhost:10000/api";
 
 const CSRF_COOKIE = "marrakech.csrf";
 const CSRF_HEADER = "X-CSRF-Token";

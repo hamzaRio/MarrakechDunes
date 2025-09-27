@@ -141,24 +141,27 @@ const csrfProtection = csrf({
 app.set("trust proxy", 1);
 
 // CORS configuration - must be defined BEFORE all other middleware
-const allowedOrigins: (string | RegExp)[] = [
+const allowedOrigins = [
   "http://localhost:5173",
-  "https://marrakech-dunes.vercel.app",
-  /\.vercel\.app$/
+  "https://marrakech-dunes.vercel.app"
 ];
 
-app.use(cors({
+const corsOptions: cors.CorsOptions = {
   origin: (origin, callback) => {
-    if (!origin) return callback(null, true); // allow server-to-server or curl
-    if (allowedOrigins.some(o => 
-      typeof o === 'string' ? o === origin : o.test(origin)
-    )) {
+    if (!origin) return callback(null, true); // SSR, Postman, mobile
+    if (
+      allowedOrigins.includes(origin) ||
+      /^https:\/\/.*\.vercel\.app$/.test(origin)
+    ) {
       return callback(null, true);
     }
+    console.warn("Blocked CORS origin:", origin);
     return callback(new Error("CORS not allowed"));
   },
-  credentials: true
-}));
+  credentials: true,
+};
+
+app.use(cors(corsOptions));
 
 // Security middleware with CORS-friendly configuration and map support
 app.use(helmet({
@@ -373,6 +376,7 @@ app.use((req, res, next) => {
   // Global error handler (must be last)
   app.use((err: any, req: Request, res: Response, next: NextFunction) => {
     console.error("Unhandled error:", err);
+    console.error("Stack trace:", err.stack);
     res.status(500).json({
       error: "Internal server error",
       details: err.message,
@@ -392,7 +396,7 @@ app.use((req, res, next) => {
     console.log(`[routers] /api/session mounted`);
     log(`🚀 Server started on port ${PORT}`);
     log(`🌍 NODE_ENV: ${process.env.NODE_ENV || 'development'}`);
-    log(`🌐 Allowed CORS origins: ${allowedOrigins.map(o => typeof o === 'string' ? o : o.toString()).join(', ')}`);
+    log(`🌐 Allowed CORS origins: ${allowedOrigins.join(', ')}`);
     log(`📁 Assets: Served by frontend (Vercel) at /images/`);
     log(`🔒 Rate limiting: ${isProduction ? '100' : '200'} req/15min (global, auth, admin, general)`);
     log(`🍪 Session cookies: secure=${isProduction}, sameSite=${isProduction ? 'none' : 'lax'}, httpOnly=true`);
