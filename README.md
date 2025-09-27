@@ -9,8 +9,10 @@ A full-stack web application for booking desert adventures and activities in Mar
 - **Admin Dashboard**: Comprehensive management system for bookings, activities, and analytics
 - **Multi-language Support**: English and French language support
 - **Responsive Design**: Mobile-first design optimized for all devices
-- **Payment Integration**: Secure payment processing for bookings
+- **Cash Payment System**: Simple cash-only payment for easy customer experience
 - **Analytics Dashboard**: Performance metrics and booking analytics
+- **AI-Ready Architecture**: Prepared for GetYourGuide integration and competitive pricing
+- **Production Deployment**: Optimized for Render (backend) and Vercel (frontend)
 
 ## 🚀 Quick Start
 
@@ -87,7 +89,7 @@ MarrakechDunes/
 2. Set build command: `npm run build:client`
 3. Set output directory: `client/dist`
 4. Add environment variables:
-   - `VITE_API_URL`: Your backend API URL
+   - `VITE_API_URL`: `https://marrakechdunes-sppy.onrender.com`
 
 ### Backend (Render)
 
@@ -98,6 +100,7 @@ MarrakechDunes/
 
 ### Environment Variables
 
+#### Backend (Render) - Server Environment
 | Variable | Required | Description | Example |
 |----------|----------|-------------|---------|
 | `DATABASE_URL` | Yes | MongoDB connection string | `mongodb+srv://user:pass@cluster.mongodb.net/marrakechdunes` |
@@ -105,9 +108,22 @@ MarrakechDunes/
 | `SESSION_SECRET` | Yes | Session encryption key (32+ chars) | `your-super-secure-session-secret` |
 | `ADMIN_PASSWORD` | Yes | Admin account password | `Marrakech@2025` |
 | `SUPERADMIN_PASSWORD` | Yes | Super admin password | `Marrakech@1966` |
-| `CLIENT_URL` | Yes | Frontend URL for CORS | `<https://marrakech-dunes.vercel.app>` |
-| `VITE_API_URL` | Yes | Backend API URL | `<https://marrakechdunes.onrender.com>` |
+| `CLIENT_URL` | Yes | Frontend URL for CORS | `https://marrakech-dunes.vercel.app` |
 | `WHATSAPP_RECEIVERS` | Yes | WhatsApp notification recipients | `212600623630,212693323368` |
+
+#### Frontend (Vercel) - Client Environment
+| Variable | Required | Description | Example |
+|----------|----------|-------------|---------|
+| `VITE_API_URL` | Yes | Backend API URL | `https://marrakechdunes-sppy.onrender.com` |
+
+### Deployment Features
+
+- ✅ **CORS Configuration**: Properly configured for production domains
+- ✅ **Static Assets**: Served by Vercel from `/images/` directory
+- ✅ **Error Handling**: User-friendly error messages with retry functionality
+- ✅ **API Routing**: All endpoints under `/api/` prefix
+- ✅ **Security**: Rate limiting, CSRF protection, and secure sessions
+- ✅ **Logging**: Comprehensive error logging and CORS monitoring
 
 ## 🏗️ Project Structure
 
@@ -185,6 +201,28 @@ MarrakechDunes/
 - Performance metrics
 - User behavior analysis
 - System health monitoring
+
+## 🤖 AI-Powered Competitive Pricing (Future)
+
+The application is architected to support AI-powered competitive pricing:
+
+### Market Intelligence
+- **GetYourGuide Integration**: Real-time competitor price monitoring
+- **Dynamic Pricing**: AI-driven price optimization based on market data
+- **Competitive Analysis**: Automatic market position analysis
+- **Price Alerts**: Smart notifications for market opportunities
+
+### Admin Features
+- **One-Click Optimization**: Automatic price adjustment for all activities
+- **Market Insights**: Real-time competitor analysis and recommendations
+- **Performance Metrics**: AI-driven business intelligence
+- **Smart Alerts**: Automated market opportunity notifications
+
+### Customer Experience
+- **Price Comparison**: Clear savings display vs competitors
+- **Value Proposition**: "Best price guaranteed" messaging
+- **Smart Recommendations**: AI-powered activity suggestions
+- **Dynamic Offers**: Seasonal and demand-based pricing
 
 ## 🤝 Contributing
 
