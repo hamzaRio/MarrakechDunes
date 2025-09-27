@@ -25,28 +25,33 @@ A full-stack web application for booking desert adventures and activities in Mar
 ### Installation
 
 1. **Clone the repository**
+
    ```bash
    git clone https://github.com/hamzaRio/MarrakechDunes.git
    cd MarrakechDunes
    ```
 
 2. **Install dependencies**
+
    ```bash
    npm install
    ```
 
 3. **Set up environment variables**
+
    ```bash
    cp .env.example .env
    # Edit .env with your configuration
    ```
 
 4. **Build the project**
+
    ```bash
    npm run build
    ```
 
 5. **Start the development server**
+
    ```bash
    npm run dev
    ```
