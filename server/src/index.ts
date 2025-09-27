@@ -245,12 +245,13 @@ app.use(cookieParser());
 app.use(session(sessionSecurity));
 
 // CSRF protection with double-submit cookie
-// Exclude /api/security-events and /api/auth/* (login, register) from CSRF
+// Exclude /api/security-events, /api/auth/* (login, register), and /api/session/init from CSRF
 const csrfRequired = csrfProtection;
 app.use((req: Request, res: Response, next: NextFunction) => {
   if (
     req.path === "/api/security-events" ||
-    req.path.startsWith("/api/auth")
+    req.path.startsWith("/api/auth") ||
+    req.path === "/api/session/init"
   ) {
     return next();
   }
