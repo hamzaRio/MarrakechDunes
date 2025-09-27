@@ -589,11 +589,11 @@ class MongoStorage implements IStorage {
             price: "200",
             currency: "MAD",
             imageUrls: [
-              "activities/ouzoud/Cascades_d'Ouzoud_008.JPG",
-              "activities/ouzoud/Cascades_d'Ouzoud_014.JPG",
-              "activities/ouzoud/Cascades_d'Ouzoud_018.JPG",
-              "Ouzoud-Waterfalls_1751126328233.jpg",
-              "Ouzoud-Waterfalls3_1751126328233.jpg"
+              "ouzoud_waterfalls_majestic_cliffs.jpg",
+              "ouzoud_barbary_macaques_family.jpg",
+              "ouzoud_waterfalls_artistic_flow.jpg",
+              "ouzoud_panoramic_tourist_activity.jpg",
+              "ouzoud_canyon_grand_view.jpg"
             ],
             category: "Nature",
             isActive: true,
