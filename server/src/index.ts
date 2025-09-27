@@ -1,6 +1,5 @@
 ﻿import { fileURLToPath } from "url";
-import path, { join } from "path";
-import fs from "fs";
+import path from "path";
 import dotenvFlow from 'dotenv-flow';
 import { validateProductionEnvironment, getSecurityRecommendations } from './production-validator.js';
 import { config as serverEnv } from './env.js';
@@ -226,8 +225,6 @@ app.use((_, res, next) => {
 
 // Static assets moved to frontend - no longer served from backend
 // All images are now served from client/public/images/ by Vercel
-console.log(`[static] Asset serving disabled - images served by frontend at /images/`);
-
 const jsonBodyParser = express.json();
 const urlencodedBodyParser = express.urlencoded({ extended: false });
 
@@ -339,8 +336,6 @@ app.use((req, res, next) => {
 
   // Mount session router BEFORE other routes
   app.use("/api/session", sessionRouter);
-  console.log("âœ… Session router mounted at /api/session");
-
   const server = await registerRoutes(app);
 
   // Health check endpoints
