@@ -542,8 +542,11 @@ class MongoStorage implements IStorage {
             price: "450",
             currency: "MAD",
             imageUrls: [
-              "agafaypack1_1751128022717.jpeg",
-              "agafaypack2_1751128022717.jpeg"
+              "agafay_desert_camp_bonfire.jpg",
+              "agafay_berber_truck.jpg",
+              "agafay_sunset_archway.jpg",
+              "agafay_sunset_pool_heart.jpg",
+              "agafay_atv_adventure.jpg"
             ],
             category: "Adventure",
             isActive: true,
@@ -566,8 +569,7 @@ class MongoStorage implements IStorage {
               "Essaouira Day Trip1_1751124502666.jpg",
               "Essaouira day trip 3_1751122022832.jpg",
               "Essaouira day trip 4_1751122022833.jpg",
-              "Essaouira Day Trip_1751122022833.jpg",
-              "Essaouira Day Trip2_1751122022833.jpg"
+              "Essaouira Day Trip_1751122022833.jpg"
             ],
             category: "Day Trips",
             isActive: true,
@@ -589,7 +591,9 @@ class MongoStorage implements IStorage {
             imageUrls: [
               "activities/ouzoud/Cascades_d'Ouzoud_008.JPG",
               "activities/ouzoud/Cascades_d'Ouzoud_014.JPG",
-              "activities/ouzoud/Cascades_d'Ouzoud_018.JPG"
+              "activities/ouzoud/Cascades_d'Ouzoud_018.JPG",
+              "Ouzoud-Waterfalls_1751126328233.jpg",
+              "Ouzoud-Waterfalls3_1751126328233.jpg"
             ],
             category: "Nature",
             isActive: true,
@@ -612,8 +616,7 @@ class MongoStorage implements IStorage {
               "ourika valley3_1751114166832.jpg",
               "Ourika-Valley-day-trip-from-Marrakech_1756485141180.jpg",
               "ourika-valley-1_1756485141180.jpeg",
-              "ourika-valley-marrakech_1756485141180.jpg",
-              "ourika valley3_1756485141179.jpg"
+              "ourika-valley-marrakech_1756485141180.jpg"
             ],
             category: "Day Trips",
             isActive: true,
