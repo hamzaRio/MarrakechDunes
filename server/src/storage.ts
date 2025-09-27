@@ -33,13 +33,30 @@ const activitySchema = new mongoose.Schema({
   imageUrls: { type: [String], required: true, default: [] },
   category: { type: String, required: true },
   isActive: { type: Boolean, default: true },
-  approvalStatus: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
+  approvalStatus: { 
+    type: String, 
+    enum: ['pending', 'approved', 'rejected'], 
+    default: 'pending'
+  },
   approvedBy: { type: String },
   approvedAt: { type: Date },
+  approvalHistory: [{
+    status: { 
+      type: String,
+      enum: ['pending', 'approved', 'rejected']
+    },
+    approvedBy: String,
+    approvedAt: Date,
+    reason: String
+  }],
+  isSeeded: {
+    type: Boolean,
+    default: false
+  },
   seasonalPricing: { type: mongoose.Schema.Types.Mixed },
   getyourguidePrice: { type: Number },
   availability: { type: String },
-  duration: { type: String },
+  duration: { type: String }
 }, { timestamps: true });
 
 const bookingSchema = new mongoose.Schema({
@@ -198,19 +215,24 @@ class MongoStorage implements IStorage {
 
   // Activity operations
 
-  async getActivities(): Promise<ActivityType[]> {
+  async getActivities(options = { includeSeeded: true }): Promise<ActivityType[]> {
     try {
-      // Public endpoint - only return approved and active activities
-      const activities = await Activity.find({ 
-        isActive: true, 
-        approvalStatus: 'approved'
-      });
+      const query = {
+        isActive: true,
+        $or: [
+          { approvalStatus: 'approved' },
+          ...(options.includeSeeded ? [{ isSeeded: true }] : [])
+        ]
+      };
+      
+      const activities = await Activity.find(query);
       return activities.map(activity => this.transformDocument(activity));
     } catch (error) {
       console.error('Error fetching activities:', error);
       throw error;
     }
   }
+
 
   async getPendingActivities(): Promise<ActivityType[]> {
     try {
@@ -270,17 +292,22 @@ class MongoStorage implements IStorage {
     return this.transformDocument(activity);
   }
 
-  async approveActivity(id: string, approvedBy: string): Promise<ActivityType | null> {
+  async approveActivity(id: string, approvedBy: string, reason: string = 'Activity approved'): Promise<ActivityType | null> {
     try {
-      const activity = await Activity.findByIdAndUpdate(
-        id, 
-        { 
-          approvalStatus: 'approved',
-          approvedBy,
-          approvedAt: new Date()
-        }, 
-        { new: true }
-      );
+      const activity = await Activity.findById(id);
+      if (!activity) return null;
+
+      activity.approvalStatus = 'approved';
+      activity.approvedBy = approvedBy;
+      activity.approvedAt = new Date();
+      activity.approvalHistory.push({
+        status: 'approved',
+        approvedBy,
+        approvedAt: new Date(),
+        reason
+      });
+
+      await activity.save();
       return this.transformDocument(activity);
     } catch (error) {
       console.error('Error approving activity:', error);
@@ -481,10 +508,9 @@ class MongoStorage implements IStorage {
         }
       }
 
-      // Skip activity seeding - use existing database with authentic photos
-      const activityCount = await Activity.countDocuments();
-      console.log(`Found ${activityCount} existing activities in database`);
-      if (activityCount === 0) {
+      // Only seed if no seeded activities exist
+      const existingSeeded = await Activity.findOne({ isSeeded: true });
+      if (!existingSeeded) {
         // Seed with unique images per activity from assets
         const activities = [
           {
@@ -501,6 +527,13 @@ class MongoStorage implements IStorage {
             category: "Adventure",
             isActive: true,
             approvalStatus: 'approved',
+            isSeeded: true,
+            approvalHistory: [{
+              status: 'approved',
+              approvedBy: 'system',
+              approvedAt: new Date(),
+              reason: 'Initial seeding'
+            }],
             availability: "Daily at sunrise (6:00 AM)"
           },
           {
@@ -515,6 +548,13 @@ class MongoStorage implements IStorage {
             category: "Adventure",
             isActive: true,
             approvalStatus: 'approved',
+            isSeeded: true,
+            approvalHistory: [{
+              status: 'approved',
+              approvedBy: 'system',
+              approvedAt: new Date(),
+              reason: 'Initial seeding'
+            }],
             availability: "Daily departures"
           },
           {
@@ -532,6 +572,13 @@ class MongoStorage implements IStorage {
             category: "Day Trips",
             isActive: true,
             approvalStatus: 'approved',
+            isSeeded: true,
+            approvalHistory: [{
+              status: 'approved',
+              approvedBy: 'system',
+              approvedAt: new Date(),
+              reason: 'Initial seeding'
+            }],
             availability: "Daily 8:00 AM - 7:00 PM"
           },
           {
@@ -547,6 +594,13 @@ class MongoStorage implements IStorage {
             category: "Nature",
             isActive: true,
             approvalStatus: 'approved',
+            isSeeded: true,
+            approvalHistory: [{
+              status: 'approved',
+              approvedBy: 'system',
+              approvedAt: new Date(),
+              reason: 'Initial seeding'
+            }],
             availability: "Daily 8:00 AM - 6:00 PM"
           },
           {
@@ -564,6 +618,13 @@ class MongoStorage implements IStorage {
             category: "Day Trips",
             isActive: true,
             approvalStatus: 'approved',
+            isSeeded: true,
+            approvalHistory: [{
+              status: 'approved',
+              approvedBy: 'system',
+              approvedAt: new Date(),
+              reason: 'Initial seeding'
+            }],
             availability: "Daily 9:00 AM - 5:00 PM"
           }
         ];
