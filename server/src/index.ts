@@ -293,7 +293,7 @@ const csrfInitRouteProtection = csrf({
   },
 });
 
-app.get('/api/session/init', csrfInitRouteProtection, (req: Request, res: Response) => {
+app.get('/api/session/init', (req: Request, res: Response) => {
   const token = (req as any).csrfToken?.() ?? '';
   res.setHeader('X-Session-Init', 'new-handler');
   res
