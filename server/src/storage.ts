@@ -519,10 +519,10 @@ class MongoStorage implements IStorage {
             price: "1100",
             currency: "MAD",
             imageUrls: [
-              "/assets/montgolfiere-marrakech_1751127701687.jpg",
-              "/assets/montgofliere_a_marrakech_1751127701687.jpg",
-              "/assets/Hot Air Balloon Ride2_1751127701686.jpg",
-              "/assets/Hot Air Balloon Ride3_1751127701686.jpg"
+              "montgolfiere-marrakech_1751127701687.jpg",
+              "montgofliere_a_marrakech_1751127701687.jpg",
+              "Hot Air Balloon Ride2_1751127701686.jpg",
+              "Hot Air Balloon Ride3_1751127701686.jpg"
             ],
             category: "Adventure",
             isActive: true,
@@ -542,8 +542,8 @@ class MongoStorage implements IStorage {
             price: "450",
             currency: "MAD",
             imageUrls: [
-              "/assets/agafaypack1_1751128022717.jpeg",
-              "/assets/agafaypack2_1751128022717.jpeg"
+              "agafaypack1_1751128022717.jpeg",
+              "agafaypack2_1751128022717.jpeg"
             ],
             category: "Adventure",
             isActive: true,
@@ -563,11 +563,11 @@ class MongoStorage implements IStorage {
             price: "200",
             currency: "MAD",
             imageUrls: [
-              "/assets/Essaouira Day Trip1_1751124502666.jpg",
-              "/assets/Essaouira day trip 3_1751122022832.jpg",
-              "/assets/Essaouira day trip 4_1751122022833.jpg",
-              "/assets/Essaouira Day Trip_1751122022833.jpg",
-              "/assets/Essaouira Day Trip2_1751122022833.jpg"
+              "Essaouira Day Trip1_1751124502666.jpg",
+              "Essaouira day trip 3_1751122022832.jpg",
+              "Essaouira day trip 4_1751122022833.jpg",
+              "Essaouira Day Trip_1751122022833.jpg",
+              "Essaouira Day Trip2_1751122022833.jpg"
             ],
             category: "Day Trips",
             isActive: true,
@@ -587,9 +587,9 @@ class MongoStorage implements IStorage {
             price: "200",
             currency: "MAD",
             imageUrls: [
-              "/assets/activities/ouzoud/Cascades_d'Ouzoud_008.JPG",
-              "/assets/activities/ouzoud/Cascades_d'Ouzoud_014.JPG",
-              "/assets/activities/ouzoud/Cascades_d'Ouzoud_018.JPG"
+              "activities/ouzoud/Cascades_d'Ouzoud_008.JPG",
+              "activities/ouzoud/Cascades_d'Ouzoud_014.JPG",
+              "activities/ouzoud/Cascades_d'Ouzoud_018.JPG"
             ],
             category: "Nature",
             isActive: true,
@@ -609,11 +609,11 @@ class MongoStorage implements IStorage {
             price: "150",
             currency: "MAD",
             imageUrls: [
-              "/assets/ourika valley3_1751114166832.jpg",
-              "/assets/Ourika-Valley-day-trip-from-Marrakech_1756485141180.jpg",
-              "/assets/ourika-valley-1_1756485141180.jpeg",
-              "/assets/ourika-valley-marrakech_1756485141180.jpg",
-              "/assets/ourika valley3_1756485141179.jpg"
+              "ourika valley3_1751114166832.jpg",
+              "Ourika-Valley-day-trip-from-Marrakech_1756485141180.jpg",
+              "ourika-valley-1_1756485141180.jpeg",
+              "ourika-valley-marrakech_1756485141180.jpg",
+              "ourika valley3_1756485141179.jpg"
             ],
             category: "Day Trips",
             isActive: true,
