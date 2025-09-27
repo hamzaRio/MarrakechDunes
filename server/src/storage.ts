@@ -519,10 +519,11 @@ class MongoStorage implements IStorage {
             price: "1100",
             currency: "MAD",
             imageUrls: [
-              "montgolfiere-marrakech_1751127701687.jpg",
-              "montgofliere_a_marrakech_1751127701687.jpg",
-              "Hot Air Balloon Ride2_1751127701686.jpg",
-              "Hot Air Balloon Ride3_1751127701686.jpg"
+              "montgolfiere_balloon_inflation_dawn.jpg",
+              "montgolfiere_aerial_desert_landscape.jpg",
+              "montgolfiere_single_balloon_flight.jpg",
+              "montgolfiere_balloon_preparation_ground.jpg",
+              "montgolfiere_multiple_balloons_ascending.jpg"
             ],
             category: "Adventure",
             isActive: true,
