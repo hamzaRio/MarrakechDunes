@@ -1,4 +1,4 @@
-import { fileURLToPath } from "url";
+﻿import { fileURLToPath } from "url";
 import path, { join } from "path";
 import fs from "fs";
 import dotenvFlow from 'dotenv-flow';
@@ -18,14 +18,14 @@ try {
     silent: true // Don't error if .env files are missing in production
   });
 } catch (error) {
-  console.log('📝 Note: .env files not found (expected in production Docker deployment)');
+  console.log('ðŸ“ Note: .env files not found (expected in production Docker deployment)');
 }
 
 // Debug: Check if environment variables are loaded
-console.log('🔧 Environment loading check:');
-console.log('  DATABASE_URL:', process.env.DATABASE_URL ? '✅ LOADED' : '❌ NOT FOUND');
+console.log('ðŸ”§ Environment loading check:');
+console.log('  DATABASE_URL:', process.env.DATABASE_URL ? 'âœ… LOADED' : 'âŒ NOT FOUND');
 console.log('  NODE_ENV:', process.env.NODE_ENV || 'not set');
-console.log('  SESSION_SECRET:', process.env.SESSION_SECRET ? '✅ LOADED' : '❌ NOT FOUND');
+console.log('  SESSION_SECRET:', process.env.SESSION_SECRET ? 'âœ… LOADED' : 'âŒ NOT FOUND');
 
 // Environment variables should be loaded by dotenv-flow above
 
@@ -54,18 +54,18 @@ if (process.env.NODE_ENV === 'production' && process.env.SESSION_SECRET && proce
 // Production environment validation
 const envValidation = validateProductionEnvironment();
 if (!envValidation.isValid) {
-  console.error('❌ Environment validation failed');
+  console.error('âŒ Environment validation failed');
   if (process.env.NODE_ENV === 'production') {
     process.exit(1);
   } else {
-    console.log('⚠️ Continuing in development mode with warnings');
+    console.log('âš ï¸ Continuing in development mode with warnings');
   }
 }
 
 // Security recommendations
 if (process.env.NODE_ENV === 'production') {
-  console.log('🔒 Security recommendations:');
-  getSecurityRecommendations().forEach(rec => console.log(`  • ${rec}`));
+  console.log('ðŸ”’ Security recommendations:');
+  getSecurityRecommendations().forEach(rec => console.log(`  â€¢ ${rec}`));
 }
 
 // Now import modules that depend on environment variables
@@ -157,7 +157,7 @@ const corsOptions: cors.CorsOptions = {
     
     // Automatically allow ALL Vercel preview URLs
     if (origin && origin.match(/^https:\/\/marrakech-dunes-.*\.vercel\.app$/)) {
-      console.log("✅ Allowing Vercel preview URL:", origin);
+      console.log("âœ… Allowing Vercel preview URL:", origin);
       return callback(null, true);
     }
     
@@ -167,13 +167,13 @@ const corsOptions: cors.CorsOptions = {
         const pattern = allowedOrigin.replace(/\*/g, '.*');
         const regex = new RegExp(`^${pattern}$`);
         if (origin && regex.test(origin)) {
-          console.log("✅ Allowing wildcard origin:", origin, "matches pattern:", allowedOrigin);
+          console.log("âœ… Allowing wildcard origin:", origin, "matches pattern:", allowedOrigin);
           return callback(null, true);
         }
       }
     }
     
-    console.warn("❌ Blocked CORS origin:", origin);
+    console.warn("âŒ Blocked CORS origin:", origin);
     return callback(new Error("CORS not allowed for this origin: " + origin));
   },
   credentials: true,
@@ -333,7 +333,7 @@ app.use((req, res, next) => {
       }
 
       if (logLine.length > 80) {
-        logLine = logLine.slice(0, 79) + "…";
+        logLine = logLine.slice(0, 79) + "â€¦";
       }
 
       log(logLine);
@@ -344,12 +344,12 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  // ✅ Connect to MongoDB before starting the server
+  // âœ… Connect to MongoDB before starting the server
   await connectToDatabase();
 
   // Mount session router BEFORE other routes
   app.use("/api/session", sessionRouter);
-  console.log("✅ Session router mounted at /api/session");
+  console.log("âœ… Session router mounted at /api/session");
 
   const server = await registerRoutes(app);
 
@@ -412,17 +412,15 @@ app.use((req, res, next) => {
     console.log(`[server] listening on ${PORT}`);
     console.log(`[assets] Static assets served by frontend at /images/`);
     console.log(`[routers] /api/session mounted`);
-    log(`🚀 Server started on port ${PORT}`);
-    log(`🌍 NODE_ENV: ${process.env.NODE_ENV || 'development'}`);
-    log(`🌐 Allowed CORS origins: ${allowedOrigins.join(', ')}`);
-    log(`📁 Assets: Served by frontend (Vercel) at /images/`);
-    log(`🔒 Rate limiting: ${isProduction ? '100' : '200'} req/15min (global, auth, admin, general)`);
-    log(`🍪 Session cookies: secure=${isProduction}, sameSite=${isProduction ? 'none' : 'lax'}, httpOnly=true`);
-    log(`📡 Server URL: http://localhost:${PORT}`);
-    log(`🔧 Trust proxy: ${app.get('trust proxy')}`);
-    log(`🔑 Session secret: ${process.env.SESSION_SECRET ? '✅ SET' : '❌ NOT SET'}`);
-    log(`🌐 CLIENT_URL: ${process.env.CLIENT_URL || 'not set'}`);
+    log(`ðŸš€ Server started on port ${PORT}`);
+    log(`ðŸŒ NODE_ENV: ${process.env.NODE_ENV || 'development'}`);
+    log(`ðŸŒ Allowed CORS origins: ${allowedOrigins.join(', ')}`);
+    log(`ðŸ“ Assets: Served by frontend (Vercel) at /images/`);
+    log(`ðŸ”’ Rate limiting: ${isProduction ? '100' : '200'} req/15min (global, auth, admin, general)`);
+    log(`ðŸª Session cookies: secure=${isProduction}, sameSite=${isProduction ? 'none' : 'lax'}, httpOnly=true`);
+    log(`ðŸ“¡ Server URL: http://localhost:${PORT}`);
+    log(`ðŸ”§ Trust proxy: ${app.get('trust proxy')}`);
+    log(`ðŸ”‘ Session secret: ${process.env.SESSION_SECRET ? 'âœ… SET' : 'âŒ NOT SET'}`);
+    log(`ðŸŒ CLIENT_URL: ${process.env.CLIENT_URL || 'not set'}`);
   });
 })();
-/ /   C S R F   f i x   a p p l i e d   -   s e s s i o n   i n i t   r o u t e   w i t h o u t   C S R F   p r o t e c t i o n  
- 
