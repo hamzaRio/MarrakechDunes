@@ -1,15 +1,25 @@
-// Static assets are now served from client/public/images
-// All images are available at /images/ path (served by Vercel/frontend)
+// Assets can be served from either Vercel (/images/) or Render (/assets/)
+const getAssetsBase = () => {
+  const base = import.meta.env.VITE_ASSETS_BASE as string | undefined;
+  if (base?.trim()) {
+    // Remove trailing slash if present
+    return base.trim().replace(/\/$/, '');
+  }
+  return '/images'; // Fallback to local images
+};
 
 export function assetUrl(path: string): string {
   if (!path) return "";
   
-  // Clean the path - remove leading slashes and any attached_assets prefix
-  let clean = path.replace(/^\/+/, "");
-  clean = clean.replace(/^attached_assets\//, "");
+  // Clean the path
+  let clean = path.replace(/^\/+/, ""); // Remove leading slashes
+  clean = clean.replace(/^(assets|attached_assets|images)\//, ""); // Remove any prefix
   
-  // Return path relative to public directory (served by Vercel)
-  return `/images/${clean}`;
+  // Get base URL from environment
+  const base = getAssetsBase();
+  
+  // Return full URL
+  return `${base}/${clean}`;
 }
 
 // Helper function for background images in CSS
@@ -17,10 +27,8 @@ export function assetCssUrl(path: string): string {
   return `url('${assetUrl(path)}')`;
 }
 
-// Legacy function for backward compatibility
-export const ASSETS_BASE = () => "/images";
-
-// Helper to get specific activity images
+// Helper to get specific activity images with error handling
 export function getActivityImage(filename: string): string {
-  return assetUrl(filename);
+  const url = assetUrl(filename);
+  return url;
 }

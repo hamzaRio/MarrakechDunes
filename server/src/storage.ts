@@ -514,7 +514,7 @@ class MongoStorage implements IStorage {
         // Seed with unique images per activity from assets
         const activities = [
           {
-            name: "MontgolfiÃ¨re (Hot Air Balloon)",
+            name: "Montgolfière (Hot Air Balloon)",
             description: "Experience the magic of Marrakech from above with a sunrise hot air balloon ride over the Atlas Mountains and traditional Berber villages.",
             price: "1100",
             currency: "MAD",

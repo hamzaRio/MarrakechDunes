@@ -1,13 +1,30 @@
 import axios from 'axios';
 
+// Get API URL from environment
 const API_URL = import.meta.env.VITE_API_URL as string | undefined;
-if (!API_URL) {
-  if (import.meta.env.MODE === "production") {
-    throw new Error("VITE_API_URL is not defined in production build");
+
+// Validate and clean API URL
+function getApiBaseUrl(): string {
+  if (!API_URL) {
+    if (import.meta.env.MODE === "production") {
+      throw new Error("VITE_API_URL is not defined in production build");
+    }
+    console.warn("VITE_API_URL missing, defaulting to http://localhost:10000/api");
+    return "http://localhost:10000/api";
   }
-  console.warn("VITE_API_URL missing, defaulting to http://localhost:10000/api");
+
+  // Remove trailing slash if present
+  let cleanUrl = API_URL.replace(/\/$/, '');
+  
+  // Ensure URL ends with /api
+  if (!cleanUrl.endsWith('/api')) {
+    cleanUrl = `${cleanUrl}/api`;
+  }
+
+  return cleanUrl;
 }
-export const baseURL = API_URL || "http://localhost:10000/api";
+
+export const baseURL = getApiBaseUrl();
 
 const CSRF_COOKIE = "marrakech.csrf";
 const CSRF_HEADER = "X-CSRF-Token";
