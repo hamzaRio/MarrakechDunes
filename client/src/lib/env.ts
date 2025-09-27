@@ -9,6 +9,7 @@ for (const envVar of criticalFrontendEnvVars) {
   }
 }
 
+// In production, VITE_API_URL should point to https://marrakechdunes-sppy.onrender.com
 const apiUrl = (import.meta.env.VITE_API_URL || '').trim();
 if (!apiUrl) {
   throw new Error('VITE_API_URL must be defined');
@@ -16,7 +17,8 @@ if (!apiUrl) {
 
 export const API_URL = apiUrl;
 
-const ASSETS_BASE = '/images'; // Static assets served from client/public/images
+// Static assets are served from client/public/images
+const ASSETS_BASE = '/images';
 
 export function asset(p: string) {
   const cleanPath = String(p).replace(/^[\\/]/, '');

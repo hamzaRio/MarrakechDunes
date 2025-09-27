@@ -2,7 +2,6 @@
 
 const required = [
   "DATABASE_URL",
-  "JWT_SECRET",
   "SESSION_SECRET",
   "CLIENT_URL",
   "ADMIN_PASSWORD",
@@ -17,15 +16,12 @@ for (const key of required) {
 
 export const config = {
   databaseUrl: process.env.DATABASE_URL!,
-  jwtSecret: process.env.JWT_SECRET!,
   sessionSecret: process.env.SESSION_SECRET!,
   clientUrl: process.env.CLIENT_URL!,
   adminPassword: process.env.ADMIN_PASSWORD!,
   superAdminPassword: process.env.SUPERADMIN_PASSWORD!,
   port: parseInt(process.env.PORT || "10000", 10),
   nodeEnv: process.env.NODE_ENV || "development",
-  mapProvider: process.env.MAP_PROVIDER || "iframe",
-  leafletEnabled: (process.env.LEAFLET_ENABLED || "false").toLowerCase() === "true",
 };
 
 // Startup log

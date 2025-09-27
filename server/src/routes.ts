@@ -233,7 +233,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }));
 
   // Simple health alias
-  app.get('/health', asyncHandler(async (_req: Request, res: Response) => {
+  app.get('/api/health/check', asyncHandler(async (_req: Request, res: Response) => {
     res.status(200).json({ status: 'healthy' });
   }));
 
@@ -882,51 +882,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Object storage routes for activity image uploads
-  app.get("/public-objects/:filePath", async (req, res) => {
-    const filePath = req.params.filePath;
-    const { ObjectStorageService } = await import("./objectStorage.js");
-    const objectStorageService = new ObjectStorageService();
-    try {
-      const file = await objectStorageService.searchPublicObject(filePath);
-      if (!file) {
-        return res.status(404).json({ 
-          status: 'error',
-          message: "File not found",
-          code: 'FILE_NOT_FOUND',
-          timestamp: new Date().toISOString(),
-          path: req.path,
-          method: req.method
-        });
-      }
-      objectStorageService.downloadObject(file, res);
-    } catch (error) {
-      console.error("Error searching for public object:", error);
-      return res.status(500).json({ 
-        status: 'error',
-        message: "Internal server error",
-        code: 'INTERNAL_SERVER_ERROR',
-        timestamp: new Date().toISOString(),
-        path: req.path,
-        method: req.method
-      });
-    }
-  });
-
-  app.get("/objects/:objectPath", async (req, res) => {
-    const { ObjectStorageService, ObjectNotFoundError } = await import("./objectStorage.js");
-    const objectStorageService = new ObjectStorageService();
-    try {
-      const objectFile = await objectStorageService.getObjectEntityFile(`/objects/${req.params.objectPath}`);
-      objectStorageService.downloadObject(objectFile, res);
-    } catch (error) {
-      console.error("Error serving object:", error);
-      if (error instanceof ObjectNotFoundError) {
-        return res.sendStatus(404);
-      }
-      return res.sendStatus(500);
-    }
-  });
+  // Static assets are now served by frontend (Vercel)
+  // Object storage routes removed - all images now served from client/public/images
 
   app.post("/api/objects/upload", adminSecurityMiddleware, async (req, res) => {
     const { ObjectStorageService } = await import("./objectStorage.js");

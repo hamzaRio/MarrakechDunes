@@ -27,9 +27,39 @@ export async function apiFetch<T = any>(
   path: string,
   opts?: { method?: 'GET'|'POST'|'PUT'|'PATCH'|'DELETE'; data?: any; params?: any }
 ): Promise<T> {
-  const method = (opts?.method || 'GET').toLowerCase() as any;
-  const res = await api.request<T>({ url: path, method, data: opts?.data, params: opts?.params });
-  return res.data;
+  try {
+    const method = (opts?.method || 'GET').toLowerCase() as any;
+    const res = await api.request<T>({ url: path, method, data: opts?.data, params: opts?.params });
+    return res.data;
+  } catch (error) {
+    console.error(`API Error (${path}):`, error);
+    // Show user-friendly error message
+    const errorMessage = document.createElement('div');
+    errorMessage.className = 'api-error-toast';
+    errorMessage.textContent = 'Server error – please try again later';
+    errorMessage.style.cssText = `
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: #f44336;
+      color: white;
+      padding: 16px 24px;
+      border-radius: 4px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+      z-index: 9999;
+    `;
+    document.body.appendChild(errorMessage);
+    
+    // Remove after 5 seconds
+    setTimeout(() => {
+      if (errorMessage.parentNode) {
+        errorMessage.parentNode.removeChild(errorMessage);
+      }
+    }, 5000);
+    
+    throw error; // Re-throw to allow component-specific error handling
+  }
 }
 
 export async function sessionInit() {

@@ -36,7 +36,6 @@ const criticalEnvVars = [
   'ADMIN_PASSWORD', 
   'SUPERADMIN_PASSWORD',
   'SESSION_SECRET',
-  'JWT_SECRET',
   'CLIENT_URL'
 ];
 
@@ -140,6 +139,26 @@ const csrfProtection = csrf({
 // Set trust proxy at the top before any middleware
 app.set("trust proxy", 1);
 
+// CORS configuration - must be defined BEFORE all other middleware
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://marrakech-dunes.vercel.app",
+];
+
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true); // allow server-to-server or curl
+    if (
+      allowedOrigins.includes(origin) ||
+      /\.vercel\.app$/.test(origin)
+    ) {
+      return callback(null, true);
+    }
+    return callback(new Error("CORS not allowed"));
+  },
+  credentials: true
+}));
+
 // Security middleware with CORS-friendly configuration and map support
 app.use(helmet({
   crossOriginResourcePolicy: false, // Disable helmet's CORS policy to allow our custom headers
@@ -197,25 +216,7 @@ app.use(urlencodedBodyParser);
 // Enable cookie parsing
 app.use(cookieParser());
 
-// CORS configuration - must be defined BEFORE routes
-const allowedOrigins = [
-  "http://localhost:5173",
-  "https://marrakech-dunes.vercel.app",
-  /https:\/\/.*\.vercel\.app$/ // allow all preview deployments
-];
-
-app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin || allowedOrigins.some(o =>
-      o instanceof RegExp ? o.test(origin) : o === origin
-    )) {
-      callback(null, true);
-    } else {
-      callback(new Error("CORS not allowed"));
-    }
-  },
-  credentials: true
-}));
+// CORS already configured at the top of middleware stack
 
 // Session middleware
 // Session middleware
@@ -255,9 +256,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 
 
 
-// Health
-app.get("/health", (_req, res) => res.status(200).send("OK"));
-// Render expects /api/health
+// Health endpoint - Render expects /api/health
 app.get("/api/health", (_req, res) => res.status(200).json({ status: "ok" }));
 
 // CSRF session init route (must be defined before session router)
@@ -281,18 +280,7 @@ app.get('/api/session/init', csrfInitRouteProtection, (req: Request, res: Respon
     .json({ csrfToken: token });
 });
 
-// Serve static client files
-const publicPath = join(__dirname, "public");
-app.use(express.static(publicPath, {
-  setHeaders: (res, path) => {
-    // Add caching headers for client assets
-    if (path && path.match(/\.(css|js)$/i)) {
-      res.setHeader("Cache-Control", "public, max-age=86400"); // 1 day cache for CSS/JS
-    } else if (path && path.match(/\.(html)$/i)) {
-      res.setHeader("Cache-Control", "public, max-age=3600"); // 1 hour cache for HTML
-    }
-  }
-}));
+// Static assets are now served by frontend (Vercel)
 
 // Apply global rate limiting AFTER static assets
 app.use(globalLimiter);
@@ -344,7 +332,7 @@ app.use((req, res, next) => {
   const server = await registerRoutes(app);
 
   // Health check endpoints
-  app.get('/', (req, res) => {
+  app.get('/api', (req, res) => {
     res.json({ 
       status: 'healthy', 
       service: 'MarrakechDunes API',
@@ -353,7 +341,7 @@ app.use((req, res, next) => {
     });
   });
 
-  app.get('/health', (req, res) => {
+  app.get('/api/health/status', (req, res) => {
     res.json({
       status: "healthy",
       service: "MarrakechDunes API",
@@ -364,7 +352,7 @@ app.use((req, res, next) => {
   });
 
   // Handle favicon.ico requests to prevent 404 errors
-  app.get('/favicon.ico', (req, res) => {
+  app.get('/api/favicon.ico', (req, res) => {
     res.status(204).end();
   });
 
@@ -372,17 +360,23 @@ app.use((req, res, next) => {
   // API 404 handler for undefined routes
   app.use('/api/*', notFoundHandler);
 
-  // SPA fallback - serve index.html for all non-API routes
+  // API 404 handler for non-API routes
   app.get('*', (req, res) => {
-    // Static assets no longer served by backend
     if (req.path.startsWith('/api')) {
       return res.status(404).json({ error: 'API endpoint not found' });
     }
-    res.sendFile(join(__dirname, 'public/index.html'));
+    // For non-API routes, return 404 as backend no longer serves frontend
+    return res.status(404).json({ error: 'Not found - frontend is served by Vercel' });
   });
 
   // Global error handler (must be last)
-  app.use(globalErrorHandler);
+  app.use((err, req, res, next) => {
+    console.error("Unhandled error:", err);
+    res.status(500).json({
+      error: "Internal server error",
+      details: err.message,
+    });
+  });
 
   // Note: Frontend is served by Vercel, backend only serves API and static assets
   // Deployment trigger: Final production deployment with session routes fixed
