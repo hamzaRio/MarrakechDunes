@@ -18,7 +18,7 @@ A full-stack web application for booking desert adventures and activities in Mar
 
 ### Prerequisites
 
-- Node.js 18+ 
+- Node.js 18+
 - MongoDB Atlas account
 - Git
 
