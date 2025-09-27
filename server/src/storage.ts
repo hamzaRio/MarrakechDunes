@@ -500,6 +500,7 @@ class MongoStorage implements IStorage {
             ],
             category: "Adventure",
             isActive: true,
+            approvalStatus: 'approved',
             availability: "Daily at sunrise (6:00 AM)"
           },
           {
@@ -513,6 +514,7 @@ class MongoStorage implements IStorage {
             ],
             category: "Adventure",
             isActive: true,
+            approvalStatus: 'approved',
             availability: "Daily departures"
           },
           {
@@ -529,6 +531,7 @@ class MongoStorage implements IStorage {
             ],
             category: "Day Trips",
             isActive: true,
+            approvalStatus: 'approved',
             availability: "Daily 8:00 AM - 7:00 PM"
           },
           {
@@ -543,6 +546,7 @@ class MongoStorage implements IStorage {
             ],
             category: "Nature",
             isActive: true,
+            approvalStatus: 'approved',
             availability: "Daily 8:00 AM - 6:00 PM"
           },
           {
@@ -559,6 +563,7 @@ class MongoStorage implements IStorage {
             ],
             category: "Day Trips",
             isActive: true,
+            approvalStatus: 'approved',
             availability: "Daily 9:00 AM - 5:00 PM"
           }
         ];
