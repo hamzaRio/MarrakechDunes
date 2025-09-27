@@ -175,7 +175,7 @@ export const securityHeaders = helmet({
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
       imgSrc: ["'self'", "data:", "https:", "blob:", "https://www.openstreetmap.org", "https://tile.openstreetmap.org", "https://*.tile.openstreetmap.org", "https://images.unsplash.com", "https://*.unsplash.com"],
       scriptSrc: ["'self'", "'unsafe-eval'"],
-      connectSrc: ["'self'", "https://marrakechdunes.onrender.com", "https://api.whatsapp.com"],
+      connectSrc: ["'self'", "https://marrakechdunes-sppy.onrender.com", "https://api.whatsapp.com"],
       frameSrc: ["'self'", "https://www.openstreetmap.org"],
       objectSrc: ["'none'"],
       upgradeInsecureRequests: [],

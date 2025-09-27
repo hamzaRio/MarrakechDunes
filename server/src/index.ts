@@ -149,10 +149,31 @@ const allowedOrigins = process.env.CLIENT_URL?.split(",") || [
 const corsOptions: cors.CorsOptions = {
   origin: (origin, callback) => {
     if (!origin) return callback(null, true); // SSR, Postman, mobile
+    
+    // Check exact matches first
     if (allowedOrigins.includes(origin)) {
       return callback(null, true);
     }
-    console.warn("Blocked CORS origin:", origin);
+    
+    // Automatically allow ALL Vercel preview URLs
+    if (origin && origin.match(/^https:\/\/marrakech-dunes-.*\.vercel\.app$/)) {
+      console.log("✅ Allowing Vercel preview URL:", origin);
+      return callback(null, true);
+    }
+    
+    // Handle wildcard patterns in CLIENT_URL (for other domains)
+    for (const allowedOrigin of allowedOrigins) {
+      if (allowedOrigin.includes('*')) {
+        const pattern = allowedOrigin.replace(/\*/g, '.*');
+        const regex = new RegExp(`^${pattern}$`);
+        if (origin && regex.test(origin)) {
+          console.log("✅ Allowing wildcard origin:", origin, "matches pattern:", allowedOrigin);
+          return callback(null, true);
+        }
+      }
+    }
+    
+    console.warn("❌ Blocked CORS origin:", origin);
     return callback(new Error("CORS not allowed for this origin: " + origin));
   },
   credentials: true,
