@@ -60,7 +60,7 @@ A full-stack web application for booking desert adventures and activities in Mar
 
 ### Project Structure
 
-```
+```text
 MarrakechDunes/
 ├── client/                 # React frontend
 │   ├── src/
@@ -154,6 +154,7 @@ MarrakechDunes/
 ## 🛠️ Technology Stack
 
 ### Frontend
+
 - **React 18** - UI framework
 - **TypeScript** - Type safety
 - **Vite** - Build tool
@@ -162,6 +163,7 @@ MarrakechDunes/
 - **React Router** - Routing
 
 ### Backend
+
 - **Node.js** - Runtime
 - **Express** - Web framework
 - **TypeScript** - Type safety
@@ -170,6 +172,7 @@ MarrakechDunes/
 - **JWT** - Authentication
 
 ### DevOps
+
 - **Docker** - Containerization
 - **Vercel** - Frontend hosting
 - **Render** - Backend hosting
@@ -178,6 +181,7 @@ MarrakechDunes/
 ## 📱 Features
 
 ### User Features
+
 - Browse desert activities and tours
 - Real-time booking system
 - Multi-language support (EN/FR)
@@ -185,6 +189,7 @@ MarrakechDunes/
 - WhatsApp integration for notifications
 
 ### Admin Features
+
 - Comprehensive dashboard
 - Booking management
 - Activity management
@@ -214,18 +219,21 @@ MarrakechDunes/
 The application is architected to support AI-powered competitive pricing:
 
 ### Market Intelligence
+
 - **GetYourGuide Integration**: Real-time competitor price monitoring
 - **Dynamic Pricing**: AI-driven price optimization based on market data
 - **Competitive Analysis**: Automatic market position analysis
 - **Price Alerts**: Smart notifications for market opportunities
 
-### Admin Features
+### AI Admin Features
+
 - **One-Click Optimization**: Automatic price adjustment for all activities
 - **Market Insights**: Real-time competitor analysis and recommendations
 - **Performance Metrics**: AI-driven business intelligence
 - **Smart Alerts**: Automated market opportunity notifications
 
 ### Customer Experience
+
 - **Price Comparison**: Clear savings display vs competitors
 - **Value Proposition**: "Best price guaranteed" messaging
 - **Smart Recommendations**: AI-powered activity suggestions
@@ -245,7 +253,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🆘 Support
 
-For support, email support@marrakechdunes.com or create an issue in the repository.
+For support, email [support@marrakechdunes.com](mailto:support@marrakechdunes.com) or create an issue in the repository.
 
 ## 🙏 Acknowledgments
 
@@ -256,4 +264,4 @@ For support, email support@marrakechdunes.com or create an issue in the reposito
 
 ---
 
-**Made with ❤️ in Marrakech, Morocco**
+## Made with ❤️ in Marrakech, Morocco
