@@ -613,10 +613,11 @@ class MongoStorage implements IStorage {
             price: "150",
             currency: "MAD",
             imageUrls: [
-              "ourika valley3_1751114166832.jpg",
-              "Ourika-Valley-day-trip-from-Marrakech_1756485141180.jpg",
-              "ourika-valley-1_1756485141180.jpeg",
-              "ourika-valley-marrakech_1756485141180.jpg"
+              "ourika_valley_riverside_cafes.jpg",
+              "ourika_valley_berber_village.jpg",
+              "ourika_valley_terraced_fields_waterfalls.jpg",
+              "ourika_valley_donkey_ride.jpg",
+              "ourika_valley_argan_oil_cooperative.jpg"
             ],
             category: "Day Trips",
             isActive: true,
