@@ -519,11 +519,11 @@ class MongoStorage implements IStorage {
             price: "1100",
             currency: "MAD",
             imageUrls: [
-              "montgolfiere_balloon_inflation_dawn.jpg",
-              "montgolfiere_aerial_desert_landscape.jpg",
-              "montgolfiere_single_balloon_flight.jpg",
-              "montgolfiere_balloon_preparation_ground.jpg",
-              "montgolfiere_multiple_balloons_ascending.jpg"
+              "Hot Air Balloon Ride1.jpg",
+              "Hot Air Balloon Ride2.jpg",
+              "Hot Air Balloon Ride3.jpg",
+              "montgofliere_a_marrakech.jpg",
+              "montgolfiere-marrakech.jpg"
             ],
             category: "Adventure",
             isActive: true,
@@ -543,11 +543,11 @@ class MongoStorage implements IStorage {
             price: "450",
             currency: "MAD",
             imageUrls: [
-              "agafay_desert_camp_bonfire.jpg",
-              "agafay_berber_truck.jpg",
-              "agafay_sunset_archway.jpg",
-              "agafay_sunset_pool_heart.jpg",
-              "agafay_atv_adventure.jpg"
+              "agafaypack.jpeg",
+              "agafaypack1.jpeg",
+              "agafaypack2.jpeg",
+              "agafaypack3.jpeg",
+              "agafaypack7.jpeg"
             ],
             category: "Adventure",
             isActive: true,
@@ -570,7 +570,8 @@ class MongoStorage implements IStorage {
               "Essaouira Day Trip1_1751124502666.jpg",
               "Essaouira day trip 3_1751122022832.jpg",
               "Essaouira day trip 4_1751122022833.jpg",
-              "Essaouira Day Trip_1751122022833.jpg"
+              "Essaouira Day Trip_1751122022833.jpg",
+              "Essaouira Day Trip2_1751122022833.jpg"
             ],
             category: "Day Trips",
             isActive: true,
@@ -590,11 +591,11 @@ class MongoStorage implements IStorage {
             price: "200",
             currency: "MAD",
             imageUrls: [
-              "ouzoud_waterfalls_majestic_cliffs.jpg",
-              "ouzoud_barbary_macaques_family.jpg",
-              "ouzoud_waterfalls_artistic_flow.jpg",
-              "ouzoud_panoramic_tourist_activity.jpg",
-              "ouzoud_canyon_grand_view.jpg"
+              "Cascades_d'Ouzoud_008.JPG",
+              "ouzoud waterfalls 2.jpg",
+              "Ouzoud-Waterfalls.jpg",
+              "Ouzoud-Waterfalls3.jpg",
+              "Ouzoud-Waterfalls4.JPG"
             ],
             category: "Nature",
             isActive: true,
@@ -614,11 +615,10 @@ class MongoStorage implements IStorage {
             price: "150",
             currency: "MAD",
             imageUrls: [
-              "ourika_valley_riverside_cafes.jpg",
-              "ourika_valley_berber_village.jpg",
-              "ourika_valley_terraced_fields_waterfalls.jpg",
-              "ourika_valley_donkey_ride.jpg",
-              "ourika_valley_argan_oil_cooperative.jpg"
+              "Ourika Valley Day Trip.jpg",
+              "Ourika Valley Day Trip1.jpg",
+              "ourika valley3.jpg",
+              "Ourika-Valley-day-trip-from-Marrakech.jpg"
             ],
             category: "Day Trips",
             isActive: true,
