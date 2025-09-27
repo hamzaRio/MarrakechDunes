@@ -141,7 +141,7 @@ const csrfProtection = csrf({
 app.set("trust proxy", 1);
 
 // CORS configuration - must be defined BEFORE all other middleware
-const allowedOrigins = [
+const allowedOrigins = process.env.CLIENT_URL?.split(",") || [
   "http://localhost:5173",
   "https://marrakech-dunes.vercel.app"
 ];
@@ -149,14 +149,11 @@ const allowedOrigins = [
 const corsOptions: cors.CorsOptions = {
   origin: (origin, callback) => {
     if (!origin) return callback(null, true); // SSR, Postman, mobile
-    if (
-      allowedOrigins.includes(origin) ||
-      /^https:\/\/.*\.vercel\.app$/.test(origin)
-    ) {
+    if (allowedOrigins.includes(origin)) {
       return callback(null, true);
     }
     console.warn("Blocked CORS origin:", origin);
-    return callback(new Error("CORS not allowed"));
+    return callback(new Error("CORS not allowed for this origin: " + origin));
   },
   credentials: true,
 };
@@ -286,7 +283,7 @@ app.get('/api/session/init', csrfInitRouteProtection, (req: Request, res: Respon
 
 // Static assets are now served by frontend (Vercel)
 
-// Apply global rate limiting AFTER static assets
+// Apply global rate limiting BEFORE routes but AFTER CORS and security middleware
 app.use(globalLimiter);
 
 // Logging middleware
