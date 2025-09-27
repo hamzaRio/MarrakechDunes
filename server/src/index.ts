@@ -254,12 +254,13 @@ app.get('/api/session/init', (req: Request, res: Response) => {
 });
 
 // CSRF protection with double-submit cookie
-// Exclude /api/security-events and /api/auth/* (login, register) from CSRF
+// Exclude /api/security-events, /api/auth/*, and /api/session/init from CSRF
 const csrfRequired = csrfProtection;
 app.use((req: Request, res: Response, next: NextFunction) => {
   if (
     req.path === "/api/security-events" ||
-    req.path.startsWith("/api/auth")
+    req.path.startsWith("/api/auth") ||
+    req.path === "/api/session/init"  // Add session init route exclusion
   ) {
     return next();
   }
@@ -290,17 +291,6 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 // Health endpoint - Render expects /api/health
 app.get("/api/health", (_req, res) => res.status(200).json({ status: "ok" }));
 
-// CSRF session init route (must be defined before session router)
-// High-priority CSRF init route: always 200 JSON + cookie, cannot be shadowed
-const csrfInitRouteProtection = csrf({
-  cookie: {
-    key: csrfCookieName,
-    httpOnly: false,
-    secure: isProduction,
-    sameSite: isProduction ? 'none' : 'lax',
-    path: '/',
-  },
-});
 
 // Static assets are now served by frontend (Vercel)
 
