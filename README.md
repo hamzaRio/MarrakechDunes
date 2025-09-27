@@ -1,102 +1,107 @@
-# MarrakechDunes - Moroccan Adventure Booking Platform
+# 🏜️ MarrakechDunes - Desert Adventure Booking Platform
 
-## 🏜️ Overview
+A full-stack web application for booking desert adventures and activities in Marrakech, Morocco. Built with React, TypeScript, Node.js, and MongoDB.
 
-MarrakechDunes is a production-ready full-stack web application for booking authentic Moroccan desert adventures and experiences. Built with modern technologies and designed for scalability, performance, and security.
+## ✨ Features
 
-### 🌟 Features
-
-- **Activity Management**: Browse and book authentic Moroccan experiences
-- **Admin Dashboard**: Manage activities, bookings, and reviews
-- **Payment Integration**: Secure payment processing with Stripe
-- **WhatsApp Integration**: Automated notifications and support
-- **Multi-language Support**: English and French localization
-- **Responsive Design**: Mobile-first approach with modern UI
-- **File Upload**: Secure image upload with AWS S3 integration
-
-## 🛠️ Tech Stack
-
-### Frontend
-
-- **React 18** with TypeScript
-- **Vite** for fast development and building
-- **Tailwind CSS** for styling
-- **Radix UI** for accessible components
-- **React Query** for data fetching
-- **Wouter** for routing
-- **React Hook Form** with Zod validation
-- **Uppy** for file uploads
-
-### Backend
-
-- **Node.js** with Express.js
-- **TypeScript** for type safety
-- **MongoDB** with Mongoose ODM
-- **Express Session** with MongoDB store
-- **Helmet** for security headers
-- **CORS** for cross-origin requests
-- **Rate Limiting** for API protection
-- **Circuit Breakers** for resilience
-
-### Infrastructure
-
-- **Vercel** for frontend deployment
-- **Render** for backend hosting
-- **MongoDB Atlas** for database
-- **AWS S3** for file storage
-- **Stripe** for payments
+- **Activity Management**: Browse and book desert adventures, hot air balloon rides, and cultural tours
+- **Real-time Booking**: Instant booking confirmation with WhatsApp notifications
+- **Admin Dashboard**: Comprehensive management system for bookings, activities, and analytics
+- **Multi-language Support**: English and French language support
+- **Responsive Design**: Mobile-first design optimized for all devices
+- **Payment Integration**: Secure payment processing for bookings
+- **Analytics Dashboard**: Performance metrics and booking analytics
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 
-- Node.js 18+
-- npm 9+
+- Node.js 18+ 
 - MongoDB Atlas account
-- AWS S3 bucket (for file uploads)
-- Stripe account (for payments)
+- Git
 
-### Local Development
+### Installation
 
 1. **Clone the repository**
-
    ```bash
    git clone https://github.com/hamzaRio/MarrakechDunes.git
    cd MarrakechDunes
    ```
 
 2. **Install dependencies**
-
    ```bash
    npm install
    ```
 
 3. **Set up environment variables**
-
    ```bash
-   # Copy the example file
-   cp env.production.example .env.local
-   
-   # Edit .env.local with your values
-   nano .env.local
+   cp .env.example .env
+   # Edit .env with your configuration
    ```
 
-4. **Start development servers**
+4. **Build the project**
+   ```bash
+   npm run build
+   ```
 
+5. **Start the development server**
    ```bash
    npm run dev
    ```
 
-   This will start:
+## 🔧 Development
 
-   - Frontend: <http://localhost:5173>
-   - Backend: <http://localhost:10000>
+### Project Structure
+
+```
+MarrakechDunes/
+├── client/                 # React frontend
+│   ├── src/
+│   │   ├── components/     # React components
+│   │   ├── pages/         # Page components
+│   │   ├── lib/           # Utilities and API
+│   │   └── locales/       # Translation files
+├── server/                 # Node.js backend
+│   ├── src/
+│   │   ├── routes/        # API routes
+│   │   ├── config/        # Configuration
+│   │   └── utils/         # Server utilities
+├── shared/                 # Shared TypeScript types
+└── docs/                   # Documentation
+```
+
+### Available Scripts
+
+- `npm run dev` - Start development servers
+- `npm run build` - Build for production
+- `npm run build:client` - Build frontend only
+- `npm run build:server` - Build backend only
+- `npm run test` - Run tests
+- `npm run lint` - Run linter
+
+## 🌐 Deployment
+
+### Frontend (Vercel)
+
+1. Connect your GitHub repository to Vercel
+2. Set build command: `npm run build:client`
+3. Set output directory: `client/dist`
+4. Add environment variables:
+   - `VITE_API_URL`: Your backend API URL
+
+### Backend (Render)
+
+1. Connect your GitHub repository to Render
+2. Set build command: `npm run build:server`
+3. Set start command: `cd server && npm start`
+4. Add environment variables (see below)
 
 ### Environment Variables
 
 | Variable | Required | Description | Example |
 |----------|----------|-------------|---------|
 | `DATABASE_URL` | Yes | MongoDB connection string | `mongodb+srv://user:pass@cluster.mongodb.net/marrakechdunes` |
+| `JWT_SECRET` | Yes | JWT token signing key | `your-jwt-secret-key` |
 | `SESSION_SECRET` | Yes | Session encryption key (32+ chars) | `your-super-secure-session-secret` |
 | `ADMIN_PASSWORD` | Yes | Admin account password | `Marrakech@2025` |
 | `SUPERADMIN_PASSWORD` | Yes | Super admin password | `Marrakech@1966` |
@@ -111,96 +116,99 @@ MarrakechDunes/
 ├── client/                 # React frontend
 │   ├── src/
 │   │   ├── components/     # React components
-│   │   ├── pages/          # Page components
-│   │   ├── hooks/          # Custom React hooks
-│   │   ├── lib/            # Utilities and API client
-│   │   └── test/           # Test files
-│   ├── public/             # Static assets
-│   └── vercel.json         # Vercel configuration
-├── server/                 # Express backend
+│   │   ├── pages/         # Page components
+│   │   ├── lib/           # Utilities and API
+│   │   └── locales/       # Translation files
+├── server/                 # Node.js backend
 │   ├── src/
-│   │   ├── routes/         # API routes
-│   │   ├── security/       # Security middleware
-│   │   └── types/          # TypeScript types
-│   └── attached_assets/    # Server-served assets
-├── shared/                 # Shared schemas and types
-├── scripts/                # Deployment and testing scripts
-└── render.yaml             # Render deployment config
+│   │   ├── routes/        # API routes
+│   │   ├── config/        # Configuration
+│   │   └── utils/         # Server utilities
+├── shared/                 # Shared TypeScript types
+└── docs/                   # Documentation
 ```
 
-## 🧪 Testing
+## 🛠️ Technology Stack
 
-### Unit Tests
+### Frontend
+- **React 18** - UI framework
+- **TypeScript** - Type safety
+- **Vite** - Build tool
+- **Tailwind CSS** - Styling
+- **React Query** - Data fetching
+- **React Router** - Routing
 
-```bash
-npm run test
-```
+### Backend
+- **Node.js** - Runtime
+- **Express** - Web framework
+- **TypeScript** - Type safety
+- **MongoDB** - Database
+- **Mongoose** - ODM
+- **JWT** - Authentication
 
-### End-to-End Tests
+### DevOps
+- **Docker** - Containerization
+- **Vercel** - Frontend hosting
+- **Render** - Backend hosting
+- **MongoDB Atlas** - Database hosting
 
-```bash
-npm run test:e2e
-```
+## 📱 Features
 
-### Manual Testing Checklist
+### User Features
+- Browse desert activities and tours
+- Real-time booking system
+- Multi-language support (EN/FR)
+- Mobile-responsive design
+- WhatsApp integration for notifications
 
-- [ ] Frontend loads without white screen
-- [ ] API endpoints respond correctly
-- [ ] File uploads work
-- [ ] Payment processing functions
-- [ ] WhatsApp notifications sent
-- [ ] Admin dashboard accessible
-- [ ] Mobile responsiveness
-
-## 🚀 Deployment
-
-### Frontend (Vercel)
-
-1. **Connect repository** to Vercel
-2. **Set environment variables** in Vercel dashboard:
-   - `VITE_API_URL`: Your Render backend URL
-3. **Deploy** automatically on push to main
-
-### Backend (Render)
-
-1. **Connect repository** to Render
-2. **Configure service**:
-   - Build Command: `cd server && npm install && npm run build`
-   - Start Command: `cd server && npm start`
-   - Environment: Node
-3. **Set environment variables** in Render dashboard:
-   - All variables from the table above
-4. **Deploy** automatically on push to main
+### Admin Features
+- Comprehensive dashboard
+- Booking management
+- Activity management
+- Analytics and reporting
+- User management
+- Performance monitoring
 
 ## 🔒 Security
 
-### Production Security Checklist
+- JWT-based authentication
+- Secure session management
+- CORS protection
+- Rate limiting
+- Input validation
+- SQL injection prevention
 
-- [ ] **Environment Variables**: All secrets stored in deployment platforms
-- [ ] **HTTPS**: All traffic encrypted
-- [ ] **CORS**: Properly configured for production domains
-- [ ] **Rate Limiting**: API endpoints protected
-- [ ] **Input Validation**: All inputs validated with Zod
-- [ ] **Session Security**: Secure cookies with proper settings
-- [ ] **CSP Headers**: Content Security Policy configured
-- [ ] **Dependencies**: Regular security audits with `npm audit`
+## 📊 Analytics
 
-### Security Headers
+- Booking conversion rates
+- Revenue tracking
+- Performance metrics
+- User behavior analysis
+- System health monitoring
 
-The application includes comprehensive security headers via Helmet:
+## 🤝 Contributing
 
-- Content Security Policy (CSP)
-- HTTP Strict Transport Security (HSTS)
-- X-Frame-Options
-- X-Content-Type-Options
-- XSS Protection
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests if applicable
+5. Submit a pull request
 
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
+## 🆘 Support
+
+For support, email support@marrakechdunes.com or create an issue in the repository.
+
+## 🙏 Acknowledgments
+
+- React team for the amazing framework
+- MongoDB for the database solution
+- Vercel and Render for hosting platforms
+- The open-source community
+
 ---
 
-## Acknowledgments
-
-Built with ❤️ for authentic Moroccan experiences
+**Made with ❤️ in Marrakech, Morocco**

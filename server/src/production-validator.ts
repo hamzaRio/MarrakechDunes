@@ -2,6 +2,7 @@
 export function validateProductionEnvironment() {
   const requiredEnvVars = [
     'DATABASE_URL',
+    'JWT_SECRET',
     'SESSION_SECRET',
     'ADMIN_PASSWORD',
     'SUPERADMIN_PASSWORD',

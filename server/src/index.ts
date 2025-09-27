@@ -33,6 +33,7 @@ console.log('  SESSION_SECRET:', process.env.SESSION_SECRET ? '‚úÖ LOADED' : '‚ù
 // Strict environment validation - all critical variables must be set
 const criticalEnvVars = [
   'DATABASE_URL',
+  'JWT_SECRET',
   'ADMIN_PASSWORD', 
   'SUPERADMIN_PASSWORD',
   'SESSION_SECRET',

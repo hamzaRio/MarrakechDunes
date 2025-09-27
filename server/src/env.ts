@@ -2,6 +2,7 @@
 
 const required = [
   "DATABASE_URL",
+  "JWT_SECRET",
   "SESSION_SECRET",
   "CLIENT_URL",
   "ADMIN_PASSWORD",
@@ -16,6 +17,7 @@ for (const key of required) {
 
 export const config = {
   databaseUrl: process.env.DATABASE_URL!,
+  jwtSecret: process.env.JWT_SECRET!,
   sessionSecret: process.env.SESSION_SECRET!,
   clientUrl: process.env.CLIENT_URL!,
   adminPassword: process.env.ADMIN_PASSWORD!,
@@ -50,4 +52,3 @@ try {
 } catch (e) {
   console.warn("[Env] Self-test failed (unexpected):", e);
 }
-
