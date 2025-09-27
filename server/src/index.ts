@@ -424,3 +424,5 @@ app.use((req, res, next) => {
     log(`🌐 CLIENT_URL: ${process.env.CLIENT_URL || 'not set'}`);
   });
 })();
+/ /   C S R F   f i x   a p p l i e d   -   s e s s i o n   i n i t   r o u t e   w i t h o u t   C S R F   p r o t e c t i o n  
+ 
