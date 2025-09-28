@@ -56,7 +56,8 @@
     "@uppy/core": "^4.5.3",
     "@uppy/dashboard": "^4.4.3",
     "@uppy/react": "^4.5.2",
-    "@uppy/aws-s3": "^4.3.2"
+    "@uppy/aws-s3": "^4.3.2",
+    "@uppy/drag-drop": "^4.2.2"
   },
   "devDependencies": {
     "@types/react": "^18.3.11",

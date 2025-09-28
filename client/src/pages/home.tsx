@@ -369,12 +369,12 @@ export default function Home() {
               <div className="group cursor-pointer" onClick={() => window.location.href = '/activities'}>
                 <div className="relative overflow-hidden rounded-2xl shadow-lg group-hover:shadow-xl transition-shadow duration-300">
                   <img
-                    src={asset("Hot Air Balloon Ride2_1751127701686.jpg")}
+                    src={asset("Hot Air Balloon Ride2.jpg")}
                     alt={t('home.popular.cards.balloon.alt')}
                     className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300"
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
-                      target.src = asset("montgofliere_a_marrakech_1751127701687.jpg");
+                      target.src = asset("montgofliere_a_marrakech.jpg");
                     }}
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
@@ -388,12 +388,12 @@ export default function Home() {
               <div className="group cursor-pointer" onClick={() => window.location.href = '/activities'}>
                 <div className="relative overflow-hidden rounded-2xl shadow-lg group-hover:shadow-xl transition-shadow duration-300">
                   <img
-                    src={asset("agafaypack1_1751128022717.jpeg")}
+                    src={asset("agafaypack1.jpeg")}
                     alt={t('home.popular.cards.agafay.alt')}
                     className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300"
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
-                      target.src = asset("agafaypack2_1751128022717.jpeg");
+                      target.src = asset("agafaypack2.jpeg");
                     }}
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
