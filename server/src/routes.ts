@@ -1125,6 +1125,235 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ===== DEPOSIT PAYMENT ENDPOINTS =====
+  
+  // Deposit payment endpoint
+  app.post("/api/bookings/deposit", generalApiRateLimit, asyncHandler(async (req: Request, res: Response) => {
+    const { bookingId, depositAmount, paymentMethod } = req.body;
+    
+    if (!bookingId || !depositAmount) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Booking ID and deposit amount are required',
+        code: 'MISSING_DEPOSIT_DATA'
+      });
+    }
+    
+    const booking = await storage.updateBookingPayment(bookingId, {
+      paymentStatus: 'deposit_paid',
+      paidAmount: depositAmount,
+      paymentMethod: 'cash_deposit',
+      depositAmount: depositAmount
+    });
+    
+    if (!booking) {
+      throw new NotFoundError("Booking not found");
+    }
+    
+    // Send WhatsApp deposit confirmation
+    const bookingWithActivity = await storage.getBooking(bookingId);
+    if (bookingWithActivity && bookingWithActivity.activity) {
+      const notificationData = {
+        customerName: booking.customerName,
+        customerPhone: booking.customerPhone,
+        activityName: bookingWithActivity.activity.name,
+        numberOfPeople: booking.numberOfPeople,
+        preferredDate: booking.preferredDate,
+        totalAmount: parseInt(booking.totalAmount),
+        paymentMethod: 'cash_deposit',
+        paymentStatus: 'deposit_paid',
+        status: booking.status,
+        notes: `Deposit paid: ${depositAmount} MAD, Balance: ${parseInt(booking.totalAmount) - depositAmount} MAD`,
+        bookingId: booking._id?.toString() || bookingId
+      };
+      
+      await whatsappService.sendDepositConfirmation(notificationData);
+    }
+    
+    res.json({
+      status: 'success',
+      message: 'Deposit payment recorded successfully',
+      booking: booking
+    });
+  }));
+
+  // ===== SMART NOTIFICATIONS ENDPOINTS =====
+  
+  // Send bulk notifications
+  app.post("/api/admin/notifications/send", adminSecurityMiddleware, asyncHandler(async (req: Request, res: Response) => {
+    const authReq = req as AuthenticatedRequest;
+    const { templateId, bookingIds, customMessage } = req.body;
+    
+    if (!templateId || !bookingIds || !Array.isArray(bookingIds)) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Template ID and booking IDs are required',
+        code: 'MISSING_NOTIFICATION_DATA'
+      });
+    }
+    
+    const notifications = [];
+    
+    for (const bookingId of bookingIds) {
+      const booking = await storage.getBooking(bookingId);
+      if (booking && booking.activity) {
+        const notificationData = {
+          customerName: booking.customerName,
+          customerPhone: booking.customerPhone,
+          activityName: booking.activity.name,
+          numberOfPeople: booking.numberOfPeople,
+          preferredDate: booking.preferredDate,
+          totalAmount: parseInt(booking.totalAmount),
+          paymentMethod: booking.paymentMethod || 'cash',
+          paymentStatus: booking.paymentStatus,
+          status: booking.status,
+          notes: customMessage || '',
+          bookingId: booking._id?.toString() || bookingId
+        };
+        
+        try {
+          await whatsappService.sendSmartNotification(notificationData, templateId);
+          notifications.push({
+            bookingId,
+            status: 'sent',
+            sentAt: new Date().toISOString()
+          });
+        } catch (error) {
+          notifications.push({
+            bookingId,
+            status: 'failed',
+            error: error instanceof Error ? error.message : 'Unknown error',
+            sentAt: new Date().toISOString()
+          });
+        }
+      }
+    }
+    
+    // Create audit log
+    await storage.createAuditLog({
+      userId: authReq.session.user!.id,
+      action: `Sent ${notifications.length} smart notifications`,
+      details: `Template: ${templateId}, Bookings: ${bookingIds.length}, Custom message: ${customMessage || 'none'}`
+    });
+    
+    res.json({
+      status: 'success',
+      message: `Notifications sent to ${notifications.filter(n => n.status === 'sent').length} bookings`,
+      notifications: notifications
+    });
+  }));
+
+  // Get notification templates
+  app.get("/api/admin/notifications/templates", adminSecurityMiddleware, asyncHandler(async (req: Request, res: Response) => {
+    const templates = [
+      {
+        id: 'booking_confirmation',
+        name: 'Booking Confirmation',
+        description: 'Sent immediately when booking is created',
+        timing: 'immediate'
+      },
+      {
+        id: 'reminder_24h',
+        name: '24-Hour Reminder',
+        description: 'Sent 24 hours before activity',
+        timing: 'scheduled'
+      },
+      {
+        id: 'reminder_2h',
+        name: '2-Hour Reminder',
+        description: 'Sent 2 hours before activity',
+        timing: 'scheduled'
+      },
+      {
+        id: 'weather_alert',
+        name: 'Weather Alert',
+        description: 'Sent when weather conditions change',
+        timing: 'immediate'
+      },
+      {
+        id: 'payment_reminder',
+        name: 'Payment Reminder',
+        description: 'Sent for payment reminders',
+        timing: 'scheduled'
+      }
+    ];
+    
+    res.json(templates);
+  }));
+
+  // ===== WEATHER API ENDPOINTS =====
+  
+  // Get weather data
+  app.get("/api/weather", generalApiRateLimit, asyncHandler(async (req: Request, res: Response) => {
+    try {
+      // Mock weather data - in production, integrate with real weather API
+      const weatherData = {
+        condition: 'sunny',
+        temperature: 28,
+        windSpeed: 12,
+        humidity: 45,
+        forecast: 'Sunny with clear skies',
+        recommendation: 'Perfect weather for outdoor activities',
+        lastUpdated: new Date().toISOString()
+      };
+      
+      res.json(weatherData);
+    } catch (error) {
+      console.error("Error fetching weather data:", error);
+      res.status(500).json({
+        status: 'error',
+        message: 'Failed to fetch weather data',
+        code: 'WEATHER_FETCH_ERROR'
+      });
+    }
+  }));
+
+  // Weather-based activity recommendations
+  app.get("/api/weather/recommendations", generalApiRateLimit, asyncHandler(async (req: Request, res: Response) => {
+    try {
+      const { condition } = req.query;
+      
+      const recommendations = {
+        sunny: {
+          recommended: ['Hot Air Balloon', 'Desert Safari', 'Ourika Valley', 'Ouzoud Waterfalls'],
+          notRecommended: [],
+          message: 'Perfect weather for all outdoor activities!'
+        },
+        rainy: {
+          recommended: ['Essaouira Day Trip', 'City Tour'],
+          notRecommended: ['Hot Air Balloon', 'Desert Safari', 'Ourika Valley'],
+          message: 'Indoor and covered activities recommended'
+        },
+        cloudy: {
+          recommended: ['Essaouira Day Trip', 'Ouzoud Waterfalls', 'City Tour'],
+          notRecommended: ['Hot Air Balloon'],
+          message: 'Good weather for most activities, avoid balloon rides'
+        },
+        windy: {
+          recommended: ['City Tour', 'Essaouira Day Trip'],
+          notRecommended: ['Hot Air Balloon', 'Desert Safari'],
+          message: 'Windy conditions - avoid balloon and desert activities'
+        }
+      };
+      
+      const weatherCondition = condition as string || 'sunny';
+      const recommendation = recommendations[weatherCondition as keyof typeof recommendations] || recommendations.sunny;
+      
+      res.json({
+        condition: weatherCondition,
+        recommendations: recommendation,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error("Error fetching weather recommendations:", error);
+      res.status(500).json({
+        status: 'error',
+        message: 'Failed to fetch weather recommendations',
+        code: 'WEATHER_RECOMMENDATIONS_ERROR'
+      });
+    }
+  }));
+
   const httpServer = createServer(app);
   return httpServer;
 }

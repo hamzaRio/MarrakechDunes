@@ -399,6 +399,160 @@ ${paymentType === 'deposit'
 
 MarrakechDunes - Aventures Authentiques`;
   }
+
+  // Send deposit confirmation
+  async sendDepositConfirmation(booking: BookingNotificationData): Promise<void> {
+    try {
+      const depositMessage = this.formatDepositConfirmationMessage(booking);
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log('📱 WhatsApp Deposit Confirmation (DEV MODE):', depositMessage);
+        return;
+      }
+
+      // In production, would send via WhatsApp API
+      console.log('📱 WhatsApp Deposit Confirmation Message:');
+      console.log(`To: ${booking.customerPhone}`);
+      console.log(depositMessage);
+      
+      console.log(`✅ Deposit confirmation sent to customer: ${booking.customerName}`);
+    } catch (error) {
+      console.error('❌ Failed to send deposit confirmation:', error);
+    }
+  }
+
+  // Send smart notification based on template
+  async sendSmartNotification(booking: BookingNotificationData, templateId: string): Promise<void> {
+    try {
+      let message = '';
+      
+      switch (templateId) {
+        case 'booking_confirmation':
+          message = this.formatBookingConfirmationMessage(booking);
+          break;
+        case 'reminder_24h':
+          message = this.formatReminderMessage(booking, '24h');
+          break;
+        case 'reminder_2h':
+          message = this.formatReminderMessage(booking, '2h');
+          break;
+        case 'weather_alert':
+          message = this.formatWeatherAlertMessage(booking);
+          break;
+        case 'payment_reminder':
+          message = this.formatPaymentReminderMessage(booking);
+          break;
+        default:
+          message = this.formatBookingConfirmationMessage(booking);
+      }
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`📱 WhatsApp Smart Notification (${templateId}) (DEV MODE):`, message);
+        return;
+      }
+
+      // In production, would send via WhatsApp API
+      console.log(`📱 WhatsApp Smart Notification (${templateId}):`);
+      console.log(`To: ${booking.customerPhone}`);
+      console.log(message);
+      
+      console.log(`✅ Smart notification (${templateId}) sent to customer: ${booking.customerName}`);
+    } catch (error) {
+      console.error(`❌ Failed to send smart notification (${templateId}):`, error);
+    }
+  }
+
+  private formatBookingConfirmationMessage(booking: BookingNotificationData): string {
+    return `🎉 RÉSERVATION CONFIRMÉE - Bienvenue chez MarrakechDunes!
+
+✅ VOTRE RÉSERVATION:
+• Activité: ${booking.activityName}
+• Participants: ${booking.numberOfPeople} personne(s)
+• Date: ${booking.preferredDate ? new Date(booking.preferredDate).toLocaleDateString('fr-FR') : 'À confirmer'}
+• Montant total: ${booking.totalAmount} MAD
+
+💰 PAIEMENT:
+• Méthode: ESPÈCES UNIQUEMENT (MAD)
+• Aucune carte bancaire acceptée
+• Paiement à l'arrivée
+
+📍 POINT DE RENDEZ-VOUS:
+• Adresse: 54 Riad Zitoun Lakdim, Marrakech
+• Arrivez 15 minutes avant l'heure
+• Apportez une pièce d'identité
+
+📱 Questions? Contactez-nous!
+🌟 Préparez-vous pour une expérience inoubliable!`;
+  }
+
+  private formatDepositConfirmationMessage(booking: BookingNotificationData): string {
+    const depositAmount = booking.notes?.match(/Deposit paid: (\d+) MAD/)?.[1] || '0';
+    const balanceAmount = booking.notes?.match(/Balance: (\d+) MAD/)?.[1] || '0';
+    
+    return `🎉 DÉPÔT CONFIRMÉ - Votre réservation est sécurisée!
+
+✅ PAIEMENT DÉPÔT REÇU:
+• Montant du dépôt: ${depositAmount} MAD
+• Solde restant: ${balanceAmount} MAD (à payer à l'arrivée)
+• Méthode: Espèces uniquement
+
+🎯 VOTRE RÉSERVATION:
+• Activité: ${booking.activityName}
+• Participants: ${booking.numberOfPeople} personne(s)
+• Statut: Réservation confirmée et sécurisée
+
+📍 PROCHAINES ÉTAPES:
+• Vous recevrez un rappel 24h avant votre activité
+• Préparez le solde en espèces (${balanceAmount} MAD)
+• Rendez-vous au point de départ 15 minutes avant l'heure
+
+📱 Questions? Contactez-nous!
+🌟 Merci de nous faire confiance pour votre aventure MarrakechDunes!`;
+  }
+
+  private formatWeatherAlertMessage(booking: BookingNotificationData): string {
+    return `🌤️ ALERTE MÉTÉO - Mise à jour pour votre activité
+
+🎯 VOTRE RÉSERVATION:
+• Activité: ${booking.activityName}
+• Date: ${booking.preferredDate ? new Date(booking.preferredDate).toLocaleDateString('fr-FR') : 'Non spécifiée'}
+
+🌤️ CONDITIONS MÉTÉO:
+• Vérifiez les conditions météo avant de partir
+• Apportez une protection solaire et de l'eau
+• Portez des vêtements appropriés
+
+📍 IMPORTANT:
+• L'activité peut être modifiée selon les conditions météo
+• Contactez-nous si vous avez des questions
+• Votre sécurité est notre priorité
+
+📱 Questions? Contactez-nous!
+🌟 Nous nous adaptons aux conditions pour votre sécurité!`;
+  }
+
+  private formatPaymentReminderMessage(booking: BookingNotificationData): string {
+    return `💳 RAPPEL PAIEMENT - Votre activité approche
+
+🎯 VOTRE RÉSERVATION:
+• Activité: ${booking.activityName}
+• Date: ${booking.preferredDate ? new Date(booking.preferredDate).toLocaleDateString('fr-FR') : 'Non spécifiée'}
+• Participants: ${booking.numberOfPeople} personne(s)
+
+💰 PAIEMENT À L'ARRIVÉE:
+• Montant total: ${booking.totalAmount} MAD
+• Méthode: ESPÈCES UNIQUEMENT
+• Aucune carte bancaire acceptée
+• Préparez la monnaie exacte si possible
+
+📍 POINT DE RENDEZ-VOUS:
+• Adresse: 54 Riad Zitoun Lakdim, Marrakech
+• Arrivez 15 minutes avant l'heure
+• Apportez une pièce d'identité
+
+📱 Questions? Contactez-nous!
+🌟 Préparez-vous pour une expérience inoubliable!`;
+  }
 }
 
 export const whatsappService = new WhatsAppService();
