@@ -60,10 +60,8 @@ const mutation = useMutation({
         title: t('success.title'),
         description: t('admin.loginSuccess'),
       });
-      // Small delay to ensure localStorage is set
-      setTimeout(() => {
-        navigate("/admin/dashboard");
-      }, 100);
+      // Force window location change to ensure proper navigation
+      window.location.href = "/admin/dashboard";
     } else {
       const message = response?.message || t('errors.loginFailed');
       setErrorMessage(message);
