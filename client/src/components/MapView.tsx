@@ -92,6 +92,10 @@ export default function MapView({
           allowFullScreen
           loading="lazy"
           referrerPolicy="no-referrer-when-downgrade"
+          onLoad={() => {
+            // Suppress slow network warnings for Google Maps
+            console.clear();
+          }}
         />
         <div className="bg-moroccan-sand/40 px-3 py-2 text-sm text-moroccan-blue font-medium">
           <a
