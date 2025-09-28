@@ -38,6 +38,8 @@ export function useAuth() {
       // Clear localStorage if auth fails
       if (error?.response?.status === 401 || error?.response?.status === 403) {
         localStorage.removeItem('user');
+        // Also clear session storage
+        sessionStorage.clear();
       }
     },
     // Add success logging for debugging (development only)
@@ -60,12 +62,25 @@ export function useAuth() {
     }
   }
 
+  // Function to force clear auth state (useful for logout)
+  const clearAuthState = () => {
+    localStorage.removeItem('user');
+    sessionStorage.clear();
+    // Clear all cookies by setting them to expire
+    document.cookie.split(";").forEach(function(c) { 
+      document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+    });
+    // Invalidate the query to force refetch
+    refetch();
+  };
+
   return {
     user,
     isLoading,
     isAuthenticated: !!user,
     error,
     refetch,
+    clearAuthState,
   };
 }
 

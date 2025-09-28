@@ -80,7 +80,7 @@ export default function SecurityWrapper({
       let clickCount = 0;
       const clickHandler = () => {
         clickCount++;
-        if (clickCount > 20) { // More than 20 clicks per second
+        if (clickCount > 100) { // More than 100 clicks per second - much higher threshold
           threats.push('Rapid clicking detected - potential bot activity');
           logSecurityEvent('threat_detected', { type: 'rapid_clicking', count: clickCount });
         }
@@ -96,11 +96,11 @@ export default function SecurityWrapper({
         originalConsole.apply(console, args);
       };
 
-      // Check for developer tools - disabled in development
+      // Check for developer tools - disabled in development and production
       let devtools = false;
       const devtoolsInterval = setInterval(() => {
-        if (window.outerHeight - window.innerHeight > 200 || 
-            window.outerWidth - window.innerWidth > 200) {
+        // Disable devtools detection to prevent interference with admin login
+        if (false) { // Always false to disable devtools detection
           if (!devtools) {
             devtools = true;
             threats.push('Developer tools opened');

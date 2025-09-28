@@ -92,23 +92,20 @@ export async function sessionInit() {
 export async function logout() {
   try {
     await api.post('/auth/logout');
-    
-    // Enhanced session cleanup
-    localStorage.clear();
-    sessionStorage.clear();
-    
-    // Clear all cookies by setting them to expire
-    document.cookie.split(";").forEach(function(c) { 
-      document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
-    });
-    
-    // Force redirect to login page
-    window.location.href = '/admin/login';
   } catch (e) {
-    console.error('Logout error:', e);
-    // Force logout even if server request fails
-    localStorage.clear();
-    sessionStorage.clear();
-    window.location.href = '/admin/login';
+    console.error('Logout server error:', e);
+    // Continue with client-side logout even if server request fails
   }
+  
+  // Enhanced session cleanup - always run regardless of server response
+  localStorage.clear();
+  sessionStorage.clear();
+  
+  // Clear all cookies by setting them to expire
+  document.cookie.split(";").forEach(function(c) { 
+    document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+  });
+  
+  // Force redirect to homepage after logout
+  window.location.href = '/';
 }
