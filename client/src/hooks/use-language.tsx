@@ -1,4 +1,6 @@
 import { createContext, useContext, useState, ReactNode } from "react";
+import enTranslations from '../locales/en.json';
+import frTranslations from '../locales/fr.json';
 
 type Language = 'en' | 'fr';
 
@@ -11,36 +13,10 @@ interface LanguageContextType {
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
-// Simple translations object
+// Full translations object
 const translations = {
-  en: {
-    'common.bookNow': 'Book Now',
-    'common.learnMore': 'Learn More',
-    'common.contact': 'Contact',
-    'common.home': 'Home',
-    'common.activities': 'Activities',
-    'common.reviews': 'Reviews',
-    'common.admin': 'Admin',
-    'home.title': 'Discover Marrakech',
-    'home.subtitle': 'Unforgettable experiences in the Red City',
-    'activities.title': 'Our Activities',
-    'booking.title': 'Book Your Adventure',
-    'admin.title': 'Admin Dashboard'
-  },
-  fr: {
-    'common.bookNow': 'Réserver',
-    'common.learnMore': 'En savoir plus',
-    'common.contact': 'Contact',
-    'common.home': 'Accueil',
-    'common.activities': 'Activités',
-    'common.reviews': 'Avis',
-    'common.admin': 'Admin',
-    'home.title': 'Découvrez Marrakech',
-    'home.subtitle': 'Expériences inoubliables dans la Ville Rouge',
-    'activities.title': 'Nos Activités',
-    'booking.title': 'Réservez Votre Aventure',
-    'admin.title': 'Tableau de Bord Admin'
-  }
+  en: enTranslations,
+  fr: frTranslations
 };
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
@@ -63,13 +39,19 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   };
 
   const t = <T = string>(key: string, options?: Record<string, unknown>): T => {
-    const translation = translations[language][key as keyof typeof translations[typeof language]];
+    // Handle nested keys like 'nav.home' or 'activities.title'
+    const keys = key.split('.');
+    let translation: any = translations[language];
     
-    if (!translation) {
-      if (import.meta.env.MODE === 'development') {
-        console.warn(`Missing translation for key: ${key}`);
+    for (const k of keys) {
+      if (translation && typeof translation === 'object' && k in translation) {
+        translation = translation[k];
+      } else {
+        if (import.meta.env.MODE === 'development') {
+          console.warn(`Missing translation for key: ${key}`);
+        }
+        return key as unknown as T;
       }
-      return key as unknown as T;
     }
     
     return translation as T;
