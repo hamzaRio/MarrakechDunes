@@ -1,21 +1,25 @@
 // Assets are served from Vercel (/images/) - backend no longer serves static assets
+let assetsBaseCache: string | null = null;
+
 const getAssetsBase = () => {
+  // Cache the result to prevent repeated logging
+  if (assetsBaseCache !== null) {
+    return assetsBaseCache;
+  }
+
   const base = import.meta.env.VITE_ASSETS_BASE as string | undefined;
-  
-  // Debug logging
-  console.log('🔍 VITE_ASSETS_BASE:', base);
-  console.log('🔍 NODE_ENV:', import.meta.env.MODE);
   
   // If VITE_ASSETS_BASE is explicitly set, use it (but warn about potential issues)
   if (base?.trim()) {
     const cleanBase = base.trim().replace(/\/$/, '');
     console.warn('⚠️ VITE_ASSETS_BASE is set - this may cause asset loading issues!');
     console.log('✅ Using VITE_ASSETS_BASE:', cleanBase);
+    assetsBaseCache = cleanBase;
     return cleanBase;
   }
   
   // Always use local images from Vercel - backend doesn't serve static assets
-  console.log('🔄 Using local images from Vercel');
+  assetsBaseCache = '/images';
   return '/images';
 };
 

@@ -11,27 +11,27 @@ import { asset } from "@/lib/env";
 const galleryImages = [
   {
     id: 1,
-    src: asset("agafaypack1_1751128022717.jpeg"),
+    src: asset("agafaypack1.jpeg"),
     alt: "Agafay Desert Adventure",
     title: "Agafay Desert Experience",
     description: "Magical moments in the golden dunes of Agafay Desert",
-    fallback: asset("agafaypack2_1751128022717.jpeg")
+    fallback: asset("agafaypack2.jpeg")
   },
   {
     id: 2,
-    src: asset("montgolfiere-marrakech_1751127701687.jpg"),
+    src: asset("montgolfiere-marrakech.jpg"),
     alt: "Marrakech Hot Air Balloon",
     title: "Hot Air Balloon Experience",
     description: "Soar above the Atlas Mountains at sunrise",
-    fallback: asset("montgofliere_a_marrakech_1751127701687.jpg")
+    fallback: asset("montgofliere_a_marrakech.jpg")
   },
   {
     id: 3,
-    src: asset("Hot Air Balloon Ride2_1751127701686.jpg"),
+    src: asset("Hot Air Balloon Ride2.jpg"),
     alt: "Hot Air Balloon Experience",
     title: "Hot Air Balloon Adventure",
     description: "Soar above the Atlas Mountains at sunrise",
-    fallback: asset("Hot Air Balloon Ride3_1751127701686.jpg")
+    fallback: asset("Hot Air Balloon Ride3.jpg")
   },
   {
     id: 4,
@@ -43,19 +43,19 @@ const galleryImages = [
   },
   {
     id: 5,
-    src: asset("Ouzoud-Waterfalls_1751126328233.jpg"),
+    src: asset("Ouzoud-Waterfalls.jpg"),
     alt: "Ouzoud Waterfalls",
     title: "Ouzoud Waterfalls",
     description: "Spectacular cascades in the Atlas Mountains",
-    fallback: asset("Ouzoud-Waterfalls3_1751126328233.jpg")
+    fallback: asset("Ouzoud-Waterfalls3.jpg")
   },
   {
     id: 6,
-    src: asset("Ourika Valley Day Trip1_1751114166831.jpg"),
+    src: asset("Ourika Valley Day Trip1.jpg"),
     alt: "Ourika Valley Adventure",
     title: "Ourika Valley",
     description: "Mountain villages and traditional Berber culture",
-    fallback: asset("ourika-valley-marrakech_1751114166832.jpg")
+    fallback: asset("ourika valley3.jpg")
   }
 ];
 
