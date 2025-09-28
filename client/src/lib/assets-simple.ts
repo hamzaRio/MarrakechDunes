@@ -1,20 +1,21 @@
-// Simplified asset handling - just use local images
-export function assetUrl(path: string): string {
-  if (!path) return "";
+// Simplified asset handler - always uses local images from Vercel
+export function asset(path: string): string {
+  // Clean the path
+  const cleanPath = path.replace(/^[\\/]/, '').replace(/^(assets|attached_assets|images)[\\/]/, '');
   
-  // Remove any existing prefixes and leading slashes
-  const clean = path.replace(/^\/*(assets|attached_assets|images)\//, "").replace(/^\/+/, "");
-  
-  // Always use local images from Vercel public folder
-  return `/images/${clean}`;
+  // Always use local images from Vercel
+  return `/images/${cleanPath}`;
 }
 
-// Simple CSS background helper
-export function assetCssUrl(path: string): string {
-  return `url('${assetUrl(path)}')`;
-}
+// Cached assets base to prevent repeated console logging
+let cachedAssetsBase: string | null = null;
 
-// Simple activity image getter
-export function getActivityImage(filename: string): string {
-  return assetUrl(filename);
+export function getAssetsBase(): string {
+  if (cachedAssetsBase === null) {
+    cachedAssetsBase = '/images';
+    if (import.meta.env.MODE === 'development') {
+      console.log('Using local images from Vercel');
+    }
+  }
+  return cachedAssetsBase;
 }

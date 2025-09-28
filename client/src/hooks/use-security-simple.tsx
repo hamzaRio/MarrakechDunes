@@ -1,30 +1,29 @@
-import { createContext, useContext, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 
-interface SecurityContext {
-  isSecureConnection: boolean;
-  logSecurityEvent: (event: string, details?: any) => void;
+interface SecurityContextType {
+  isSecure: boolean;
+  checkSecurity: () => void;
 }
 
-const SecurityContext = createContext<SecurityContext | null>(null);
+const SecurityContext = createContext<SecurityContextType | undefined>(undefined);
 
 export function SecurityProvider({ children }: { children: ReactNode }) {
-  // Simple security check - just HTTPS detection
-  const isSecureConnection = window.location.protocol === 'https:' || 
-                             window.location.hostname === 'localhost' ||
-                             window.location.hostname === '127.0.0.1';
+  const [isSecure, setIsSecure] = useState(() => {
+    // Simple HTTPS check
+    return window.location.protocol === 'https:' || window.location.hostname === 'localhost';
+  });
 
-  // Simplified logging - just console in dev, nothing in production
-  const logSecurityEvent = (event: string, details?: any) => {
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`[SECURITY] ${event}`, details);
-    }
+  const checkSecurity = () => {
+    const secure = window.location.protocol === 'https:' || window.location.hostname === 'localhost';
+    setIsSecure(secure);
   };
 
+  useEffect(() => {
+    checkSecurity();
+  }, []);
+
   return (
-    <SecurityContext.Provider value={{
-      isSecureConnection,
-      logSecurityEvent
-    }}>
+    <SecurityContext.Provider value={{ isSecure, checkSecurity }}>
       {children}
     </SecurityContext.Provider>
   );

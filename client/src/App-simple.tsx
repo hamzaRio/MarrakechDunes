@@ -23,47 +23,13 @@ const PAGE_FALLBACK = (
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={() => (
-        <Suspense fallback={PAGE_FALLBACK}>
-          <Home />
-        </Suspense>
-      )} />
-      <Route path="/activities" component={() => (
-        <Suspense fallback={PAGE_FALLBACK}>
-          <Activities />
-        </Suspense>
-      )} />
-      <Route path="/contact" component={() => (
-        <Suspense fallback={PAGE_FALLBACK}>
-          <Contact />
-        </Suspense>
-      )} />
-      <Route path="/booking" component={() => (
-        <Suspense fallback={PAGE_FALLBACK}>
-          <Booking />
-        </Suspense>
-      )} />
-      <Route path="/admin/login" component={() => (
-        <Suspense fallback={PAGE_FALLBACK}>
-          <AdminLogin />
-        </Suspense>
-      )} />
-      {/* Single admin dashboard - no more multiple dashboards */}
-      <Route path="/admin" component={() => (
-        <Suspense fallback={PAGE_FALLBACK}>
-          <AdminDashboard />
-        </Suspense>
-      )} />
-      <Route path="/admin/dashboard" component={() => (
-        <Suspense fallback={PAGE_FALLBACK}>
-          <AdminDashboard />
-        </Suspense>
-      )} />
-      <Route component={() => (
-        <Suspense fallback={PAGE_FALLBACK}>
-          <NotFound />
-        </Suspense>
-      )} />
+      <Route path="/" component={Home} />
+      <Route path="/activities" component={Activities} />
+      <Route path="/booking" component={Booking} />
+      <Route path="/contact" component={Contact} />
+      <Route path="/admin/login" component={AdminLogin} />
+      <Route path="/admin/dashboard" component={AdminDashboard} />
+      <Route component={NotFound} />
     </Switch>
   );
 }
@@ -73,7 +39,9 @@ function App() {
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <LanguageProvider>
-          <Router />
+          <div className="min-h-screen bg-background">
+            <Router />
+          </div>
         </LanguageProvider>
       </QueryClientProvider>
     </ErrorBoundary>
