@@ -1,4 +1,4 @@
-// Assets can be served from either Vercel (/images/) or Render (/assets/)
+// Assets are served from Vercel (/images/) - backend no longer serves static assets
 const getAssetsBase = () => {
   const base = import.meta.env.VITE_ASSETS_BASE as string | undefined;
   
@@ -6,22 +6,17 @@ const getAssetsBase = () => {
   console.log('🔍 VITE_ASSETS_BASE:', base);
   console.log('🔍 NODE_ENV:', import.meta.env.MODE);
   
+  // If VITE_ASSETS_BASE is explicitly set, use it (but warn about potential issues)
   if (base?.trim()) {
-    // Remove trailing slash if present
     const cleanBase = base.trim().replace(/\/$/, '');
+    console.warn('⚠️ VITE_ASSETS_BASE is set - this may cause asset loading issues!');
     console.log('✅ Using VITE_ASSETS_BASE:', cleanBase);
     return cleanBase;
   }
   
-  // In production, try to use Render backend
-  if (import.meta.env.MODE === 'production') {
-    const renderBase = 'https://marrakechdunes-sppy.onrender.com/assets';
-    console.log('🔄 Production mode - using Render backend:', renderBase);
-    return renderBase;
-  }
-  
-  console.log('🔄 Development mode - using local images');
-  return '/images'; // Fallback to local images
+  // Always use local images from Vercel - backend doesn't serve static assets
+  console.log('🔄 Using local images from Vercel');
+  return '/images';
 };
 
 export function assetUrl(path: string): string {
