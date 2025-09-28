@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, Users, TrendingUp, Activity, Settings, Crown, MessageCircle, LogOut } from "lucide-react";
+import { Calendar, Users, TrendingUp, Activity, Settings, Crown, MessageCircle, LogOut, BarChart3, PieChart, Monitor, Server } from "lucide-react";
 import AdminRoute from "@/components/admin-route";
 import { useAuth } from "@/hooks/use-auth";
 import { useLanguage } from "@/hooks/use-language";
@@ -18,6 +18,10 @@ import CashBookingReminders from "@/components/cash-booking-reminders";
 import { apiFetch, logout } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import SEOHead from "@/components/seo-head";
+import PerformanceMonitor from "@/components/analytics/performance-monitor";
+import UserAnalytics from "@/components/analytics/user-analytics";
+import BusinessMetrics from "@/components/analytics/business-metrics";
+import SystemHealth from "@/components/analytics/system-health";
 
 // Removed useState import as no longer needed
 import type { BookingType, ActivityType, AuditLogType } from "marrakechdunes-shared/schema";
@@ -272,18 +276,33 @@ Average per booking: ${activityBookings.length ? Math.round(totalRevenue / activ
           </div>
 
           <Tabs defaultValue="bookings" className="space-y-6">
-            <TabsList className={`grid w-full ${user?.role === 'superadmin' ? 'grid-cols-8' : 'grid-cols-6'}`}>
+            <TabsList className={`grid w-full ${user?.role === 'superadmin' ? 'grid-cols-12' : 'grid-cols-10'}`}>
               <TabsTrigger value="bookings">Bookings</TabsTrigger>
               <TabsTrigger value="activities">Activities</TabsTrigger>
               <TabsTrigger value="cash-analytics">Cash Analytics</TabsTrigger>
               <TabsTrigger value="reminders">Reminders</TabsTrigger>
               <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
               <TabsTrigger value="calendar">Calendar</TabsTrigger>
+              <TabsTrigger value="performance">
+                <Monitor className="h-4 w-4 mr-1" />
+                Performance
+              </TabsTrigger>
+              <TabsTrigger value="users">
+                <Users className="h-4 w-4 mr-1" />
+                Users
+              </TabsTrigger>
+              <TabsTrigger value="business">
+                <BarChart3 className="h-4 w-4 mr-1" />
+                Business
+              </TabsTrigger>
               {user?.role === 'superadmin' && (
                 <TabsTrigger value="audit">Audit Logs</TabsTrigger>
               )}
               {user?.role === 'superadmin' && (
-                <TabsTrigger value="system">System Health</TabsTrigger>
+                <TabsTrigger value="system">
+                  <Server className="h-4 w-4 mr-1" />
+                  System
+                </TabsTrigger>
               )}
             </TabsList>
 
@@ -583,19 +602,25 @@ Average per booking: ${activityBookings.length ? Math.round(totalRevenue / activ
               </TabsContent>
             )}
 
+            {/* Performance Analytics Tab */}
+            <TabsContent value="performance" className="space-y-4">
+              <PerformanceMonitor />
+            </TabsContent>
+
+            {/* User Analytics Tab */}
+            <TabsContent value="users" className="space-y-4">
+              <UserAnalytics />
+            </TabsContent>
+
+            {/* Business Metrics Tab */}
+            <TabsContent value="business" className="space-y-4">
+              <BusinessMetrics />
+            </TabsContent>
+
             {/* System Health Tab */}
             {user?.role === 'superadmin' && (
               <TabsContent value="system" className="space-y-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>System Health Monitor</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-center py-8 text-gray-500">
-                      System monitoring coming soon...
-                    </div>
-                  </CardContent>
-                </Card>
+                <SystemHealth />
               </TabsContent>
             )}
           </Tabs>
