@@ -508,9 +508,19 @@ class MongoStorage implements IStorage {
         }
       }
 
-      // Only seed if no seeded activities exist
+      // Check if we need to update existing activities with new image filenames
       const existingSeeded = await Activity.findOne({ isSeeded: true });
-      if (!existingSeeded) {
+      
+      // If activities exist but have old image filenames, update them
+      const needsUpdate = existingSeeded && existingSeeded.imageUrls && 
+        existingSeeded.imageUrls.some(url => url.includes('175112') || url.includes('175648'));
+      
+      if (!existingSeeded || needsUpdate) {
+        // If updating, delete old activities first
+        if (needsUpdate) {
+          console.log('🔄 Updating existing activities with new image filenames...');
+          await Activity.deleteMany({ isSeeded: true });
+        }
         // Seed with unique images per activity from assets
         const activities = [
           {
@@ -636,6 +646,10 @@ class MongoStorage implements IStorage {
 
         await Activity.insertMany(activities);
         console.log(`âœ… Created ${activities.length} initial activities`);
+        
+        // Force clear any cached data by updating the database timestamp
+        await Activity.updateMany({}, { $set: { updatedAt: new Date() } });
+        console.log('🔄 Database cache cleared - activities updated with new image filenames');
       }
 
       console.log('âœ… MongoDB seed data initialized successfully');
