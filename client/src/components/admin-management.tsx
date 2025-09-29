@@ -82,7 +82,13 @@ export default function AdminManagement() {
   // Export functions
   const handleExportBookings = async () => {
     try {
-      const response = await fetch('/api/admin/export/bookings');
+      const apiBaseUrl = import.meta.env.VITE_API_URL || 'https://marrakechdunes-sppy.onrender.com/api';
+      const response = await fetch(`${apiBaseUrl}/admin/export/bookings`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -92,7 +98,13 @@ export default function AdminManagement() {
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
+      
+      toast({
+        title: "Export Successful",
+        description: "Bookings exported as CSV",
+      });
     } catch (error) {
+      console.error('Bookings CSV Export Error:', error);
       toast({
         title: "Error",
         description: "Failed to export bookings",
@@ -103,7 +115,13 @@ export default function AdminManagement() {
 
   const handleExportAuditLogs = async () => {
     try {
-      const response = await fetch('/api/admin/export/audit-logs');
+      const apiBaseUrl = import.meta.env.VITE_API_URL || 'https://marrakechdunes-sppy.onrender.com/api';
+      const response = await fetch(`${apiBaseUrl}/admin/export/audit-logs`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -113,7 +131,13 @@ export default function AdminManagement() {
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
+      
+      toast({
+        title: "Export Successful",
+        description: "Audit logs exported as CSV",
+      });
     } catch (error) {
+      console.error('Audit Logs CSV Export Error:', error);
       toast({
         title: "Error",
         description: "Failed to export audit logs",

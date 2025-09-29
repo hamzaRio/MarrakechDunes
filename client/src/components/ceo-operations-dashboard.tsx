@@ -66,7 +66,13 @@ export default function CEOOperationsDashboard() {
   // Export handlers
   const handleExportBookingsPDF = async () => {
     try {
-      const response = await fetch('/api/admin/export/bookings/pdf');
+      const apiBaseUrl = import.meta.env.VITE_API_URL || 'https://marrakechdunes-sppy.onrender.com/api';
+      const response = await fetch(`${apiBaseUrl}/admin/export/bookings/pdf`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -82,6 +88,7 @@ export default function CEOOperationsDashboard() {
         description: "Bookings report exported as PDF",
       });
     } catch (error) {
+      console.error('Bookings PDF Export Error:', error);
       toast({
         title: "Export Error",
         description: "Failed to export bookings PDF",
@@ -92,7 +99,13 @@ export default function CEOOperationsDashboard() {
 
   const handleExportOperationsPDF = async () => {
     try {
-      const response = await fetch('/api/admin/export/operations-report/pdf');
+      const apiBaseUrl = import.meta.env.VITE_API_URL || 'https://marrakechdunes-sppy.onrender.com/api';
+      const response = await fetch(`${apiBaseUrl}/admin/export/operations-report/pdf`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -108,6 +121,7 @@ export default function CEOOperationsDashboard() {
         description: "Operations report exported as PDF",
       });
     } catch (error) {
+      console.error('Operations PDF Export Error:', error);
       toast({
         title: "Export Error",
         description: "Failed to export operations PDF",

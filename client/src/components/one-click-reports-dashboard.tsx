@@ -214,7 +214,13 @@ export default function OneClickReportsDashboard() {
       await new Promise(resolve => setTimeout(resolve, 2000));
       
       // In production, this would call the actual API
-      const response = await fetch(`/api/admin/export/${templateId}`);
+      const apiBaseUrl = import.meta.env.VITE_API_URL || 'https://marrakechdunes-sppy.onrender.com/api';
+      const response = await fetch(`${apiBaseUrl}/admin/export/${templateId}`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
