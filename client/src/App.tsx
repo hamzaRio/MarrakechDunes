@@ -20,6 +20,7 @@ const AdminLogin = lazy(() => import("@/pages/admin/login"));
 const AdminDashboard = lazy(() => import("@/pages/admin/dashboard"));
 const SimplifiedAdminDashboard = lazy(() => import("@/pages/admin/simplified-dashboard"));
 const CEODashboard = lazy(() => import("@/pages/admin/ceo-dashboard"));
+const CEOSimplifiedDashboard = lazy(() => import("@/pages/admin/ceo-simplified-dashboard"));
 const PerformanceDashboard = lazy(() => import("@/pages/admin/performance-dashboard"));
 const AdminAccessGuide = lazy(() => import("@/components/admin-access-guide"));
 const NotFound = lazy(() => import("@/pages/not-found"));
@@ -69,6 +70,7 @@ function Router() {
       <Route path="/booking" component={withSecurity(Booking, BOOKING_ROUTE)} />
       <Route path="/admin/login" component={withSecurity(AdminLogin, ADMIN_ROUTE)} />
       <Route path="/admin/ceo" component={withSecurity(CEODashboard, ADMIN_ROUTE)} />
+      <Route path="/admin/ceo-simple" component={withSecurity(CEOSimplifiedDashboard, ADMIN_ROUTE)} />
       <Route path="/admin/dashboard" component={withSecurity(AdminDashboard, ADMIN_ROUTE)} />
       <Route path="/admin/simple" component={withSecurity(SimplifiedAdminDashboard, ADMIN_ROUTE)} />
       <Route path="/admin" component={withSecurity(SimplifiedAdminDashboard, ADMIN_ROUTE)} />
