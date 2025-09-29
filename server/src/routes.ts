@@ -611,6 +611,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   }));
 
+  // PDF Export endpoints
+  app.get("/api/admin/export/bookings/pdf", adminSecurityMiddleware, asyncHandler(async (req: Request, res: Response) => {
+    try {
+      const bookings = await storage.getBookings();
+      const pdfData = await storage.exportBookingsToPDF(bookings);
+      
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', 'attachment; filename="bookings-report.pdf"');
+      res.send(pdfData);
+    } catch (error) {
+      console.error("Error exporting bookings PDF:", error);
+      res.status(500).json({ 
+        status: 'error',
+        message: "Failed to export bookings PDF",
+        code: 'EXPORT_BOOKINGS_PDF_ERROR'
+      });
+    }
+  }));
+
+  app.get("/api/admin/export/operations-report/pdf", adminSecurityMiddleware, asyncHandler(async (req: Request, res: Response) => {
+    try {
+      const reportData = await storage.generateOperationsReport();
+      const pdfData = await storage.exportOperationsReportToPDF(reportData);
+      
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', 'attachment; filename="operations-report.pdf"');
+      res.send(pdfData);
+    } catch (error) {
+      console.error("Error exporting operations report PDF:", error);
+      res.status(500).json({ 
+        status: 'error',
+        message: "Failed to export operations report PDF",
+        code: 'EXPORT_OPERATIONS_PDF_ERROR'
+      });
+    }
+  }));
+
+  // Operations report endpoint
+  app.get("/api/admin/operations-report", adminSecurityMiddleware, asyncHandler(async (req: Request, res: Response) => {
+    try {
+      const reportData = await storage.generateOperationsReport();
+      res.json(reportData);
+    } catch (error) {
+      console.error("Error generating operations report:", error);
+      res.status(500).json({ 
+        status: 'error',
+        message: "Failed to generate operations report",
+        code: 'GENERATE_OPERATIONS_REPORT_ERROR'
+      });
+    }
+  }));
+
   // Performance Analytics Routes
   app.get("/api/admin/performance-metrics", adminSecurityMiddleware, asyncHandler(async (req: Request, res: Response) => {
     try {

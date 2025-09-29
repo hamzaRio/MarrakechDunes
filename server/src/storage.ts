@@ -132,6 +132,9 @@ export interface IStorage {
   deleteAdmin(id: string): Promise<boolean>;
   exportBookingsToCSV(bookings: BookingWithActivity[]): Promise<string>;
   exportAuditLogsToCSV(logs: AuditLogType[]): Promise<string>;
+  exportBookingsToPDF(bookings: BookingWithActivity[]): Promise<Buffer>;
+  generateOperationsReport(): Promise<any>;
+  exportOperationsReportToPDF(reportData: any): Promise<Buffer>;
   getReviews(activityId?: string): Promise<ReviewWithActivity[]>;
   getReview(id: string): Promise<ReviewWithActivity | null>;
   createReview(review: InsertReview): Promise<ReviewType>;
@@ -480,6 +483,166 @@ class MongoStorage implements IStorage {
     return [headers, ...rows].map(row => 
       row.map(field => `"${String(field).replace(/"/g, '""')}"`).join(',')
     ).join('\n');
+  }
+
+  // PDF Export operations
+  async exportBookingsToPDF(bookings: BookingWithActivity[]): Promise<Buffer> {
+    const jsPDF = require('jspdf');
+    const doc = new jsPDF();
+    
+    // Add title
+    doc.setFontSize(20);
+    doc.text('MarrakechDunes - Bookings Report', 20, 20);
+    doc.setFontSize(12);
+    doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 20, 30);
+    doc.text(`Total Bookings: ${bookings.length}`, 20, 35);
+    
+    // Add summary statistics
+    const totalRevenue = bookings.reduce((sum, booking) => sum + parseInt(booking.totalAmount), 0);
+    const confirmedBookings = bookings.filter(b => b.status === 'confirmed').length;
+    const pendingBookings = bookings.filter(b => b.status === 'pending').length;
+    
+    doc.text(`Total Revenue: ${totalRevenue} MAD`, 20, 45);
+    doc.text(`Confirmed: ${confirmedBookings} | Pending: ${pendingBookings}`, 20, 50);
+    
+    // Add bookings table
+    let yPosition = 60;
+    doc.setFontSize(10);
+    
+    // Table headers
+    doc.text('Customer', 20, yPosition);
+    doc.text('Activity', 60, yPosition);
+    doc.text('Date', 100, yPosition);
+    doc.text('Amount', 130, yPosition);
+    doc.text('Status', 160, yPosition);
+    yPosition += 5;
+    
+    // Add line
+    doc.line(20, yPosition, 190, yPosition);
+    yPosition += 5;
+    
+    // Add booking rows
+    bookings.forEach((booking, index) => {
+      if (yPosition > 280) { // Start new page if needed
+        doc.addPage();
+        yPosition = 20;
+      }
+      
+      doc.text(booking.customerName, 20, yPosition);
+      doc.text(booking.activity?.name || 'Unknown', 60, yPosition);
+      doc.text(booking.preferredDate, 100, yPosition);
+      doc.text(`${booking.totalAmount} MAD`, 130, yPosition);
+      doc.text(booking.status, 160, yPosition);
+      yPosition += 5;
+    });
+    
+    return Buffer.from(doc.output('arraybuffer'));
+  }
+
+  async generateOperationsReport(): Promise<any> {
+    const bookings = await this.getBookings();
+    const activities = await this.getActivities();
+    const reviews = await this.getReviews();
+    
+    // Calculate metrics
+    const totalBookings = bookings.length;
+    const totalRevenue = bookings.reduce((sum, booking) => sum + parseInt(booking.totalAmount), 0);
+    const averageBookingValue = totalBookings > 0 ? totalRevenue / totalBookings : 0;
+    
+    // Activity performance
+    const activityPerformance = activities.map(activity => {
+      const activityBookings = bookings.filter(b => b.activity?._id === activity._id);
+      const activityRevenue = activityBookings.reduce((sum, booking) => sum + parseInt(booking.totalAmount), 0);
+      const activityRating = reviews
+        .filter(r => r.activityId === activity._id)
+        .reduce((sum, review, _, arr) => sum + review.rating / arr.length, 0);
+      
+      return {
+        name: activity.name,
+        bookings: activityBookings.length,
+        revenue: activityRevenue,
+        rating: activityRating || 0,
+        popularity: activityBookings.length / totalBookings * 100
+      };
+    });
+    
+    // Monthly trends
+    const monthlyData = Array.from({ length: 12 }, (_, i) => {
+      const month = new Date();
+      month.setMonth(month.getMonth() - i);
+      const monthBookings = bookings.filter(b => {
+        const bookingDate = new Date(b.createdAt);
+        return bookingDate.getMonth() === month.getMonth() && 
+               bookingDate.getFullYear() === month.getFullYear();
+      });
+      
+      return {
+        month: month.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+        bookings: monthBookings.length,
+        revenue: monthBookings.reduce((sum, b) => sum + parseInt(b.totalAmount), 0)
+      };
+    }).reverse();
+    
+    return {
+      summary: {
+        totalBookings,
+        totalRevenue,
+        averageBookingValue,
+        totalActivities: activities.length,
+        averageRating: reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length || 0
+      },
+      activityPerformance,
+      monthlyTrends: monthlyData,
+      topActivities: activityPerformance
+        .sort((a, b) => b.revenue - a.revenue)
+        .slice(0, 5),
+      generatedAt: new Date().toISOString()
+    };
+  }
+
+  async exportOperationsReportToPDF(reportData: any): Promise<Buffer> {
+    const jsPDF = require('jspdf');
+    const doc = new jsPDF();
+    
+    // Add title
+    doc.setFontSize(20);
+    doc.text('MarrakechDunes - Operations Report', 20, 20);
+    doc.setFontSize(12);
+    doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 20, 30);
+    
+    // Summary section
+    doc.setFontSize(14);
+    doc.text('Executive Summary', 20, 45);
+    doc.setFontSize(10);
+    doc.text(`Total Bookings: ${reportData.summary.totalBookings}`, 20, 55);
+    doc.text(`Total Revenue: ${reportData.summary.totalRevenue} MAD`, 20, 60);
+    doc.text(`Average Booking Value: ${reportData.summary.averageBookingValue.toFixed(2)} MAD`, 20, 65);
+    doc.text(`Average Rating: ${reportData.summary.averageRating.toFixed(1)}/5`, 20, 70);
+    
+    // Top Activities
+    doc.setFontSize(14);
+    doc.text('Top Performing Activities', 20, 85);
+    doc.setFontSize(10);
+    
+    let yPos = 95;
+    reportData.topActivities.forEach((activity: any, index: number) => {
+      doc.text(`${index + 1}. ${activity.name}`, 20, yPos);
+      doc.text(`   Revenue: ${activity.revenue} MAD | Bookings: ${activity.bookings}`, 20, yPos + 5);
+      yPos += 15;
+    });
+    
+    // Monthly Trends Chart (simplified)
+    doc.setFontSize(14);
+    doc.text('Monthly Trends', 20, yPos + 10);
+    doc.setFontSize(10);
+    
+    yPos += 20;
+    reportData.monthlyTrends.slice(-6).forEach((month: any) => {
+      doc.text(`${month.month}: ${month.bookings} bookings, ${month.revenue} MAD`, 20, yPos);
+      yPos += 5;
+    });
+    
+    return Buffer.from(doc.output('arraybuffer'));
   }
 
   // Review operations

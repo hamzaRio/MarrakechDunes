@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, Users, TrendingUp, Activity, Settings, Crown, MessageCircle, LogOut, BarChart3, PieChart, Monitor, Server, Download } from "lucide-react";
+import { Calendar, Users, TrendingUp, Activity, Settings, Crown, MessageCircle, LogOut, BarChart3, PieChart, Monitor, Server, Download, FileText } from "lucide-react";
 import AdminRoute from "@/components/admin-route";
 import { useAuth } from "@/hooks/use-auth";
 import { useLanguage } from "@/hooks/use-language";
@@ -23,6 +23,7 @@ import UserAnalytics from "@/components/analytics/user-analytics";
 import BusinessMetrics from "@/components/analytics/business-metrics";
 import SystemHealth from "@/components/analytics/system-health";
 import AdminManagement from "@/components/admin-management";
+import CEOOperationsDashboard from "@/components/ceo-operations-dashboard";
 
 // Removed useState import as no longer needed
 import type { BookingType, ActivityType, AuditLogType } from "marrakechdunes-shared/schema";
@@ -188,6 +189,34 @@ Notes: ${booking.notes || 'None'}`);
     }
   };
 
+  // Export bookings PDF handler
+  const handleExportBookingsPDF = async () => {
+    try {
+      const response = await fetch('/api/admin/export/bookings/pdf');
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'bookings-report.pdf';
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      toast({
+        title: "Export Successful",
+        description: "Bookings report exported as PDF file.",
+      });
+    } catch (error) {
+      console.error('Export PDF error:', error);
+      toast({
+        title: "Export Error",
+        description: "Failed to export bookings PDF.",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Admin activity management functions
   const handleEditPricing = (activity: ActivityType) => {
     const newPrice = prompt(`Edit price for ${activity.name} (current: ${activity.price} MAD):`, activity.price.toString());
@@ -305,7 +334,7 @@ Average per booking: ${activityBookings.length ? Math.round(totalRevenue / activ
           </div>
 
           <Tabs defaultValue="bookings" className="space-y-6">
-            <TabsList className={`grid w-full ${user?.role === 'superadmin' ? 'grid-cols-13' : 'grid-cols-10'}`}>
+            <TabsList className={`grid w-full ${user?.role === 'superadmin' ? 'grid-cols-14' : 'grid-cols-11'}`}>
               <TabsTrigger value="bookings">Bookings</TabsTrigger>
               <TabsTrigger value="activities">Activities</TabsTrigger>
               <TabsTrigger value="cash-analytics">Cash Analytics</TabsTrigger>
@@ -323,6 +352,10 @@ Average per booking: ${activityBookings.length ? Math.round(totalRevenue / activ
               <TabsTrigger value="business">
                 <BarChart3 className="h-4 w-4 mr-1" />
                 Business
+              </TabsTrigger>
+              <TabsTrigger value="ceo-operations">
+                <TrendingUp className="h-4 w-4 mr-1" />
+                CEO Ops
               </TabsTrigger>
               {user?.role === 'superadmin' && (
                 <TabsTrigger value="admin-management">
@@ -352,6 +385,14 @@ Average per booking: ${activityBookings.length ? Math.round(totalRevenue / activ
                   >
                     <Download className="h-4 w-4 mr-2" />
                     Export CSV
+                  </Button>
+                  <Button 
+                    onClick={handleExportBookingsPDF} 
+                    variant="outline" 
+                    size="sm"
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    Export PDF
                   </Button>
                   <ActivityManagementModal mode="create" />
                 </div>
@@ -660,6 +701,11 @@ Average per booking: ${activityBookings.length ? Math.round(totalRevenue / activ
             {/* Business Metrics Tab */}
             <TabsContent value="business" className="space-y-4">
               <BusinessMetrics />
+            </TabsContent>
+
+            {/* CEO Operations Tab */}
+            <TabsContent value="ceo-operations" className="space-y-4">
+              <CEOOperationsDashboard />
             </TabsContent>
 
             {/* Admin Management Tab */}
