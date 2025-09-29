@@ -646,19 +646,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log("Starting PDF export...");
       
-      // Import jsPDF dynamically
-      let jsPDF;
-      try {
-        jsPDF = (await import('jspdf')).default;
-        console.log("jsPDF loaded successfully");
-      } catch (jspdfError) {
-        console.error("jsPDF not available:", jspdfError);
-        return res.status(500).json({
-          status: 'error',
-          message: 'PDF library not available',
-          code: 'PDF_LIBRARY_ERROR'
-        });
-      }
+      // Import jsPDF using dynamic import for ES modules
+      const jsPDFModule = await import('jspdf');
+      const jsPDF = jsPDFModule.jsPDF;
+      console.log("jsPDF loaded successfully");
       
       const bookings = await storage.getBookings();
       console.log(`Found ${bookings.length} bookings for PDF export`);

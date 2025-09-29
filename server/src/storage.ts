@@ -487,8 +487,9 @@ class MongoStorage implements IStorage {
 
   // PDF Export operations
   async exportBookingsToPDF(bookings: BookingWithActivity[]): Promise<Buffer> {
+    // Import jsPDF using dynamic import for ES modules
     const jsPDFModule = await import('jspdf');
-    const jsPDF = jsPDFModule.default || jsPDFModule;
+    const jsPDF = jsPDFModule.jsPDF;
     const doc = new jsPDF();
     
     // Add title
@@ -602,8 +603,9 @@ class MongoStorage implements IStorage {
   }
 
   async exportOperationsReportToPDF(reportData: any): Promise<Buffer> {
+    // Import jsPDF using dynamic import for ES modules
     const jsPDFModule = await import('jspdf');
-    const jsPDF = jsPDFModule.default || jsPDFModule;
+    const jsPDF = jsPDFModule.jsPDF;
     const doc = new jsPDF();
     
     // Add title
