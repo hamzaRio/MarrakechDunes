@@ -8,6 +8,7 @@ import { logout } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import SEOHead from "@/components/seo-head";
 import SimplifiedAdminDashboard from "@/components/simplified-admin-dashboard";
+import ActivityManagement from "@/components/activity-management";
 import AdminManagement from "@/components/admin-management";
 import CEOOperationsDashboard from "@/components/ceo-operations-dashboard";
 
@@ -108,10 +109,14 @@ export default function SimplifiedAdminPage() {
 
         {/* Simplified Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className={`grid w-full ${user?.role === 'superadmin' ? 'grid-cols-3' : 'grid-cols-2'}`}>
+          <TabsList className={`grid w-full ${user?.role === 'superadmin' ? 'grid-cols-4' : 'grid-cols-3'}`}>
             <TabsTrigger value="bookings" className="flex items-center gap-2">
               <Calendar className="h-4 w-4" />
               Bookings
+            </TabsTrigger>
+            <TabsTrigger value="activities" className="flex items-center gap-2">
+              <Settings className="h-4 w-4" />
+              Activities
             </TabsTrigger>
             {user?.role === 'superadmin' && (
               <TabsTrigger value="admin-management" className="flex items-center gap-2">
@@ -129,6 +134,10 @@ export default function SimplifiedAdminPage() {
 
           <TabsContent value="bookings" className="space-y-4">
             <SimplifiedAdminDashboard />
+          </TabsContent>
+
+          <TabsContent value="activities" className="space-y-4">
+            <ActivityManagement />
           </TabsContent>
 
           {user?.role === 'superadmin' && (
