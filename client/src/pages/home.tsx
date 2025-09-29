@@ -80,7 +80,7 @@ export default function Home() {
                 <Button 
                   size="lg"
                   className="bg-moroccan-red hover:bg-red-600 text-white px-8 py-3"
-                  onClick={() => window.location.href = '/activities'}
+                  onClick={() => window.location.href = '/activities-simple'}
                 >
                   Explore Activities
                 </Button>
@@ -366,7 +366,7 @@ export default function Home() {
             </p>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              <div className="group cursor-pointer" onClick={() => window.location.href = '/activities'}>
+              <div className="group cursor-pointer" onClick={() => window.location.href = '/activities-simple'}>
                 <div className="relative overflow-hidden rounded-2xl shadow-lg group-hover:shadow-xl transition-shadow duration-300">
                   <img
                     src={asset("Hot Air Balloon Ride2.jpg")}
@@ -385,7 +385,7 @@ export default function Home() {
                 </div>
               </div>
 
-              <div className="group cursor-pointer" onClick={() => window.location.href = '/activities'}>
+              <div className="group cursor-pointer" onClick={() => window.location.href = '/activities-simple'}>
                 <div className="relative overflow-hidden rounded-2xl shadow-lg group-hover:shadow-xl transition-shadow duration-300">
                   <img
                     src={asset("agafaypack1.jpeg")}
@@ -404,7 +404,7 @@ export default function Home() {
                 </div>
               </div>
 
-              <div className="group cursor-pointer" onClick={() => window.location.href = '/activities'}>
+              <div className="group cursor-pointer" onClick={() => window.location.href = '/activities-simple'}>
                 <div className="relative overflow-hidden rounded-2xl shadow-lg group-hover:shadow-xl transition-shadow duration-300">
                   <img
                     src={asset("Essaouira Day Trip1_1751124502666.jpg")}
@@ -428,7 +428,7 @@ export default function Home() {
               <Button
                 size="lg"
                 className="bg-moroccan-blue hover:bg-moroccan-blue/90 text-white px-8 py-3"
-                onClick={() => window.location.href = '/activities'}
+                onClick={() => window.location.href = '/activities-simple'}
               >
                 {t('home.viewAllActivities')}
               </Button>

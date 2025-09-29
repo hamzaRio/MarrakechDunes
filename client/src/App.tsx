@@ -12,6 +12,7 @@ import { ErrorBoundary } from "@/components/error-boundary";
 
 const Home = lazy(() => import("@/pages/home"));
 const Activities = lazy(() => import("@/pages/activities"));
+const SimplifiedActivities = lazy(() => import("@/pages/simplified-activities"));
 const Booking = lazy(() => import("@/pages/booking-fixed"));
 const Reviews = lazy(() => import("@/pages/reviews"));
 const Contact = lazy(() => import("@/pages/contact"));
@@ -61,6 +62,7 @@ function Router() {
     <Switch>
       <Route path="/" component={withSecurity(Home, PUBLIC_ROUTE)} />
       <Route path="/activities" component={withSecurity(Activities, PUBLIC_ROUTE)} />
+      <Route path="/activities-simple" component={withSecurity(SimplifiedActivities, PUBLIC_ROUTE)} />
       <Route path="/reviews" component={withSecurity(Reviews, PUBLIC_ROUTE)} />
       <Route path="/contact" component={withSecurity(Contact, PUBLIC_ROUTE)} />
       <Route path="/booking" component={withSecurity(Booking, BOOKING_ROUTE)} />
