@@ -279,123 +279,131 @@ export default function ActivityManagement() {
               Add Activity
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-white text-gray-900">
             <DialogHeader>
-              <DialogTitle>Create New Activity</DialogTitle>
+              <DialogTitle className="text-gray-900">Create New Activity</DialogTitle>
             </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4 text-gray-900">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="name">Activity Name *</Label>
+                  <Label htmlFor="name" className="text-gray-900 font-medium">Activity Name *</Label>
                   <Input
                     id="name"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     required
+                    className="text-gray-900 bg-white border-gray-300"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="price">Price (MAD) *</Label>
+                  <Label htmlFor="price" className="text-gray-900 font-medium">Price (MAD) *</Label>
                   <Input
                     id="price"
                     type="number"
                     value={formData.price}
                     onChange={(e) => setFormData({ ...formData, price: parseInt(e.target.value) || 0 })}
                     required
+                    className="text-gray-900 bg-white border-gray-300"
                   />
                 </div>
               </div>
 
               <div>
-                <Label htmlFor="description">Description *</Label>
+                <Label htmlFor="description" className="text-gray-900 font-medium">Description *</Label>
                 <Textarea
                   id="description"
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   required
+                  className="text-gray-900 bg-white border-gray-300"
                 />
               </div>
 
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <Label htmlFor="duration">Duration</Label>
+                  <Label htmlFor="duration" className="text-gray-900 font-medium">Duration</Label>
                   <Input
                     id="duration"
                     value={formData.duration}
                     onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
                     placeholder="e.g., 4 hours"
+                    className="text-gray-900 bg-white border-gray-300"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="location">Location</Label>
+                  <Label htmlFor="location" className="text-gray-900 font-medium">Location</Label>
                   <Input
                     id="location"
                     value={formData.location}
                     onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                     placeholder="e.g., Marrakech"
+                    className="text-gray-900 bg-white border-gray-300"
                   />
                 </div>
                 <div>
-                  <Label htmlFor="maxParticipants">Max Participants</Label>
+                  <Label htmlFor="maxParticipants" className="text-gray-900 font-medium">Max Participants</Label>
                   <Input
                     id="maxParticipants"
                     type="number"
                     value={formData.maxParticipants}
                     onChange={(e) => setFormData({ ...formData, maxParticipants: parseInt(e.target.value) || 1 })}
+                    className="text-gray-900 bg-white border-gray-300"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="category">Category</Label>
+                  <Label htmlFor="category" className="text-gray-900 font-medium">Category</Label>
                   <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
-                    <SelectTrigger>
+                    <SelectTrigger className="text-gray-900 bg-white border-gray-300">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="adventure">Adventure</SelectItem>
-                      <SelectItem value="cultural">Cultural</SelectItem>
-                      <SelectItem value="nature">Nature</SelectItem>
-                      <SelectItem value="desert">Desert</SelectItem>
-                      <SelectItem value="city">City</SelectItem>
+                    <SelectContent className="bg-white border-gray-300">
+                      <SelectItem value="adventure" className="text-gray-900">Adventure</SelectItem>
+                      <SelectItem value="cultural" className="text-gray-900">Cultural</SelectItem>
+                      <SelectItem value="nature" className="text-gray-900">Nature</SelectItem>
+                      <SelectItem value="desert" className="text-gray-900">Desert</SelectItem>
+                      <SelectItem value="city" className="text-gray-900">City</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div>
-                  <Label htmlFor="difficulty">Difficulty</Label>
+                  <Label htmlFor="difficulty" className="text-gray-900 font-medium">Difficulty</Label>
                   <Select value={formData.difficulty} onValueChange={(value) => setFormData({ ...formData, difficulty: value })}>
-                    <SelectTrigger>
+                    <SelectTrigger className="text-gray-900 bg-white border-gray-300">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="easy">Easy</SelectItem>
-                      <SelectItem value="medium">Medium</SelectItem>
-                      <SelectItem value="hard">Hard</SelectItem>
+                    <SelectContent className="bg-white border-gray-300">
+                      <SelectItem value="easy" className="text-gray-900">Easy</SelectItem>
+                      <SelectItem value="medium" className="text-gray-900">Medium</SelectItem>
+                      <SelectItem value="hard" className="text-gray-900">Hard</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
               </div>
 
               <div>
-                <Label htmlFor="getyourguidePrice">GetYourGuide Price (MAD)</Label>
+                <Label htmlFor="getyourguidePrice" className="text-gray-900 font-medium">GetYourGuide Price (MAD)</Label>
                 <Input
                   id="getyourguidePrice"
                   type="number"
                   value={formData.getyourguidePrice}
                   onChange={(e) => setFormData({ ...formData, getyourguidePrice: parseInt(e.target.value) || 0 })}
                   placeholder="Competitor price for comparison"
+                  className="text-gray-900 bg-white border-gray-300"
                 />
               </div>
 
               <div>
-                <Label>Image URLs</Label>
+                <Label className="text-gray-900 font-medium">Image URLs</Label>
                 {formData.imageUrls.map((url, index) => (
                   <div key={index} className="flex gap-2 mb-2">
                     <Input
                       value={url}
                       onChange={(e) => handleImageUrlChange(index, e.target.value)}
                       placeholder="Image URL"
+                      className="text-gray-900 bg-white border-gray-300"
                     />
                     {formData.imageUrls.length > 1 && (
                       <Button

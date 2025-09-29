@@ -423,9 +423,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const authReq = req as AuthenticatedRequest;
     try {
       const { id } = req.params;
+      console.log(`Attempting to delete booking with ID: ${id}`);
+      
+      // Validate ID format
+      if (!id || id.length < 24) {
+        return res.status(400).json({
+          status: 'error',
+          message: 'Invalid booking ID format',
+          code: 'INVALID_BOOKING_ID'
+        });
+      }
+      
       const booking = await storage.getBooking(id);
       
       if (!booking) {
+        console.log(`Booking not found with ID: ${id}`);
         return res.status(404).json({
           status: 'error',
           message: 'Booking not found',
@@ -433,19 +445,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      await storage.deleteBooking(id);
+      console.log(`Found booking: ${booking.customerName}, deleting...`);
+      const deleteResult = await storage.deleteBooking(id);
+      
+      if (!deleteResult) {
+        console.log(`Failed to delete booking with ID: ${id}`);
+        return res.status(500).json({
+          status: 'error',
+          message: 'Failed to delete booking from database',
+          code: 'DELETE_FAILED'
+        });
+      }
+      
+      console.log(`Successfully deleted booking: ${booking.customerName}`);
       
       // Create audit log
-      await storage.createAuditLog({
-        userId: authReq.session.user!.id,
-        action: `Deleted booking: ${booking.customerName} - ${booking.activity?.name || 'Unknown Activity'}`,
-        details: JSON.stringify({ 
-          bookingId: id, 
-          customerName: booking.customerName,
-          activityName: booking.activity?.name,
-          totalAmount: booking.totalAmount
-        })
-      });
+      try {
+        await storage.createAuditLog({
+          userId: authReq.session.user!.id,
+          action: `Deleted booking: ${booking.customerName} - ${booking.activity?.name || 'Unknown Activity'}`,
+          details: JSON.stringify({ 
+            bookingId: id, 
+            customerName: booking.customerName,
+            activityName: booking.activity?.name,
+            totalAmount: booking.totalAmount
+          })
+        });
+      } catch (auditError) {
+        console.error("Failed to create audit log:", auditError);
+        // Don't fail the request if audit log fails
+      }
       
       res.json({ 
         status: 'success',
@@ -459,7 +488,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         code: 'DELETE_BOOKING_ERROR',
         timestamp: new Date().toISOString(),
         path: req.path,
-        method: req.method
+        method: req.method,
+        error: error instanceof Error ? error.message : 'Unknown error'
       });
     }
   }));
@@ -614,18 +644,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // PDF Export endpoints
   app.get("/api/admin/export/bookings/pdf", adminSecurityMiddleware, asyncHandler(async (req: Request, res: Response) => {
     try {
+      console.log("Starting PDF export...");
+      
+      // Check if jsPDF is available
+      try {
+        const jsPDF = require('jspdf');
+        console.log("jsPDF loaded successfully");
+      } catch (jspdfError) {
+        console.error("jsPDF not available:", jspdfError);
+        return res.status(500).json({
+          status: 'error',
+          message: 'PDF library not available',
+          code: 'PDF_LIBRARY_ERROR'
+        });
+      }
+      
       const bookings = await storage.getBookings();
+      console.log(`Found ${bookings.length} bookings for PDF export`);
+      
+      if (!bookings || bookings.length === 0) {
+        return res.status(404).json({
+          status: 'error',
+          message: 'No bookings found to export',
+          code: 'NO_BOOKINGS_FOUND'
+        });
+      }
+      
       const pdfData = await storage.exportBookingsToPDF(bookings);
+      console.log(`PDF generated successfully, size: ${pdfData.length} bytes`);
       
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', 'attachment; filename="bookings-report.pdf"');
+      res.setHeader('Content-Length', pdfData.length.toString());
       res.send(pdfData);
     } catch (error) {
       console.error("Error exporting bookings PDF:", error);
       res.status(500).json({ 
         status: 'error',
         message: "Failed to export bookings PDF",
-        code: 'EXPORT_BOOKINGS_PDF_ERROR'
+        code: 'EXPORT_BOOKINGS_PDF_ERROR',
+        error: error instanceof Error ? error.message : 'Unknown error'
       });
     }
   }));
