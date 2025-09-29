@@ -7,13 +7,13 @@ import { config as serverEnv } from './env.js';
 // Get the project root directory (one level up from server/src)
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const projectRoot = path.resolve(__dirname, '../../');
+const serverDir = path.resolve(__dirname, '../');
 
 // Load environment variables from project root using dotenv-flow
 // In production (Docker), environment variables are set by deployment platform
 try {
   dotenvFlow.config({
-    path: projectRoot,
+    path: serverDir,
     silent: true // Don't error if .env files are missing in production
   });
 } catch (error) {
@@ -281,7 +281,9 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   if (
     req.path === "/api/security-events" ||
     req.path.startsWith("/api/auth") ||
-    req.path === "/api/session/init"  // Add session init route exclusion
+    req.path === "/api/session/init" ||  // Add session init route exclusion
+    req.method === "DELETE" ||  // Exclude all DELETE operations from CSRF
+    req.path.startsWith("/api/admin/export")  // Exclude export operations from CSRF
   ) {
     return next();
   }
