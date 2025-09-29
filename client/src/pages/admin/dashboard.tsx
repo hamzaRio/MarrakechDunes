@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, Users, TrendingUp, Activity, Settings, Crown, MessageCircle, LogOut, BarChart3, PieChart, Monitor, Server } from "lucide-react";
+import { Calendar, Users, TrendingUp, Activity, Settings, Crown, MessageCircle, LogOut, BarChart3, PieChart, Monitor, Server, Download } from "lucide-react";
 import AdminRoute from "@/components/admin-route";
 import { useAuth } from "@/hooks/use-auth";
 import { useLanguage } from "@/hooks/use-language";
@@ -157,6 +157,34 @@ Notes: ${booking.notes || 'None'}`);
           variant: "destructive",
         });
       }
+    }
+  };
+
+  // Export bookings handler
+  const handleExportBookings = async () => {
+    try {
+      const response = await fetch('/api/admin/export/bookings');
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'bookings.csv';
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      toast({
+        title: "Export Successful",
+        description: "Bookings data exported as CSV file.",
+      });
+    } catch (error) {
+      console.error('Export error:', error);
+      toast({
+        title: "Export Error",
+        description: "Failed to export bookings data.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -316,7 +344,17 @@ Average per booking: ${activityBookings.length ? Math.round(totalRevenue / activ
             <TabsContent value="bookings" className="space-y-4">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-semibold">Booking Management</h2>
-                <ActivityManagementModal mode="create" />
+                <div className="flex gap-2">
+                  <Button 
+                    onClick={handleExportBookings} 
+                    variant="outline" 
+                    size="sm"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Export CSV
+                  </Button>
+                  <ActivityManagementModal mode="create" />
+                </div>
               </div>
 
 
