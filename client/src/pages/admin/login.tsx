@@ -61,7 +61,7 @@ const mutation = useMutation({
         description: t('admin.loginSuccess'),
       });
       // Force window location change to ensure proper navigation
-      window.location.href = "/admin/dashboard";
+      window.location.href = "/admin";
     } else {
       const message = response?.message || t('errors.loginFailed');
       setErrorMessage(message);
