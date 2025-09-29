@@ -744,17 +744,17 @@ class MongoStorage implements IStorage {
             ...userData,
             password: hashedPassword,
           });
-          console.log(`âœ… Created admin user: ${userData.username}`);
+          console.log(`✅ Created admin user: ${userData.username}`);
         } else {
-          console.log(`â„¹ï¸ Admin user already exists: ${userData.username}`);
+          console.log(`ℹ️ Admin user already exists: ${userData.username}`);
           // Force update password to ensure it's correct
-          console.log(`ðŸ”„ Updating password for existing user: ${userData.username}`);
+          console.log(`🔄 Updating password for existing user: ${userData.username}`);
           const hashedPassword = await bcrypt.hash(userData.password, 10);
           await User.updateOne(
             { username: userData.username },
             { $set: { password: hashedPassword, role: userData.role } }
           );
-          console.log(`âœ… Updated password and role for admin user: ${userData.username}`);
+          console.log(`✅ Updated password and role for admin user: ${userData.username}`);
         }
       }
 
@@ -895,14 +895,14 @@ class MongoStorage implements IStorage {
         ];
 
         await Activity.insertMany(activities);
-        console.log(`âœ… Created ${activities.length} initial activities`);
+        console.log(`✅ Created ${activities.length} initial activities`);
         
         // Force clear any cached data by updating the database timestamp
         await Activity.updateMany({}, { $set: { updatedAt: new Date() } });
         console.log('🔄 Database cache cleared - activities updated with new image filenames');
       }
 
-      console.log('âœ… MongoDB seed data initialized successfully');
+      console.log('✅ MongoDB seed data initialized successfully');
     } catch (error) {
       console.error('âŒ Error seeding data:', error);
     }

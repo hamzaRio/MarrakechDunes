@@ -21,10 +21,10 @@ try {
 }
 
 // Debug: Check if environment variables are loaded
-console.log('ðŸ”§ Environment loading check:');
-console.log('  DATABASE_URL:', process.env.DATABASE_URL ? 'âœ… LOADED' : 'âŒ NOT FOUND');
+console.log('🔧 Environment loading check:');
+console.log('  DATABASE_URL:', process.env.DATABASE_URL ? '✅ LOADED' : 'âŒ NOT FOUND');
 console.log('  NODE_ENV:', process.env.NODE_ENV || 'not set');
-console.log('  SESSION_SECRET:', process.env.SESSION_SECRET ? 'âœ… LOADED' : 'âŒ NOT FOUND');
+console.log('  SESSION_SECRET:', process.env.SESSION_SECRET ? '✅ LOADED' : 'âŒ NOT FOUND');
 
 // Environment variables should be loaded by dotenv-flow above
 
@@ -64,7 +64,7 @@ if (!envValidation.isValid) {
 // Security recommendations
 if (process.env.NODE_ENV === 'production') {
   console.log('ðŸ”’ Security recommendations:');
-  getSecurityRecommendations().forEach(rec => console.log(`  â€¢ ${rec}`));
+  getSecurityRecommendations().forEach(rec => console.log(`  • ${rec}`));
 }
 
 // Now import modules that depend on environment variables
@@ -156,7 +156,7 @@ const corsOptions: cors.CorsOptions = {
     
     // Automatically allow ALL Vercel preview URLs
     if (origin && origin.match(/^https:\/\/marrakech-dunes-.*\.vercel\.app$/)) {
-      console.log("âœ… Allowing Vercel preview URL:", origin);
+      console.log("✅ Allowing Vercel preview URL:", origin);
       return callback(null, true);
     }
     
@@ -166,7 +166,7 @@ const corsOptions: cors.CorsOptions = {
         const pattern = allowedOrigin.replace(/\*/g, '.*');
         const regex = new RegExp(`^${pattern}$`);
         if (origin && regex.test(origin)) {
-          console.log("âœ… Allowing wildcard origin:", origin, "matches pattern:", allowedOrigin);
+          console.log("✅ Allowing wildcard origin:", origin, "matches pattern:", allowedOrigin);
           return callback(null, true);
         }
       }
@@ -331,7 +331,7 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  // âœ… Connect to MongoDB before starting the server
+  // ✅ Connect to MongoDB before starting the server
   await connectToDatabase();
 
   // Mount session router BEFORE other routes
@@ -398,14 +398,14 @@ app.use((req, res, next) => {
     console.log(`[assets] Static assets served by frontend at /images/`);
     console.log(`[routers] /api/session mounted`);
     log(`ðŸš€ Server started on port ${PORT}`);
-    log(`ðŸŒ NODE_ENV: ${process.env.NODE_ENV || 'development'}`);
-    log(`ðŸŒ Allowed CORS origins: ${allowedOrigins.join(', ')}`);
+    log(`🌍 NODE_ENV: ${process.env.NODE_ENV || 'development'}`);
+    log(`🌍 Allowed CORS origins: ${allowedOrigins.join(', ')}`);
     log(`ðŸ“ Assets: Served by frontend (Vercel) at /images/`);
     log(`ðŸ”’ Rate limiting: ${isProduction ? '100' : '200'} req/15min (global, auth, admin, general)`);
     log(`ðŸª Session cookies: secure=${isProduction}, sameSite=${isProduction ? 'none' : 'lax'}, httpOnly=true`);
     log(`ðŸ“¡ Server URL: http://localhost:${PORT}`);
     log(`ðŸ”§ Trust proxy: ${app.get('trust proxy')}`);
-    log(`ðŸ”‘ Session secret: ${process.env.SESSION_SECRET ? 'âœ… SET' : 'âŒ NOT SET'}`);
-    log(`ðŸŒ CLIENT_URL: ${process.env.CLIENT_URL || 'not set'}`);
+    log(`ðŸ”‘ Session secret: ${process.env.SESSION_SECRET ? '✅ SET' : 'âŒ NOT SET'}`);
+    log(`🌍 CLIENT_URL: ${process.env.CLIENT_URL || 'not set'}`);
   });
 })();
