@@ -487,7 +487,7 @@ class MongoStorage implements IStorage {
 
   // PDF Export operations
   async exportBookingsToPDF(bookings: BookingWithActivity[]): Promise<Buffer> {
-    const jsPDF = require('jspdf');
+    const { default: jsPDF } = await import('jspdf');
     const doc = new jsPDF();
     
     // Add title
@@ -530,7 +530,7 @@ class MongoStorage implements IStorage {
       
       doc.text(booking.customerName, 20, yPosition);
       doc.text(booking.activity?.name || 'Unknown', 60, yPosition);
-      doc.text(booking.preferredDate, 100, yPosition);
+      doc.text(new Date(booking.preferredDate).toLocaleDateString(), 100, yPosition);
       doc.text(`${booking.totalAmount} MAD`, 130, yPosition);
       doc.text(booking.status, 160, yPosition);
       yPosition += 5;
@@ -601,7 +601,7 @@ class MongoStorage implements IStorage {
   }
 
   async exportOperationsReportToPDF(reportData: any): Promise<Buffer> {
-    const jsPDF = require('jspdf');
+    const { default: jsPDF } = await import('jspdf');
     const doc = new jsPDF();
     
     // Add title

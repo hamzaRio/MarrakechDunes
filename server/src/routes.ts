@@ -646,9 +646,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log("Starting PDF export...");
       
-      // Check if jsPDF is available
+      // Import jsPDF dynamically
+      let jsPDF;
       try {
-        const jsPDF = require('jspdf');
+        jsPDF = (await import('jspdf')).default;
         console.log("jsPDF loaded successfully");
       } catch (jspdfError) {
         console.error("jsPDF not available:", jspdfError);

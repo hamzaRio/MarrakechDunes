@@ -11,7 +11,14 @@ export async function connectToDatabase(): Promise<void> {
     if (error instanceof Error) {
       console.error(`[db] ${error.message}`);
     }
-    process.exit(1);
+    
+    // For development, try to use a default MongoDB URL
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn('[db] Attempting to use default MongoDB URL for development...');
+      databaseUrl = 'mongodb://localhost:27017/marrakechdunes';
+    } else {
+      process.exit(1);
+    }
   }
 
   const redactedDatabaseUrl = getRedactedDatabaseUrl(databaseUrl);
