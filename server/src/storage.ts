@@ -116,6 +116,7 @@ export interface IStorage {
   getBookings(): Promise<BookingWithActivity[]>;
   getBooking(id: string): Promise<BookingWithActivity | null>;
   createBooking(booking: InsertBooking): Promise<BookingType>;
+  updateBooking(id: string, updateData: Partial<InsertBooking>): Promise<BookingType | null>;
   updateBookingStatus(id: string, status: string): Promise<BookingType | null>;
   updateBookingPayment(id: string, paymentData: {
     paymentStatus: string;
@@ -123,8 +124,14 @@ export interface IStorage {
     paymentMethod: string;
     depositAmount?: number;
   }): Promise<BookingType | null>;
+  deleteBooking(id: string): Promise<boolean>;
   createAuditLog(log: InsertAuditLog): Promise<AuditLogType>;
   getAuditLogs(): Promise<AuditLogType[]>;
+  getAdmins(): Promise<any[]>;
+  createAdmin(adminData: { username: string; password: string; role: string }): Promise<any>;
+  deleteAdmin(id: string): Promise<boolean>;
+  exportBookingsToCSV(bookings: BookingWithActivity[]): Promise<string>;
+  exportAuditLogsToCSV(logs: AuditLogType[]): Promise<string>;
   getReviews(activityId?: string): Promise<ReviewWithActivity[]>;
   getReview(id: string): Promise<ReviewWithActivity | null>;
   createReview(review: InsertReview): Promise<ReviewType>;
@@ -368,6 +375,11 @@ class MongoStorage implements IStorage {
     return this.transformDocument(savedBooking);
   }
 
+  async updateBooking(id: string, updateData: Partial<InsertBooking>): Promise<BookingType | null> {
+    const booking = await Booking.findByIdAndUpdate(id, updateData, { new: true });
+    return this.transformDocument(booking);
+  }
+
   async updateBookingStatus(id: string, status: string): Promise<BookingType | null> {
     const booking = await Booking.findByIdAndUpdate(id, { status }, { new: true });
     return this.transformDocument(booking);
@@ -383,6 +395,11 @@ class MongoStorage implements IStorage {
     return this.transformDocument(booking);
   }
 
+  async deleteBooking(id: string): Promise<boolean> {
+    const result = await Booking.findByIdAndDelete(id);
+    return !!result;
+  }
+
   // Audit log operations
   async createAuditLog(logData: InsertAuditLog): Promise<AuditLogType> {
     const log = new AuditLog(logData);
@@ -393,6 +410,76 @@ class MongoStorage implements IStorage {
   async getAuditLogs(): Promise<AuditLogType[]> {
     const logs = await AuditLog.find().sort({ createdAt: -1 }).limit(100);
     return logs.map(log => this.transformDocument(log));
+  }
+
+  // Admin management operations
+  async getAdmins(): Promise<any[]> {
+    const admins = await User.find({ role: { $in: ['admin', 'superadmin'] } }).select('-password');
+    return admins.map(admin => this.transformDocument(admin));
+  }
+
+  async createAdmin(adminData: { username: string; password: string; role: string }): Promise<any> {
+    const bcrypt = require('bcrypt');
+    const hashedPassword = await bcrypt.hash(adminData.password, 10);
+    
+    const admin = new User({
+      username: adminData.username,
+      password: hashedPassword,
+      role: adminData.role
+    });
+    
+    const savedAdmin = await admin.save();
+    return this.transformDocument(savedAdmin);
+  }
+
+  async deleteAdmin(id: string): Promise<boolean> {
+    const result = await User.findByIdAndDelete(id);
+    return !!result;
+  }
+
+  // CSV Export operations
+  async exportBookingsToCSV(bookings: BookingWithActivity[]): Promise<string> {
+    const headers = [
+      'ID', 'Customer Name', 'Customer Phone', 'Customer Email', 
+      'Activity Name', 'Number of People', 'Preferred Date', 
+      'Total Amount', 'Payment Status', 'Status', 'Created At'
+    ];
+    
+    const rows = bookings.map(booking => [
+      booking._id,
+      booking.customerName,
+      booking.customerPhone,
+      booking.customerEmail || '',
+      booking.activity?.name || 'Unknown',
+      booking.numberOfPeople,
+      booking.preferredDate,
+      booking.totalAmount,
+      booking.paymentStatus || 'unpaid',
+      booking.status,
+      new Date(booking.createdAt).toISOString()
+    ]);
+    
+    return [headers, ...rows].map(row => 
+      row.map(field => `"${String(field).replace(/"/g, '""')}"`).join(',')
+    ).join('\n');
+  }
+
+  async exportAuditLogsToCSV(logs: AuditLogType[]): Promise<string> {
+    const headers = [
+      'ID', 'User ID', 'Action', 'Details', 'Created At'
+    ];
+    
+    const rows = logs.map(log => [
+      log._id,
+      log.userId,
+      log.action,
+      log.details,
+      new Date(log.createdAt).toISOString()
+    ]);
+    
+    return [headers, ...rows].map(row => 
+      row.map(field => `"${String(field).replace(/"/g, '""')}"`).join(',')
+    ).join('\n');
   }
 
   // Review operations

@@ -367,6 +367,103 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   }));
 
+  // Update booking endpoint
+  app.put("/api/admin/bookings/:id", adminSecurityMiddleware, asyncHandler(async (req: Request, res: Response) => {
+    const authReq = req as AuthenticatedRequest;
+    try {
+      const { id } = req.params;
+      const updateData = req.body;
+      
+      const booking = await storage.getBooking(id);
+      if (!booking) {
+        return res.status(404).json({
+          status: 'error',
+          message: 'Booking not found',
+          code: 'BOOKING_NOT_FOUND'
+        });
+      }
+
+      const updatedBooking = await storage.updateBooking(id, updateData);
+      
+      // Create audit log
+      await storage.createAuditLog({
+        userId: authReq.session.user!.id,
+        action: `Updated booking: ${booking.customerName}`,
+        details: JSON.stringify({ 
+          bookingId: id, 
+          changes: updateData,
+          previousData: {
+            status: booking.status,
+            paymentStatus: booking.paymentStatus,
+            totalAmount: booking.totalAmount
+          }
+        })
+      });
+      
+      res.json({ 
+        status: 'success',
+        message: "Booking updated successfully",
+        booking: updatedBooking
+      });
+    } catch (error) {
+      console.error("Error updating booking:", error);
+      res.status(500).json({ 
+        status: 'error',
+        message: "Failed to update booking",
+        code: 'UPDATE_BOOKING_ERROR',
+        timestamp: new Date().toISOString(),
+        path: req.path,
+        method: req.method
+      });
+    }
+  }));
+
+  // Delete booking endpoint
+  app.delete("/api/admin/bookings/:id", adminSecurityMiddleware, asyncHandler(async (req: Request, res: Response) => {
+    const authReq = req as AuthenticatedRequest;
+    try {
+      const { id } = req.params;
+      const booking = await storage.getBooking(id);
+      
+      if (!booking) {
+        return res.status(404).json({
+          status: 'error',
+          message: 'Booking not found',
+          code: 'BOOKING_NOT_FOUND'
+        });
+      }
+
+      await storage.deleteBooking(id);
+      
+      // Create audit log
+      await storage.createAuditLog({
+        userId: authReq.session.user!.id,
+        action: `Deleted booking: ${booking.customerName} - ${booking.activity?.name || 'Unknown Activity'}`,
+        details: JSON.stringify({ 
+          bookingId: id, 
+          customerName: booking.customerName,
+          activityName: booking.activity?.name,
+          totalAmount: booking.totalAmount
+        })
+      });
+      
+      res.json({ 
+        status: 'success',
+        message: "Booking deleted successfully" 
+      });
+    } catch (error) {
+      console.error("Error deleting booking:", error);
+      res.status(500).json({ 
+        status: 'error',
+        message: "Failed to delete booking",
+        code: 'DELETE_BOOKING_ERROR',
+        timestamp: new Date().toISOString(),
+        path: req.path,
+        method: req.method
+      });
+    }
+  }));
+
   app.get("/api/admin/audit-logs", superadminSecurityMiddleware, asyncHandler(async (req: Request, res: Response) => {
     try {
       const logs = await storage.getAuditLogs();
@@ -380,6 +477,136 @@ export async function registerRoutes(app: Express): Promise<Server> {
         timestamp: new Date().toISOString(),
         path: req.path,
         method: req.method
+      });
+    }
+  }));
+
+  // Superadmin endpoints for admin management
+  app.get("/api/superadmin/admins", superadminSecurityMiddleware, asyncHandler(async (req: Request, res: Response) => {
+    try {
+      const admins = await storage.getAdmins();
+      res.json(Array.isArray(admins) ? admins : []);
+    } catch (error) {
+      console.error("Error fetching admins:", error);
+      res.status(500).json({ 
+        status: 'error',
+        message: "Failed to fetch admins",
+        code: 'FETCH_ADMINS_ERROR'
+      });
+    }
+  }));
+
+  app.post("/api/superadmin/admins", superadminSecurityMiddleware, asyncHandler(async (req: Request, res: Response) => {
+    const authReq = req as AuthenticatedRequest;
+    try {
+      const { username, password, role = 'admin' } = req.body;
+      
+      if (!username || !password) {
+        return res.status(400).json({
+          status: 'error',
+          message: 'Username and password are required'
+        });
+      }
+
+      const admin = await storage.createAdmin({ username, password, role });
+      
+      // Create audit log
+      await storage.createAuditLog({
+        userId: authReq.session.user!.id,
+        action: `Created new admin: ${username}`,
+        details: JSON.stringify({ username, role })
+      });
+      
+      res.json({ 
+        status: 'success',
+        message: "Admin created successfully",
+        admin: { id: admin._id, username: admin.username, role: admin.role }
+      });
+    } catch (error) {
+      console.error("Error creating admin:", error);
+      res.status(500).json({ 
+        status: 'error',
+        message: "Failed to create admin",
+        code: 'CREATE_ADMIN_ERROR'
+      });
+    }
+  }));
+
+  app.delete("/api/superadmin/admins/:id", superadminSecurityMiddleware, asyncHandler(async (req: Request, res: Response) => {
+    const authReq = req as AuthenticatedRequest;
+    try {
+      const { id } = req.params;
+      
+      if (id === authReq.session.user!.id) {
+        return res.status(400).json({
+          status: 'error',
+          message: 'Cannot delete your own account'
+        });
+      }
+
+      const deleted = await storage.deleteAdmin(id);
+      
+      if (!deleted) {
+        return res.status(404).json({
+          status: 'error',
+          message: 'Admin not found'
+        });
+      }
+      
+      // Create audit log
+      await storage.createAuditLog({
+        userId: authReq.session.user!.id,
+        action: `Deleted admin: ${id}`,
+        details: JSON.stringify({ deletedAdminId: id })
+      });
+      
+      res.json({ 
+        status: 'success',
+        message: "Admin deleted successfully"
+      });
+    } catch (error) {
+      console.error("Error deleting admin:", error);
+      res.status(500).json({ 
+        status: 'error',
+        message: "Failed to delete admin",
+        code: 'DELETE_ADMIN_ERROR'
+      });
+    }
+  }));
+
+  // CSV Export endpoints
+  app.get("/api/admin/export/bookings", adminSecurityMiddleware, asyncHandler(async (req: Request, res: Response) => {
+    try {
+      const bookings = await storage.getBookings();
+      const csvData = await storage.exportBookingsToCSV(bookings);
+      
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', 'attachment; filename="bookings.csv"');
+      res.send(csvData);
+    } catch (error) {
+      console.error("Error exporting bookings:", error);
+      res.status(500).json({ 
+        status: 'error',
+        message: "Failed to export bookings",
+        code: 'EXPORT_BOOKINGS_ERROR'
+      });
+    }
+  }));
+
+  app.get("/api/admin/export/audit-logs", superadminSecurityMiddleware, asyncHandler(async (req: Request, res: Response) => {
+    try {
+      const logs = await storage.getAuditLogs();
+      const csvData = await storage.exportAuditLogsToCSV(logs);
+      
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', 'attachment; filename="audit-logs.csv"');
+      res.send(csvData);
+    } catch (error) {
+      console.error("Error exporting audit logs:", error);
+      res.status(500).json({ 
+        status: 'error',
+        message: "Failed to export audit logs",
+        code: 'EXPORT_AUDIT_LOGS_ERROR'
       });
     }
   }));

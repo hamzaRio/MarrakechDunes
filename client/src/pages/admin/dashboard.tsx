@@ -22,6 +22,7 @@ import PerformanceMonitor from "@/components/analytics/performance-monitor";
 import UserAnalytics from "@/components/analytics/user-analytics";
 import BusinessMetrics from "@/components/analytics/business-metrics";
 import SystemHealth from "@/components/analytics/system-health";
+import AdminManagement from "@/components/admin-management";
 
 // Removed useState import as no longer needed
 import type { BookingType, ActivityType, AuditLogType } from "marrakechdunes-shared/schema";
@@ -276,7 +277,7 @@ Average per booking: ${activityBookings.length ? Math.round(totalRevenue / activ
           </div>
 
           <Tabs defaultValue="bookings" className="space-y-6">
-            <TabsList className={`grid w-full ${user?.role === 'superadmin' ? 'grid-cols-12' : 'grid-cols-10'}`}>
+            <TabsList className={`grid w-full ${user?.role === 'superadmin' ? 'grid-cols-13' : 'grid-cols-10'}`}>
               <TabsTrigger value="bookings">Bookings</TabsTrigger>
               <TabsTrigger value="activities">Activities</TabsTrigger>
               <TabsTrigger value="cash-analytics">Cash Analytics</TabsTrigger>
@@ -295,6 +296,12 @@ Average per booking: ${activityBookings.length ? Math.round(totalRevenue / activ
                 <BarChart3 className="h-4 w-4 mr-1" />
                 Business
               </TabsTrigger>
+              {user?.role === 'superadmin' && (
+                <TabsTrigger value="admin-management">
+                  <Users className="h-4 w-4 mr-1" />
+                  Admin Mgmt
+                </TabsTrigger>
+              )}
               {user?.role === 'superadmin' && (
                 <TabsTrigger value="audit">Audit Logs</TabsTrigger>
               )}
@@ -616,6 +623,13 @@ Average per booking: ${activityBookings.length ? Math.round(totalRevenue / activ
             <TabsContent value="business" className="space-y-4">
               <BusinessMetrics />
             </TabsContent>
+
+            {/* Admin Management Tab */}
+            {user?.role === 'superadmin' && (
+              <TabsContent value="admin-management" className="space-y-4">
+                <AdminManagement />
+              </TabsContent>
+            )}
 
             {/* System Health Tab */}
             {user?.role === 'superadmin' && (
