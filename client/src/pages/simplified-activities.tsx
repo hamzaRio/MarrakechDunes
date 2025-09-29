@@ -127,7 +127,7 @@ export default function SimplifiedActivities() {
                   <SelectItem value="all">All Activities</SelectItem>
                   <SelectItem value="popular">Popular (4.5+ ⭐)</SelectItem>
                   <SelectItem value="budget">Budget (≤500 MAD)</SelectItem>
-                  <SelectItem value="premium">Premium (>500 MAD)</SelectItem>
+                    <SelectItem value="premium">Premium (&gt;500 MAD)</SelectItem>
                 </SelectContent>
               </Select>
 
