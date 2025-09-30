@@ -31,6 +31,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { getAssetUrl } from "@/lib/utils";
 import type { ActivityType } from "marrakechdunes-shared/schema";
+import GetYourGuidePriceFetcher from "@/components/getyourguide-price-fetcher";
 
 interface ActivityFormData {
   name: string;
@@ -227,6 +228,16 @@ export default function ActivityManagement() {
     });
   };
 
+  const handleGetYourGuidePriceSelect = (price: number, suggestions: any) => {
+    setFormData({ ...formData, getyourguidePrice: price });
+    
+    // Show toast with pricing suggestion
+    toast({
+      title: "Competitor Price Found",
+      description: `GetYourGuide price: ${price} MAD. Consider setting your price based on the suggestions.`,
+    });
+  };
+
   const handleRemoveImageUrl = (index: number) => {
     setFormData({
       ...formData,
@@ -293,20 +304,49 @@ export default function ActivityManagement() {
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     required
                     className="text-gray-900 bg-white border-gray-300"
+                    placeholder="e.g., Hot Air Balloon Ride"
                   />
                 </div>
                 <div>
                   <Label htmlFor="price" className="text-gray-900 font-medium">Price (MAD) *</Label>
-                  <Input
-                    id="price"
-                    type="number"
-                    value={formData.price}
-                    onChange={(e) => setFormData({ ...formData, price: parseInt(e.target.value) || 0 })}
-                    required
-                    className="text-gray-900 bg-white border-gray-300"
-                  />
+                  <div className="flex gap-2">
+                    <Input
+                      id="price"
+                      type="number"
+                      value={formData.price}
+                      onChange={(e) => setFormData({ ...formData, price: parseInt(e.target.value) || 0 })}
+                      required
+                      className="text-gray-900 bg-white border-gray-300"
+                    />
+                    {formData.getyourguidePrice > 0 && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const competitivePrice = Math.round(formData.getyourguidePrice * 0.95);
+                          setFormData({ ...formData, price: competitivePrice });
+                          toast({
+                            title: "Price Updated",
+                            description: `Set to competitive price: ${competitivePrice} MAD (5% below GetYourGuide)`,
+                          });
+                        }}
+                        className="whitespace-nowrap"
+                      >
+                        <TrendingDown className="h-4 w-4 mr-1" />
+                        Use Competitive
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </div>
+
+              {/* GetYourGuide Price Fetcher */}
+              <GetYourGuidePriceFetcher
+                activityName={formData.name}
+                onPriceSelect={handleGetYourGuidePriceSelect}
+                currentPrice={formData.getyourguidePrice}
+              />
 
               <div>
                 <Label htmlFor="description" className="text-gray-900 font-medium">Description *</Label>
