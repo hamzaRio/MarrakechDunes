@@ -184,6 +184,8 @@
     "bookingsReportExportedAsPDF": "Rapport des réservations exporté en PDF",
     "exportBookings": "Exporter les Réservations",
     "exportAuditLogs": "Exporter les Journaux d'Audit",
+    "exportCSV": "Exporter CSV",
+    "exportPDF": "Exporter PDF",
     "createAdmin": "Créer un Administrateur",
     "adminUsers": "Utilisateurs Administrateurs",
     "manageAdminUsers": "Gérer les utilisateurs administrateurs et exporter les rapports",
