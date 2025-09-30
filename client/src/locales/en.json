@@ -159,7 +159,11 @@
     "portalTitle": "Administrator Portal",
     "portalSubtitle": "Connect to manage bookings and activities",
     "exportCSV": "Export CSV",
-    "exportPDF": "Export PDF"
+    "exportPDF": "Export PDF",
+    "totalBookings": "Total Bookings",
+    "pendingBookings": "Pending Bookings",
+    "confirmedBookings": "Confirmed Bookings",
+    "totalRevenue": "Total Revenue"
   },
   "dashboard": "Dashboard",
   "welcome": "Welcome",
