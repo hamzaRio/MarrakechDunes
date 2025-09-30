@@ -217,7 +217,9 @@
     "operationsReportExportError": "Erreur d'export du rapport d'opérations",
     "executiveReportExportError": "Erreur d'export du rapport exécutif",
     "confirmed": "Confirmé",
-    "cancelled": "Annulé"
+    "cancelled": "Annulé",
+    "noDataToExport": "Aucune donnée à exporter",
+    "noBookingsToExport": "Il n'y a aucune réservation à exporter"
   },
   "dashboard": "Tableau de Bord",
   "welcome": "Bienvenue",

@@ -106,6 +106,16 @@ export default function SimplifiedAdminDashboard() {
   // Export handlers
   const handleExportCSV = async () => {
     try {
+      // Check if there are any bookings first
+      if (!bookings || bookings.length === 0) {
+        toast({
+          title: t('admin.noDataToExport'),
+          description: t('admin.noBookingsToExport'),
+          variant: "destructive",
+        });
+        return;
+      }
+
       const apiBaseUrl = import.meta.env.VITE_API_URL || 'https://marrakechdunes-sppy.onrender.com/api';
       const response = await fetch(`${apiBaseUrl}/admin/export/bookings`);
       
@@ -138,6 +148,16 @@ export default function SimplifiedAdminDashboard() {
 
   const handleExportPDF = async () => {
     try {
+      // Check if there are any bookings first
+      if (!bookings || bookings.length === 0) {
+        toast({
+          title: t('admin.noDataToExport'),
+          description: t('admin.noBookingsToExport'),
+          variant: "destructive",
+        });
+        return;
+      }
+
       const apiBaseUrl = import.meta.env.VITE_API_URL || 'https://marrakechdunes-sppy.onrender.com/api';
       const response = await fetch(`${apiBaseUrl}/admin/export/bookings/pdf`);
       
