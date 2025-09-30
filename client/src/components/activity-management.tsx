@@ -24,6 +24,7 @@ import {
   XCircle,
   Eye,
   TrendingUp,
+  TrendingDown,
   Globe
 } from "lucide-react";
 import { apiFetch } from "@/lib/api";
