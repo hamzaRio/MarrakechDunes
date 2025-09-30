@@ -24,6 +24,7 @@
     "@types/leaflet": "^1.9.20",
     "@types/node": "^24.6.0",
     "axios": "^1.11.0",
+    "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "date-fns": "^3.6.0",
     "lucide-react": "^0.453.0",
