@@ -423,7 +423,7 @@ app.use((req, res, next) => {
     console.log(`[server] listening on ${PORT}`);
     console.log(`[assets] Static assets served by frontend at /images/`);
     console.log(`[routers] /api/session mounted`);
-    log(`ðŸš€ Server started on port ${PORT}`);
+    log(`ðŸš€ Server started on port ${PORT} - Updated with PDF export fixes`);
     log(`🌍 NODE_ENV: ${process.env.NODE_ENV || 'development'}`);
     log(`🌍 Allowed CORS origins: ${allowedOrigins.join(', ')}`);
     log(`ðŸ“ Assets: Served by frontend (Vercel) at /images/`);
