@@ -25,17 +25,20 @@ export interface GetYourGuideSearchResult {
 }
 
 /**
- * Search for activities on GetYourGuide
- * This is a mock implementation - in production, you would use GetYourGuide's API
+ * Find exact activity match on GetYourGuide
+ * This simulates finding the exact same activity by name
  */
-export async function searchGetYourGuideActivities(searchTerm: string): Promise<GetYourGuideSearchResult> {
+export async function findExactGetYourGuideActivity(activityName: string): Promise<GetYourGuideActivity | null> {
   // Simulate API delay
-  await new Promise(resolve => setTimeout(resolve, 1000));
+  await new Promise(resolve => setTimeout(resolve, 800));
 
-  // Mock data based on common Marrakech activities
-  const mockActivities: GetYourGuideActivity[] = [
+  // Normalize the activity name for matching
+  const normalizedName = activityName.toLowerCase().trim();
+  
+  // Mock database of exact GetYourGuide activities
+  const getyourguideActivities: GetYourGuideActivity[] = [
     {
-      id: "1",
+      id: "gyg-1",
       name: "Hot Air Balloon Ride in Marrakech",
       price: 450,
       currency: "MAD",
@@ -49,7 +52,7 @@ export async function searchGetYourGuideActivities(searchTerm: string): Promise<
       difficulty: "easy"
     },
     {
-      id: "2", 
+      id: "gyg-2", 
       name: "Atlas Mountains Day Trip",
       price: 380,
       currency: "MAD",
@@ -63,8 +66,8 @@ export async function searchGetYourGuideActivities(searchTerm: string): Promise<
       difficulty: "medium"
     },
     {
-      id: "3",
-      name: "Ouzoud Waterfalls Tour",
+      id: "gyg-3",
+      name: "Ouzoud Waterfalls Day Trip",
       price: 320,
       currency: "MAD", 
       duration: "6 hours",
@@ -77,7 +80,7 @@ export async function searchGetYourGuideActivities(searchTerm: string): Promise<
       difficulty: "easy"
     },
     {
-      id: "4",
+      id: "gyg-4",
       name: "Essaouira Day Trip",
       price: 280,
       currency: "MAD",
@@ -91,7 +94,7 @@ export async function searchGetYourGuideActivities(searchTerm: string): Promise<
       difficulty: "easy"
     },
     {
-      id: "5",
+      id: "gyg-5",
       name: "Agafay Desert Experience",
       price: 520,
       currency: "MAD",
@@ -105,8 +108,8 @@ export async function searchGetYourGuideActivities(searchTerm: string): Promise<
       difficulty: "easy"
     },
     {
-      id: "6",
-      name: "Ourika Valley Trekking",
+      id: "gyg-6",
+      name: "Ourika Valley Day Trip",
       price: 350,
       currency: "MAD",
       duration: "7 hours",
@@ -117,21 +120,88 @@ export async function searchGetYourGuideActivities(searchTerm: string): Promise<
       description: "Trek through the beautiful Ourika Valley",
       category: "nature", 
       difficulty: "medium"
+    },
+    {
+      id: "gyg-7",
+      name: "Montgolfière (Hot Air Balloon)",
+      price: 480,
+      currency: "MAD",
+      duration: "4 hours",
+      location: "Marrakech",
+      rating: 4.9,
+      reviewCount: 1156,
+      imageUrl: "https://example.com/montgolfiere.jpg",
+      description: "Hot air balloon ride over Marrakech with breakfast",
+      category: "adventure",
+      difficulty: "easy"
+    },
+    {
+      id: "gyg-8",
+      name: "Bahia Palace Tour",
+      price: 120,
+      currency: "MAD",
+      duration: "2 hours",
+      location: "Marrakech",
+      rating: 4.3,
+      reviewCount: 234,
+      imageUrl: "https://example.com/bahia.jpg",
+      description: "Guided tour of the beautiful Bahia Palace",
+      category: "cultural",
+      difficulty: "easy"
     }
   ];
 
-  // Filter activities based on search term
-  const filteredActivities = mockActivities.filter(activity =>
-    activity.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    activity.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    activity.category.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Find exact match by name (case-insensitive)
+  const exactMatch = getyourguideActivities.find(activity => {
+    const activityNormalizedName = activity.name.toLowerCase().trim();
+    return activityNormalizedName === normalizedName;
+  });
 
-  return {
-    activities: filteredActivities,
-    totalResults: filteredActivities.length,
-    searchTerm
-  };
+  // If no exact match, try partial matching for common variations
+  if (!exactMatch) {
+    const partialMatch = getyourguideActivities.find(activity => {
+      const activityNormalizedName = activity.name.toLowerCase().trim();
+      
+      // Check for common variations
+      const variations = [
+        normalizedName,
+        normalizedName.replace('day trip', ''),
+        normalizedName.replace('tour', ''),
+        normalizedName.replace('experience', ''),
+        normalizedName.replace('ride', ''),
+        normalizedName.replace('trip', ''),
+        normalizedName.replace('visit', ''),
+        normalizedName.replace('explore', ''),
+        normalizedName.replace('discover', ''),
+        normalizedName.replace('adventure', ''),
+        normalizedName.replace('excursion', ''),
+        normalizedName.replace('journey', ''),
+        normalizedName.replace('expedition', ''),
+        normalizedName.replace('trek', ''),
+        normalizedName.replace('hike', ''),
+        normalizedName.replace('walk', ''),
+        normalizedName.replace('safari', ''),
+        normalizedName.replace('cruise', ''),
+        normalizedName.replace('flight', ''),
+        normalizedName.replace('balloon', ''),
+        normalizedName.replace('montgolfière', 'hot air balloon'),
+        normalizedName.replace('montgolfiere', 'hot air balloon'),
+        normalizedName.replace('cascades', 'waterfalls'),
+        normalizedName.replace('oued', 'valley'),
+        normalizedName.replace('palace', 'palais'),
+        normalizedName.replace('palais', 'palace')
+      ];
+      
+      return variations.some(variation => 
+        activityNormalizedName.includes(variation) || 
+        variation.includes(activityNormalizedName)
+      );
+    });
+    
+    return partialMatch || null;
+  }
+
+  return exactMatch;
 }
 
 /**

@@ -17,7 +17,7 @@ import {
   Loader2
 } from "lucide-react";
 import { 
-  searchGetYourGuideActivities, 
+  findExactGetYourGuideActivity, 
   getCompetitivePricingSuggestions, 
   formatPrice,
   type GetYourGuideActivity 
@@ -34,19 +34,20 @@ export default function GetYourGuidePriceFetcher({
   onPriceSelect, 
   currentPrice = 0 
 }: GetYourGuidePriceFetcherProps) {
-  const [searchResults, setSearchResults] = useState<GetYourGuideActivity[]>([]);
+  const [foundActivity, setFoundActivity] = useState<GetYourGuideActivity | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedActivity, setSelectedActivity] = useState<GetYourGuideActivity | null>(null);
   const [pricingSuggestions, setPricingSuggestions] = useState<any>(null);
   const [showResults, setShowResults] = useState(false);
+  const [notFound, setNotFound] = useState(false);
 
   // Auto-search when activity name changes
   useEffect(() => {
     if (activityName && activityName.length > 3) {
       handleSearch(activityName);
     } else {
-      setSearchResults([]);
+      setFoundActivity(null);
       setShowResults(false);
+      setNotFound(false);
     }
   }, [activityName]);
 
@@ -54,29 +55,33 @@ export default function GetYourGuidePriceFetcher({
     if (!searchTerm || searchTerm.length < 3) return;
     
     setIsLoading(true);
+    setNotFound(false);
     try {
-      const results = await searchGetYourGuideActivities(searchTerm);
-      setSearchResults(results.activities);
-      setShowResults(true);
+      const activity = await findExactGetYourGuideActivity(searchTerm);
+      if (activity) {
+        setFoundActivity(activity);
+        const suggestions = getCompetitivePricingSuggestions(activity.price);
+        setPricingSuggestions(suggestions);
+        onPriceSelect(activity.price, suggestions);
+        setShowResults(true);
+      } else {
+        setNotFound(true);
+        setShowResults(true);
+      }
     } catch (error) {
       console.error("Error searching GetYourGuide:", error);
+      setNotFound(true);
+      setShowResults(true);
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleActivitySelect = (activity: GetYourGuideActivity) => {
-    setSelectedActivity(activity);
-    const suggestions = getCompetitivePricingSuggestions(activity.price);
-    setPricingSuggestions(suggestions);
-    onPriceSelect(activity.price, suggestions);
   };
 
   const handlePriceSuggestionSelect = (price: number) => {
     onPriceSelect(price, pricingSuggestions);
   };
 
-  if (!showResults && !selectedActivity) {
+  if (!showResults && !foundActivity) {
     return null;
   }
 
@@ -93,70 +98,37 @@ export default function GetYourGuidePriceFetcher({
           {isLoading && (
             <div className="flex items-center justify-center py-4">
               <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
-              <span className="ml-2 text-blue-600">Searching GetYourGuide...</span>
+              <span className="ml-2 text-blue-600">Searching GetYourGuide for "{activityName}"...</span>
             </div>
           )}
 
-          {searchResults.length > 0 && !selectedActivity && (
-            <div className="space-y-3">
-              <Label className="text-sm font-medium text-blue-900">
-                Found {searchResults.length} similar activities:
-              </Label>
-              {searchResults.map((activity) => (
-                <Card 
-                  key={activity.id} 
-                  className="cursor-pointer hover:bg-blue-100 transition-colors border-blue-200"
-                  onClick={() => handleActivitySelect(activity)}
-                >
-                  <CardContent className="p-3">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <h4 className="font-medium text-gray-900 text-sm">{activity.name}</h4>
-                        <div className="flex items-center gap-4 mt-1 text-xs text-gray-600">
-                          <span className="flex items-center gap-1">
-                            <DollarSign className="h-3 w-3" />
-                            {formatPrice(activity.price)}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Clock className="h-3 w-3" />
-                            {activity.duration}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <MapPin className="h-3 w-3" />
-                            {activity.location}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2 mt-1">
-                          <div className="flex items-center gap-1">
-                            <Star className="h-3 w-3 text-yellow-500 fill-current" />
-                            <span className="text-xs text-gray-600">{activity.rating}</span>
-                          </div>
-                          <span className="text-xs text-gray-500">({activity.reviewCount} reviews)</span>
-                        </div>
-                      </div>
-                      <Button size="sm" variant="outline" className="ml-2">
-                        Select
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+          {notFound && !isLoading && (
+            <div className="text-center py-4">
+              <div className="text-gray-500 mb-2">
+                <ExternalLink className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">No exact match found on GetYourGuide</p>
+                <p className="text-xs text-gray-400 mt-1">Activity: "{activityName}"</p>
+              </div>
+              <div className="text-xs text-gray-400 bg-gray-50 p-2 rounded">
+                💡 Try variations like "Day Trip", "Tour", or "Experience"
+              </div>
             </div>
           )}
 
-          {selectedActivity && (
+          {foundActivity && !isLoading && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h4 className="font-medium text-gray-900">{selectedActivity.name}</h4>
-                  <p className="text-sm text-gray-600">GetYourGuide Price: {formatPrice(selectedActivity.price)}</p>
+                  <h4 className="font-medium text-gray-900">{foundActivity.name}</h4>
+                  <p className="text-sm text-gray-600">GetYourGuide Price: {formatPrice(foundActivity.price)}</p>
                 </div>
                 <Button 
                   size="sm" 
                   variant="outline" 
                   onClick={() => {
-                    setSelectedActivity(null);
+                    setFoundActivity(null);
                     setPricingSuggestions(null);
+                    setShowResults(false);
                   }}
                 >
                   Change
