@@ -30,6 +30,7 @@ import {
 import { apiFetch } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
+import { useLanguage } from "@/hooks/use-language";
 import type { BookingType, ActivityType } from "marrakechdunes-shared/schema";
 
 interface BookingWithActivity extends BookingType {
@@ -39,6 +40,7 @@ interface BookingWithActivity extends BookingType {
 export default function SimplifiedAdminDashboard() {
   const { toast } = useToast();
   const { user } = useAuth();
+  const { t } = useLanguage();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -121,14 +123,14 @@ export default function SimplifiedAdminDashboard() {
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
       toast({
-        title: "Export Successful",
-        description: "Bookings exported as CSV",
+        title: t('admin.exportSuccessful'),
+        description: t('admin.bookingsExportedAsCSV'),
       });
     } catch (error) {
       console.error('CSV Export Error:', error);
       toast({
-        title: "Export Failed",
-        description: "Failed to export bookings",
+        title: t('admin.exportFailed'),
+        description: t('admin.failedToExportBookings'),
         variant: "destructive",
       });
     }
@@ -153,14 +155,14 @@ export default function SimplifiedAdminDashboard() {
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
       toast({
-        title: "Export Successful",
-        description: "Bookings exported as PDF",
+        title: t('admin.exportSuccessful'),
+        description: t('admin.bookingsReportExportedAsPDF'),
       });
     } catch (error) {
       console.error('PDF Export Error:', error);
       toast({
-        title: "Export Failed",
-        description: "Failed to export bookings PDF",
+        title: t('admin.exportFailed'),
+        description: t('admin.failedToExportBookingsPDF'),
         variant: "destructive",
       });
     }
@@ -198,17 +200,17 @@ export default function SimplifiedAdminDashboard() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Admin Dashboard</h2>
-          <p className="text-gray-600">Manage bookings and activities efficiently</p>
+          <h2 className="text-2xl font-bold text-gray-900">{t('admin.adminDashboard')}</h2>
+          <p className="text-gray-600">{t('admin.manageBookings')}</p>
         </div>
         <div className="flex gap-2">
           <Button onClick={handleExportCSV} variant="outline" size="sm">
             <Download className="h-4 w-4 mr-2" />
-            Export CSV
+            {t('admin.exportCSV')}
           </Button>
           <Button onClick={handleExportPDF} variant="outline" size="sm">
             <FileText className="h-4 w-4 mr-2" />
-            Export PDF
+            {t('admin.exportPDF')}
           </Button>
         </div>
       </div>
@@ -217,7 +219,7 @@ export default function SimplifiedAdminDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Bookings</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('admin.totalBookings')}</CardTitle>
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -227,7 +229,7 @@ export default function SimplifiedAdminDashboard() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('admin.pendingBookings')}</CardTitle>
             <Clock className="h-4 w-4 text-orange-500" />
           </CardHeader>
           <CardContent>
@@ -237,7 +239,7 @@ export default function SimplifiedAdminDashboard() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Confirmed</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('admin.confirmedBookings')}</CardTitle>
             <CheckCircle className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
@@ -247,7 +249,7 @@ export default function SimplifiedAdminDashboard() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('admin.totalRevenue')}</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -264,7 +266,7 @@ export default function SimplifiedAdminDashboard() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                 <Input
-                  placeholder="Search bookings..."
+                  placeholder={t('admin.searchBookings')}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
@@ -277,10 +279,10 @@ export default function SimplifiedAdminDashboard() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="confirmed">Confirmed</SelectItem>
-                <SelectItem value="cancelled">Cancelled</SelectItem>
+                <SelectItem value="all">{t('admin.allStatus')}</SelectItem>
+                <SelectItem value="pending">{t('admin.pending')}</SelectItem>
+                <SelectItem value="confirmed">{t('admin.confirmed')}</SelectItem>
+                <SelectItem value="cancelled">{t('admin.cancelled')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -290,7 +292,7 @@ export default function SimplifiedAdminDashboard() {
       {/* Bookings List */}
       <Card>
         <CardHeader>
-          <CardTitle>Bookings ({filteredBookings.length})</CardTitle>
+          <CardTitle>{t('admin.bookings')} ({filteredBookings.length})</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
