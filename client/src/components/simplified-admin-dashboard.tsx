@@ -5,27 +5,20 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+// import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { 
   Users, 
   Calendar, 
   DollarSign, 
-  TrendingUp, 
   CheckCircle, 
-  XCircle, 
   MessageCircle, 
   Download, 
   FileText, 
-  Plus,
-  Edit,
   Trash2,
   Search,
   Filter,
-  Phone,
-  Mail,
-  Clock,
-  Star
+  Clock
 } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
@@ -39,12 +32,10 @@ interface BookingWithActivity extends BookingType {
 
 export default function SimplifiedAdminDashboard() {
   const { toast } = useToast();
-  const { user } = useAuth();
   const { t } = useLanguage();
   const queryClient = useQueryClient();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [selectedBooking, setSelectedBooking] = useState<BookingWithActivity | null>(null);
 
   // Fetch bookings
   const { data: bookings, isLoading } = useQuery<BookingWithActivity[]>({
@@ -52,9 +43,9 @@ export default function SimplifiedAdminDashboard() {
   });
 
   // Fetch activities
-  const { data: activities } = useQuery<ActivityType[]>({
-    queryKey: ["/activities"],
-  });
+  // const { data: activities } = useQuery<ActivityType[]>({
+  //   queryKey: ["/activities"],
+  // });
 
   // Update booking status mutation
   const updateStatusMutation = useMutation({
