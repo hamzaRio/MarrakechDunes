@@ -31,6 +31,11 @@ console.log('  SESSION_SECRET:', process.env.SESSION_SECRET ? '✅ LOADED' : 'â
 
 // Environment validation - flexible for development
 const isProduction = process.env.NODE_ENV === 'production';
+
+// Set default PORT if not provided
+if (!process.env.PORT) {
+  process.env.PORT = '10000';
+}
 const criticalEnvVars = [
   'DATABASE_URL',
   'JWT_SECRET',
@@ -100,7 +105,14 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import helmet from "helmet";
 import session from "express-session";
-import csrf from "csurf";
+import { generateCSRFToken, verifyCSRFToken } from "./csrf-protection.js";
+import { 
+  requestSizeLimit, 
+  uploadRateLimit, 
+  uploadSecurityHeaders, 
+  securityRequestLogger,
+  validateFileUpload 
+} from "./security-hardening.js";
 import { globalLimiter, strictLimiter } from "./rate-limiters.js";
 import { registerRoutes } from "./routes.js";
 import { connectToDatabase } from "./db.js";
@@ -141,23 +153,6 @@ const log = (
 };
 
 const app = express();
-const csrfCookieName = 'marrakech.csrf';
-const csrfCookieOptions: CookieOptions = {
-  httpOnly: false,
-  secure: isProduction,
-  sameSite: isProduction ? 'none' : 'lax',
-  path: '/',
-};
-
-const csrfProtection = csrf({
-  cookie: {
-    key: csrfCookieName,
-    httpOnly: false,
-    secure: isProduction,
-    sameSite: isProduction ? 'none' : 'lax',
-    path: '/',
-  },
-});
 
 
 // Set trust proxy at the top before any middleware
@@ -264,49 +259,21 @@ app.use(cookieParser());
 // Session middleware
 app.use(session(sessionSecurity));
 
-// CSRF session init route (must be defined BEFORE global CSRF middleware)
+// CSRF session init route (handled by custom CSRF middleware)
 app.get('/api/session/init', (req: Request, res: Response) => {
-  const token = (req as any).csrfToken?.() ?? '';
+  const token = res.locals.csrfToken || '';
   res.setHeader('X-Session-Init', 'new-handler');
-  res
-    .cookie(csrfCookieName, token, csrfCookieOptions)
-    .status(200)
-    .json({ csrfToken: token });
+  res.status(200).json({ csrfToken: token });
 });
 
-// CSRF protection with double-submit cookie
-// Exclude /api/security-events, /api/auth/*, and /api/session/init from CSRF
-const csrfRequired = csrfProtection;
-app.use((req: Request, res: Response, next: NextFunction) => {
-  if (
-    req.path === "/api/security-events" ||
-    req.path.startsWith("/api/auth") ||
-    req.path === "/api/session/init" ||  // Add session init route exclusion
-    req.method === "DELETE" ||  // Exclude all DELETE operations from CSRF
-    req.path.startsWith("/api/admin/export")  // Exclude export operations from CSRF
-  ) {
-    return next();
-  }
-  return csrfRequired(req, res, next);
-});
+// Enhanced security middleware
+app.use(securityRequestLogger);
+app.use(requestSizeLimit);
+app.use(uploadSecurityHeaders);
 
-
-app.use((req: Request, res: Response, next: NextFunction) => {
-  const csrfTokenFactory = (req as any).csrfToken;
-
-  if (typeof csrfTokenFactory === 'function') {
-    try {
-      const token = csrfTokenFactory.call(req);
-      res.cookie(csrfCookieName, token, csrfCookieOptions);
-      res.locals.csrfToken = token;
-      res.setHeader('X-CSRF-Token', token);
-    } catch (error) {
-      return next(error as Error);
-    }
-  }
-
-  next();
-});
+// CSRF protection with custom implementation
+app.use(generateCSRFToken);
+app.use(verifyCSRFToken);
 
 
 
