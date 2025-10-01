@@ -1,4 +1,4 @@
-import { lazy, Suspense, type ComponentProps, type ComponentType, type LazyExoticComponent } from "react";
+import { lazy, Suspense, useEffect, type ComponentProps, type ComponentType, type LazyExoticComponent } from "react";
 import { Switch, Route } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
@@ -9,6 +9,8 @@ import { LanguageProvider } from "@/hooks/use-language";
 import SecurityWrapper from "@/components/security-wrapper";
 import AutoLogout from "@/components/auto-logout";
 import { ErrorBoundary } from "@/components/error-boundary";
+import { HelmetProvider } from "@/components/SEOHead";
+import ReactGA from "react-ga4";
 
 const Home = lazy(() => import("@/pages/home"));
 const Activities = lazy(() => import("@/pages/activities"));
@@ -82,9 +84,27 @@ function Router() {
 }
 
 function App() {
+  // Initialize Google Analytics
+  useEffect(() => {
+    const gaId = import.meta.env.VITE_GA_MEASUREMENT_ID;
+    if (gaId && import.meta.env.PROD) {
+      ReactGA.initialize(gaId);
+      console.log('✅ Google Analytics initialized');
+    }
+  }, []);
+
+  // Track page views
+  useEffect(() => {
+    const gaId = import.meta.env.VITE_GA_MEASUREMENT_ID;
+    if (gaId && import.meta.env.PROD) {
+      ReactGA.send({ hitType: "pageview", page: window.location.pathname });
+    }
+  }, [window.location.pathname]);
+
   return (
-    <ErrorBoundary
-      onError={(error, errorInfo) => {
+    <HelmetProvider>
+      <ErrorBoundary
+        onError={(error, errorInfo) => {
         if (process.env.NODE_ENV === 'production') {
           console.error('App Error:', { error: error.message, errorInfo });
         }
@@ -106,6 +126,7 @@ function App() {
         </SecurityProvider>
       </QueryClientProvider>
     </ErrorBoundary>
+    </HelmetProvider>
   );
 }
 

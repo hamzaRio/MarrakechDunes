@@ -1,6 +1,8 @@
 ﻿import { fileURLToPath } from "url";
 import path from "path";
 import dotenvFlow from 'dotenv-flow';
+import * as Sentry from "@sentry/node";
+import "@sentry/tracing";
 import { validateProductionEnvironment, getSecurityRecommendations } from './production-validator.js';
 import { config as serverEnv } from './env.js';
 
@@ -154,6 +156,27 @@ const log = (
 
 const app = express();
 
+// Initialize Sentry for error tracking
+if (process.env.NODE_ENV === 'production' && process.env.SENTRY_DSN) {
+  Sentry.init({
+    dsn: process.env.SENTRY_DSN,
+    environment: process.env.NODE_ENV,
+    tracesSampleRate: 0.1, // 10% of requests
+    beforeSend(event) {
+      // Don't send development errors
+      if (process.env.NODE_ENV !== 'production') {
+        return null;
+      }
+      return event;
+    },
+  });
+
+  // Sentry request handler must be the first middleware
+  app.use(Sentry.Handlers.requestHandler());
+  app.use(Sentry.Handlers.tracingHandler());
+  
+  console.log('✅ Sentry error tracking initialized');
+}
 
 // Set trust proxy at the top before any middleware
 app.set("trust proxy", 1);
@@ -374,6 +397,11 @@ app.use((req, res, next) => {
     // For non-API routes, return 404 as backend no longer serves frontend
     return res.status(404).json({ error: 'Not found - frontend is served by Vercel' });
   });
+
+  // Sentry error handler must be before any other error middleware
+  if (process.env.NODE_ENV === 'production' && process.env.SENTRY_DSN) {
+    app.use(Sentry.Handlers.errorHandler());
+  }
 
   // Global error handler (must be last)
   app.use((err: any, req: Request, res: Response, next: NextFunction) => {

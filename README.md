@@ -275,6 +275,91 @@ interface Booking {
 - **Audit Logs**: System activity tracking
 - **Custom Reports**: Tailored business insights
 
+## 📊 Monitoring & SEO
+
+### **Uptime Monitoring with UptimeRobot**
+
+**Setup Instructions:**
+1. **Create UptimeRobot Account**: Sign up at [uptimerobot.com](https://uptimerobot.com)
+2. **Add Monitors**:
+   - **Frontend Monitor**: 
+     - URL: `https://marrakech-dunes.vercel.app`
+     - Type: HTTP(s)
+     - Interval: 5 minutes
+     - Alert: Email/SMS when down
+   - **Backend Monitor**:
+     - URL: `https://marrakechdunes-sppy.onrender.com/api/health`
+     - Type: HTTP(s)
+     - Interval: 5 minutes
+     - Alert: Email/SMS when down
+
+**Benefits for Tour Business:**
+- **Prevent Lost Bookings**: Immediate alerts when site is down
+- **Revenue Protection**: Tourists can't book when site is unavailable
+- **Customer Experience**: Ensure 24/7 booking availability
+- **Professional Image**: Reliable tour operator reputation
+
+### **Error Tracking with Sentry**
+
+**Setup Instructions:**
+1. **Create Sentry Account**: Sign up at [sentry.io](https://sentry.io)
+2. **Create Projects**: 
+   - Frontend project for React errors
+   - Backend project for Node.js errors
+3. **Get DSN Keys**: Copy DSN from project settings
+4. **Configure Environment Variables**:
+   ```env
+   # Frontend (.env)
+   VITE_SENTRY_DSN=https://your-frontend-dsn@sentry.io/project-id
+   
+   # Backend (.env)
+   SENTRY_DSN=https://your-backend-dsn@sentry.io/project-id
+   ```
+
+**Tour Business Benefits:**
+- **Payment Error Tracking**: Monitor booking payment failures
+- **WhatsApp Integration**: Track notification delivery issues
+- **Admin Dashboard**: Monitor booking management errors
+- **Customer Experience**: Proactive error resolution
+
+### **SEO Optimization**
+
+**Files Created:**
+- **`/client/public/sitemap.xml`**: Search engine site map
+- **`/client/public/robots.txt`**: Crawler instructions
+- **`/client/src/components/SEOHead.tsx`**: Meta tags component
+
+**Tourism SEO Keywords:**
+- "Marrakech desert tours"
+- "Hot air balloon Marrakech"
+- "Camel rides Marrakech"
+- "Agafay Desert tours"
+- "Atlas Mountains day trip"
+- "Ouzoud waterfalls tour"
+
+**SEO Benefits:**
+- **Tour Discovery**: Help tourists find your experiences
+- **Local SEO**: Target tourists in Marrakech
+- **Mobile SEO**: Optimize for tourist mobile searches
+- **Competitive Advantage**: Outrank other tour operators
+
+### **Google Analytics v4**
+
+**Setup Instructions:**
+1. **Create GA4 Property**: Set up at [analytics.google.com](https://analytics.google.com)
+2. **Get Measurement ID**: Copy G-XXXXXXXXXX format ID
+3. **Configure Environment Variable**:
+   ```env
+   VITE_GA_MEASUREMENT_ID=G-XXXXXXXXXX
+   ```
+
+**Tour Business Analytics:**
+- **Popular Tours**: Track which activities are most viewed
+- **Booking Funnel**: Monitor from discovery to booking
+- **Geographic Data**: Understand tourist origins
+- **Device Usage**: Optimize for mobile tourists
+- **Conversion Tracking**: Monitor booking success rates
+
 ## 🚀 Deployment
 
 ### **Frontend (Vercel)**

@@ -1,0 +1,10 @@
+# Allow all search engines to crawl
+User-agent: *
+Allow: /
+
+# Disallow admin routes
+Disallow: /admin
+Disallow: /api
+
+# Sitemap location
+Sitemap: https://marrakech-dunes.vercel.app/sitemap.xml
