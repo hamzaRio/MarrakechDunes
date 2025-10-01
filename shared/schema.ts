@@ -28,6 +28,10 @@ export interface ActivityType {
   getyourguidePrice?: number;
   availability?: string;
   duration?: string;
+  location?: string;
+  maxParticipants?: number;
+  difficulty?: string;
+  rating?: number;
   createdAt: Date;
   updatedAt: Date;
 }

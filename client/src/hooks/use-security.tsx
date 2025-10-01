@@ -84,7 +84,7 @@ export function SecurityProvider({ children }: { children: ReactNode }) {
   // Security event logging with throttling
   const logSecurityEvent = (event: string, details?: any) => {
     // Skip all security logging in development mode
-    if (process.env.NODE_ENV === 'development') {
+    if (import.meta.env.DEV) {
       return;
     }
     
@@ -96,7 +96,7 @@ export function SecurityProvider({ children }: { children: ReactNode }) {
     });
 
     // Send to server for audit logging in production with throttling
-    if (process.env.NODE_ENV === 'production') {
+    if (import.meta.env.PROD) {
       // Throttle security events to prevent spam (max 1 per 30 seconds per event type)
       const throttleKey = `security_event_${event}`;
       const lastSent = localStorage.getItem(throttleKey);

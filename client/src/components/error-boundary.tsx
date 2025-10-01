@@ -40,7 +40,7 @@ export class ErrorBoundary extends Component<Props, State> {
     });
 
     // Log error to console in development
-    if (process.env.NODE_ENV === 'development') {
+    if (import.meta.env.DEV) {
       console.error('🚨 ErrorBoundary caught an error:', error, errorInfo);
     }
 
@@ -50,7 +50,7 @@ export class ErrorBoundary extends Component<Props, State> {
     }
 
     // Log to external service in production
-    if (process.env.NODE_ENV === 'production') {
+    if (import.meta.env.PROD) {
       // You can integrate with error tracking services like Sentry here
       console.error('Production Error:', {
         message: error.message,
@@ -96,7 +96,7 @@ export class ErrorBoundary extends Component<Props, State> {
                 We're sorry, but something unexpected happened. Please try refreshing the page or go back to the home page.
               </p>
               
-              {process.env.NODE_ENV === 'development' && this.state.error && (
+              {import.meta.env.DEV && this.state.error && (
                 <div className="bg-gray-100 p-3 rounded-lg">
                   <p className="text-sm font-medium text-gray-700 mb-2">Error Details:</p>
                   <p className="text-xs text-red-600 font-mono break-words">

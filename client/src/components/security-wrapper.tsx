@@ -69,7 +69,7 @@ export default function SecurityWrapper({
     if (!enableThreatDetection) return;
     
     // Disable threat detection in development mode
-    if (process.env.NODE_ENV === 'development') {
+    if (import.meta.env.DEV) {
       return;
     }
 

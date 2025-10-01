@@ -105,7 +105,7 @@ function App() {
     <HelmetProvider>
       <ErrorBoundary
         onError={(error, errorInfo) => {
-        if (process.env.NODE_ENV === 'production') {
+        if (import.meta.env.PROD) {
           console.error('App Error:', { error: error.message, errorInfo });
         }
       }}

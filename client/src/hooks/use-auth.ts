@@ -32,7 +32,7 @@ export function useAuth() {
     refetchOnWindowFocus: false,
     // Add error logging for debugging (production-safe)
     onError: (error) => {
-      if (process.env.NODE_ENV === 'development') {
+      if (import.meta.env.DEV) {
         console.error('Auth query error:', error);
       }
       // Clear localStorage if auth fails
@@ -44,7 +44,7 @@ export function useAuth() {
     },
     // Add success logging for debugging (development only)
     onSuccess: (response) => {
-      if (process.env.NODE_ENV === 'development') {
+      if (import.meta.env.DEV) {
         console.log('Auth query success:', response);
       }
     }

@@ -197,14 +197,14 @@ export default function ActivityManagement() {
     setFormData({
       name: activity.name,
       description: activity.description || '',
-      price: activity.price,
+      price: activity.price.toString(),
       duration: activity.duration || '',
       location: activity.location || '',
-      maxParticipants: activity.maxParticipants || 1,
+      maxParticipants: (activity.maxParticipants || 1).toString(),
       imageUrls: activity.imageUrls || [''],
       category: activity.category || 'adventure',
       difficulty: activity.difficulty || 'easy',
-      getyourguidePrice: activity.getyourguidePrice || 0
+      getyourguidePrice: (activity.getyourguidePrice || 0).toString()
     });
     setIsEditDialogOpen(true);
   };
@@ -230,7 +230,7 @@ export default function ActivityManagement() {
   };
 
   const handleGetYourGuidePriceSelect = (price: number, suggestions: any) => {
-    setFormData({ ...formData, getyourguidePrice: price });
+    setFormData({ ...formData, getyourguidePrice: price.toString() });
     
     // Show toast with pricing suggestion
     toast({
@@ -315,18 +315,18 @@ export default function ActivityManagement() {
                       id="price"
                       type="number"
                       value={formData.price}
-                      onChange={(e) => setFormData({ ...formData, price: parseInt(e.target.value) || 0 })}
+                      onChange={(e) => setFormData({ ...formData, price: e.target.value })}
                       required
                       className="text-gray-900 bg-white border-gray-300"
                     />
-                    {formData.getyourguidePrice > 0 && (
+                    {Number(formData.getyourguidePrice) > 0 && (
                       <Button
                         type="button"
                         variant="outline"
                         size="sm"
                         onClick={() => {
-                          const competitivePrice = Math.round(formData.getyourguidePrice * 0.95);
-                          setFormData({ ...formData, price: competitivePrice });
+                          const competitivePrice = Math.round(Number(formData.getyourguidePrice) * 0.95);
+                          setFormData({ ...formData, price: competitivePrice.toString() });
                           toast({
                             title: "Price Updated",
                             description: `Set to competitive price: ${competitivePrice} MAD (5% below GetYourGuide)`,

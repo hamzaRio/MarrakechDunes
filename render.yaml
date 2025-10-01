@@ -33,3 +33,5 @@ services:
         sync: false
       - key: SUPERADMIN_PASSWORD
         sync: false
+      - key: SENTRY_DSN
+        sync: false

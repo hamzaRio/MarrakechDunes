@@ -18,6 +18,7 @@ import {
   Trash2,
   Search,
   Filter,
+  Phone,
   Clock
 } from "lucide-react";
 import { apiFetch } from "@/lib/api";
@@ -323,7 +324,7 @@ export default function SimplifiedAdminDashboard() {
                     </div>
                     <div className="flex items-center gap-1">
                       <Calendar className="h-3 w-3" />
-                      {booking.preferredDate}
+                      {new Date(booking.preferredDate).toLocaleDateString()}
                     </div>
                     <div className="flex items-center gap-1">
                       <Users className="h-3 w-3" />

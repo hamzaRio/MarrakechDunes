@@ -138,7 +138,7 @@ export default function SimplifiedActivityCard({ activity }: SimplifiedActivityC
             <SimplifiedBookingForm
               activityId={activity._id}
               activityName={activity.name}
-              activityPrice={activity.price}
+              activityPrice={Number(activity.price)}
               onSuccess={handleBookingSuccess}
             />
           </DialogContent>
