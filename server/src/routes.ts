@@ -153,7 +153,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         user: authReq.session.user,
       });
     } else {
-      throw new AuthenticationError('Not authenticated');
+      // Return 401 instead of throwing error for better frontend handling
+      res.status(401).json({
+        success: false,
+        error: 'Not authenticated'
+      });
     }  }));
 
   app.post("/api/auth/login", strictLimiter, authRateLimit, asyncHandler(async (req: Request, res: Response) => {

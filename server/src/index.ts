@@ -356,6 +356,12 @@ app.use((req, res, next) => {
     res.status(204).end();
   });
 
+  // Redirect /assets/ to /images/ for frontend compatibility
+  app.get('/assets/*', (req, res) => {
+    const imagePath = req.path.replace('/assets/', '/images/');
+    res.redirect(301, imagePath);
+  });
+
 
   // API 404 handler for undefined routes
   app.use('/api/*', notFoundHandler);

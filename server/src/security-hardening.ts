@@ -1,6 +1,25 @@
 import { Request, Response, NextFunction } from 'express';
 import rateLimit from 'express-rate-limit';
 
+// Helper function to identify common 404s that aren't suspicious
+const isCommon404 = (url: string): boolean => {
+  const common404Patterns = [
+    '/assets/',
+    '/favicon.ico',
+    '/robots.txt',
+    '/sitemap.xml',
+    '.jpg',
+    '.jpeg',
+    '.png',
+    '.gif',
+    '.css',
+    '.js',
+    '.ico'
+  ];
+  
+  return common404Patterns.some(pattern => url.includes(pattern));
+};
+
 // Extend Request interface for file uploads
 interface RequestWithFiles extends Request {
   file?: any;
@@ -88,8 +107,8 @@ export const securityRequestLogger = (req: Request, res: Response, next: NextFun
       contentLength: res.get('Content-Length') || '0'
     };
 
-    // Log suspicious activities
-    if (res.statusCode >= 400) {
+    // Log suspicious activities (but not common 404s for assets)
+    if (res.statusCode >= 400 && !isCommon404(req.url)) {
       console.warn('[SECURITY] Suspicious request:', logData);
     }
 
