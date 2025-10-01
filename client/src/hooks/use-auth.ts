@@ -31,23 +31,8 @@ export function useAuth() {
     refetchOnMount: true, // Allow refetch on mount for auth
     refetchOnWindowFocus: false,
     // Add error logging for debugging (production-safe)
-    onError: (error) => {
-      if (import.meta.env.DEV) {
-        console.error('Auth query error:', error);
-      }
-      // Clear localStorage if auth fails
-      if (error?.response?.status === 401 || error?.response?.status === 403) {
-        localStorage.removeItem('user');
-        // Also clear session storage
-        sessionStorage.clear();
-      }
-    },
-    // Add success logging for debugging (development only)
-    onSuccess: (response) => {
-      if (import.meta.env.DEV) {
-        console.log('Auth query success:', response);
-      }
-    }
+    // Note: onError is deprecated in React Query v5, using error handling in components instead
+    // Note: onSuccess is deprecated in React Query v5, using success handling in components instead
   });
 
   // Try to get user from localStorage as fallback if query fails

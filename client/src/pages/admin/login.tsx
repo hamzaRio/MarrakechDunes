@@ -196,7 +196,7 @@ const mutation = useMutation({
           <p className="text-blue-100 text-sm">
             {t('admin.authorizedOnly')} • MarrakechDunes 2025
           </p>
-          {process.env.NODE_ENV === 'development' && (
+          {import.meta.env.DEV && (
             <div className="mt-4 p-3 bg-blue-800/50 rounded-lg text-xs text-blue-100">
               <p className="font-medium mb-1">{t('admin.developmentMode')}:</p>
               <p className="text-xs text-blue-200">{t('admin.contactAdmin')}</p>

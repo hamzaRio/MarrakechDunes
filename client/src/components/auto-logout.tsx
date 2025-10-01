@@ -19,8 +19,8 @@ export default function AutoLogout({
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
-  const timeoutRef = useRef<NodeJS.Timeout>();
-  const warningRef = useRef<NodeJS.Timeout>();
+  const timeoutRef = useRef<number>();
+  const warningRef = useRef<number>();
   const lastActivityRef = useRef<number>(Date.now());
 
   const handleLogout = useCallback(async () => {

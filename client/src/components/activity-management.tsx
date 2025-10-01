@@ -37,14 +37,14 @@ import GetYourGuidePriceFetcher from "@/components/getyourguide-price-fetcher";
 interface ActivityFormData {
   name: string;
   description: string;
-  price: number;
+  price: string;
   duration: string;
   location: string;
-  maxParticipants: number;
+  maxParticipants: string;
   imageUrls: string[];
   category: string;
   difficulty: string;
-  getyourguidePrice?: number;
+  getyourguidePrice?: string;
 }
 
 export default function ActivityManagement() {
@@ -212,13 +212,21 @@ export default function ActivityManagement() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Convert string form data to proper types for API
+    const apiData = {
+      ...formData,
+      price: Number(formData.price),
+      maxParticipants: Number(formData.maxParticipants),
+      getyourguidePrice: formData.getyourguidePrice ? Number(formData.getyourguidePrice) : undefined
+    };
+    
     if (selectedActivity) {
       updateActivityMutation.mutate({
         id: selectedActivity._id,
-        data: formData
+        data: apiData
       });
     } else {
-      createActivityMutation.mutate(formData);
+      createActivityMutation.mutate(apiData);
     }
   };
 

@@ -52,7 +52,7 @@ export default function ActivityCard({ activity, showDescription = false }: Acti
   }
   const legacyImage = (activity as any).image;
   if (imageSources.length === 0 && typeof legacyImage === 'string' && legacyImage) {
-    imageSources.push(legacyImage);
+    imageSources.push(legacyImage as string);
   }
 
   // Use improved image handling
@@ -84,9 +84,9 @@ export default function ActivityCard({ activity, showDescription = false }: Acti
 
           onLoad={() => {
 
-            if (process.env.NODE_ENV === 'development') {
+            if (import.meta.env.DEV) {
 
-              console.log('Image loaded successfully:', primarySource);
+              console.log('Image loaded successfully:', primaryImage);
 
             }
 
