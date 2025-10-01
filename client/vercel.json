@@ -1,5 +1,8 @@
 {
   "rewrites": [
+    { "source": "/manifest.webmanifest", "destination": "/manifest.webmanifest" },
+    { "source": "/sw.js", "destination": "/sw.js" },
+    { "source": "/workbox-*.js", "destination": "/workbox-*.js" },
     { "source": "/(.*)", "destination": "/" }
   ],
   "headers": [
@@ -27,6 +30,20 @@
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=604800, immutable" },
         { "key": "Content-Type", "value": "image/jpeg" }
+      ]
+    },
+    {
+      "source": "/manifest.webmanifest",
+      "headers": [
+        { "key": "Content-Type", "value": "application/manifest+json" },
+        { "key": "Cache-Control", "value": "public, max-age=86400" }
+      ]
+    },
+    {
+      "source": "/sw.js",
+      "headers": [
+        { "key": "Content-Type", "value": "application/javascript" },
+        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
       ]
     }
   ]
