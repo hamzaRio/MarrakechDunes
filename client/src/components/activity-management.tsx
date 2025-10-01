@@ -264,7 +264,7 @@ export default function ActivityManagement() {
   };
 
   // Filter activities
-  const filteredActivities = activities?.filter(activity => {
+  const filteredActivities = (activities || []).filter(activity => {
     const matchesSearch = activity.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          activity.description?.toLowerCase().includes(searchTerm.toLowerCase());
     
@@ -274,7 +274,7 @@ export default function ActivityManagement() {
                          (statusFilter === "rejected" && activity.approvalStatus === 'rejected');
     
     return matchesSearch && matchesStatus;
-  }) || [];
+  });
 
   if (isLoading) {
     return (

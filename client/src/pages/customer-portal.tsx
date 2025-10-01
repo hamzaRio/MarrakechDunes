@@ -10,7 +10,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { getStatusDisplayName, getStatusColor } from "@/lib/booking-utils";
 import { Calendar, Phone, Users, DollarSign, Clock, MapPin } from "lucide-react";
-import type { BookingType } from "marrakechdunes-shared/schema";
+import { BookingType } from "marrakechdunes-shared/schema";
 
 export default function CustomerPortal() {
   const [phone, setPhone] = useState("");
@@ -61,7 +61,7 @@ export default function CustomerPortal() {
     },
   });
 
-  const { data: bookings, isLoading } = useQuery({
+  const { data: bookings = [], isLoading } = useQuery({
     queryKey: ['/portal/me/bookings'],
     queryFn: async () => {
       const response = await api.get('/portal/me/bookings');
@@ -203,7 +203,7 @@ export default function CustomerPortal() {
 
           <TabsContent value="upcoming" className="space-y-4">
             <div className="grid gap-4">
-              {bookings?.filter(b => 
+              {bookings.filter(b => 
                 new Date(b.preferredDate) > new Date() && 
                 !['CANCELLED', 'COMPLETED', 'NO_SHOW'].includes(b.status as any)
               ).map((booking) => (
@@ -214,7 +214,7 @@ export default function CustomerPortal() {
 
           <TabsContent value="history" className="space-y-4">
             <div className="grid gap-4">
-              {bookings?.filter(b => 
+              {bookings.filter(b => 
                 ['COMPLETED', 'CANCELLED', 'NO_SHOW'].includes(b.status as any)
               ).map((booking) => (
                 <BookingCard key={booking._id} booking={booking} />

@@ -1,4 +1,4 @@
-import { Instagram, Phone, MapPin } from "lucide-react";
+import { Instagram, Phone, MapPin, MessageCircle } from "lucide-react";
 
 export default function Footer() {
   return (
@@ -29,6 +29,18 @@ export default function Footer() {
             <div className="flex items-center group">
               <MapPin className="w-5 h-5 mr-3 text-moroccan-gold group-hover:scale-110 transition-transform" />
               <span className="text-gray-200">54 Riad Zitoun Lakdim, Marrakech 40000</span>
+            </div>
+            
+            <div className="flex items-center group">
+              <MessageCircle className="w-5 h-5 mr-3 text-moroccan-gold group-hover:scale-110 transition-transform" />
+              <a 
+                href="https://wa.me/212600623630" 
+                className="text-gray-200 hover:text-white transition-colors"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                WhatsApp Admin
+              </a>
             </div>
           </div>
 

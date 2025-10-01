@@ -181,7 +181,7 @@ export default function SimplifiedAdminDashboard() {
   };
 
   // Filter bookings
-  const filteredBookings = bookings?.filter(booking => {
+  const filteredBookings = (bookings || []).filter(booking => {
     const matchesSearch = booking.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          booking.customerPhone.includes(searchTerm) ||
                          booking.activity?.name.toLowerCase().includes(searchTerm.toLowerCase());
@@ -189,7 +189,7 @@ export default function SimplifiedAdminDashboard() {
     const matchesStatus = statusFilter === "all" || booking.status === statusFilter;
     
     return matchesSearch && matchesStatus;
-  }) || [];
+  });
 
   // Calculate stats
   const stats = {
