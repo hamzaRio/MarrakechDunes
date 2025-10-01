@@ -293,7 +293,7 @@ export default function ActivityManagementModal({
           <>
             <DialogHeader>
               <DialogTitle>Delete Activity</DialogTitle>
-              <DialogDescription>
+              <DialogDescription id="delete-activity-description">
                 Are you sure you want to delete "{activity?.name}"? This action cannot be undone.
               </DialogDescription>
             </DialogHeader>
@@ -342,7 +342,7 @@ export default function ActivityManagementModal({
           <>
             <DialogHeader>
               <DialogTitle>{mode === "create" ? "Create New Activity" : "Edit Activity"}</DialogTitle>
-              <DialogDescription>
+              <DialogDescription id={mode === "create" ? "create-activity-description" : "edit-activity-description"}>
                 {mode === "create" 
                   ? "Add a new adventure experience for customers to book."
                   : "Update the activity details and pricing."
@@ -638,7 +638,10 @@ export default function ActivityManagementModal({
       <DialogTrigger asChild>
         {trigger || getDefaultTrigger()}
       </DialogTrigger>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-white/98 backdrop-blur-sm border-2 border-moroccan-gold/30 shadow-xl">
+      <DialogContent 
+        className="max-w-4xl max-h-[90vh] overflow-y-auto bg-white/98 backdrop-blur-sm border-2 border-moroccan-gold/30 shadow-xl"
+        aria-describedby={mode === "create" ? "create-activity-description" : mode === "edit" ? "edit-activity-description" : "delete-activity-description"}
+      >
         {getDialogContent()}
       </DialogContent>
     </Dialog>
