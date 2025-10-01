@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useLanguage } from "@/hooks/use-language";
 import {
   Dialog,
   DialogContent,
@@ -37,18 +38,18 @@ import { ObjectUploader } from "@/components/ObjectUploader";
 import type { ActivityType } from "marrakechdunes-shared/schema";
 import type { UploadResult } from "@uppy/core";
 
-const activityFormSchema = z.object({
-  name: z.string().min(2, "Activity name is required"),
-  description: z.string().min(10, "Description must be at least 10 characters"),
-  price: z.string().min(1, "Price is required"),
+const createActivityFormSchema = (t: (key: string) => string) => z.object({
+  name: z.string().min(2, t("admin.activityNameRequired")),
+  description: z.string().min(10, t("admin.descriptionRequired")),
+  price: z.string().min(1, t("admin.priceRequired")),
   currency: z.string().default("MAD"),
-  category: z.string().min(1, "Category is required"),
+  category: z.string().min(1, t("admin.categoryRequired")),
   availability: z.string().optional(),
-  imageUrls: z.array(z.string().min(1, "Image URL is required")).min(1, "At least one image is required"),
+  imageUrls: z.array(z.string().min(1, t("admin.imageUrlRequired"))).min(1, t("admin.atLeastOneImageRequired")),
   isActive: z.boolean().default(true),
 });
 
-type ActivityFormData = z.infer<typeof activityFormSchema>;
+type ActivityFormData = z.infer<ReturnType<typeof createActivityFormSchema>>;
 
 interface ActivityManagementModalProps {
   activity?: ActivityType;
@@ -67,9 +68,10 @@ export default function ActivityManagementModal({
   const [isSearching, setIsSearching] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { t } = useLanguage();
 
   const form = useForm<ActivityFormData>({
-    resolver: zodResolver(activityFormSchema),
+    resolver: zodResolver(createActivityFormSchema(t)),
     defaultValues: {
       name: activity?.name || "",
       description: activity?.description || "",
@@ -341,7 +343,7 @@ export default function ActivityManagementModal({
         return (
           <>
             <DialogHeader>
-              <DialogTitle>{mode === "create" ? "Create New Activity" : "Edit Activity"}</DialogTitle>
+              <DialogTitle>{mode === "create" ? t("admin.createActivity") : t("admin.editActivity")}</DialogTitle>
               <DialogDescription id={mode === "create" ? "create-activity-description" : "edit-activity-description"}>
                 {mode === "create" 
                   ? "Add a new adventure experience for customers to book."
@@ -356,9 +358,9 @@ export default function ActivityManagementModal({
                   name="name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Activity Name</FormLabel>
+                      <FormLabel>{t("admin.activityName")}</FormLabel>
                       <FormControl>
-                        <Input placeholder="e.g., Hot Air Balloon Ride" {...field} />
+                        <Input placeholder={t("admin.activityNamePlaceholder")} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -370,9 +372,9 @@ export default function ActivityManagementModal({
                   name="description"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Description</FormLabel>
+                      <FormLabel>{t("admin.description")}</FormLabel>
                       <FormControl>
-                        <Textarea placeholder="Describe the activity experience..." {...field} />
+                        <Textarea placeholder={t("admin.descriptionPlaceholder")} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -385,10 +387,10 @@ export default function ActivityManagementModal({
                     name="price"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Price (MAD)</FormLabel>
+                        <FormLabel>{t("admin.price")}</FormLabel>
                         <FormControl>
                           <div className="space-y-2">
-                            <Input type="number" placeholder="1200" {...field} />
+                            <Input type="number" placeholder={t("admin.pricePlaceholder")} {...field} />
                             
                             {/* GetYourGuide Price Search */}
                             <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
