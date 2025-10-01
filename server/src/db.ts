@@ -34,8 +34,8 @@ export async function connectToDatabase(): Promise<void> {
       console.log(`[db] Attempting MongoDB connection (${attempt}/${maxRetries}) using ${redactedDatabaseUrl}`);
 
       await mongoose.connect(databaseUrl, {
-        maxPoolSize: process.env.NODE_ENV === 'production' ? 20 : 10,
-        minPoolSize: process.env.NODE_ENV === 'production' ? 5 : 1,
+        maxPoolSize: process.env.NODE_ENV === 'production' ? 15 : 10, // Handle peak booking times
+        minPoolSize: process.env.NODE_ENV === 'production' ? 5 : 1,   // Maintain connections during low season
         serverSelectionTimeoutMS: 10000,
         socketTimeoutMS: 15000,
         connectTimeoutMS: 10000,
@@ -54,18 +54,23 @@ export async function connectToDatabase(): Promise<void> {
         },
       });
 
-      console.log('[db] Connected to MongoDB');
+      console.log('[db] Connected to MongoDB - ready for tour bookings');
 
       mongoose.connection.on('error', (error) => {
-        console.error('[db] MongoDB connection error:', error);
+        console.error('[db] MongoDB connection error - tour bookings may be affected:', error);
       });
 
       mongoose.connection.on('disconnected', () => {
-        console.warn('[db] MongoDB disconnected - retrying');
+        console.warn('[db] MongoDB disconnected - retrying for tour business continuity');
       });
 
       mongoose.connection.on('reconnected', () => {
-        console.log('[db] MongoDB reconnected');
+        console.log('[db] MongoDB reconnected - tour booking system restored');
+      });
+
+      // Tour business performance monitoring
+      mongoose.connection.on('connected', () => {
+        console.log('[db] MongoDB connected - ready for tour bookings');
       });
 
       return;

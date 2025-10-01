@@ -3,8 +3,22 @@ import path from "path";
 import dotenvFlow from 'dotenv-flow';
 import * as Sentry from "@sentry/node";
 import "@sentry/tracing";
+import pino from 'pino';
 import { validateProductionEnvironment, getSecurityRecommendations } from './production-validator.js';
 import { config as serverEnv } from './env.js';
+
+// Tour Business Logging Setup
+const logger = pino({
+  level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
+  transport: process.env.NODE_ENV === 'production' ? undefined : {
+    target: 'pino-pretty',
+    options: {
+      colorize: true,
+      translateTime: 'SYS:standard',
+      ignore: 'pid,hostname'
+    }
+  }
+});
 
 // Get the project root directory (one level up from server/src)
 const __filename = fileURLToPath(import.meta.url);

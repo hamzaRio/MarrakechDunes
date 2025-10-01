@@ -326,6 +326,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         paidAmount: 0,
       });
 
+      // Tour business logging for analytics
+      console.log('🏜️ Tour booking created:', {
+        activityId: data.activityId,
+        customerPhone: data.customerPhone,
+        totalAmount: totalAmount,
+        preferredDate: data.preferredDate,
+        numberOfPeople: data.numberOfPeople,
+        timestamp: new Date().toISOString()
+      });
+
       // Send WhatsApp notifications to all admins
       const participantNames = booking.participantNames?.join(', ') || booking.customerName;
       const notificationData = {

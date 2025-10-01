@@ -2,7 +2,10 @@ services:
   - type: web
     name: marrakechdunes-backend
     runtime: node
-    plan: free
+    plan: starter
+    scaling:
+      minInstances: 1
+      maxInstances: 5
     buildCommand: |
       npm ci --legacy-peer-deps
       npm run build

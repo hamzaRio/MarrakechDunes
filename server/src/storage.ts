@@ -91,6 +91,22 @@ const reviewSchema = new mongoose.Schema({
   approved: { type: Boolean, default: false },
 }, { timestamps: true });
 
+// Tour Business Performance Indexes
+// Activity discovery for tourists
+activitySchema.index({ name: 'text', description: 'text', location: 'text' });
+activitySchema.index({ category: 1, isActive: 1, rating: -1 });
+activitySchema.index({ price: 1, rating: -1 });
+activitySchema.index({ location: 1, isActive: 1 });
+activitySchema.index({ isActive: 1, approvalStatus: 1, category: 1, rating: -1 });
+
+// Booking management for peak seasons
+bookingSchema.index({ activityId: 1, preferredDate: 1 });
+bookingSchema.index({ status: 1, createdAt: -1 });
+bookingSchema.index({ customerPhone: 1 });
+bookingSchema.index({ preferredDate: 1, status: 1 });
+bookingSchema.index({ createdAt: -1, paymentStatus: 1, totalAmount: 1 });
+bookingSchema.index({ preferredDate: 1, status: 1, activityId: 1 });
+
 // Models
 const User = mongoose.model('User', userSchema);
 const Activity = mongoose.model('Activity', activitySchema);
