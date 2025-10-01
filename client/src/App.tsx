@@ -11,6 +11,7 @@ import AutoLogout from "@/components/auto-logout";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { HelmetProvider } from "@/components/SEOHead";
 import ReactGA from "react-ga4";
+import PWAInstallPrompt from "@/components/pwa-install-prompt";
 
 const Home = lazy(() => import("@/pages/home"));
 const Activities = lazy(() => import("@/pages/activities"));
@@ -25,6 +26,8 @@ const CEODashboard = lazy(() => import("@/pages/admin/ceo-dashboard"));
 const CEOSimplifiedDashboard = lazy(() => import("@/pages/admin/ceo-simplified-dashboard"));
 const PerformanceDashboard = lazy(() => import("@/pages/admin/performance-dashboard"));
 const AdminAccessGuide = lazy(() => import("@/components/admin-access-guide"));
+const CustomerPortal = lazy(() => import("@/pages/customer-portal"));
+const BusinessIntelligence = lazy(() => import("@/pages/admin/business-intelligence"));
 const NotFound = lazy(() => import("@/pages/not-found"));
 
 type LazyComponent = LazyExoticComponent<ComponentType<Record<string, unknown>>>;
@@ -77,7 +80,9 @@ function Router() {
       <Route path="/admin/simple" component={withSecurity(SimplifiedAdminDashboard, ADMIN_ROUTE)} />
       <Route path="/admin" component={withSecurity(SimplifiedAdminDashboard, ADMIN_ROUTE)} />
       <Route path="/admin/performance" component={withSecurity(PerformanceDashboard, ADMIN_ROUTE)} />
+      <Route path="/admin/business-intelligence" component={withSecurity(BusinessIntelligence, ADMIN_ROUTE)} />
       <Route path="/admin/access-guide" component={withSecurity(AdminAccessGuide, PUBLIC_ROUTE)} />
+      <Route path="/customer" component={withSecurity(CustomerPortal, PUBLIC_ROUTE)} />
       <Route component={withSecurity(NotFound, PUBLIC_ROUTE)} />
     </Switch>
   );
@@ -120,6 +125,7 @@ function App() {
               />
               <Toaster />
               <AutoLogout timeoutMinutes={5} warningMinutes={1} />
+              <PWAInstallPrompt />
               <Router />
             </TooltipProvider>
           </LanguageProvider>

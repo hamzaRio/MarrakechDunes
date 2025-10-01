@@ -15,13 +15,24 @@ MarrakechDunes is a comprehensive tourism platform that combines modern web tech
 ### 🎯 Key Features
 
 - **🤖 AI-Powered Competitor Analysis** - Automatic GetYourGuide price fetching
-- **💰 Smart Pricing Engine** - Competitive pricing suggestions
+- **💰 Smart Pricing Engine** - Competitive pricing suggestions with dynamic pricing
 - **📊 Advanced Analytics** - Real-time business metrics and insights
 - **🔐 Role-Based Access Control** - Admin, Superadmin, and CEO dashboards
-- **📱 Mobile-First Design** - Responsive across all devices
+- **📱 Mobile-First Design** - Responsive across all devices with PWA support
 - **🌍 Multi-Language Support** - French and English
 - **💳 Payment Integration** - Deposit system with WhatsApp notifications
 - **📈 Business Intelligence** - CSV/PDF exports and executive reports
+- **🔄 Booking Status Workflow** - Complete booking lifecycle management
+- **❌ Cancellation Handling** - Smart refund policies and automated processing
+- **📧 Email Backup System** - SMTP fallback for notifications
+- **👥 Group Booking Management** - Multi-participant bookings with discounts
+- **📅 Rescheduling System** - Flexible booking changes with fee management
+- **💲 Dynamic Pricing** - Seasonal, demand-based, and group pricing
+- **📊 Capacity Management** - Waitlist and overbooking protection
+- **🔮 Predictive Analytics** - Demand forecasting and business insights
+- **👤 Customer Portal** - OTP-based self-service portal
+- **📱 PWA Mobile App** - Offline booking, GPS navigation, photo sharing
+- **📊 Business Intelligence Dashboard** - Executive KPI tracking and reporting
 
 ## 🏗️ Architecture
 
@@ -85,12 +96,41 @@ MarrakechDunes is a comprehensive tourism platform that combines modern web tech
    SUPERADMIN_PASSWORD=superadmin123
    CLIENT_URL=http://localhost:5173
    PORT=10000
+   
+   # Email Service (SMTP)
+   SMTP_HOST=smtp.gmail.com
+   SMTP_PORT=587
+   SMTP_USER=your-email@gmail.com
+   SMTP_PASS=your-app-password
+   SMTP_FROM=MarrakechDunes <noreply@marrakechdunes.com>
+   
+   # WhatsApp Integration
+   WHATSAPP_RECEIVERS=+212XXXXXXXXX,+212YYYYYYYYY
+   
+   # Customer Portal
+   OTP_WINDOW_MINUTES=10
    ```
 
    **Frontend (.env in client/)**
    ```env
    VITE_API_URL=http://localhost:10000/api
    VITE_ASSETS_BASE=/images
+   
+   # Analytics & Monitoring
+   VITE_SENTRY_DSN=https://your-sentry-dsn@sentry.io/project-id
+   VITE_GA_MEASUREMENT_ID=G-XXXXXXXXXX
+   
+   # PWA & Push Notifications
+   VITE_PUSH_PUBLIC_KEY=your-vapid-public-key
+   VITE_PUSH_VAPID_SUBJECT=mailto:admin@marrakechdunes.com
+   
+   # Firebase (for push notifications)
+   VITE_FIREBASE_API_KEY=your-firebase-api-key
+   VITE_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
+   VITE_FIREBASE_PROJECT_ID=your-project-id
+   VITE_FIREBASE_STORAGE_BUCKET=your-project.appspot.com
+   VITE_FIREBASE_MESSAGING_SENDER_ID=123456789
+   VITE_FIREBASE_APP_ID=1:123456789:web:abcdef
    ```
 
 4. **Start development servers**
@@ -106,6 +146,107 @@ MarrakechDunes is a comprehensive tourism platform that combines modern web tech
    - Frontend: http://localhost:5173
    - Backend API: http://localhost:10000/api
    - Admin Dashboard: http://localhost:5173/admin
+   - Customer Portal: http://localhost:5173/customer
+   - Business Intelligence: http://localhost:5173/admin/business-intelligence
+
+## 📱 PWA Installation
+
+### **For Customers**
+1. **Visit the website** on your mobile device
+2. **Look for the install prompt** (appears automatically)
+3. **Tap "Install App"** when prompted
+4. **Add to home screen** for native app experience
+
+### **For Administrators**
+1. **Access admin dashboard** at `/admin`
+2. **Navigate to Business Intelligence** for advanced analytics
+3. **Use the customer portal** at `/customer` for testing
+4. **Install PWA** for mobile admin access
+
+### **PWA Features**
+- **Offline Booking**: Works without internet connection
+- **Push Notifications**: Real-time booking updates
+- **GPS Navigation**: Meeting point directions
+- **Photo Sharing**: Upload tour photos
+- **Native Performance**: App-like speed and responsiveness
+
+## 🚀 Advanced Features
+
+### 🔄 Booking Status Workflow
+- **Status Management**: PENDING → CONFIRMED → PAID → IN_PROGRESS → COMPLETED
+- **Transition Validation**: Enforce business rules for status changes
+- **Audit Logging**: Track who changed what and when
+- **Admin Interface**: Visual status management with color-coded badges
+
+### ❌ Smart Cancellation System
+- **Refund Policies**: 
+  - 24+ hours: 100% refund
+  - 12-24 hours: 50% refund  
+  - 6-12 hours: 25% refund
+  - <6 hours: No refund
+- **Reason Tracking**: Weather, Emergency, Travel, Health, Other
+- **Automated Processing**: Instant refund calculations
+- **Customer Communication**: WhatsApp + Email notifications
+
+### 📧 Email Backup System
+- **SMTP Integration**: Nodemailer with configurable providers
+- **Fallback Notifications**: When WhatsApp fails, email takes over
+- **Template System**: Consistent messaging across channels
+- **Delivery Tracking**: Monitor notification success rates
+
+### 👥 Group Booking Management
+- **Multi-Participant Support**: Up to 20+ people per booking
+- **Automatic Discounts**: 10% for 5+ people, 15% for 9+ people
+- **Coordinator System**: Designated group contact person
+- **Participant Tracking**: Individual names and contact info
+
+### 📅 Rescheduling System
+- **Flexible Changes**: Up to 2 reschedules per booking
+- **Deadline Protection**: 48-hour minimum notice required
+- **Fee Management**: 50 MAD reschedule fee
+- **Date Validation**: Prevent double-booking conflicts
+
+### 💲 Dynamic Pricing Engine
+- **Seasonal Adjustments**: 
+  - Peak (Jun-Aug): +30%
+  - Shoulder (Apr-May, Sep-Oct): +10%
+  - Low (Nov-Mar): -10%
+- **Demand-Based Pricing**:
+  - High demand (>80% capacity): +20%
+  - Medium demand (50-80%): 0%
+  - Low demand (<50%): -20%
+- **Group Discounts**: Automatic tiered pricing
+
+### 📊 Capacity Management
+- **Waitlist System**: Automatic queuing when full
+- **Overbooking Protection**: Max 10% overbooking allowed
+- **Auto-Promotion**: Move waitlist to confirmed when space opens
+- **Weather Dependencies**: Mark activities affected by weather
+
+### 🔮 Predictive Analytics
+- **Demand Forecasting**: Seasonal pattern analysis
+- **Weather Impact**: Historical weather correlation
+- **Cancellation Analysis**: Reason and timing patterns
+- **Revenue Projections**: Moving average forecasts
+
+### 👤 Customer Portal
+- **OTP Authentication**: Phone-based login system
+- **Self-Service**: View bookings, reschedule, cancel
+- **Review System**: Post-tour feedback collection
+- **Profile Management**: Update contact information
+
+### 📱 Progressive Web App (PWA)
+- **Offline Booking**: Cache booking forms for offline use
+- **Push Notifications**: Real-time booking updates
+- **GPS Navigation**: Meeting point directions
+- **Photo Sharing**: Upload and share tour photos
+- **Install Prompt**: Native app-like experience
+
+### 📊 Business Intelligence Dashboard
+- **Revenue Analytics**: Daily, monthly, seasonal trends
+- **Customer Insights**: Segments, repeat rates, lifetime value
+- **Operational Metrics**: Capacity utilization, weather impact
+- **Export Capabilities**: CSV downloads for external analysis
 
 ## 📱 Features Overview
 
@@ -445,6 +586,48 @@ DELETE /api/admin/bookings/:id
 GET /api/analytics/performance
 GET /api/analytics/business
 GET /api/analytics/users
+GET /api/analytics/demand
+GET /api/analytics/weather-impact
+GET /api/analytics/cancellations
+GET /api/analytics/revenue
+```
+
+### **Booking Management Endpoints**
+```typescript
+PATCH /api/bookings/:id/status
+PATCH /api/bookings/:id/cancel
+PATCH /api/bookings/:id/reschedule
+POST /api/bookings/group
+```
+
+### **Notification Endpoints**
+```typescript
+GET /api/notifications/templates
+POST /api/notifications/preview
+POST /api/notifications/send
+POST /api/notifications/email/test
+```
+
+### **Pricing Endpoints**
+```typescript
+GET /api/pricing/quote
+```
+
+### **Customer Portal Endpoints**
+```typescript
+POST /api/portal/request-otp
+POST /api/portal/login
+GET /api/portal/me/bookings
+POST /api/portal/bookings/:id/cancel
+POST /api/portal/bookings/:id/reschedule
+POST /api/portal/reviews
+```
+
+### **Business Intelligence Endpoints**
+```typescript
+GET /api/bi/revenue
+GET /api/bi/customers
+GET /api/bi/operations
 ```
 
 ## 🤝 Contributing

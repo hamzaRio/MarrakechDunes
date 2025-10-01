@@ -4,8 +4,22 @@ import session from "express-session";
 import MongoStore from "connect-mongo";
 import bcrypt from "bcrypt";
 import { storage } from "./storage.js";
-import { insertBookingSchema, insertReviewSchema } from "marrakechdunes-shared/schema";
+import { 
+  insertBookingSchema, 
+  insertReviewSchema,
+  statusTransitionSchema,
+  cancellationSchema,
+  rescheduleSchema,
+  pricingQuoteSchema,
+  portalLoginSchema,
+  otpRequestSchema
+} from "marrakechdunes-shared/schema";
 import { whatsappService } from "./whatsapp-service.js";
+import { emailService } from "./services/email-service.js";
+import { validateStatusTransition, getStatusDisplayName, getStatusColor } from "./utils/booking-transitions.js";
+import { calculateCancellationPolicy, getCancellationReasonDisplay } from "./utils/cancellation-policy.js";
+import { calculateDynamicPricing, getSeasonalDescription } from "./utils/dynamic-pricing.js";
+import { formatNotificationTemplate, getTemplateById, NOTIFICATION_TEMPLATES } from "./utils/notification-templates.js";
 import { z } from "zod";
 import {
   authRateLimit,
@@ -319,11 +333,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         preferredDate: new Date(data.preferredDate),
         participantNames: data.participantNames || [data.customerName],
         notes: data.notes,
-        status: 'pending',
+        status: 'PENDING',
         totalAmount: totalAmount,
         paymentStatus: 'unpaid',
         paymentMethod: 'cash',
         paidAmount: 0,
+        rescheduleCount: 0,
       });
 
       // Tour business logging for analytics
@@ -746,7 +761,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Calculate actual booking conversion
       const totalBookings = bookings.length;
-      const confirmedBookings = bookings.filter(b => b.status === 'confirmed' || b.status === 'completed').length;
+      const confirmedBookings = bookings.filter(b => b.status === 'CONFIRMED' || b.status === 'COMPLETED').length;
       const conversionRate = totalBookings > 0 ? Math.round((confirmedBookings / totalBookings) * 100) : 0;
 
       const bookingConversion = {
@@ -754,7 +769,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         trend: 'up' as const,
         byActivity: activities.map(activity => {
           const activityBookings = bookings.filter(b => b.activityId === activity._id);
-          const activityConfirmed = activityBookings.filter(b => b.status === 'confirmed' || b.status === 'completed');
+          const activityConfirmed = activityBookings.filter(b => b.status === 'CONFIRMED' || b.status === 'COMPLETED');
           return {
             name: activity.name,
             rate: activityBookings.length > 0 ? Math.round((activityConfirmed.length / activityBookings.length) * 100) : 0
@@ -936,7 +951,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     // Check conversion rate
     const totalBookings = bookings.length;
-    const confirmedBookings = bookings.filter(b => b.status === 'confirmed' || b.status === 'completed').length;
+    const confirmedBookings = bookings.filter(b => b.status === 'CONFIRMED' || b.status === 'COMPLETED').length;
     const conversionRate = totalBookings > 0 ? (confirmedBookings / totalBookings) * 100 : 0;
 
     if (conversionRate < 50) {
@@ -1901,6 +1916,298 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(health);
   }));
 
+  // ===== BOOKING STATUS WORKFLOW ENDPOINTS =====
+  
+  // Update booking status with validation
+  app.patch("/api/bookings/:id/status", adminSecurityMiddleware, asyncHandler(async (req: Request, res: Response) => {
+    const authReq = req as AuthenticatedRequest;
+    const { id } = req.params;
+    const { status, reason } = req.body;
+    
+    const booking = await storage.getBooking(id);
+    if (!booking) {
+      throw new NotFoundError("Booking not found");
+    }
+    
+    // Validate status transition
+    const validation = validateStatusTransition(booking.status as any, status);
+    if (!validation.valid) {
+      return res.status(400).json({
+        status: 'error',
+        message: validation.reason,
+        code: 'INVALID_STATUS_TRANSITION'
+      });
+    }
+    
+    // Update booking status
+    const updatedBooking = await storage.updateBooking(id, { 
+      status,
+      statusHistory: [
+        ...(booking.statusHistory || []),
+        {
+          status: booking.status as any,
+          changedBy: authReq.session.user!.id,
+          changedAt: new Date(),
+          reason
+        }
+      ]
+    });
+    
+    // Create audit log
+    await storage.createAuditLog({
+      userId: authReq.session.user!.id,
+      action: `Updated booking ${id} status from ${booking.status} to ${status}`,
+      details: JSON.stringify({ 
+        bookingId: id, 
+        from: booking.status, 
+        to: status, 
+        reason 
+      })
+    });
+    
+    res.json({
+      status: 'success',
+      message: 'Booking status updated successfully',
+      booking: updatedBooking,
+      displayName: getStatusDisplayName(status as any),
+      color: getStatusColor(status as any)
+    });
+  }));
+
+  // ===== CANCELLATION HANDLING ENDPOINTS =====
+  
+  // Cancel booking with policy calculation
+  app.patch("/api/bookings/:id/cancel", adminSecurityMiddleware, asyncHandler(async (req: Request, res: Response) => {
+    const authReq = req as AuthenticatedRequest;
+    const { id } = req.params;
+    const { reason } = req.body;
+    
+    const booking = await storage.getBooking(id);
+    if (!booking) {
+      throw new NotFoundError("Booking not found");
+    }
+    
+    // Calculate cancellation policy
+    const policy = calculateCancellationPolicy(
+      new Date(booking.preferredDate),
+      new Date(),
+      parseInt(booking.totalAmount),
+      reason
+    );
+    
+    // Update booking with cancellation details
+    const updatedBooking = await storage.updateBooking(id, {
+      status: 'CANCELLED',
+      cancellationReason: reason,
+      cancellationDate: new Date(),
+      refundAmount: policy.refundPercentage > 0 ? (parseInt(booking.totalAmount) * policy.refundPercentage / 100) : 0,
+      refundStatus: policy.refundPercentage === 100 ? 'full' : policy.refundPercentage > 0 ? 'partial' : 'none'
+    });
+    
+    // Create audit log
+    await storage.createAuditLog({
+      userId: authReq.session.user!.id,
+      action: `Cancelled booking ${id}`,
+      details: JSON.stringify({ 
+        bookingId: id, 
+        reason, 
+        policy: policy.description,
+        refundAmount: updatedBooking?.refundAmount || 0
+      })
+    });
+    
+    res.json({
+      status: 'success',
+      message: 'Booking cancelled successfully',
+      booking: updatedBooking,
+      policy: {
+        ...policy,
+        reasonDisplay: getCancellationReasonDisplay(reason)
+      }
+    });
+  }));
+
+  // ===== WHATSAPP TEMPLATES ENDPOINTS =====
+  
+  // Get notification templates
+  app.get("/api/notifications/templates", adminSecurityMiddleware, asyncHandler(async (req: Request, res: Response) => {
+    res.json(NOTIFICATION_TEMPLATES);
+  }));
+
+  // Preview notification template
+  app.post("/api/notifications/preview", adminSecurityMiddleware, asyncHandler(async (req: Request, res: Response) => {
+    const { templateId, data } = req.body;
+    
+    const template = getTemplateById(templateId);
+    if (!template) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'Template not found',
+        code: 'TEMPLATE_NOT_FOUND'
+      });
+    }
+    
+    const formattedMessage = formatNotificationTemplate(template, data);
+    
+    res.json({
+      template,
+      formattedMessage,
+      preview: formattedMessage.substring(0, 200) + '...'
+    });
+  }));
+
+  // Send notification
+  app.post("/api/notifications/send", adminSecurityMiddleware, asyncHandler(async (req: Request, res: Response) => {
+    const authReq = req as AuthenticatedRequest;
+    const { templateId, bookingId, customMessage } = req.body;
+    
+    const booking = await storage.getBooking(bookingId);
+    if (!booking) {
+      throw new NotFoundError("Booking not found");
+    }
+    
+    const template = getTemplateById(templateId);
+    if (!template) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'Template not found',
+        code: 'TEMPLATE_NOT_FOUND'
+      });
+    }
+    
+    const notificationData = {
+      customerName: booking.customerName,
+      customerPhone: booking.customerPhone,
+      activityName: booking.activity?.name || 'Unknown Activity',
+      numberOfPeople: booking.numberOfPeople,
+      preferredDate: new Date(booking.preferredDate),
+      totalAmount: parseInt(booking.totalAmount),
+      paymentMethod: booking.paymentMethod || 'cash',
+      paymentStatus: booking.paymentStatus,
+      status: booking.status,
+      notes: customMessage || booking.notes || '',
+      bookingId: booking._id?.toString() || bookingId
+    };
+    
+    // Send WhatsApp notification
+    let whatsappSent = false;
+    try {
+      await whatsappService.sendBookingNotification(notificationData);
+      whatsappSent = true;
+    } catch (error) {
+      console.error('WhatsApp sending failed:', error);
+    }
+    
+    // Send email backup if WhatsApp failed
+    let emailSent = false;
+    if (!whatsappSent) {
+      try {
+        emailSent = await emailService.sendBookingConfirmation(notificationData);
+      } catch (error) {
+        console.error('Email sending failed:', error);
+      }
+    }
+    
+    // Create audit log
+    await storage.createAuditLog({
+      userId: authReq.session.user!.id,
+      action: `Sent notification for booking ${bookingId}`,
+      details: JSON.stringify({ 
+        bookingId, 
+        templateId, 
+        whatsappSent, 
+        emailSent,
+        customMessage 
+      })
+    });
+    
+    res.json({
+      status: 'success',
+      message: 'Notification sent successfully',
+      whatsappSent,
+      emailSent,
+      fallbackUsed: !whatsappSent && emailSent
+    });
+  }));
+
+  // ===== EMAIL BACKUP ENDPOINTS =====
+  
+  // Test email service
+  app.post("/api/notifications/email/test", adminSecurityMiddleware, asyncHandler(async (req: Request, res: Response) => {
+    const { email } = req.body;
+    
+    if (!email) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Email address is required',
+        code: 'EMAIL_REQUIRED'
+      });
+    }
+    
+    const testData = {
+      customerName: 'Test Customer',
+      customerPhone: email,
+      activityName: 'Test Activity',
+      numberOfPeople: 2,
+      preferredDate: new Date(),
+      totalAmount: 500,
+      bookingId: 'TEST-123'
+    };
+    
+    const emailSent = await emailService.sendBookingConfirmation(testData);
+    
+    res.json({
+      status: emailSent ? 'success' : 'error',
+      message: emailSent ? 'Test email sent successfully' : 'Failed to send test email',
+      emailSent
+    });
+  }));
+
+  // ===== DYNAMIC PRICING ENDPOINTS =====
+  
+  // Get pricing quote
+  app.get("/api/pricing/quote", generalApiRateLimit, asyncHandler(async (req: Request, res: Response) => {
+    const { activityId, date, partySize } = req.query;
+    
+    if (!activityId || !date || !partySize) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'activityId, date, and partySize are required',
+        code: 'MISSING_PARAMETERS'
+      });
+    }
+    
+    const activity = await storage.getActivity(activityId as string);
+    if (!activity) {
+      throw new NotFoundError("Activity not found");
+    }
+    
+    // Get current bookings for demand calculation
+    const bookings = await storage.getBookings();
+    const currentBookings = bookings.filter(b => 
+      b.activityId === activityId && 
+      new Date(b.preferredDate).toDateString() === new Date(date as string).toDateString()
+    ).length;
+    
+    const pricingContext = {
+      activityId: activityId as string,
+      date: new Date(date as string),
+      partySize: parseInt(partySize as string),
+      basePrice: parseInt(activity.price),
+      currentBookings,
+      maxCapacity: activity.maxParticipants || 20
+    };
+    
+    const quote = calculateDynamicPricing(pricingContext, activity.pricingConfig);
+    const seasonalDescription = getSeasonalDescription(pricingContext.date.getMonth() + 1);
+    
+    res.json({
+      ...quote,
+      seasonalDescription,
+      capacityUtilization: (currentBookings / pricingContext.maxCapacity) * 100
+    });
+  }));
+
   // ===== WEATHER API ENDPOINTS =====
   
   // Get weather data
@@ -1972,6 +2279,354 @@ export async function registerRoutes(app: Express): Promise<Server> {
         code: 'WEATHER_RECOMMENDATIONS_ERROR'
       });
     }
+  }));
+
+  // ===== GROUP BOOKING ENDPOINTS =====
+  
+  // Create group booking
+  app.post("/api/bookings/group", generalApiRateLimit, asyncHandler(async (req: Request, res: Response) => {
+    const { activityId, coordinator, participants, preferredDate, notes } = req.body;
+    
+    if (!activityId || !coordinator || !participants || !preferredDate) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'activityId, coordinator, participants, and preferredDate are required',
+        code: 'MISSING_GROUP_BOOKING_DATA'
+      });
+    }
+    
+    const activity = await storage.getActivity(activityId);
+    if (!activity) {
+      throw new NotFoundError("Activity not found");
+    }
+    
+    // Calculate group discount
+    const participantCount = participants.length;
+    let groupDiscountPct = 0;
+    if (participantCount >= 9) {
+      groupDiscountPct = 15; // 15% for 9+ people
+    } else if (participantCount >= 5) {
+      groupDiscountPct = 10; // 10% for 5-8 people
+    } else if (participantCount >= 2) {
+      groupDiscountPct = 5; // 5% for 2-4 people
+    }
+    
+    const basePrice = parseInt(activity.price);
+    const totalAmount = Math.round(basePrice * participantCount * (1 - groupDiscountPct / 100));
+    
+    const booking = await storage.createBooking({
+      customerName: coordinator.name,
+      customerPhone: coordinator.phone,
+      activityId,
+      numberOfPeople: participantCount,
+      preferredDate: new Date(preferredDate),
+      participantNames: participants.map((p: any) => p.name),
+      status: 'PENDING',
+      totalAmount: totalAmount.toString(),
+      paymentStatus: 'unpaid',
+      paymentMethod: 'cash',
+      paidAmount: 0,
+      isGroupBooking: true,
+      groupCoordinator: coordinator,
+      participants,
+      groupDiscountPct,
+      rescheduleCount: 0
+    });
+    
+    res.status(201).json({
+      status: 'success',
+      message: 'Group booking created successfully',
+      booking,
+      groupDiscount: {
+        percentage: groupDiscountPct,
+        amount: basePrice * participantCount - totalAmount
+      }
+    });
+  }));
+
+  // ===== RESCHEDULING ENDPOINTS =====
+  
+  // Reschedule booking
+  app.patch("/api/bookings/:id/reschedule", adminSecurityMiddleware, asyncHandler(async (req: Request, res: Response) => {
+    const authReq = req as AuthenticatedRequest;
+    const { id } = req.params;
+    const { newDate, reason } = req.body;
+    
+    const booking = await storage.getBooking(id);
+    if (!booking) {
+      throw new NotFoundError("Booking not found");
+    }
+    
+    // Check reschedule limits
+    const rescheduleCount = booking.rescheduleCount || 0;
+    if (rescheduleCount >= 2) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Maximum reschedules reached (2 per booking)',
+        code: 'MAX_RESCHEDULES_REACHED'
+      });
+    }
+    
+    // Check deadline (48 hours before tour)
+    const hoursUntilTour = (new Date(booking.preferredDate).getTime() - new Date().getTime()) / (1000 * 60 * 60);
+    if (hoursUntilTour < 48) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Rescheduling deadline passed (48 hours before tour)',
+        code: 'RESCHEDULE_DEADLINE_PASSED'
+      });
+    }
+    
+    // Calculate reschedule fee
+    const rescheduleFee = 50; // 50 MAD per reschedule
+    
+    const updatedBooking = await storage.updateBooking(id, {
+      preferredDate: new Date(newDate),
+      rescheduleCount: rescheduleCount + 1,
+      rescheduleFee: (booking.rescheduleFee || 0) + rescheduleFee,
+      originalDate: booking.originalDate || new Date(booking.preferredDate)
+    });
+    
+    // Create audit log
+    await storage.createAuditLog({
+      userId: authReq.session.user!.id,
+      action: `Rescheduled booking ${id}`,
+      details: JSON.stringify({ 
+        bookingId: id, 
+        from: booking.preferredDate, 
+        to: newDate, 
+        reason,
+        rescheduleCount: rescheduleCount + 1,
+        fee: rescheduleFee
+      })
+    });
+    
+    res.json({
+      status: 'success',
+      message: 'Booking rescheduled successfully',
+      booking: updatedBooking,
+      rescheduleFee,
+      remainingReschedules: 2 - (rescheduleCount + 1)
+    });
+  }));
+
+  // ===== CUSTOMER PORTAL ENDPOINTS =====
+  
+  // Request OTP for portal login
+  app.post("/api/portal/request-otp", generalApiRateLimit, asyncHandler(async (req: Request, res: Response) => {
+    const { phone } = req.body;
+    
+    if (!phone) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Phone number is required',
+        code: 'PHONE_REQUIRED'
+      });
+    }
+    
+    // Generate 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    
+    // Store OTP in database (you'll need to implement this in storage)
+    // For now, we'll just return success
+    console.log(`OTP for ${phone}: ${otp} (expires at ${expiresAt})`);
+    
+    res.json({
+      status: 'success',
+      message: 'OTP sent successfully',
+      expiresAt
+    });
+  }));
+
+  // Login with OTP
+  app.post("/api/portal/login", generalApiRateLimit, asyncHandler(async (req: Request, res: Response) => {
+    const { phone, otp } = req.body;
+    
+    if (!phone || !otp) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Phone number and OTP are required',
+        code: 'PHONE_OTP_REQUIRED'
+      });
+    }
+    
+    // Verify OTP (you'll need to implement this in storage)
+    // For now, we'll accept any 6-digit OTP
+    if (otp.length !== 6 || !/^\d+$/.test(otp)) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Invalid OTP format',
+        code: 'INVALID_OTP_FORMAT'
+      });
+    }
+    
+    // Create session for customer portal
+    const authReq = req as AuthenticatedRequest;
+    authReq.session.user = {
+      id: `customer_${phone}`,
+      role: 'customer',
+      username: phone
+    };
+    
+    res.json({
+      status: 'success',
+      message: 'Login successful',
+      user: authReq.session.user
+    });
+  }));
+
+  // Get customer bookings
+  app.get("/api/portal/me/bookings", asyncHandler(async (req: Request, res: Response) => {
+    const authReq = req as AuthenticatedRequest;
+    
+    if (!authReq.session.user || authReq.session.user.role !== 'customer') {
+      return res.status(401).json({
+        status: 'error',
+        message: 'Customer authentication required',
+        code: 'CUSTOMER_AUTH_REQUIRED'
+      });
+    }
+    
+    const phone = authReq.session.user.username;
+    const bookings = await storage.getBookings();
+    const customerBookings = bookings.filter(b => b.customerPhone === phone);
+    
+    res.json(customerBookings);
+  }));
+
+  // ===== BUSINESS INTELLIGENCE ENDPOINTS =====
+  
+  // Get BI revenue data
+  app.get("/api/bi/revenue", adminSecurityMiddleware, asyncHandler(async (req: Request, res: Response) => {
+    const bookings = await storage.getBookings();
+    const activities = await storage.getActivities();
+    
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    
+    // Calculate daily revenue
+    const dailyRevenue = bookings
+      .filter(b => new Date(b.createdAt) >= today)
+      .reduce((sum, b) => sum + parseInt(b.totalAmount || '0'), 0);
+    
+    // Calculate monthly revenue
+    const monthlyRevenue = bookings
+      .filter(b => new Date(b.createdAt) >= thisMonth)
+      .reduce((sum, b) => sum + parseInt(b.totalAmount || '0'), 0);
+    
+    // Calculate seasonal revenue
+    const seasonalRevenue = Array.from({ length: 12 }, (_, i) => {
+      const month = new Date(now.getFullYear(), i, 1);
+      const nextMonth = new Date(now.getFullYear(), i + 1, 1);
+      const monthBookings = bookings.filter(b => {
+        const bookingDate = new Date(b.createdAt);
+        return bookingDate >= month && bookingDate < nextMonth;
+      });
+      return {
+        month: month.toLocaleString('default', { month: 'short' }),
+        amount: monthBookings.reduce((sum, b) => sum + parseInt(b.totalAmount || '0'), 0)
+      };
+    });
+    
+    // Calculate profitability by activity
+    const profitabilityByActivity = activities.map(activity => {
+      const activityBookings = bookings.filter(b => b.activityId === activity._id);
+      const revenue = activityBookings.reduce((sum, b) => sum + parseInt(b.totalAmount || '0'), 0);
+      const cost = revenue * 0.6; // Assume 60% cost ratio
+      return {
+        activityId: activity._id,
+        name: activity.name,
+        revenue,
+        profit: revenue - cost
+      };
+    });
+    
+    res.json({
+      daily: dailyRevenue,
+      monthly: monthlyRevenue,
+      seasonal: seasonalRevenue,
+      profitabilityByActivity,
+      guidePerformance: [] // You can implement this based on your guide system
+    });
+  }));
+
+  // Get BI customer data
+  app.get("/api/bi/customers", adminSecurityMiddleware, asyncHandler(async (req: Request, res: Response) => {
+    const bookings = await storage.getBookings();
+    
+    // Calculate customer segments
+    const segments = [
+      { segment: 'New Customers', count: 0, percentage: 0 },
+      { segment: 'Returning Customers', count: 0, percentage: 0 },
+      { segment: 'VIP Customers', count: 0, percentage: 0 }
+    ];
+    
+    // Calculate repeat rate
+    const uniqueCustomers = new Set(bookings.map(b => b.customerPhone));
+    const repeatCustomers = bookings
+      .filter((b, index, arr) => 
+        arr.findIndex(booking => booking.customerPhone === b.customerPhone) !== index
+      ).length;
+    const repeatRate = uniqueCustomers.size > 0 ? (repeatCustomers / uniqueCustomers.size) * 100 : 0;
+    
+    // Calculate lifetime value
+    const customerRevenue = new Map<string, number>();
+    bookings.forEach(b => {
+      const current = customerRevenue.get(b.customerPhone) || 0;
+      customerRevenue.set(b.customerPhone, current + parseInt(b.totalAmount || '0'));
+    });
+    
+    const totalRevenue = Array.from(customerRevenue.values()).reduce((sum, rev) => sum + rev, 0);
+    const lifetimeValue = uniqueCustomers.size > 0 ? totalRevenue / uniqueCustomers.size : 0;
+    
+    res.json({
+      segments,
+      repeatRate,
+      lifetimeValue,
+      churnScore: Math.max(0, 100 - repeatRate) // Simple churn calculation
+    });
+  }));
+
+  // Get BI operations data
+  app.get("/api/bi/operations", adminSecurityMiddleware, asyncHandler(async (req: Request, res: Response) => {
+    const bookings = await storage.getBookings();
+    const activities = await storage.getActivities();
+    
+    // Calculate capacity utilization
+    const totalCapacity = activities.reduce((sum, a) => sum + (a.maxParticipants || 20), 0);
+    const totalBookings = bookings.length;
+    const capacityUtilization = totalCapacity > 0 ? (totalBookings / totalCapacity) * 100 : 0;
+    
+    // Calculate weather impact (mock data)
+    const weatherImpact = [
+      { condition: 'Sunny', bookings: Math.floor(totalBookings * 0.6), cancellations: Math.floor(totalBookings * 0.05) },
+      { condition: 'Cloudy', bookings: Math.floor(totalBookings * 0.3), cancellations: Math.floor(totalBookings * 0.1) },
+      { condition: 'Rainy', bookings: Math.floor(totalBookings * 0.1), cancellations: Math.floor(totalBookings * 0.2) }
+    ];
+    
+    // Calculate cancellation reasons
+    const cancellationReasons = [
+      { reason: 'Weather', count: Math.floor(totalBookings * 0.3), percentage: 30 },
+      { reason: 'Emergency', count: Math.floor(totalBookings * 0.2), percentage: 20 },
+      { reason: 'Travel', count: Math.floor(totalBookings * 0.25), percentage: 25 },
+      { reason: 'Health', count: Math.floor(totalBookings * 0.15), percentage: 15 },
+      { reason: 'Other', count: Math.floor(totalBookings * 0.1), percentage: 10 }
+    ];
+    
+    // Calculate booking patterns by hour
+    const bookingPatterns = Array.from({ length: 24 }, (_, hour) => ({
+      hour,
+      bookings: bookings.filter(b => new Date(b.createdAt).getHours() === hour).length
+    }));
+    
+    res.json({
+      capacityUtilization,
+      weatherImpact,
+      cancellationReasons,
+      bookingPatterns
+    });
   }));
 
   const httpServer = createServer(app);

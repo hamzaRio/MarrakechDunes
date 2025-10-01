@@ -517,8 +517,8 @@ class MongoStorage implements IStorage {
     
     // Add summary statistics
     const totalRevenue = bookings.reduce((sum, booking) => sum + parseInt(booking.totalAmount), 0);
-    const confirmedBookings = bookings.filter(b => b.status === 'confirmed').length;
-    const pendingBookings = bookings.filter(b => b.status === 'pending').length;
+    const confirmedBookings = bookings.filter(b => b.status === 'CONFIRMED').length;
+    const pendingBookings = bookings.filter(b => b.status === 'PENDING').length;
     
     doc.text(`Total Revenue: ${totalRevenue} MAD`, 20, 45);
     doc.text(`Confirmed: ${confirmedBookings} | Pending: ${pendingBookings}`, 20, 50);
