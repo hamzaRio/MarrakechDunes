@@ -148,60 +148,111 @@ export async function findExactGetYourGuideActivity(activityName: string): Promi
       description: "Guided tour of the beautiful Bahia Palace",
       category: "cultural",
       difficulty: "easy"
+    },
+    {
+      id: "gyg-9",
+      name: "Majorelle Garden Entry Tickets",
+      price: 299,
+      currency: "MAD",
+      duration: "1 hour",
+      location: "Marrakech",
+      rating: 4.5,
+      reviewCount: 7961,
+      imageUrl: "https://example.com/majorelle.jpg",
+      description: "Visit the famous Majorelle Garden in Marrakech",
+      category: "cultural",
+      difficulty: "easy"
+    },
+    {
+      id: "gyg-10",
+      name: "Toubkal Mountain Trek",
+      price: 650,
+      currency: "MAD",
+      duration: "2 days",
+      location: "Atlas Mountains",
+      rating: 4.7,
+      reviewCount: 342,
+      imageUrl: "https://example.com/toubkal.jpg",
+      description: "Trek to the highest peak in North Africa",
+      category: "adventure",
+      difficulty: "hard"
     }
   ];
 
-  // Find exact match by name (case-insensitive)
-  const exactMatch = getyourguideActivities.find(activity => {
-    const activityNormalizedName = activity.name.toLowerCase().trim();
-    return activityNormalizedName === normalizedName;
-  });
-
-  // If no exact match, try partial matching for common variations
-  if (!exactMatch) {
-    const partialMatch = getyourguideActivities.find(activity => {
-      const activityNormalizedName = activity.name.toLowerCase().trim();
-      
-      // Check for common variations
-      const variations = [
-        normalizedName,
-        normalizedName.replace('day trip', ''),
-        normalizedName.replace('tour', ''),
-        normalizedName.replace('experience', ''),
-        normalizedName.replace('ride', ''),
-        normalizedName.replace('trip', ''),
-        normalizedName.replace('visit', ''),
-        normalizedName.replace('explore', ''),
-        normalizedName.replace('discover', ''),
-        normalizedName.replace('adventure', ''),
-        normalizedName.replace('excursion', ''),
-        normalizedName.replace('journey', ''),
-        normalizedName.replace('expedition', ''),
-        normalizedName.replace('trek', ''),
-        normalizedName.replace('hike', ''),
-        normalizedName.replace('walk', ''),
-        normalizedName.replace('safari', ''),
-        normalizedName.replace('cruise', ''),
-        normalizedName.replace('flight', ''),
-        normalizedName.replace('balloon', ''),
-        normalizedName.replace('montgolfière', 'hot air balloon'),
-        normalizedName.replace('montgolfiere', 'hot air balloon'),
-        normalizedName.replace('cascades', 'waterfalls'),
-        normalizedName.replace('oued', 'valley'),
-        normalizedName.replace('palace', 'palais'),
-        normalizedName.replace('palais', 'palace')
-      ];
-      
-      return variations.some(variation => 
-        activityNormalizedName.includes(variation) || 
-        variation.includes(activityNormalizedName)
-      );
-    });
+  // Create a more intelligent matching function
+  const findMatch = (searchTerm: string, activityName: string): boolean => {
+    const normalizedSearch = searchTerm.toLowerCase().trim();
+    const normalizedActivity = activityName.toLowerCase().trim();
     
-    return partialMatch || null;
-  }
+    // Exact match
+    if (normalizedSearch === normalizedActivity) {
+      return true;
+    }
+    
+    // Direct substring match
+    if (normalizedActivity.includes(normalizedSearch) || normalizedSearch.includes(normalizedActivity)) {
+      return true;
+    }
+    
+    // Handle common variations and synonyms
+    const variations = [
+      // Remove common suffixes
+      normalizedSearch.replace(/\s+(day\s+trip|tour|experience|ride|trip|visit|explore|discover|adventure|excursion|journey|expedition|trek|hike|walk|safari|cruise|flight|balloon|entry|tickets?)$/i, ''),
+      // Remove common prefixes
+      normalizedSearch.replace(/^(visit|explore|discover|tour|experience|trip\s+to|day\s+trip\s+to)\s+/i, ''),
+      // Handle French/English variations
+      normalizedSearch.replace(/montgolfière|montgolfiere/gi, 'hot air balloon'),
+      normalizedSearch.replace(/cascades/gi, 'waterfalls'),
+      normalizedSearch.replace(/oued/gi, 'valley'),
+      normalizedSearch.replace(/palais/gi, 'palace'),
+      normalizedSearch.replace(/jardin/gi, 'garden'),
+      normalizedSearch.replace(/montagne/gi, 'mountain'),
+      normalizedSearch.replace(/désert/gi, 'desert'),
+      // Handle specific activity names
+      normalizedSearch.replace(/bahia/gi, 'bahia palace'),
+      normalizedSearch.replace(/majorelle/gi, 'majorelle garden'),
+      normalizedSearch.replace(/toubkal/gi, 'toubkal mountain'),
+      normalizedSearch.replace(/atlas/gi, 'atlas mountains'),
+      normalizedSearch.replace(/ouzoud/gi, 'ouzoud waterfalls'),
+      normalizedSearch.replace(/ourika/gi, 'ourika valley'),
+      normalizedSearch.replace(/essaouira/gi, 'essaouira'),
+      normalizedSearch.replace(/agafay/gi, 'agafay desert')
+    ];
+    
+    // Check if any variation matches
+    return variations.some(variation => {
+      if (!variation.trim()) return false;
+      
+      // Direct match with variation
+      if (normalizedActivity.includes(variation) || variation.includes(normalizedActivity)) {
+        return true;
+      }
+      
+      // Word-by-word matching for better accuracy
+      const searchWords = variation.split(/\s+/).filter(word => word.length > 2);
+      const activityWords = normalizedActivity.split(/\s+/).filter(word => word.length > 2);
+      
+      if (searchWords.length > 0 && activityWords.length > 0) {
+        const matchCount = searchWords.filter(searchWord => 
+          activityWords.some(activityWord => 
+            activityWord.includes(searchWord) || searchWord.includes(activityWord)
+          )
+        ).length;
+        
+        // If more than 50% of words match, consider it a match
+        return matchCount / searchWords.length >= 0.5;
+      }
+      
+      return false;
+    });
+  };
 
-  return exactMatch;
+  // Find the best match
+  const match = getyourguideActivities.find(activity => 
+    findMatch(normalizedName, activity.name)
+  );
+
+  return match || null;
 }
 
 /**

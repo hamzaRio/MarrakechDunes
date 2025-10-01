@@ -40,14 +40,20 @@ export default function GetYourGuidePriceFetcher({
   const [showResults, setShowResults] = useState(false);
   const [notFound, setNotFound] = useState(false);
 
-  // Auto-search when activity name changes
+  // Auto-search when activity name changes with debouncing
   useEffect(() => {
     if (activityName && activityName.length > 3) {
-      handleSearch(activityName);
+      // Debounce the search to prevent excessive API calls
+      const timeoutId = setTimeout(() => {
+        handleSearch(activityName);
+      }, 300); // 300ms delay
+      
+      return () => clearTimeout(timeoutId);
     } else {
       setFoundActivity(null);
       setShowResults(false);
       setNotFound(false);
+      setIsLoading(false);
     }
   }, [activityName]);
 
@@ -56,6 +62,9 @@ export default function GetYourGuidePriceFetcher({
     
     setIsLoading(true);
     setNotFound(false);
+    setFoundActivity(null);
+    setPricingSuggestions(null);
+    
     try {
       const activity = await findExactGetYourGuideActivity(searchTerm);
       if (activity) {
@@ -64,14 +73,19 @@ export default function GetYourGuidePriceFetcher({
         setPricingSuggestions(suggestions);
         onPriceSelect(activity.price, suggestions);
         setShowResults(true);
+        setNotFound(false);
       } else {
         setNotFound(true);
         setShowResults(true);
+        setFoundActivity(null);
+        setPricingSuggestions(null);
       }
     } catch (error) {
       console.error("Error searching GetYourGuide:", error);
       setNotFound(true);
       setShowResults(true);
+      setFoundActivity(null);
+      setPricingSuggestions(null);
     } finally {
       setIsLoading(false);
     }
@@ -81,7 +95,8 @@ export default function GetYourGuidePriceFetcher({
     onPriceSelect(price, pricingSuggestions);
   };
 
-  if (!showResults && !foundActivity) {
+  // Show component when there's an activity name or when we have results
+  if (!activityName || activityName.length < 3) {
     return null;
   }
 
