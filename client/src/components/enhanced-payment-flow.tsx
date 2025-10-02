@@ -81,19 +81,19 @@ export default function EnhancedPaymentFlow({
           discount: totalSavings,
           benefits: [
             "Aucun paiement d'avance requis",
-            "Flexibilité maximale",
-            `Économies: ${totalSavings} MAD`,
-            "Confirmation immédiate"
+            "Flexibilite maximale",
+            `Economies: ${totalSavings} MAD`,
+            "Confirmation immediate"
           ]
         },
         depositPayment: {
           depositAmount: depositAmount,
           balanceAmount: totalAmount - depositAmount,
           securityBenefits: [
-            "Sécurise votre réservation",
-            "Réduit les annulations",
-            "Confirmation immédiate",
-            `Solde à l'arrivée: ${totalAmount - depositAmount} MAD`
+            "Securise votre reservation",
+            "Reduit les annulations",
+            "Confirmation immediate",
+            `Solde a l'arrivee: ${totalAmount - depositAmount} MAD`
           ]
         },
         earlyBirdSpecial: {
@@ -151,8 +151,8 @@ export default function EnhancedPaymentFlow({
   const paymentOptions = [
     {
       id: "full",
-      title: "Paiement Complet à l'Arrivée",
-      description: "Payez le montant total à votre arrivée",
+      title: "Paiement Complet a l'Arrivee",
+      description: "Payez le montant total a votre arrivee",
       amount: totalAmount - totalSavings,
       originalAmount: totalAmount,
       discount: totalSavings,
@@ -163,26 +163,26 @@ export default function EnhancedPaymentFlow({
     },
     {
       id: "deposit",
-      title: "Acompte Sécurisé",
-      description: `Payez ${depositAmount} MAD maintenant, solde à l'arrivée`,
+      title: "Acompte Securise",
+      description: `Payez ${depositAmount} MAD maintenant, solde a l'arrivee`,
       amount: depositAmount,
       originalAmount: totalAmount,
       discount: 0,
       icon: <Shield className="w-5 h-5" />,
       color: "bg-green-50 border-green-200",
-      badge: "Recommandé",
+      badge: "Recommandee",
       badgeColor: "bg-green-100 text-green-800"
     },
     {
       id: "early_bird",
       title: "Offre Early Bird",
-      description: `Paiement complet avec ${earlyBirdDiscount} MAD d'économies`,
+      description: `Paiement complet avec ${earlyBirdDiscount} MAD d'economies`,
       amount: totalAmount - earlyBirdDiscount,
       originalAmount: totalAmount,
       discount: earlyBirdDiscount,
       icon: <TrendingUp className="w-5 h-5" />,
       color: "bg-purple-50 border-purple-200",
-      badge: "Économies",
+      badge: "Economies",
       badgeColor: "bg-purple-100 text-purple-800"
     }
   ];
@@ -205,7 +205,7 @@ export default function EnhancedPaymentFlow({
       {/* Progress Indicator */}
       <div className="space-y-2">
         <div className="flex items-center justify-between text-sm text-gray-600">
-          <span>Étape {currentStep} sur 3</span>
+          <span>Etape {currentStep} sur 3</span>
           <span>{Math.round((currentStep / 3) * 100)}%</span>
         </div>
         <Progress value={(currentStep / 3) * 100} className="h-2" />
@@ -216,7 +216,7 @@ export default function EnhancedPaymentFlow({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Calendar className="w-5 h-5 text-blue-600" />
-            Résumé de la Réservation
+            Resume de la Reservation
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -240,7 +240,7 @@ export default function EnhancedPaymentFlow({
               <div className="text-sm text-gray-600">Montant Total</div>
               {totalSavings > 0 && (
                 <div className="text-sm text-green-600">
-                  Économies possibles: {totalSavings} MAD
+                  Economies possibles: {totalSavings} MAD
                 </div>
               )}
             </div>
@@ -285,7 +285,7 @@ export default function EnhancedPaymentFlow({
                       </div>
                       {option.discount > 0 && (
                         <div className="text-sm text-green-600">
-                          -{option.discount} MAD d'économies
+                          -{option.discount} MAD d'economies
                         </div>
                       )}
                     </div>
@@ -308,7 +308,7 @@ export default function EnhancedPaymentFlow({
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="bg-white p-4 rounded-lg border">
-              <h4 className="font-semibold mb-2">Détails du Paiement</h4>
+              <h4 className="font-semibold mb-2">Details du Paiement</h4>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span>Montant total:</span>
@@ -321,20 +321,20 @@ export default function EnhancedPaymentFlow({
                       <span>{depositAmount} MAD</span>
                     </div>
                     <div className="flex justify-between">
-                      <span>Solde à l'arrivée:</span>
+                      <span>Solde a l'arrivee:</span>
                       <span>{totalAmount - depositAmount} MAD</span>
                     </div>
                   </>
                 )}
                 {selectedPaymentOption === 'full' && totalSavings > 0 && (
                   <div className="flex justify-between text-green-600">
-                    <span>Économies:</span>
+                    <span>Economies:</span>
                     <span>-{totalSavings} MAD</span>
                   </div>
                 )}
                 <div className="border-t pt-2">
                   <div className="flex justify-between font-semibold">
-                    <span>À payer maintenant:</span>
+                    <span>A payer maintenant:</span>
                     <span>
                       {selectedPaymentOption === 'deposit' 
                         ? `${depositAmount} MAD` 
@@ -381,27 +381,27 @@ export default function EnhancedPaymentFlow({
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-green-600">
               <CheckCircle className="w-5 h-5" />
-              Paiement Confirmé!
+              Paiement Confirme!
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-center space-y-4">
-              <div className="text-6xl">🎉</div>
+              <div className="text-6xl">Success</div>
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                  Votre réservation est confirmée!
+                  Votre reservation est confirmee!
                 </h3>
                 <p className="text-gray-600">
-                  Vous recevrez un SMS de confirmation avec tous les détails.
+                  Vous recevrez un SMS de confirmation avec tous les details.
                 </p>
               </div>
               <div className="bg-white p-4 rounded-lg border">
-                <h4 className="font-semibold mb-2">Prochaines étapes:</h4>
+                <h4 className="font-semibold mb-2">Prochaines etapes:</h4>
                 <ul className="text-sm text-gray-600 space-y-1">
-                  <li>• Vous recevrez un SMS de confirmation</li>
-                  <li>• Rendez-vous au point de rencontre à l'heure indiquée</li>
-                  <li>• Présentez votre pièce d'identité</li>
-                  <li>• Profitez de votre aventure!</li>
+                  <li>- Vous recevrez un SMS de confirmation</li>
+                  <li>- Rendez-vous au point de rencontre a l'heure indiquee</li>
+                  <li>- Presentez votre piece d'identite</li>
+                  <li>- Profitez de votre aventure!</li>
                 </ul>
               </div>
             </div>
@@ -425,7 +425,7 @@ export default function EnhancedPaymentFlow({
             onClick={() => window.location.href = '/'}
             className="flex-1"
           >
-            Retour à l'Accueil
+            Retour a l'Accueil
           </Button>
         )}
       </div>
