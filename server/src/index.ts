@@ -216,6 +216,12 @@ const corsOptions: cors.CorsOptions = {
       return callback(null, true);
     }
     
+    // Allow all marrakechdunes Vercel URLs (including preview URLs without hyphen)
+    if (origin && origin.match(/^https:\/\/marrakechdunes-.*\.vercel\.app$/)) {
+      console.log("✅ Allowing marrakechdunes Vercel URL:", origin);
+      return callback(null, true);
+    }
+    
     // Handle wildcard patterns in CLIENT_URL (for other domains)
     for (const allowedOrigin of allowedOrigins) {
       if (allowedOrigin.includes('*')) {

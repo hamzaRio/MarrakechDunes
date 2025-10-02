@@ -78,7 +78,9 @@ export class CSRFProtection {
       '/api/security-events',
       '/api/auth/login',
       '/api/auth/logout',
-      '/api/session/init'
+      '/api/session/init',
+      '/api/bookings',
+      '/api/reviews'
     ];
 
     if (skipPaths.some(path => req.path === path || req.path.startsWith(path))) {
