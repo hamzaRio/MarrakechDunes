@@ -13,7 +13,7 @@ interface CashPaymentConfirmationProps {
   customerName: string;
   customerPhone: string;
   preferredDate: string;
-  onConfirm: () => void;
+  onConfirm: (paymentType: 'full' | 'deposit') => void;
   onCancel: () => void;
 }
 
@@ -28,6 +28,7 @@ export default function CashPaymentConfirmation({
 }: CashPaymentConfirmationProps) {
   const { t } = useLanguage();
   const [isConfirming, setIsConfirming] = useState(false);
+  const [selectedPaymentOption, setSelectedPaymentOption] = useState<'full' | 'deposit'>('deposit');
   
   const totalAmount = activity.price * numberOfPeople;
   const depositAmount = Math.round(totalAmount * 0.3); // 30% deposit
@@ -35,12 +36,12 @@ export default function CashPaymentConfirmation({
 
   const handleConfirm = async () => {
     setIsConfirming(true);
-    await onConfirm();
+    await onConfirm(selectedPaymentOption);
     setIsConfirming(false);
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+    <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
       <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <CardHeader className="text-center bg-moroccan-blue text-white">
           <CardTitle className="flex items-center justify-center gap-2">
@@ -116,32 +117,69 @@ export default function CashPaymentConfirmation({
             </div>
 
             {/* Payment Options */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
-                <h4 className="font-medium text-blue-800 mb-2">Option 1: Full Payment</h4>
-                <p className="text-sm text-blue-700 mb-3">Pay the complete amount on the day of activity</p>
-                <div className="text-xl font-bold text-blue-600">{totalAmount} MAD</div>
-                <Badge variant="outline" className="mt-2 border-blue-300 text-blue-700">
-                  Pay at pickup
-                </Badge>
-              </div>
-              
-              <div className="bg-orange-50 border border-orange-200 p-4 rounded-lg">
-                <h4 className="font-medium text-orange-800 mb-2">Option 2: Deposit + Balance</h4>
-                <p className="text-sm text-orange-700 mb-3">Secure your booking with a deposit</p>
-                <div className="space-y-1">
-                  <div className="text-sm">
-                    <span className="text-orange-600">Deposit now:</span>
-                    <span className="font-bold ml-2">{depositAmount} MAD</span>
+            <div className="space-y-4">
+              <h4 className="font-medium text-moroccan-blue">Choose Payment Option:</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div 
+                  className={`cursor-pointer transition-all duration-200 p-4 rounded-lg border-2 ${
+                    selectedPaymentOption === 'full' 
+                      ? 'bg-blue-50 border-blue-400 ring-2 ring-blue-200' 
+                      : 'bg-blue-50 border-blue-200 hover:border-blue-300'
+                  }`}
+                  onClick={() => setSelectedPaymentOption('full')}
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <input 
+                      type="radio" 
+                      name="paymentOption" 
+                      value="full"
+                      checked={selectedPaymentOption === 'full'}
+                      onChange={() => setSelectedPaymentOption('full')}
+                      className="w-4 h-4 text-blue-600"
+                    />
+                    <h4 className="font-medium text-blue-800">Full Payment</h4>
                   </div>
-                  <div className="text-sm">
-                    <span className="text-orange-600">Balance on day:</span>
-                    <span className="font-bold ml-2">{remainingAmount} MAD</span>
-                  </div>
+                  <p className="text-sm text-blue-700 mb-3">Pay the complete amount on the day of activity</p>
+                  <div className="text-xl font-bold text-blue-600">{totalAmount} MAD</div>
+                  <Badge variant="outline" className="mt-2 border-blue-300 text-blue-700">
+                    Pay at pickup
+                  </Badge>
                 </div>
-                <Badge variant="outline" className="mt-2 border-orange-300 text-orange-700">
-                  Recommended
-                </Badge>
+                
+                <div 
+                  className={`cursor-pointer transition-all duration-200 p-4 rounded-lg border-2 ${
+                    selectedPaymentOption === 'deposit' 
+                      ? 'bg-orange-50 border-orange-400 ring-2 ring-orange-200' 
+                      : 'bg-orange-50 border-orange-200 hover:border-orange-300'
+                  }`}
+                  onClick={() => setSelectedPaymentOption('deposit')}
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <input 
+                      type="radio" 
+                      name="paymentOption" 
+                      value="deposit"
+                      checked={selectedPaymentOption === 'deposit'}
+                      onChange={() => setSelectedPaymentOption('deposit')}
+                      className="w-4 h-4 text-orange-600"
+                    />
+                    <h4 className="font-medium text-orange-800">Deposit + Balance</h4>
+                  </div>
+                  <p className="text-sm text-orange-700 mb-3">Secure your booking with a deposit</p>
+                  <div className="space-y-1">
+                    <div className="text-sm">
+                      <span className="text-orange-600">Deposit now:</span>
+                      <span className="font-bold ml-2">{depositAmount} MAD</span>
+                    </div>
+                    <div className="text-sm">
+                      <span className="text-orange-600">Balance on day:</span>
+                      <span className="font-bold ml-2">{remainingAmount} MAD</span>
+                    </div>
+                  </div>
+                  <Badge variant="outline" className="mt-2 border-orange-300 text-orange-700">
+                    Recommended
+                  </Badge>
+                </div>
               </div>
             </div>
           </div>
@@ -206,7 +244,10 @@ export default function CashPaymentConfirmation({
               ) : (
                 <div className="flex items-center gap-2">
                   <CheckCircle className="w-4 h-4" />
-                  Confirm Cash Booking
+                  {selectedPaymentOption === 'full' 
+                    ? `Confirm Full Payment (${totalAmount} MAD)` 
+                    : `Confirm Deposit (${depositAmount} MAD)`
+                  }
                 </div>
               )}
             </Button>

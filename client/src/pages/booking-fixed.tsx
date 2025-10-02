@@ -211,9 +211,15 @@ export default function BookingFixed() {
     setShowPaymentConfirmation(true);
   };
 
-  const handlePaymentConfirm = () => {
+  const handlePaymentConfirm = (paymentType: 'full' | 'deposit') => {
     if (pendingBookingData) {
-      createBookingMutation.mutate(pendingBookingData);
+      // Add payment type to the booking data
+      const bookingDataWithPayment = {
+        ...pendingBookingData,
+        paymentType,
+        paymentStatus: paymentType === 'full' ? 'fully_paid' : 'deposit_paid'
+      };
+      createBookingMutation.mutate(bookingDataWithPayment);
     }
   };
 
