@@ -8,7 +8,7 @@ export default function AdminAccessGuide() {
     <div className="max-w-4xl mx-auto p-6 space-y-6">
       <div className="text-center space-y-4">
         <h1 className="font-playfair text-3xl font-bold text-moroccan-blue">
-          🏛️ MarrakechDunes Admin Access Guide
+          MarrakechDunes Admin Access Guide
         </h1>
         <p className="text-gray-600 text-lg">
           Complete guide to access and manage the tourism booking platform
@@ -20,7 +20,7 @@ export default function AdminAccessGuide() {
         <CardHeader>
           <CardTitle className="flex items-center text-moroccan-blue">
             <Key className="h-5 w-5 mr-2" />
-            🚀 Quick Access
+            Quick Access
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -54,7 +54,7 @@ export default function AdminAccessGuide() {
         <CardHeader>
           <CardTitle className="flex items-center text-moroccan-blue">
             <Settings className="h-5 w-5 mr-2" />
-            📍 Access URLs
+            Access URLs
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -86,7 +86,7 @@ export default function AdminAccessGuide() {
         <CardHeader>
           <CardTitle className="flex items-center text-moroccan-blue">
             <Users className="h-5 w-5 mr-2" />
-            👥 User Roles & Permissions
+            User Roles & Permissions
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -100,12 +100,12 @@ export default function AdminAccessGuide() {
               </div>
               <h4 className="font-semibold text-green-900 mb-2">Regular Admin Access</h4>
               <ul className="text-sm text-green-800 space-y-1">
-                <li>• Manage bookings and customer communication</li>
-                <li>• Create, edit, and manage activities</li>
-                <li>• Upload activity photos and images</li>
-                <li>• Update booking status and payments</li>
-                <li>• Send WhatsApp notifications</li>
-                <li>• View analytics and reports</li>
+                <li>Manage bookings and customer communication</li>
+                <li>Create, edit, and manage activities</li>
+                <li>Upload activity photos and images</li>
+                <li>Update booking status and payments</li>
+                <li>Send WhatsApp notifications</li>
+                <li>View analytics and reports</li>
               </ul>
             </div>
 
@@ -118,12 +118,12 @@ export default function AdminAccessGuide() {
               </div>
               <h4 className="font-semibold text-purple-900 mb-2">Full System Access</h4>
               <ul className="text-sm text-purple-800 space-y-1">
-                <li>• All admin permissions</li>
-                <li>• User management and creation</li>
-                <li>• System audit logs access</li>
-                <li>• Advanced analytics and financial reports</li>
-                <li>• Platform configuration settings</li>
-                <li>• Database management tools</li>
+                <li>All admin permissions</li>
+                <li>User management and creation</li>
+                <li>System audit logs access</li>
+                <li>Advanced analytics and financial reports</li>
+                <li>Platform configuration settings</li>
+                <li>Database management tools</li>
               </ul>
             </div>
           </div>
@@ -135,7 +135,7 @@ export default function AdminAccessGuide() {
         <CardHeader>
           <CardTitle className="flex items-center text-orange-800">
             <Key className="h-5 w-5 mr-2" />
-            🔐 Default Login Credentials
+            Default Login Credentials
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -182,27 +182,27 @@ export default function AdminAccessGuide() {
       <Card>
         <CardHeader>
           <CardTitle className="text-moroccan-blue">
-            🎯 Platform Management Features
+            Platform Management Features
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="text-center p-4 bg-blue-50 rounded-lg">
-              <div className="text-2xl mb-2">📋</div>
+              <div className="text-2xl mb-2">Book</div>
               <h4 className="font-semibold text-blue-900">Booking Management</h4>
               <p className="text-sm text-blue-700 mt-1">
                 Handle customer bookings, confirmations, and payments
               </p>
             </div>
             <div className="text-center p-4 bg-green-50 rounded-lg">
-              <div className="text-2xl mb-2">🎪</div>
+              <div className="text-2xl mb-2">Activity</div>
               <h4 className="font-semibold text-green-900">Activity Management</h4>
               <p className="text-sm text-green-700 mt-1">
                 Create and manage tourism activities with pricing
               </p>
             </div>
             <div className="text-center p-4 bg-purple-50 rounded-lg">
-              <div className="text-2xl mb-2">📊</div>
+              <div className="text-2xl mb-2">Chart</div>
               <h4 className="font-semibold text-purple-900">Analytics & Reports</h4>
               <p className="text-sm text-purple-700 mt-1">
                 View revenue, bookings, and performance metrics
@@ -216,7 +216,7 @@ export default function AdminAccessGuide() {
       <Card className="border-green-200 bg-green-50">
         <CardHeader>
           <CardTitle className="text-green-800">
-            🚀 Quick Start Guide
+            Quick Start Guide
           </CardTitle>
         </CardHeader>
         <CardContent>
