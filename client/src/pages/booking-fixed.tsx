@@ -98,10 +98,11 @@ export default function BookingFixed() {
       customerEmail: "",
       activityId: "",
       numberOfPeople: 1,
-      preferredDate: "",
+      preferredDate: new Date(),
       participantNames: [""],
       notes: "",
     },
+    mode: "onChange",
   });
 
   // Phone number validation helper for international numbers
@@ -193,7 +194,14 @@ export default function BookingFixed() {
   });
 
   const onSubmit = (data: BookingFormData) => {
-    setPendingBookingData(data);
+    // Ensure preferredDate is properly formatted as string
+    const formattedData = {
+      ...data,
+      preferredDate: data.preferredDate instanceof Date 
+        ? data.preferredDate.toISOString().split('T')[0]
+        : data.preferredDate
+    };
+    setPendingBookingData(formattedData);
     setShowPaymentConfirmation(true);
   };
 
