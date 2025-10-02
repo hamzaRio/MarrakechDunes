@@ -35,6 +35,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { getAssetUrl } from "@/lib/utils";
 import { Plus, Settings, Trash2, Power, PowerOff, Upload, Search, ExternalLink } from "lucide-react";
 import { ObjectUploader } from "@/components/ObjectUploader";
+import GetYourGuidePriceFetcher from "@/components/getyourguide-price-fetcher";
 import type { ActivityType } from "marrakechdunes-shared/schema";
 import type { UploadResult } from "@uppy/core";
 
@@ -47,6 +48,7 @@ const createActivityFormSchema = (t: (key: string) => string) => z.object({
   availability: z.string().optional(),
   imageUrls: z.array(z.string().min(1, t("admin.imageUrlRequired"))).min(1, t("admin.atLeastOneImageRequired")),
   isActive: z.boolean().default(true),
+  getyourguidePrice: z.string().optional(),
 });
 
 type ActivityFormData = z.infer<ReturnType<typeof createActivityFormSchema>>;
@@ -365,6 +367,19 @@ export default function ActivityManagementModal({
                       <FormMessage />
                     </FormItem>
                   )}
+                />
+
+                {/* GetYourGuide Competitor Analysis */}
+                <GetYourGuidePriceFetcher
+                  activityName={form.watch("name") || ""}
+                  onPriceSelect={(price, suggestions) => {
+                    form.setValue("getyourguidePrice", price.toString());
+                    toast({
+                      title: "Competitor Price Found",
+                      description: `GetYourGuide price: ${price} MAD. Consider setting your price based on the suggestions.`,
+                    });
+                  }}
+                  currentPrice={parseInt(form.watch("getyourguidePrice") || "0")}
                 />
 
                 <FormField
