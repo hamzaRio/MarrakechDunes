@@ -4,6 +4,7 @@ import session from "express-session";
 import MongoStore from "connect-mongo";
 import bcrypt from "bcrypt";
 import { storage } from "./storage.js";
+import gygRoutes from "./routes/getyourguide.js";
 import { 
   insertBookingSchema, 
   insertReviewSchema,
@@ -128,6 +129,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Note: /api/activities has no rate limiting to prevent 429 errors
   app.use('/api/bookings', generalApiRateLimit);
   app.use('/api/reviews', generalApiRateLimit);
+
+  // GetYourGuide API routes (public for admin reference)
+  app.use('/api/gyg', gygRoutes);
 
   // Admin API routes with stricter rate limiting, audit logging, and admin authentication
   app.use('/api/admin', adminApiRateLimit, adminAuditLog, requireAdmin);

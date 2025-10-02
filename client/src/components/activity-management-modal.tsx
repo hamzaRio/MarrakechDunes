@@ -36,6 +36,7 @@ import { getAssetUrl } from "@/lib/utils";
 import { Plus, Settings, Trash2, Power, PowerOff, Upload, Search, ExternalLink } from "lucide-react";
 import { ObjectUploader } from "@/components/ObjectUploader";
 import GetYourGuidePriceFetcher from "@/components/getyourguide-price-fetcher";
+import GYGSearchSuggestions from "@/components/admin/GYGSearchSuggestions";
 import type { ActivityType } from "marrakechdunes-shared/schema";
 import type { UploadResult } from "@uppy/core";
 
@@ -381,6 +382,9 @@ export default function ActivityManagementModal({
                   }}
                   currentPrice={parseInt(form.watch("getyourguidePrice") || "0")}
                 />
+
+                {/* GetYourGuide Live Search Suggestions */}
+                <GYGSearchSuggestions className="mt-4" />
 
                 <FormField
                   control={form.control}
