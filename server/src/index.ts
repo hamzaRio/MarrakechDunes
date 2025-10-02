@@ -132,7 +132,7 @@ import {
 import { globalLimiter, strictLimiter } from "./rate-limiters.js";
 import { registerRoutes } from "./routes.js";
 import { connectToDatabase } from "./db.js";
-import { notFoundHandler } from "./error-handler.js";
+import { notFoundHandler, globalErrorHandler } from "./error-handler.js";
 import { sessionSecurity } from "./security-middleware.js";
 import sessionRouter from "./routes/session.js";
 
@@ -424,14 +424,7 @@ app.use((req, res, next) => {
   }
 
   // Global error handler (must be last)
-  app.use((err: any, req: Request, res: Response, next: NextFunction) => {
-    console.error("Unhandled error:", err);
-    console.error("Stack trace:", err.stack);
-    res.status(500).json({
-      error: "Internal server error",
-      details: err.message,
-    });
-  });
+  app.use(globalErrorHandler);
 
   // Note: Frontend is served by Vercel, backend only serves API and static assets
   // Deployment trigger: Final production deployment with session routes fixed

@@ -316,6 +316,22 @@ export default function SimplifiedAdminDashboard() {
                     <Badge variant={booking.status === 'confirmed' ? 'default' : booking.status === 'pending' ? 'secondary' : 'destructive'}>
                       {booking.status}
                     </Badge>
+                    <Badge 
+                      variant={
+                        booking.paymentStatus === 'fully_paid' ? 'default' : 
+                        booking.paymentStatus === 'deposit_paid' ? 'secondary' : 
+                        'destructive'
+                      }
+                      className={
+                        booking.paymentStatus === 'fully_paid' ? 'bg-green-100 text-green-800 border-green-200' :
+                        booking.paymentStatus === 'deposit_paid' ? 'bg-yellow-100 text-yellow-800 border-yellow-200' :
+                        'bg-red-100 text-red-800 border-red-200'
+                      }
+                    >
+                      {booking.paymentStatus === 'fully_paid' ? '✅ Paid' :
+                       booking.paymentStatus === 'deposit_paid' ? '💰 Deposit' :
+                       '❌ Unpaid'}
+                    </Badge>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-sm text-gray-600">
                     <div className="flex items-center gap-1">
