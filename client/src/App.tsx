@@ -94,7 +94,7 @@ function App() {
     const gaId = import.meta.env.VITE_GA_MEASUREMENT_ID;
     if (gaId && import.meta.env.PROD) {
       ReactGA.initialize(gaId);
-      console.log('✅ Google Analytics initialized');
+      console.log('Google Analytics initialized');
     }
   }, []);
 

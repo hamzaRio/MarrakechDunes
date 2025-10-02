@@ -24,7 +24,7 @@ import "react-day-picker/dist/style.css";
 import PhoneInput from 'react-phone-input-2';
 import 'react-phone-input-2/lib/style.css';
 
-const namePattern = /^[a-zA-ZÀ-ÖØ-öø-ÿ\s'-]+$/u;
+const namePattern = /^[a-zA-Z\u00C0-\u00D6\u00D8-\u00F6\u00F8-\u00FF\s'-]+$/u;
 
 const createBookingFormSchema = (t: (key: string, options?: Record<string, unknown>) => string) =>
   z.object({
@@ -152,17 +152,23 @@ export default function BookingFixed() {
     name: "participantNames",
   });
 
-  const numberOfPeople = form.watch("numberOfPeople");
+  // Get watched activity first
+  const watchedActivityId = form.watch("activityId");
+  const watchedActivity = useMemo(() => 
+    activityList.find(a => a.id === watchedActivityId || a._id === watchedActivityId),
+    [activityList, watchedActivityId]
+  );
+
+  // Memoize expensive calculations
+  const numberOfPeopleValue = form.watch("numberOfPeople");
+  
   useEffect(() => {
-    const names = Array(numberOfPeople).fill("").map((_, i) => {
+    const names = Array(numberOfPeopleValue).fill("").map((_, i) => {
       const currentValue = form.getValues(`participantNames.${i}`);
       return currentValue || "";
     });
     replace(names);
-  }, [numberOfPeople, replace, form]);
-
-  // Memoize expensive calculations
-  const numberOfPeopleValue = form.watch("numberOfPeople");
+  }, [numberOfPeopleValue, replace, form]);
   const totalAmount = useMemo(() => {
     return watchedActivity ? parseInt(watchedActivity.price) * numberOfPeopleValue : 0;
   }, [watchedActivity, numberOfPeopleValue]);
@@ -233,7 +239,7 @@ export default function BookingFixed() {
       return;
     }
     
-    if (!/^[a-zA-ZÀ-ÿ\s'-]+$/.test(customerName)) {
+    if (!/^[a-zA-Z\u00C0-\u00FF\s'-]+$/.test(customerName)) {
       toast({
         title: "Invalid Name Format",
         description: "Name can only contain letters, spaces, apostrophes, and hyphens",
@@ -270,7 +276,7 @@ export default function BookingFixed() {
       return;
     }
     
-    const invalidNames = participantNames.filter(name => !/^[a-zA-ZÀ-ÿ\s'-]+$/.test(name));
+    const invalidNames = participantNames.filter(name => !/^[a-zA-Z\u00C0-\u00FF\s'-]+$/.test(name));
     if (invalidNames.length > 0) {
       toast({
         title: "Invalid Name Format",
@@ -282,12 +288,6 @@ export default function BookingFixed() {
     
     setCurrentStep('confirmation');
   }, [form, toast]);
-
-  const watchedActivityId = form.watch("activityId");
-  const watchedActivity = useMemo(() => 
-    activityList.find(a => a.id === watchedActivityId || a._id === watchedActivityId),
-    [activityList, watchedActivityId]
-  );
   
   const bookingSteps = useMemo(() => [
     { key: 'activity' as const, label: t('booking.steps.selectActivity'), icon: MapPin },
@@ -481,7 +481,7 @@ export default function BookingFixed() {
                           {currentActivity && (
                             <div className="bg-moroccan-blue/5 p-4 rounded-lg">
                               <h4 className="font-medium text-moroccan-blue">{currentActivity.name}</h4>
-                              <p className="text-sm text-gray-600">{currentActivity.duration} • {currentActivity.price} MAD per person</p>
+                              <p className="text-sm text-gray-600">{currentActivity.duration} &bull; {currentActivity.price} MAD per person</p>
                             </div>
                           )}
 
@@ -749,7 +749,7 @@ export default function BookingFixed() {
                               <h4 className="font-semibold text-moroccan-red">{t('payment.cashOnly')}</h4>
                             </div>
                             <p className="text-sm text-gray-700">
-                              💰 {t('payment.cashOnlyDescription')} {t('payment.exactChangePreferred')}.
+                              &bull; {t('payment.cashOnlyDescription')} {t('payment.exactChangePreferred')}.
                             </p>
                           </div>
 
@@ -860,7 +860,7 @@ export default function BookingFixed() {
                         </div>
 
                         <div className="bg-green-50 p-3 rounded-lg border border-green-200">
-                          <p className="text-sm text-green-800 font-medium">💰 Cash Payment Only</p>
+                          <p className="text-sm text-green-800 font-medium">&bull; Cash Payment Only</p>
                           <p className="text-xs text-green-700 mt-1">
                             Payment is made in cash at the meeting point. No online payment required.
                           </p>
