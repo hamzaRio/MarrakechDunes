@@ -47,7 +47,7 @@ export default function Footer() {
           {/* Copyright */}
           <div className="text-center md:text-right">
             <p className="text-gray-300 font-light">
-              © 2024 MarrakechDunes. All rights reserved.
+              &copy; 2024 MarrakechDunes. All rights reserved.
             </p>
           </div>
         </div>

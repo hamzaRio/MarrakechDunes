@@ -96,7 +96,7 @@ export default function Navbar() {
                   English
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => changeLanguage("fr")}>
-                  Français
+                  Francais
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

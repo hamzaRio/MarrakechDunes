@@ -21,7 +21,7 @@ if (import.meta.env.PROD && import.meta.env.VITE_SENTRY_DSN) {
       return event;
     },
   });
-  console.log('✅ Sentry error tracking initialized');
+  console.log('Sentry error tracking initialized');
 }
 
 // Initialize session on startup

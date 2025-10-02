@@ -177,7 +177,7 @@ export default function Home() {
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                     <div className="text-center">
                       <div className="w-20 h-20 bg-moroccan-blue/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <span className="text-3xl text-moroccan-blue">🗺️</span>
+                        <span className="text-3xl text-moroccan-blue">Map</span>
                       </div>
                       <h4 className="text-xl font-semibold text-moroccan-blue mb-3">{t('home.expertise.items.localExpertise.title')}</h4>
                       <p className="text-gray-700">
@@ -187,7 +187,7 @@ export default function Home() {
 
                     <div className="text-center">
                       <div className="w-20 h-20 bg-moroccan-gold/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <span className="text-3xl text-moroccan-gold">👥</span>
+                        <span className="text-3xl text-moroccan-gold">Group</span>
                       </div>
                       <h4 className="text-xl font-semibold text-moroccan-blue mb-3">{t('home.expertise.items.personalizedService.title')}</h4>
                       <p className="text-gray-700">
@@ -197,7 +197,7 @@ export default function Home() {
 
                     <div className="text-center">
                       <div className="w-20 h-20 bg-moroccan-red/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <span className="text-3xl text-moroccan-red">🛡️</span>
+                        <span className="text-3xl text-moroccan-red">Shield</span>
                       </div>
                       <h4 className="text-xl font-semibold text-moroccan-blue mb-3">{t('home.expertise.items.safetyQuality.title')}</h4>
                       <p className="text-gray-700">
@@ -207,7 +207,7 @@ export default function Home() {
 
                     <div className="text-center">
                       <div className="w-20 h-20 bg-moroccan-blue/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <span className="text-3xl text-moroccan-blue">🌍</span>
+                        <span className="text-3xl text-moroccan-blue">Globe</span>
                       </div>
                       <h4 className="text-xl font-semibold text-moroccan-blue mb-3">{t('home.expertise.items.sustainableTourism.title')}</h4>
                       <p className="text-gray-700">
@@ -217,7 +217,7 @@ export default function Home() {
 
                     <div className="text-center">
                       <div className="w-20 h-20 bg-moroccan-gold/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <span className="text-3xl text-moroccan-gold">⚡</span>
+                        <span className="text-3xl text-moroccan-gold">Fast</span>
                       </div>
                       <h4 className="text-xl font-semibold text-moroccan-blue mb-3">{t('home.expertise.items.instantBooking.title')}</h4>
                       <p className="text-gray-700">
@@ -227,7 +227,7 @@ export default function Home() {
 
                     <div className="text-center">
                       <div className="w-20 h-20 bg-moroccan-red/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <span className="text-3xl text-moroccan-red">💎</span>
+                        <span className="text-3xl text-moroccan-red">Diamond</span>
                       </div>
                       <h4 className="text-xl font-semibold text-moroccan-blue mb-3">{t('home.expertise.items.premiumExperience.title')}</h4>
                       <p className="text-gray-700">
@@ -259,21 +259,21 @@ export default function Home() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 <div className="text-center">
                   <div className="w-16 h-16 bg-moroccan-blue/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <span className="text-2xl text-moroccan-blue">⭐</span>
+                    <span className="text-2xl text-moroccan-blue">Star</span>
                   </div>
                   <h4 className="font-semibold text-moroccan-blue mb-2">{t('home.mission.values.authenticity.title')}</h4>
                   <p className="text-gray-600 text-sm">{t('home.mission.values.authenticity.description')}</p>
                 </div>
                 <div className="text-center">
                   <div className="w-16 h-16 bg-moroccan-gold/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <span className="text-2xl text-moroccan-gold">🤝</span>
+                    <span className="text-2xl text-moroccan-gold">Handshake</span>
                   </div>
                   <h4 className="font-semibold text-moroccan-blue mb-2">{t('home.mission.values.trust.title')}</h4>
                   <p className="text-gray-600 text-sm">{t('home.mission.values.trust.description')}</p>
                 </div>
                 <div className="text-center">
                   <div className="w-16 h-16 bg-moroccan-red/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <span className="text-2xl text-moroccan-red">🏔️</span>
+                    <span className="text-2xl text-moroccan-red">Mountain</span>
                   </div>
                   <h4 className="font-semibold text-moroccan-blue mb-2">{t('home.mission.values.adventure.title')}</h4>
                   <p className="text-gray-600 text-sm">{t('home.mission.values.adventure.description')}</p>
@@ -309,7 +309,7 @@ export default function Home() {
                 </p>
                 <div className="flex mt-4">
                   {[...Array(5)].map((_, i) => (
-                    <span key={i} className="text-yellow-400">⭐</span>
+                    <span key={i} className="text-yellow-400">*</span>
                   ))}
                 </div>
               </div>
@@ -329,7 +329,7 @@ export default function Home() {
                 </p>
                 <div className="flex mt-4">
                   {[...Array(5)].map((_, i) => (
-                    <span key={i} className="text-yellow-400">⭐</span>
+                    <span key={i} className="text-yellow-400">*</span>
                   ))}
                 </div>
               </div>
@@ -349,7 +349,7 @@ export default function Home() {
                 </p>
                 <div className="flex mt-4">
                   {[...Array(5)].map((_, i) => (
-                    <span key={i} className="text-yellow-400">⭐</span>
+                    <span key={i} className="text-yellow-400">*</span>
                   ))}
                 </div>
               </div>
