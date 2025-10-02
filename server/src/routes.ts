@@ -367,9 +367,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         bookingId: booking._id?.toString() || 'N/A'
       };
       
-      await whatsappService.sendBookingNotification(notificationData);
+      const whatsappResult = await whatsappService.sendBookingNotification(notificationData);
+      
+      // Log customer notification for debugging
+      if (whatsappResult.customerMessage && whatsappResult.customerWhatsappLink) {
+        console.log('📱 Customer WhatsApp notification prepared:');
+        console.log(`To: ${booking.customerPhone}`);
+        console.log(`Message: ${whatsappResult.customerMessage}`);
+        console.log(`WhatsApp Link: ${whatsappResult.customerWhatsappLink}`);
+      }
 
-      res.status(201).json(booking);
+      res.status(201).json({
+        ...booking,
+        whatsappNotification: {
+          customerMessage: whatsappResult.customerMessage,
+          customerWhatsappLink: whatsappResult.customerWhatsappLink,
+          adminNotificationSent: whatsappResult.success
+        }
+      });
     } catch (error) {
       if (error instanceof AppError) {
         throw error;
