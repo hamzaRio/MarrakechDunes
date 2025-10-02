@@ -16,7 +16,7 @@ import PWAInstallPrompt from "@/components/pwa-install-prompt";
 const Home = lazy(() => import("@/pages/home"));
 const Activities = lazy(() => import("@/pages/activities"));
 const SimplifiedActivities = lazy(() => import("@/pages/simplified-activities"));
-const Booking = lazy(() => import("@/pages/booking-fixed"));
+import Booking from "@/pages/booking-fixed";
 const Reviews = lazy(() => import("@/pages/reviews"));
 const Contact = lazy(() => import("@/pages/contact"));
 const AdminLogin = lazy(() => import("@/pages/admin/login"));
@@ -72,7 +72,7 @@ function Router() {
       <Route path="/activities-simple" component={withSecurity(SimplifiedActivities, PUBLIC_ROUTE)} />
       <Route path="/reviews" component={withSecurity(Reviews, PUBLIC_ROUTE)} />
       <Route path="/contact" component={withSecurity(Contact, PUBLIC_ROUTE)} />
-      <Route path="/booking" component={withSecurity(Booking, BOOKING_ROUTE)} />
+      <Route path="/booking" component={Booking} />
       <Route path="/admin/login" component={withSecurity(AdminLogin, ADMIN_ROUTE)} />
       <Route path="/admin/ceo" component={withSecurity(CEODashboard, ADMIN_ROUTE)} />
       <Route path="/admin/ceo-simple" component={withSecurity(CEOSimplifiedDashboard, ADMIN_ROUTE)} />

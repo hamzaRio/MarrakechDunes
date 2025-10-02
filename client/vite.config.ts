@@ -78,32 +78,13 @@ export default defineConfig(({ mode }) => {
     },
     build: {
       outDir: 'dist',
-      sourcemap: false,
+      sourcemap: true, // Enable sourcemaps for debugging
       minify: 'esbuild',
-      chunkSizeWarningLimit: 1000,
+      chunkSizeWarningLimit: 2000,
       rollupOptions: {
         output: {
-          manualChunks: (id) => {
-            // Prevent circular dependencies and initialization errors
-            if (id.includes('node_modules')) {
-              if (id.includes('react') || id.includes('react-dom')) {
-                return 'vendor';
-              }
-              if (id.includes('@radix-ui')) {
-                return 'ui';
-              }
-              if (id.includes('react-hook-form') || id.includes('@hookform') || id.includes('zod')) {
-                return 'forms';
-              }
-              if (id.includes('@tanstack') || id.includes('axios')) {
-                return 'query';
-              }
-              if (id.includes('lucide-react') || id.includes('class-variance-authority') || id.includes('clsx') || id.includes('tailwind-merge')) {
-                return 'utils';
-              }
-              return 'vendor';
-            }
-          },
+          // Disable manual chunking to prevent initialization errors
+          // Let Vite handle chunking automatically
         },
       },
     },
