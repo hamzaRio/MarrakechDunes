@@ -69,12 +69,12 @@ export default function MapView({
   iframeTitle = 'Marrakech Dunes location map',
 }: MapViewProps) {
   const provider = MAP_PROVIDER;
-  const [leafletModules, setLeafletModules] = useState<LeafletModuleSet | null>(cachedLeaflet);
+  const [leafletModules, setLeafletModules] = useState<LeafletModuleSet | null>(leafletCache.modules);
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
-    if (provider === 'leaflet' && !cachedLeaflet) {
+    if (provider === 'leaflet' && !leafletCache.modules) {
       loadLeaflet()
         .then(setLeafletModules)
         .catch((error) => {
