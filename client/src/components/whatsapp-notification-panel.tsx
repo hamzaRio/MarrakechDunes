@@ -42,7 +42,7 @@ export function WhatsAppNotificationPanel({
     setSentNotifications(prev => [...prev, phone]);
     toast({
       title: "WhatsApp ouvert",
-      description: `Message préparé pour ${recipientName}`,
+      description: `Message prepare pour ${recipientName}`,
     });
   };
 
@@ -51,38 +51,38 @@ export function WhatsAppNotificationPanel({
     
     const bookingDate = booking.preferredDate 
       ? new Date(booking.preferredDate).toLocaleDateString('fr-FR')
-      : 'Non spécifiée';
-    const bookingTime = booking.preferredTime || 'Non spécifiée';
+      : 'Non specifiee';
+    const bookingTime = booking.preferredTime || 'Non specifiee';
     const totalAmount = `${booking.totalAmount} MAD`;
     
-    return `🏜️ NOUVELLE RÉSERVATION - MarrakechDunes
+    return `NOUVELLE RESERVATION - MarrakechDunes
 
-📋 DÉTAILS DE LA RÉSERVATION:
-• ID: ${booking._id || 'N/A'}
-• Activité: ${booking.activityName || 'N/A'}
-• Client: ${booking.customerName}
-• Téléphone: ${booking.customerPhone}
-• Nombre de personnes: ${booking.numberOfPeople}
-• Date souhaitée: ${bookingDate}
-• Heure souhaitée: ${bookingTime}
-• Montant total: ${totalAmount}
+DETAILS DE LA RESERVATION:
+- ID: ${booking._id || 'N/A'}
+- Activite: ${booking.activityName || 'N/A'}
+- Client: ${booking.customerName}
+- Telephone: ${booking.customerPhone}
+- Nombre de personnes: ${booking.numberOfPeople}
+- Date souhaitee: ${bookingDate}
+- Heure souhaitee: ${bookingTime}
+- Montant total: ${totalAmount}
 
-💰 INFORMATIONS PAIEMENT:
-• Méthode: Espèces
-• Statut: En attente
-• Statut réservation: En attente
+INFORMATIONS PAIEMENT:
+- Methode: Especes
+- Statut: En attente
+- Statut reservation: En attente
 
-${booking.notes ? `📝 Notes spéciales: ${booking.notes}` : ''}
+${booking.notes ? `Notes speciales: ${booking.notes}` : ''}
 
-⏰ Réservation créée: ${new Date().toLocaleString('fr-FR')}
+Reservation creee: ${new Date().toLocaleString('fr-FR')}
 
-🎯 ACTION REQUISE:
+ACTION REQUISE:
 1. Contactez le client rapidement
-2. Confirmez la disponibilité 
+2. Confirmez la disponibilite 
 3. Organisez le point de rendez-vous
-4. Préparez l'expérience
+4. Preparez l'experience
 
-📞 Contactez ${booking.customerName} au ${booking.customerPhone}`;
+Contactez ${booking.customerName} au ${booking.customerPhone}`;
   };
 
   const formatCustomerMessage = (booking: any) => {
@@ -90,44 +90,44 @@ ${booking.notes ? `📝 Notes spéciales: ${booking.notes}` : ''}
     
     const bookingDate = booking.preferredDate 
       ? new Date(booking.preferredDate).toLocaleDateString('fr-FR')
-      : 'À confirmer';
-    const bookingTime = booking.preferredTime || 'À confirmer';
+      : 'A confirmer';
+    const bookingTime = booking.preferredTime || 'A confirmer';
     const totalAmount = `${booking.totalAmount} MAD`;
     
-    return `🏜️ CONFIRMATION DE RÉSERVATION - MarrakechDunes
+    return `CONFIRMATION DE RESERVATION - MarrakechDunes
 
 Bonjour ${booking.customerName},
 
-✅ Votre réservation a été confirmée avec succès !
+Votre reservation a ete confirmee avec succes !
 
-📋 DÉTAILS DE VOTRE RÉSERVATION:
-• Activité: ${booking.activityName || 'N/A'}
-• Date: ${bookingDate}
-• Heure: ${bookingTime}
-• Nombre de personnes: ${booking.numberOfPeople}
-• Montant total: ${totalAmount}
-• ID de réservation: ${booking._id || 'N/A'}
+DETAILS DE VOTRE RESERVATION:
+- Activite: ${booking.activityName || 'N/A'}
+- Date: ${bookingDate}
+- Heure: ${bookingTime}
+- Nombre de personnes: ${booking.numberOfPeople}
+- Montant total: ${totalAmount}
+- ID de reservation: ${booking._id || 'N/A'}
 
-💰 PAIEMENT:
-• Mode de paiement: Espèces (sur place)
-• Statut: En attente
+PAIEMENT:
+- Mode de paiement: Especes (sur place)
+- Statut: En attente
 
-📍 POINT DE RENDEZ-VOUS:
-Nous vous contacterons sous peu pour confirmer le lieu et l'heure exacte de départ.
+POINT DE RENDEZ-VOUS:
+Nous vous contacterons sous peu pour confirmer le lieu et l'heure exacte de depart.
 
-📞 CONTACT:
-• Ahmed: +212600623630
-• Yahia: +212693323368
-• Nadia: +212654497354
+CONTACT:
+- Ahmed: +212600623630
+- Yahia: +212693323368
+- Nadia: +212654497354
 
-🎯 PROCHAINES ÉTAPES:
-1. Notre équipe vous contactera dans les 24h
+PROCHAINES ETAPES:
+1. Notre equipe vous contactera dans les 24h
 2. Confirmation du point de rendez-vous
-3. Instructions détaillées pour votre activité
+3. Instructions detaillees pour votre activite
 
 Merci d'avoir choisi MarrakechDunes pour votre aventure marocaine !
 
-L'équipe MarrakechDunes 🐪`;
+L'equipe MarrakechDunes`;
   };
 
   const adminMessage = message || formatBookingMessage(booking);
@@ -164,7 +164,7 @@ L'équipe MarrakechDunes 🐪`;
                   className="bg-green-600 hover:bg-green-700 text-white"
                 >
                   <MessageCircle className="h-4 w-4 mr-2" />
-                  {sentNotifications.includes(admin.phone) ? 'Envoyé' : 'Envoyer'}
+                  {sentNotifications.includes(admin.phone) ? 'Envoye' : 'Envoyer'}
                   <ExternalLink className="h-3 w-3 ml-1" />
                 </Button>
               </div>
@@ -199,7 +199,7 @@ L'équipe MarrakechDunes 🐪`;
                 className="bg-moroccan-blue hover:bg-blue-600 text-white"
               >
                 <MessageCircle className="h-4 w-4 mr-2" />
-                {sentNotifications.includes(customerPhone) ? 'Envoyé' : 'Confirmer'}
+                {sentNotifications.includes(customerPhone) ? 'Envoye' : 'Confirmer'}
                 <ExternalLink className="h-3 w-3 ml-1" />
               </Button>
             </div>
@@ -224,7 +224,7 @@ L'équipe MarrakechDunes 🐪`;
               className="justify-start"
             >
               <Users className="h-4 w-4 mr-2" />
-              Envoyer à tous les admins
+              Envoyer a tous les admins
             </Button>
             {customerPhone && (
               <Button
