@@ -3,10 +3,33 @@ import axios from 'axios';
 
 const router = Router();
 
+/**
+ * Calculate suggested price based on GetYourGuide price and competitive pricing rules
+ */
+function calculateSuggestedPrice(gygPrice: number, currency: string): number {
+  // Get configuration from environment variables
+  const undercutPercent = parseFloat(process.env.GYG_UNDERCUT_PERCENT || '0.1'); // Default 10%
+  const marginFixed = parseFloat(process.env.GYG_MARGIN_FIXED || '0'); // Default 0
+  const minPrice = parseFloat(process.env.GYG_MIN_PRICE || '15'); // Default 15 EUR
+  
+  // Calculate undercut price (percentage cheaper than GYG)
+  const undercut = gygPrice * (1 - undercutPercent);
+  
+  // Apply fixed margin adjustment
+  const marginAdjusted = undercut + marginFixed;
+  
+  // Ensure minimum price is respected
+  const suggestedPrice = Math.max(marginAdjusted, minPrice);
+  
+  // Round to 2 decimal places
+  return Math.round(suggestedPrice * 100) / 100;
+}
+
 interface GetYourGuideActivity {
   id: string;
   title: string;
-  price: number;
+  gygPrice: number;
+  suggestedPrice: number;
   currency: string;
   url: string;
 }
@@ -45,14 +68,23 @@ router.get('/search', async (req: Request, res: Response) => {
       timeout: 10000 // 10 second timeout
     });
 
-    // Transform the response to our format
-    const activities: GetYourGuideActivity[] = response.data.activities?.map((activity: any) => ({
-      id: activity.id || activity.activity_id,
-      title: activity.title || activity.name,
-      price: activity.price || activity.price_from || 0,
-      currency: activity.currency || 'EUR',
-      url: activity.url || `https://www.getyourguide.com/activity/${activity.id}`
-    })) || [];
+    // Transform the response to our format with suggested pricing
+    const activities: GetYourGuideActivity[] = response.data.activities?.map((activity: any) => {
+      const gygPrice = activity.price || activity.price_from || 0;
+      const currency = activity.currency || 'EUR';
+      
+      // Calculate suggested price using competitive pricing rules
+      const suggestedPrice = calculateSuggestedPrice(gygPrice, currency);
+      
+      return {
+        id: activity.id || activity.activity_id,
+        title: activity.title || activity.name,
+        gygPrice: gygPrice,
+        suggestedPrice: suggestedPrice,
+        currency: currency,
+        url: activity.url || `https://www.getyourguide.com/activity/${activity.id}`
+      };
+    }) || [];
 
     res.json(activities);
 

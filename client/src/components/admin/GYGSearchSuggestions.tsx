@@ -9,7 +9,8 @@ import { apiFetch } from '@/lib/api';
 interface GYGActivity {
   id: string;
   title: string;
-  price: number;
+  gygPrice: number;
+  suggestedPrice: number;
   currency: string;
   url: string;
 }
@@ -148,8 +149,11 @@ export default function GYGSearchSuggestions({ className = '' }: GYGSearchSugges
                         {activity.title}
                       </h4>
                       <div className="flex items-center gap-2 mt-1">
-                        <Badge variant="outline" className="text-xs">
-                          {formatPrice(activity.price, activity.currency)}
+                        <Badge variant="outline" className="text-xs bg-red-50 text-red-700 border-red-200">
+                          GYG: {formatPrice(activity.gygPrice, activity.currency)}
+                        </Badge>
+                        <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
+                          Suggested: {formatPrice(activity.suggestedPrice, activity.currency)}
                         </Badge>
                       </div>
                     </div>
@@ -178,7 +182,7 @@ export default function GYGSearchSuggestions({ className = '' }: GYGSearchSugges
 
       {/* Help text */}
       <p className="text-xs text-gray-500 mt-2">
-        💡 Search for activities to see competitor pricing and get inspiration for your own activities
+        💡 Search for activities to see GetYourGuide competitor pricing and our suggested competitive pricing
       </p>
     </div>
   );
