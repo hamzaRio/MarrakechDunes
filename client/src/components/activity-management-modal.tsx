@@ -642,7 +642,7 @@ export default function ActivityManagementModal({
       </DialogTrigger>
       <DialogContent 
         className="max-w-4xl max-h-[90vh] overflow-y-auto bg-white/98 backdrop-blur-sm border-2 border-moroccan-gold/30 shadow-xl"
-        aria-describedby={mode === "create" ? "create-activity-description" : mode === "edit" ? "edit-activity-description" : "delete-activity-description"}
+        aria-describedby={mode === "create" ? "create-activity-description" : mode === "edit" ? "edit-activity-description" : mode === "delete" ? "delete-activity-description" : "activity-dialog-description"}
       >
         {getDialogContent()}
       </DialogContent>

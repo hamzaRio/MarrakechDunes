@@ -11,12 +11,15 @@ type LeafletModuleSet = {
   TileLayer: typeof import('react-leaflet').TileLayer;
 };
 
-let cachedLeaflet: LeafletModuleSet | null = null;
-let leafletInitialized = false;
+// Use a module-level cache object to prevent initialization issues
+const leafletCache = {
+  modules: null as LeafletModuleSet | null,
+  initialized: false
+};
 
 async function loadLeaflet(): Promise<LeafletModuleSet> {
-  if (cachedLeaflet) {
-    return cachedLeaflet;
+  if (leafletCache.modules) {
+    return leafletCache.modules;
   }
 
   const [leafletModules, leafletCore] = await Promise.all([
@@ -33,23 +36,23 @@ async function loadLeaflet(): Promise<LeafletModuleSet> {
   ]);
 
   const L = leafletCore.default;
-  if (!leafletInitialized) {
+  if (!leafletCache.initialized) {
     L.Icon.Default.mergeOptions({
       iconRetinaUrl: markerIcon2x.default,
       iconUrl: markerIcon.default,
       shadowUrl: markerShadow.default,
     });
-    leafletInitialized = true;
+    leafletCache.initialized = true;
   }
 
-  cachedLeaflet = {
+  leafletCache.modules = {
     MapContainer: leafletModules.MapContainer,
     Marker: leafletModules.Marker,
     Popup: leafletModules.Popup,
     TileLayer: leafletModules.TileLayer,
   };
 
-  return cachedLeaflet;
+  return leafletCache.modules;
 }
 
 interface MapViewProps {
