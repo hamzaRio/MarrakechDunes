@@ -41,33 +41,33 @@ export default function CashReceiptGenerator({ booking, onClose }: CashReceiptGe
 
   const generateReceipt = () => {
     const receiptContent = `
-🏜️ MARRAKECH DUNES - CASH RECEIPT 🏜️
-═══════════════════════════════════════
+MARRAKECH DUNES - CASH RECEIPT
+=====================================
 
 Receipt #: ${receiptNumber}
 Date: ${new Date().toLocaleDateString()}
 Time: ${new Date().toLocaleTimeString()}
 Cashier: ${cashierName || 'N/A'}
 
-═══════════════════════════════════════
+=====================================
 CUSTOMER INFORMATION
-═══════════════════════════════════════
+=====================================
 Name: ${booking.customerName}
 Phone: ${booking.customerPhone}
 Email: ${booking.customerEmail || 'N/A'}
 
-═══════════════════════════════════════
+=====================================
 BOOKING DETAILS
-═══════════════════════════════════════
+=====================================
 Activity: ${booking.activity.name}
 Category: ${booking.activity.category}
 Date: ${new Date(booking.preferredDate).toLocaleDateString()}
 Participants: ${booking.numberOfPeople} people
 Duration: ${booking.activity.duration}
 
-═══════════════════════════════════════
+=====================================
 PAYMENT INFORMATION
-═══════════════════════════════════════
+=====================================
 Total Amount: ${totalAmount} MAD
 Paid Amount: ${paidAmount} MAD
 Balance Due: ${balanceDue} MAD
@@ -78,28 +78,28 @@ Change Given: ${change} MAD
 
 Payment Status: ${booking.paymentStatus.toUpperCase()}
 
-═══════════════════════════════════════
+=====================================
 CONTACT INFORMATION
-═══════════════════════════════════════
-📍 Address: 54 Riad Zitoun Lakdim, Marrakech 40000
-📞 Phone: +212 600 623 630
-📧 Email: info@marrakechdunes.com
-🌐 Website: www.marrakechdunes.com
+=====================================
+Address: 54 Riad Zitoun Lakdim, Marrakech 40000
+Phone: +212 600 623 630
+Email: info@marrakechdunes.com
+Website: www.marrakechdunes.com
 
-═══════════════════════════════════════
+=====================================
 IMPORTANT NOTES
-═══════════════════════════════════════
-• Please arrive 15 minutes before scheduled time
-• Bring this receipt for verification
-• Cash payments only - no cards accepted
-• All prices include taxes and fees
-• Cancellation policy: 24 hours notice required
+=====================================
+- Please arrive 15 minutes before scheduled time
+- Bring this receipt for verification
+- Cash payments only - no cards accepted
+- All prices include taxes and fees
+- Cancellation policy: 24 hours notice required
 
 Thank you for choosing MarrakechDunes!
 We look forward to providing you with an
-unforgettable Moroccan adventure! 🐪
+unforgettable Moroccan adventure!
 
-═══════════════════════════════════════
+=====================================
 Generated on: ${new Date().toLocaleString()}
     `.trim();
 
@@ -261,7 +261,7 @@ Generated on: ${new Date().toLocaleString()}
             
             <div className="bg-white border-2 border-gray-200 p-4 rounded-lg">
               <div className="text-center mb-4">
-                <h4 className="font-bold text-lg">🏜️ MARRAKECH DUNES 🏜️</h4>
+                <h4 className="font-bold text-lg">MARRAKECH DUNES</h4>
                 <p className="text-sm text-gray-600">Cash Receipt #{receiptNumber}</p>
                 <p className="text-xs text-gray-500">{new Date().toLocaleString()}</p>
               </div>
