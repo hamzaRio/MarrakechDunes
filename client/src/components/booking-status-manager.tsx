@@ -104,7 +104,10 @@ export default function BookingStatusManager({
           </Badge>
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent 
+        className="sm:max-w-md"
+        aria-describedby="status-change-description"
+      >
         <DialogHeader>
           <DialogTitle>Change Booking Status</DialogTitle>
           <DialogDescription>

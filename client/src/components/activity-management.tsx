@@ -299,7 +299,10 @@ export default function ActivityManagement() {
               Add Activity
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-white text-gray-900">
+          <DialogContent 
+            className="max-w-2xl max-h-[90vh] overflow-y-auto bg-white text-gray-900"
+            aria-describedby="activity-form-description"
+          >
             <DialogHeader>
               <DialogTitle className="text-gray-900">Create New Activity</DialogTitle>
             </DialogHeader>
@@ -640,7 +643,10 @@ export default function ActivityManagement() {
 
       {/* Edit Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent 
+          className="max-w-2xl max-h-[90vh] overflow-y-auto"
+          aria-describedby="edit-activity-description"
+        >
           <DialogHeader>
             <DialogTitle>Edit Activity</DialogTitle>
           </DialogHeader>

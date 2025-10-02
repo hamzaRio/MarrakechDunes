@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -160,6 +160,12 @@ export default function BookingFixed() {
     replace(names);
   }, [numberOfPeople, replace, form]);
 
+  // Memoize expensive calculations
+  const numberOfPeopleValue = form.watch("numberOfPeople");
+  const totalAmount = useMemo(() => {
+    return watchedActivity ? parseInt(watchedActivity.price) * numberOfPeopleValue : 0;
+  }, [watchedActivity, numberOfPeopleValue]);
+
   const createBookingMutation = useMutation({
     mutationFn: async (data: BookingFormData) => {
       const response = await apiRequest("/bookings", {
@@ -202,8 +208,79 @@ export default function BookingFixed() {
     setPendingBookingData(null);
   };
 
+  // Optimized validation function to prevent performance issues
+  const handleContinueToConfirmation = useCallback(() => {
+    const customerName = form.getValues("customerName");
+    const customerPhone = form.getValues("customerPhone");
+    const customerEmail = form.getValues("customerEmail");
+    const participantNames = form.getValues("participantNames");
+    
+    // Quick validation checks
+    if (!customerName || customerName.length < 2) {
+      toast({
+        title: "Name Required",
+        description: "Please enter your full name (minimum 2 characters)",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!/^[a-zA-ZÀ-ÿ\s'-]+$/.test(customerName)) {
+      toast({
+        title: "Invalid Name Format",
+        description: "Name can only contain letters, spaces, apostrophes, and hyphens",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!customerPhone || !customerPhone.match(/^\+\d{8,15}$/)) {
+      toast({
+        title: "Invalid Phone Number",
+        description: "Please select your country and enter a valid phone number",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (customerEmail && customerEmail.trim() !== "" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail)) {
+      toast({
+        title: "Invalid Email",
+        description: "Please enter a valid email address",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    const emptyNames = participantNames.filter(name => !name || name.length < 2);
+    if (emptyNames.length > 0) {
+      toast({
+        title: "Participant Names Required",
+        description: "Please enter the full name for all participants (minimum 2 characters)",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    const invalidNames = participantNames.filter(name => !/^[a-zA-ZÀ-ÿ\s'-]+$/.test(name));
+    if (invalidNames.length > 0) {
+      toast({
+        title: "Invalid Name Format",
+        description: "All names can only contain letters, spaces, apostrophes, and hyphens",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setCurrentStep('confirmation');
+  }, [form, toast]);
+
   const watchedActivityId = form.watch("activityId");
-  const watchedActivity = activityList.find(a => a.id === watchedActivityId || a._id === watchedActivityId);
+  const watchedActivity = useMemo(() => 
+    activityList.find(a => a.id === watchedActivityId || a._id === watchedActivityId),
+    [activityList, watchedActivityId]
+  );
+  
   const bookingSteps = useMemo(() => [
     { key: 'activity' as const, label: t('booking.steps.selectActivity'), icon: MapPin },
     { key: 'date' as const, label: t('booking.steps.selectDate'), icon: Calendar },
@@ -211,9 +288,6 @@ export default function BookingFixed() {
     { key: 'confirmation' as const, label: t('booking.steps.confirmation'), icon: CheckCircle },
   ], [t]);
   const stepOrder = useMemo(() => bookingSteps.map((step) => step.key), [bookingSteps]);
-
-
-  const totalAmount = watchedActivity ? parseInt(watchedActivity.price) * form.watch("numberOfPeople") : 0;
 
   // Handle activity selection
   const handleActivitySelect = (activityId: string) => {
@@ -432,7 +506,7 @@ export default function BookingFixed() {
                                   '--rdp-outline': '2px solid #1e40af',
                                   '--rdp-outline-selected': '2px solid #1e40af',
                                   '--rdp-selected-color': 'white',
-                                }}
+                                } as React.CSSProperties}
                                 className="rdp-custom morocco-calendar"
                               />
                             </div>
@@ -628,77 +702,7 @@ export default function BookingFixed() {
                           <div className="flex justify-end">
                             <Button
                               type="button"
-                              onClick={() => {
-                                // Validate required fields before proceeding
-                                const customerName = form.getValues("customerName");
-                                const customerPhone = form.getValues("customerPhone");
-                                const customerEmail = form.getValues("customerEmail");
-                                const participantNames = form.getValues("participantNames");
-                                
-                                // Validate customer name
-                                if (!customerName || customerName.length < 2) {
-                                  toast({
-                                    title: "Name Required",
-                                    description: "Please enter your full name (minimum 2 characters)",
-                                    variant: "destructive",
-                                  });
-                                  return;
-                                }
-                                
-                                if (!/^[a-zA-ZÀ-ÿ\s'-]+$/.test(customerName)) {
-                                  toast({
-                                    title: "Invalid Name Format",
-                                    description: "Name can only contain letters, spaces, apostrophes, and hyphens",
-                                    variant: "destructive",
-                                  });
-                                  return;
-                                }
-                                
-                                // Validate phone number (international format)
-                                if (!customerPhone || !customerPhone.match(/^\+\d{8,15}$/)) {
-                                  toast({
-                                    title: "Invalid Phone Number",
-                                    description: "Please select your country and enter a valid phone number",
-                                    variant: "destructive",
-                                  });
-                                  return;
-                                }
-                                
-                                // Validate email if provided
-                                if (customerEmail && customerEmail.trim() !== "") {
-                                  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail)) {
-                                    toast({
-                                      title: "Invalid Email",
-                                      description: "Please enter a valid email address",
-                                      variant: "destructive",
-                                    });
-                                    return;
-                                  }
-                                }
-                                
-                                // Check if all participant names are filled and valid
-                                const emptyNames = participantNames.filter(name => !name || name.length < 2);
-                                if (emptyNames.length > 0) {
-                                  toast({
-                                    title: "Participant Names Required",
-                                    description: "Please enter the full name for all participants (minimum 2 characters)",
-                                    variant: "destructive",
-                                  });
-                                  return;
-                                }
-                                
-                                const invalidNames = participantNames.filter(name => !/^[a-zA-ZÀ-ÿ\s'-]+$/.test(name));
-                                if (invalidNames.length > 0) {
-                                  toast({
-                                    title: "Invalid Name Format",
-                                    description: "All names can only contain letters, spaces, apostrophes, and hyphens",
-                                    variant: "destructive",
-                                  });
-                                  return;
-                                }
-                                
-                                setCurrentStep('confirmation');
-                              }}
+                              onClick={handleContinueToConfirmation}
                               className="bg-moroccan-blue hover:bg-blue-700"
                             >
                               Continue to Review
@@ -872,7 +876,7 @@ export default function BookingFixed() {
           numberOfPeople={pendingBookingData.numberOfPeople}
           customerName={pendingBookingData.customerName}
           customerPhone={pendingBookingData.customerPhone}
-          preferredDate={new Date(pendingBookingData.preferredDate)}
+          preferredDate={pendingBookingData.preferredDate}
           onConfirm={handlePaymentConfirm}
           onCancel={handlePaymentCancel}
         />
