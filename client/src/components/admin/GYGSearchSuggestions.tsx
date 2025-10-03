@@ -17,9 +17,15 @@ interface GYGActivity {
 
 interface GYGSearchSuggestionsProps {
   className?: string;
+  activityName?: string;
+  onPriceSelect?: (price: number, activity: GYGActivity) => void;
 }
 
-export default function GYGSearchSuggestions({ className = '' }: GYGSearchSuggestionsProps) {
+export default function GYGSearchSuggestions({ 
+  className = '', 
+  activityName = '', 
+  onPriceSelect 
+}: GYGSearchSuggestionsProps) {
   const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState<GYGActivity[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -27,6 +33,14 @@ export default function GYGSearchSuggestions({ className = '' }: GYGSearchSugges
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
+
+  // Auto-search when activity name changes
+  useEffect(() => {
+    if (activityName && activityName.length >= 3) {
+      setQuery(activityName);
+      searchActivities(activityName);
+    }
+  }, [activityName]);
 
   // Debounced search effect
   useEffect(() => {
@@ -92,6 +106,11 @@ export default function GYGSearchSuggestions({ className = '' }: GYGSearchSugges
   };
 
   const handleSuggestionClick = (activity: GYGActivity) => {
+    // Call the price select callback if provided
+    if (onPriceSelect) {
+      onPriceSelect(activity.suggestedPrice, activity);
+    }
+    
     // Open GetYourGuide link in new tab
     window.open(activity.url, '_blank', 'noopener,noreferrer');
   };
@@ -103,7 +122,7 @@ export default function GYGSearchSuggestions({ className = '' }: GYGSearchSugges
   return (
     <div className={`relative ${className}`}>
       <Label htmlFor="gyg-search" className="text-sm font-medium text-gray-700 mb-2 block">
-        Check GetYourGuide suggestions (for reference)
+        🏆 GetYourGuide Competitor Analysis
       </Label>
       
       <div className="relative">
@@ -182,7 +201,7 @@ export default function GYGSearchSuggestions({ className = '' }: GYGSearchSugges
 
       {/* Help text */}
       <p className="text-xs text-gray-500 mt-2">
-        💡 Search for activities to see GetYourGuide competitor pricing and our suggested competitive pricing
+        💡 Automatically searches GetYourGuide for similar activities when you type an activity name. Click on suggestions to apply competitive pricing.
       </p>
     </div>
   );

@@ -384,7 +384,17 @@ export default function ActivityManagementModal({
                 />
 
                 {/* GetYourGuide Live Search Suggestions */}
-                <GYGSearchSuggestions className="mt-4" />
+                <GYGSearchSuggestions 
+                  className="mt-4" 
+                  activityName={form.watch("name") || ""}
+                  onPriceSelect={(price, activity) => {
+                    form.setValue("price", price.toString());
+                    toast({
+                      title: "Competitor Price Applied",
+                      description: `Set price to ${price} MAD based on GetYourGuide competitor: ${activity.title}`,
+                    });
+                  }}
+                />
 
                 <FormField
                   control={form.control}
