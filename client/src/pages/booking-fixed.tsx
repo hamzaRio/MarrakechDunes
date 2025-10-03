@@ -212,13 +212,15 @@ export default function BookingFixed() {
 
   const handlePaymentConfirm = (paymentType: 'full' | 'deposit') => {
     if (pendingBookingData) {
-      // Add payment type to the booking data
-      const bookingDataWithPayment = {
+      // Always create booking as PENDING with unpaid status
+      // Admin will confirm and set payment status later
+      const bookingData = {
         ...pendingBookingData,
         paymentType,
-        paymentStatus: paymentType === 'full' ? 'fully_paid' : 'deposit_paid'
+        // Always start as unpaid - admin will confirm payment
+        paymentStatus: 'unpaid'
       };
-      createBookingMutation.mutate(bookingDataWithPayment);
+      createBookingMutation.mutate(bookingData);
     }
   };
 
