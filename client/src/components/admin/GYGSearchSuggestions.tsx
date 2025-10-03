@@ -77,17 +77,21 @@ export default function GYGSearchSuggestions({
   const searchActivities = async (searchQuery: string) => {
     if (searchQuery.length < 3) return;
 
+    console.log('🔍 Searching GetYourGuide for:', searchQuery);
     setIsLoading(true);
     setError(null);
 
     try {
       const response = await apiFetch(`/gyg/search?q=${encodeURIComponent(searchQuery)}`);
+      console.log('📊 GetYourGuide response:', response);
       setSuggestions(response);
       setShowSuggestions(true);
     } catch (err: any) {
-      console.error('GetYourGuide search error:', err);
-      setError(err.message || 'Failed to search GetYourGuide');
+      console.error('❌ GetYourGuide search error:', err);
+      const errorMessage = err.response?.data?.error || err.message || 'Failed to search GetYourGuide';
+      setError(errorMessage);
       setSuggestions([]);
+      setShowSuggestions(true); // Show error in dropdown
     } finally {
       setIsLoading(false);
     }

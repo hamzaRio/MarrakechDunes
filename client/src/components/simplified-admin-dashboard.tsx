@@ -48,6 +48,29 @@ export default function SimplifiedAdminDashboard() {
   //   queryKey: ["/activities"],
   // });
 
+  // Confirm booking mutation
+  const confirmBookingMutation = useMutation({
+    mutationFn: async (bookingId: string) => {
+      return apiFetch(`/bookings/${bookingId}/confirm`, {
+        method: "POST"
+      });
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/admin/bookings"] });
+      toast({
+        title: "Booking Confirmed",
+        description: `Booking confirmed successfully. Customer notification sent via ${data.notification.method}.`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Confirmation Failed",
+        description: error?.message || "Failed to confirm booking",
+        variant: "destructive",
+      });
+    }
+  });
+
   // Update booking status mutation
   const updateStatusMutation = useMutation({
     mutationFn: async ({ bookingId, status }: { bookingId: string; status: string }) => {
@@ -355,14 +378,15 @@ export default function SimplifiedAdminDashboard() {
                 
                 <div className="flex items-center gap-2">
                   {/* Quick Actions */}
-                  {booking.status === 'pending' && (
+                  {booking.status === 'PENDING' && (
                     <Button
                       size="sm"
-                      onClick={() => updateStatusMutation.mutate({ bookingId: booking._id, status: 'confirmed' })}
+                      onClick={() => confirmBookingMutation.mutate(booking._id)}
                       className="bg-green-600 hover:bg-green-700"
+                      disabled={confirmBookingMutation.isPending}
                     >
                       <CheckCircle className="h-4 w-4 mr-1" />
-                      Confirm
+                      {confirmBookingMutation.isPending ? 'Confirming...' : 'Confirm Booking'}
                     </Button>
                   )}
                   

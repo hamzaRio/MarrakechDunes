@@ -255,6 +255,7 @@ export const insertActivitySchema = z.object({
 export const insertBookingSchema = z.object({
   customerName: z.string().min(1),
   customerPhone: z.string().min(1),
+  customerEmail: z.string().email().optional(),
   activityId: z.string().min(1),
   numberOfPeople: z.number().min(1),
   preferredDate: z.date(),

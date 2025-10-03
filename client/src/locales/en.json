@@ -226,6 +226,7 @@
   "errors": {
     "customerNameRequired": "Customer name is required",
     "validPhoneRequired": "Valid phone number is required",
+    "emailRequired": "Email address is required for confirmation",
     "activitySelectionRequired": "Activity selection is required",
     "atLeastOnePerson": "At least 1 person required",
     "maximumTwentyPeople": "Maximum 20 people",

@@ -236,9 +236,13 @@ router.get('/search', async (req: Request, res: Response) => {
       });
     }
 
+    console.log('🔍 GetYourGuide search request:', { query: q.trim() });
+    
     // For now, use mock data since we don't have a real GetYourGuide API key
     // In production, replace this with actual API call
     const mockActivities = getMockGetYourGuideActivities(q.trim());
+    
+    console.log('📊 Mock activities found:', mockActivities.length);
     
     // Transform the mock data to our format with suggested pricing
     const activities: GetYourGuideActivity[] = mockActivities.map((activity) => {
@@ -258,6 +262,7 @@ router.get('/search', async (req: Request, res: Response) => {
       };
     });
 
+    console.log('✅ Returning GetYourGuide suggestions:', activities.length, 'activities');
     res.json(activities);
 
   } catch (error: any) {

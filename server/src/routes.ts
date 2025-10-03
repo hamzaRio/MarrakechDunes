@@ -320,18 +320,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/bookings", asyncHandler(async (req: Request, res: Response) => {
     try {
       const data = req.body;
+      console.log('📝 New booking request received:', {
+        customerName: data.customerName,
+        customerPhone: data.customerPhone,
+        customerEmail: data.customerEmail,
+        activityId: data.activityId,
+        numberOfPeople: data.numberOfPeople,
+        preferredDate: data.preferredDate
+      });
       
       // Calculate total amount
       const activity = await storage.getActivity(data.activityId);
       if (!activity) {
+        console.error('❌ Activity not found:', data.activityId);
         throw new NotFoundError('Activity not found');
       }
       
       const totalAmount = (parseInt(activity.price) * data.numberOfPeople).toString();
+      console.log('💰 Booking total calculated:', { activityPrice: activity.price, numberOfPeople: data.numberOfPeople, totalAmount });
       
       const booking = await storage.createBooking({
         customerName: data.customerName,
         customerPhone: data.customerPhone,
+        customerEmail: data.customerEmail,
         activityId: data.activityId,
         numberOfPeople: data.numberOfPeople,
         preferredDate: new Date(data.preferredDate),
@@ -343,6 +354,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         paymentMethod: 'cash',
         paidAmount: 0,
         rescheduleCount: 0,
+      });
+      
+      console.log('✅ Booking created successfully:', {
+        bookingId: booking._id,
+        customerName: booking.customerName,
+        status: booking.status,
+        paymentStatus: booking.paymentStatus
       });
 
       // Tour business logging for analytics
@@ -371,7 +389,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
         bookingId: booking._id?.toString() || 'N/A'
       };
       
+      console.log('📤 Sending admin notifications for new booking:', booking._id);
       const whatsappResult = await whatsappService.sendBookingNotification(notificationData);
+      
+      // Log admin notifications
+      if (whatsappResult.success) {
+        console.log('✅ Admin WhatsApp notifications sent successfully');
+        console.log('📱 Admin notification links:', whatsappResult.whatsappLinks);
+      } else {
+        console.log('⚠️ Admin WhatsApp notifications failed, trying email fallback');
+        
+        // Try email fallback for admin notifications
+        try {
+          const emailService = new (await import('./services/email-service.js')).EmailService();
+          const adminEmailSubject = `New Booking Alert - ${activity.name}`;
+          const adminEmailHtml = `
+            <h2>🚨 New Booking Alert</h2>
+            <p>A new booking has been created:</p>
+            <ul>
+              <li><strong>Customer:</strong> ${booking.customerName}</li>
+              <li><strong>Phone:</strong> ${booking.customerPhone}</li>
+              <li><strong>Activity:</strong> ${activity.name}</li>
+              <li><strong>Date:</strong> ${new Date(booking.preferredDate).toLocaleDateString()}</li>
+              <li><strong>Participants:</strong> ${booking.numberOfPeople}</li>
+              <li><strong>Total Amount:</strong> ${booking.totalAmount} MAD</li>
+              <li><strong>Status:</strong> ${booking.status}</li>
+            </ul>
+            <p>Please log into the admin dashboard to confirm this booking.</p>
+          `;
+          
+          // Send to all admin emails (you'll need to configure admin emails)
+          const adminEmails = process.env.ADMIN_EMAILS?.split(',') || [];
+          for (const adminEmail of adminEmails) {
+            if (adminEmail.trim()) {
+              await emailService.sendEmail(adminEmail.trim(), adminEmailSubject, adminEmailHtml);
+              console.log('📧 Admin email notification sent to:', adminEmail.trim());
+            }
+          }
+        } catch (emailError) {
+          console.error('❌ Admin email notification failed:', emailError);
+        }
+      }
       
       // Log customer notification for debugging
       if (whatsappResult.customerMessage && whatsappResult.customerWhatsappLink) {
@@ -1975,6 +2033,138 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }));
 
   // ===== BOOKING STATUS WORKFLOW ENDPOINTS =====
+  
+  // Confirm booking endpoint
+  app.post("/api/bookings/:id/confirm", adminSecurityMiddleware, asyncHandler(async (req: Request, res: Response) => {
+    const authReq = req as AuthenticatedRequest;
+    const { id } = req.params;
+    
+    console.log('🔔 Admin confirming booking:', id);
+    
+    const booking = await storage.getBooking(id);
+    if (!booking) {
+      throw new NotFoundError("Booking not found");
+    }
+    
+    if (booking.status !== 'PENDING') {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Only pending bookings can be confirmed',
+        code: 'INVALID_BOOKING_STATUS'
+      });
+    }
+    
+    // Update booking to confirmed and paid
+    const updatedBooking = await storage.updateBooking(id, { 
+      status: 'CONFIRMED',
+      paymentStatus: 'fully_paid',
+      statusHistory: [
+        ...(booking.statusHistory || []),
+        {
+          status: booking.status as any,
+          changedBy: authReq.session.user!.id,
+          changedAt: new Date(),
+          reason: 'Admin confirmed booking'
+        }
+      ]
+    });
+    
+    // Get activity details for notification
+    const activity = await storage.getActivity(booking.activityId);
+    if (!activity) {
+      throw new NotFoundError("Activity not found");
+    }
+    
+    // Send confirmation notification to customer
+    const customerNotificationData = {
+      customerName: booking.customerName,
+      customerPhone: booking.customerPhone,
+      activityName: activity.name,
+      numberOfPeople: booking.numberOfPeople,
+      preferredDate: new Date(booking.preferredDate),
+      totalAmount: parseInt(booking.totalAmount),
+      paymentMethod: booking.paymentMethod || 'cash',
+      paymentStatus: 'fully_paid',
+      status: 'CONFIRMED',
+      notes: booking.notes,
+      bookingId: booking._id?.toString() || 'N/A'
+    };
+    
+    // Try WhatsApp first, then email fallback
+    let notificationResult = { success: false, method: 'none' };
+    
+    try {
+      // Try WhatsApp notification
+      const whatsappResult = await whatsappService.sendBookingNotification(customerNotificationData);
+      if (whatsappResult.success) {
+        notificationResult = { success: true, method: 'whatsapp' };
+        console.log('📱 Customer WhatsApp confirmation sent');
+      }
+    } catch (whatsappError) {
+      console.log('⚠️ WhatsApp failed, trying email fallback');
+    }
+    
+    // If WhatsApp failed and customer has email, send email
+    if (!notificationResult.success && booking.customerEmail) {
+      try {
+        const emailService = new (await import('./services/email-service.js')).EmailService();
+        const emailSubject = `Booking Confirmed - ${activity.name}`;
+        const emailHtml = `
+          <h2>🎉 Your Booking is Confirmed!</h2>
+          <p>Dear ${booking.customerName},</p>
+          <p>Great news! Your booking has been confirmed:</p>
+          <ul>
+            <li><strong>Activity:</strong> ${activity.name}</li>
+            <li><strong>Date:</strong> ${new Date(booking.preferredDate).toLocaleDateString()}</li>
+            <li><strong>Participants:</strong> ${booking.numberOfPeople}</li>
+            <li><strong>Total Amount:</strong> ${booking.totalAmount} MAD</li>
+            <li><strong>Status:</strong> Confirmed ✅</li>
+          </ul>
+          <p>We will contact you soon with pickup details.</p>
+          <p>Best regards,<br>MarrakechDunes Team</p>
+        `;
+        
+        const emailSent = await emailService.sendEmail(
+          booking.customerEmail,
+          emailSubject,
+          emailHtml
+        );
+        
+        if (emailSent) {
+          notificationResult = { success: true, method: 'email' };
+          console.log('📧 Customer email confirmation sent to:', booking.customerEmail);
+        }
+      } catch (emailError) {
+        console.error('❌ Email confirmation failed:', emailError);
+      }
+    }
+    
+    // Create audit log
+    await storage.createAuditLog({
+      userId: authReq.session.user!.id,
+      action: `Confirmed booking ${id}`,
+      details: JSON.stringify({ 
+        bookingId: id, 
+        from: booking.status, 
+        to: 'CONFIRMED',
+        notificationMethod: notificationResult.method
+      })
+    });
+    
+    console.log('✅ Booking confirmed:', {
+      bookingId: id,
+      customerName: booking.customerName,
+      notificationSent: notificationResult.success,
+      notificationMethod: notificationResult.method
+    });
+    
+    res.json({
+      status: 'success',
+      message: 'Booking confirmed successfully',
+      booking: updatedBooking,
+      notification: notificationResult
+    });
+  }));
   
   // Update booking status with validation
   app.patch("/api/bookings/:id/status", adminSecurityMiddleware, asyncHandler(async (req: Request, res: Response) => {

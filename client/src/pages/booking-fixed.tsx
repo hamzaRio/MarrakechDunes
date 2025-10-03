@@ -38,9 +38,8 @@ const createBookingFormSchema = (t: (key: string, options?: Record<string, unkno
       .regex(/^\+\d{8,15}$/, t('errors.phoneInvalid')),
     customerEmail: z
       .string()
-      .email(t('errors.emailInvalid'))
-      .optional()
-      .or(z.literal('')),
+      .min(1, t('errors.emailRequired'))
+      .email(t('errors.emailInvalid')),
     activityId: z
       .string()
       .min(1, t('errors.activitySelectionRequired')),
@@ -631,7 +630,7 @@ export default function BookingFixed() {
                               name="customerEmail"
                               render={({ field }) => (
                                 <FormItem>
-                                  <FormLabel>Email Address (Optional)</FormLabel>
+                                  <FormLabel>Email Address (Required for confirmation)</FormLabel>
                                   <FormControl>
                                     <Input 
                                       type="email"
