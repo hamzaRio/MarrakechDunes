@@ -183,8 +183,8 @@ export default function BookingFixed() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/bookings"] });
       toast({
-        title: "Booking Confirmed!",
-        description: "Your booking has been submitted successfully. You'll receive a WhatsApp confirmation shortly.",
+        title: "Booking Submitted!",
+        description: "Your reservation is pending confirmation. We'll notify you once it's confirmed.",
       });
       setShowPaymentConfirmation(false);
       setPendingBookingData(null);

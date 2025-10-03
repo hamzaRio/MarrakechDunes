@@ -373,9 +373,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         timestamp: new Date().toISOString()
       });
 
-      // Send WhatsApp notifications to all admins
+      // Send WhatsApp notifications to all admins with action links
       const participantNames = booking.participantNames?.join(', ') || booking.customerName;
-      const notificationData = {
+      const bookingId = booking._id?.toString() || 'N/A';
+      const baseUrl = process.env.CLIENT_URL || 'https://marrakech-dunes.vercel.app';
+      
+      const adminNotificationData = {
         customerName: booking.customerName,
         customerPhone: booking.customerPhone,
         activityName: activity.name,
@@ -386,11 +389,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         paymentStatus: booking.paymentStatus || 'unpaid',
         status: booking.status,
         notes: booking.notes ? `Participants: ${participantNames}\n${booking.notes}` : `Participants: ${participantNames}`,
-        bookingId: booking._id?.toString() || 'N/A'
+        bookingId: bookingId,
+        // Add admin action links
+        confirmLink: `${baseUrl}/api/bookings/${bookingId}/confirm`,
+        rejectLink: `${baseUrl}/api/bookings/${bookingId}/reject`
       };
       
       console.log('📤 Sending admin notifications for new booking:', booking._id);
-      const whatsappResult = await whatsappService.sendBookingNotification(notificationData);
+      const whatsappResult = await whatsappService.sendBookingNotification(adminNotificationData);
       
       // Log admin notifications
       if (whatsappResult.success) {
@@ -431,60 +437,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      // Log customer notification for debugging
-      if (whatsappResult.customerMessage && whatsappResult.customerWhatsappLink) {
-        console.log('📱 Customer WhatsApp notification prepared:');
-        console.log(`To: ${booking.customerPhone}`);
-        console.log(`Message: ${whatsappResult.customerMessage}`);
-        console.log(`WhatsApp Link: ${whatsappResult.customerWhatsappLink}`);
-      }
-
-      // Send email fallback if customer has email
-      let emailResult = null;
-      if (data.customerEmail) {
-        try {
-          const emailService = new (await import('./services/email-service.js')).EmailService();
-          const emailSubject = `Booking Confirmation - ${activity.name}`;
-          const emailHtml = `
-            <h2>Booking Confirmation</h2>
-            <p>Dear ${booking.customerName},</p>
-            <p>Your booking has been confirmed:</p>
-            <ul>
-              <li><strong>Activity:</strong> ${activity.name}</li>
-              <li><strong>Date:</strong> ${new Date(booking.preferredDate).toLocaleDateString()}</li>
-              <li><strong>Participants:</strong> ${booking.numberOfPeople}</li>
-              <li><strong>Total Amount:</strong> ${booking.totalAmount} MAD</li>
-              <li><strong>Status:</strong> ${booking.status}</li>
-            </ul>
-            <p>We will contact you soon to confirm the details.</p>
-            <p>Best regards,<br>MarrakechDunes Team</p>
-          `;
-          
-          emailResult = await emailService.sendEmail(
-            data.customerEmail,
-            emailSubject,
-            emailHtml
-          );
-          
-          if (emailResult) {
-            console.log('📧 Email confirmation sent to:', data.customerEmail);
-          }
-        } catch (emailError) {
-          console.error('❌ Email sending failed:', emailError);
-        }
-      }
-
+      // Return booking without customer notification (admin must confirm first)
       res.status(201).json({
         ...booking,
-        whatsappNotification: {
-          customerMessage: whatsappResult.customerMessage,
-          customerWhatsappLink: whatsappResult.customerWhatsappLink,
-          adminNotificationSent: whatsappResult.success
+        adminNotification: {
+          sent: whatsappResult.success,
+          method: whatsappResult.success ? 'whatsapp' : 'email_fallback'
         },
-        emailNotification: {
-          sent: emailResult || false,
-          email: data.customerEmail || null
-        }
+        message: 'Booking created successfully. Admin will review and confirm your reservation.'
       });
     } catch (error) {
       if (error instanceof AppError) {
@@ -2033,6 +1993,174 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }));
 
   // ===== BOOKING STATUS WORKFLOW ENDPOINTS =====
+  
+  // Pending booking endpoint (for admin notifications)
+  app.post("/api/bookings/:id/pending", adminSecurityMiddleware, asyncHandler(async (req: Request, res: Response) => {
+    const { id } = req.params;
+    
+    console.log('📋 Admin marking booking as pending:', id);
+    
+    const booking = await storage.getBooking(id);
+    if (!booking) {
+      throw new NotFoundError("Booking not found");
+    }
+    
+    // Update booking to pending status
+    const updatedBooking = await storage.updateBooking(id, { 
+      status: 'PENDING',
+      statusHistory: [
+        ...(booking.statusHistory || []),
+        {
+          status: 'PENDING' as any,
+          changedBy: 'system',
+          changedAt: new Date(),
+          reason: 'Booking marked as pending for admin review'
+        }
+      ]
+    });
+    
+    console.log('✅ Booking marked as pending:', id);
+    
+    res.json({
+      status: 'success',
+      message: 'Booking marked as pending',
+      booking: updatedBooking
+    });
+  }));
+  
+  // Reject booking endpoint
+  app.post("/api/bookings/:id/reject", adminSecurityMiddleware, asyncHandler(async (req: Request, res: Response) => {
+    const authReq = req as AuthenticatedRequest;
+    const { id } = req.params;
+    const { reason } = req.body;
+    
+    console.log('❌ Admin rejecting booking:', id);
+    
+    const booking = await storage.getBooking(id);
+    if (!booking) {
+      throw new NotFoundError("Booking not found");
+    }
+    
+    if (booking.status !== 'PENDING') {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Only pending bookings can be rejected',
+        code: 'INVALID_BOOKING_STATUS'
+      });
+    }
+    
+    // Update booking to rejected
+    const updatedBooking = await storage.updateBooking(id, { 
+      status: 'REJECTED',
+      statusHistory: [
+        ...(booking.statusHistory || []),
+        {
+          status: booking.status as any,
+          changedBy: authReq.session.user!.id,
+          changedAt: new Date(),
+          reason: reason || 'Booking rejected by admin'
+        }
+      ]
+    });
+    
+    // Get activity details for notification
+    const activity = await storage.getActivity(booking.activityId);
+    if (!activity) {
+      throw new NotFoundError("Activity not found");
+    }
+    
+    // Send rejection notification to customer
+    const customerNotificationData = {
+      customerName: booking.customerName,
+      customerPhone: booking.customerPhone,
+      activityName: activity.name,
+      numberOfPeople: booking.numberOfPeople,
+      preferredDate: new Date(booking.preferredDate),
+      totalAmount: parseInt(booking.totalAmount),
+      paymentMethod: booking.paymentMethod || 'cash',
+      paymentStatus: 'unpaid',
+      status: 'REJECTED',
+      notes: booking.notes,
+      bookingId: booking._id?.toString() || 'N/A'
+    };
+    
+    // Try WhatsApp first, then email fallback
+    let notificationResult = { success: false, method: 'none' };
+    
+    try {
+      // Try WhatsApp notification
+      const whatsappResult = await whatsappService.sendBookingNotification(customerNotificationData);
+      if (whatsappResult.success) {
+        notificationResult = { success: true, method: 'whatsapp' };
+        console.log('📱 Customer WhatsApp rejection notification sent');
+      }
+    } catch (whatsappError) {
+      console.log('⚠️ WhatsApp failed, trying email fallback');
+    }
+    
+    // If WhatsApp failed and customer has email, send email
+    if (!notificationResult.success && booking.customerEmail) {
+      try {
+        const emailService = new (await import('./services/email-service.js')).EmailService();
+        const emailSubject = `Booking Update - ${activity.name}`;
+        const emailHtml = `
+          <h2>Booking Status Update</h2>
+          <p>Dear ${booking.customerName},</p>
+          <p>We regret to inform you that your booking has been rejected:</p>
+          <ul>
+            <li><strong>Activity:</strong> ${activity.name}</li>
+            <li><strong>Date:</strong> ${new Date(booking.preferredDate).toLocaleDateString()}</li>
+            <li><strong>Participants:</strong> ${booking.numberOfPeople}</li>
+            <li><strong>Total Amount:</strong> ${booking.totalAmount} MAD</li>
+            <li><strong>Status:</strong> Rejected</li>
+            <li><strong>Reason:</strong> ${reason || 'No specific reason provided'}</li>
+          </ul>
+          <p>Please contact us if you have any questions.</p>
+          <p>Best regards,<br>MarrakechDunes Team</p>
+        `;
+        
+        const emailSent = await emailService.sendEmail(
+          booking.customerEmail,
+          emailSubject,
+          emailHtml
+        );
+        
+        if (emailSent) {
+          notificationResult = { success: true, method: 'email' };
+          console.log('📧 Customer email rejection notification sent to:', booking.customerEmail);
+        }
+      } catch (emailError) {
+        console.error('❌ Email rejection notification failed:', emailError);
+      }
+    }
+    
+    // Create audit log
+    await storage.createAuditLog({
+      userId: authReq.session.user!.id,
+      action: `Rejected booking ${id}`,
+      details: JSON.stringify({ 
+        bookingId: id, 
+        from: booking.status, 
+        to: 'REJECTED',
+        reason: reason,
+        notificationMethod: notificationResult.method
+      })
+    });
+    
+    console.log('✅ Booking rejected:', {
+      bookingId: id,
+      customerName: booking.customerName,
+      notificationSent: notificationResult.success,
+      notificationMethod: notificationResult.method
+    });
+    
+    res.json({
+      status: 'success',
+      message: 'Booking rejected successfully',
+      booking: updatedBooking,
+      notification: notificationResult
+    });
+  }));
   
   // Confirm booking endpoint
   app.post("/api/bookings/:id/confirm", adminSecurityMiddleware, asyncHandler(async (req: Request, res: Response) => {

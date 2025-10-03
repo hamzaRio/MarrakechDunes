@@ -260,7 +260,7 @@ export const insertBookingSchema = z.object({
   numberOfPeople: z.number().min(1),
   preferredDate: z.date(),
   participantNames: z.array(z.string()).optional(),
-  status: z.enum(['PENDING', 'CONFIRMED', 'PAID', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'NO_SHOW']).default('PENDING'),
+  status: z.enum(['PENDING', 'CONFIRMED', 'PAID', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'NO_SHOW', 'REJECTED']).default('PENDING'),
   totalAmount: z.string().min(1),
   notes: z.string().optional(),
   paymentStatus: z.enum(['unpaid', 'deposit_paid', 'fully_paid']).default('unpaid'),
@@ -289,7 +289,7 @@ export const insertBookingSchema = z.object({
   refundStatus: z.enum(['none', 'partial', 'full']).optional(),
   // Audit trail
   statusHistory: z.array(z.object({
-    status: z.enum(['PENDING', 'CONFIRMED', 'PAID', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'NO_SHOW']),
+    status: z.enum(['PENDING', 'CONFIRMED', 'PAID', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'NO_SHOW', 'REJECTED']),
     changedBy: z.string(),
     changedAt: z.date(),
     reason: z.string().optional()

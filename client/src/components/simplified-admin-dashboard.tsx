@@ -71,6 +71,30 @@ export default function SimplifiedAdminDashboard() {
     }
   });
 
+  // Reject booking mutation
+  const rejectBookingMutation = useMutation({
+    mutationFn: async ({ bookingId, reason }: { bookingId: string; reason?: string }) => {
+      return apiFetch(`/bookings/${bookingId}/reject`, {
+        method: "POST",
+        data: { reason }
+      });
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/admin/bookings"] });
+      toast({
+        title: "Booking Rejected",
+        description: `Booking rejected successfully. Customer notification sent via ${data.notification.method}.`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Rejection Failed",
+        description: error?.message || "Failed to reject booking",
+        variant: "destructive",
+      });
+    }
+  });
+
   // Update booking status mutation
   const updateStatusMutation = useMutation({
     mutationFn: async ({ bookingId, status }: { bookingId: string; status: string }) => {
@@ -379,15 +403,26 @@ export default function SimplifiedAdminDashboard() {
                 <div className="flex items-center gap-2">
                   {/* Quick Actions */}
                   {booking.status === 'PENDING' && (
-                    <Button
-                      size="sm"
-                      onClick={() => confirmBookingMutation.mutate(booking._id)}
-                      className="bg-green-600 hover:bg-green-700"
-                      disabled={confirmBookingMutation.isPending}
-                    >
-                      <CheckCircle className="h-4 w-4 mr-1" />
-                      {confirmBookingMutation.isPending ? 'Confirming...' : 'Confirm Booking'}
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        onClick={() => confirmBookingMutation.mutate(booking._id)}
+                        className="bg-green-600 hover:bg-green-700"
+                        disabled={confirmBookingMutation.isPending}
+                      >
+                        <CheckCircle className="h-4 w-4 mr-1" />
+                        {confirmBookingMutation.isPending ? 'Confirming...' : 'Confirm'}
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={() => rejectBookingMutation.mutate({ bookingId: booking._id, reason: 'Rejected by admin' })}
+                        className="bg-red-600 hover:bg-red-700"
+                        disabled={rejectBookingMutation.isPending}
+                      >
+                        <X className="h-4 w-4 mr-1" />
+                        {rejectBookingMutation.isPending ? 'Rejecting...' : 'Reject'}
+                      </Button>
+                    </div>
                   )}
                   
                   {booking.status === 'confirmed' && (

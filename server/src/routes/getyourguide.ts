@@ -132,7 +132,7 @@ function getMockGetYourGuideActivities(query: string): Array<{
     }
   ];
 
-  // Create a more intelligent matching function
+  // Create a more intelligent matching function with fuzzy search
   const findMatch = (searchTerm: string, activityTitle: string): boolean => {
     const normalizedSearch = searchTerm.toLowerCase().trim();
     const normalizedActivity = activityTitle.toLowerCase().trim();
@@ -145,6 +145,16 @@ function getMockGetYourGuideActivities(query: string): Array<{
     // Direct substring match
     if (normalizedActivity.includes(normalizedSearch) || normalizedSearch.includes(normalizedActivity)) {
       return true;
+    }
+    
+    // Handle generic terms like "tour", "trip", "experience"
+    const genericTerms = ['tour', 'trip', 'experience', 'adventure', 'excursion', 'journey', 'expedition', 'safari', 'cruise', 'flight', 'ride', 'walk', 'hike', 'trek', 'visit', 'explore', 'discover'];
+    const isGenericTerm = genericTerms.includes(normalizedSearch);
+    
+    if (isGenericTerm) {
+      // For generic terms, match any activity that contains location keywords
+      const locationKeywords = ['marrakech', 'agadir', 'essaouira', 'taghazout', 'tanger', 'tangier', 'atlas', 'desert', 'mountain', 'valley', 'waterfall', 'palace', 'garden'];
+      return locationKeywords.some(keyword => normalizedActivity.includes(keyword));
     }
     
     // Handle common variations and synonyms

@@ -245,8 +245,8 @@ export default function CashPaymentConfirmation({
                 <div className="flex items-center gap-2">
                   <CheckCircle className="w-4 h-4" />
                   {selectedPaymentOption === 'full' 
-                    ? `Confirm Full Payment (${totalAmount} MAD)` 
-                    : `Confirm Deposit (${depositAmount} MAD)`
+                    ? `Submit Booking (${totalAmount} MAD) - Pending Confirmation` 
+                    : `Submit Booking (${depositAmount} MAD) - Pending Confirmation`
                   }
                 </div>
               )}
@@ -254,8 +254,8 @@ export default function CashPaymentConfirmation({
           </div>
 
           <p className="text-xs text-gray-500 text-center">
-            By confirming this booking, you agree to pay in cash at the designated meeting point. 
-            No online payment is required.
+            Your booking will be submitted for admin review. You'll receive confirmation via WhatsApp/email once approved. 
+            Payment will be collected in cash at the meeting point.
           </p>
         </CardContent>
       </Card>

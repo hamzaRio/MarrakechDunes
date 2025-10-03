@@ -21,6 +21,8 @@ export interface BookingNotificationData {
   status: string;
   notes?: string;
   bookingId: string;
+  confirmLink?: string;
+  rejectLink?: string;
 }
 
 export class WhatsAppService {
@@ -233,7 +235,10 @@ ${booking.notes ? `📝 Notes spéciales: ${booking.notes}` : ''}
 4. Préparez l'expérience
 5. ⚠️ RAPPEL: ESPÈCES UNIQUEMENT - Informez le client
 
-📞 Contactez ${booking.customerName} au ${booking.customerPhone}`;
+📞 Contactez ${booking.customerName} au ${booking.customerPhone}
+
+✅ CONFIRMER: ${booking.confirmLink || 'https://marrakech-dunes.vercel.app/admin'}
+❌ REJETER: ${booking.rejectLink || 'https://marrakech-dunes.vercel.app/admin'}`;
   }
 
   private formatCustomerConfirmation(booking: BookingNotificationData): string {
