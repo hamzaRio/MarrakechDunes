@@ -381,12 +381,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log(`WhatsApp Link: ${whatsappResult.customerWhatsappLink}`);
       }
 
+      // Send email fallback if customer has email
+      let emailResult = null;
+      if (data.customerEmail) {
+        try {
+          const emailService = new (await import('./services/email-service.js')).EmailService();
+          const emailSubject = `Booking Confirmation - ${activity.name}`;
+          const emailHtml = `
+            <h2>Booking Confirmation</h2>
+            <p>Dear ${booking.customerName},</p>
+            <p>Your booking has been confirmed:</p>
+            <ul>
+              <li><strong>Activity:</strong> ${activity.name}</li>
+              <li><strong>Date:</strong> ${new Date(booking.preferredDate).toLocaleDateString()}</li>
+              <li><strong>Participants:</strong> ${booking.numberOfPeople}</li>
+              <li><strong>Total Amount:</strong> ${booking.totalAmount} MAD</li>
+              <li><strong>Status:</strong> ${booking.status}</li>
+            </ul>
+            <p>We will contact you soon to confirm the details.</p>
+            <p>Best regards,<br>MarrakechDunes Team</p>
+          `;
+          
+          emailResult = await emailService.sendEmail(
+            data.customerEmail,
+            emailSubject,
+            emailHtml
+          );
+          
+          if (emailResult) {
+            console.log('📧 Email confirmation sent to:', data.customerEmail);
+          }
+        } catch (emailError) {
+          console.error('❌ Email sending failed:', emailError);
+        }
+      }
+
       res.status(201).json({
         ...booking,
         whatsappNotification: {
           customerMessage: whatsappResult.customerMessage,
           customerWhatsappLink: whatsappResult.customerWhatsappLink,
           adminNotificationSent: whatsappResult.success
+        },
+        emailNotification: {
+          sent: emailResult || false,
+          email: data.customerEmail || null
         }
       });
     } catch (error) {

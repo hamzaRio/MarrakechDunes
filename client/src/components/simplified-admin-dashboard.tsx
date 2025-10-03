@@ -51,8 +51,8 @@ export default function SimplifiedAdminDashboard() {
   // Update booking status mutation
   const updateStatusMutation = useMutation({
     mutationFn: async ({ bookingId, status }: { bookingId: string; status: string }) => {
-      return apiFetch(`/admin/bookings/${bookingId}`, {
-        method: "PUT",
+      return apiFetch(`/bookings/${bookingId}/status`, {
+        method: "PATCH",
         data: { status }
       });
     },
