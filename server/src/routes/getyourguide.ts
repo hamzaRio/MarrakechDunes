@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import axios from 'axios';
+import { testConnection, pushAvailability, pushDeals, listDeals, deleteDeal, GYGAvailability, GYGDeal } from '../utils/gyg.js';
 
 const router = Router();
 
@@ -173,5 +174,166 @@ interface GetYourGuideActivity {
       });
     }
   });
+
+/**
+ * Test GetYourGuide API connection
+ * GET /api/gyg/test
+ */
+router.get('/test', async (req: Request, res: Response) => {
+  try {
+    console.log('[GYG] Testing GetYourGuide API connection...');
+    
+    const result = await testConnection();
+    
+    if (result.status === 'success') {
+      res.json({
+        status: 'ok',
+        response: result.data,
+        message: 'GetYourGuide API connection successful'
+      });
+    } else {
+      res.status(500).json({
+        status: 'error',
+        error: result.error,
+        message: 'GetYourGuide API connection failed'
+      });
+    }
+  } catch (error: any) {
+    console.error('[GYG] Test route error:', error.message);
+    res.status(500).json({
+      status: 'error',
+      error: error.message,
+      message: 'GetYourGuide API test failed'
+    });
+  }
+});
+
+/**
+ * Push availability updates
+ * POST /api/gyg/availability
+ */
+router.post('/availability', async (req: Request, res: Response) => {
+  try {
+    const { productId, dates } = req.body;
+    
+    if (!productId || !dates || !Array.isArray(dates)) {
+      return res.status(400).json({
+        status: 'error',
+        error: 'productId and dates array are required'
+      });
+    }
+    
+    console.log('[GYG] Pushing availability for product:', productId);
+    const result = await pushAvailability(productId, dates);
+    
+    if (result.status === 'success') {
+      res.json(result);
+    } else {
+      res.status(500).json(result);
+    }
+  } catch (error: any) {
+    console.error('[GYG] Availability push error:', error.message);
+    res.status(500).json({
+      status: 'error',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * Create deal
+ * POST /api/gyg/deals
+ */
+router.post('/deals', async (req: Request, res: Response) => {
+  try {
+    const { productId, deal } = req.body;
+    
+    if (!productId || !deal) {
+      return res.status(400).json({
+        status: 'error',
+        error: 'productId and deal are required'
+      });
+    }
+    
+    console.log('[GYG] Creating deal for product:', productId);
+    const result = await pushDeals(productId, deal);
+    
+    if (result.status === 'success') {
+      res.json(result);
+    } else {
+      res.status(500).json(result);
+    }
+  } catch (error: any) {
+    console.error('[GYG] Deal creation error:', error.message);
+    res.status(500).json({
+      status: 'error',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * List deals
+ * GET /api/gyg/deals?productId=<id>
+ */
+router.get('/deals', async (req: Request, res: Response) => {
+  try {
+    const { productId } = req.query;
+    
+    if (!productId || typeof productId !== 'string') {
+      return res.status(400).json({
+        status: 'error',
+        error: 'productId query parameter is required'
+      });
+    }
+    
+    console.log('[GYG] Listing deals for product:', productId);
+    const result = await listDeals(productId);
+    
+    if (result.status === 'success') {
+      res.json(result);
+    } else {
+      res.status(500).json(result);
+    }
+  } catch (error: any) {
+    console.error('[GYG] Deals list error:', error.message);
+    res.status(500).json({
+      status: 'error',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * Delete deal
+ * DELETE /api/gyg/deals/:dealId
+ */
+router.delete('/deals/:dealId', async (req: Request, res: Response) => {
+  try {
+    const { dealId } = req.params;
+    
+    if (!dealId) {
+      return res.status(400).json({
+        status: 'error',
+        error: 'dealId parameter is required'
+      });
+    }
+    
+    console.log('[GYG] Deleting deal:', dealId);
+    const result = await deleteDeal(dealId);
+    
+    if (result.status === 'success') {
+      res.json(result);
+    } else {
+      res.status(500).json(result);
+    }
+  } catch (error: any) {
+    console.error('[GYG] Deal deletion error:', error.message);
+    res.status(500).json({
+      status: 'error',
+      error: error.message
+    });
+  }
+});
 
 export default router;

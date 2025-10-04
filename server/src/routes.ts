@@ -5,6 +5,7 @@ import MongoStore from "connect-mongo";
 import bcrypt from "bcrypt";
 import { storage } from "./storage.js";
 import gygRoutes from "./routes/getyourguide.js";
+import debugRoutes from "./routes/debug.js";
 import { 
   insertBookingSchema, 
   insertReviewSchema,
@@ -132,6 +133,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // GetYourGuide API routes (public for admin reference)
   app.use('/api/gyg', gygRoutes);
+  
+  // Debug routes (for testing and development)
+  app.use('/api/debug', debugRoutes);
 
   // Admin API routes with stricter rate limiting, audit logging, and admin authentication
   app.use('/api/admin', adminApiRateLimit, adminAuditLog, requireAdmin);
