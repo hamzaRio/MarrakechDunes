@@ -35,8 +35,8 @@ import { apiRequest } from "@/lib/queryClient";
 import { getAssetUrl } from "@/lib/utils";
 import { Plus, Settings, Trash2, Power, PowerOff, Upload, Search, ExternalLink } from "lucide-react";
 import { ObjectUploader } from "@/components/ObjectUploader";
-import GetYourGuidePriceFetcher from "@/components/getyourguide-price-fetcher";
-import GYGSearchSuggestions from "@/components/admin/GYGSearchSuggestions";
+// import GetYourGuidePriceFetcher from "@/components/getyourguide-price-fetcher"; // Replaced with live API
+import GYGLiveSearch from "@/components/admin/GYGLiveSearch";
 import type { ActivityType } from "marrakechdunes-shared/schema";
 import type { UploadResult } from "@uppy/core";
 
@@ -370,39 +370,27 @@ export default function ActivityManagementModal({
                   )}
                 />
 
-                {/* GetYourGuide Competitor Analysis */}
-                <GetYourGuidePriceFetcher
-                  activityName={form.watch("name") || ""}
-                  onPriceSelect={(price, suggestions) => {
-                    form.setValue("getyourguidePrice", price.toString());
-                    toast({
-                      title: "Competitor Price Found",
-                      description: `GetYourGuide price: ${price} MAD. Consider setting your price based on the suggestions.`,
-                    });
-                  }}
-                  currentPrice={parseInt(form.watch("getyourguidePrice") || "0")}
-                />
+                {/* GetYourGuide Competitor Analysis - Now using live API above */}
 
-                {/* GetYourGuide Live Search Suggestions */}
-                <GYGSearchSuggestions 
+                {/* GetYourGuide Live Search - Real Partner API */}
+                <GYGLiveSearch 
                   className="mt-4" 
-                  activityName={form.watch("name") || ""}
-                  onPriceSelect={(price, activity) => {
+                  onActivitySelect={(activity) => {
+                    form.setValue("name", activity.title);
+                    form.setValue("getyourguidePrice", activity.price.toString());
+                    toast({
+                      title: "Activity Data Applied",
+                      description: `Set title to: ${activity.title} and GYG price to ${activity.price} MAD`,
+                    });
+                  }}
+                  onPriceSelect={(price, title) => {
                     form.setValue("price", price.toString());
-                    form.setValue("getyourguidePrice", activity.gygPrice.toString());
                     toast({
-                      title: "Competitor Price Applied",
-                      description: `Set price to ${price} MAD based on GetYourGuide competitor: ${activity.title}`,
+                      title: "Price Applied",
+                      description: `Set price to ${price} MAD for: ${title}`,
                     });
                   }}
-                  onTitleSelect={(title, activity) => {
-                    form.setValue("name", title);
-                    toast({
-                      title: "Activity Title Applied",
-                      description: `Set title to: ${title}`,
-                    });
-                  }}
-                  isLocked={form.watch("name") && form.watch("price") && form.watch("getyourguidePrice")}
+                  isLocked={form.watch("name") && form.watch("getyourguidePrice")}
                   onLockToggle={() => {
                     // Unlock by clearing the fields
                     form.setValue("name", "");
