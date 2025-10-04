@@ -180,14 +180,35 @@ export default function BookingFixed() {
       });
       return response;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/bookings"] });
+      
+      // Store booking data for confirmation page
+      const bookingData = {
+        activity: currentActivity!,
+        numberOfPeople: form.getValues('numberOfPeople'),
+        customerName: form.getValues('customerName'),
+        customerPhone: form.getValues('customerPhone'),
+        customerEmail: form.getValues('customerEmail'),
+        preferredDate: form.getValues('preferredDate'),
+        paymentType: data.paymentType || 'deposit',
+        totalAmount: currentActivity!.price * form.getValues('numberOfPeople'),
+        depositAmount: Math.round(currentActivity!.price * form.getValues('numberOfPeople') * 0.3),
+        remainingAmount: Math.round(currentActivity!.price * form.getValues('numberOfPeople') * 0.7)
+      };
+      
+      localStorage.setItem('pendingBooking', JSON.stringify(bookingData));
+      
       toast({
         title: "Booking Submitted!",
-        description: "Your reservation is pending confirmation. We'll notify you once it's confirmed.",
+        description: "Redirecting to confirmation page...",
       });
+      
       setShowPaymentConfirmation(false);
       setPendingBookingData(null);
+      
+      // Navigate to confirmation page
+      window.location.href = '/confirmation-and-pay';
     },
     onError: (error: Error) => {
       toast({

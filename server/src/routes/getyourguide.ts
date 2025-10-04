@@ -123,13 +123,62 @@ function getMockGetYourGuideActivities(query: string): Array<{
       currency: "MAD",
       url: "https://www.getyourguide.com/taghazout-l208/taghazout-surf-lesson-t234567"
     },
-    {
-      id: "gyg-13",
-      title: "Tangier Day Trip from Marrakech",
-      price: 420,
-      currency: "MAD",
-      url: "https://www.getyourguide.com/marrakech-l208/tangier-day-trip-t345678"
-    }
+        {
+          id: "gyg-13",
+          title: "Tangier Day Trip from Marrakech",
+          price: 420,
+          currency: "MAD",
+          url: "https://www.getyourguide.com/marrakech-l208/tangier-day-trip-t345678"
+        },
+        {
+          id: "gyg-14",
+          title: "Rabat City Tour",
+          price: 200,
+          currency: "MAD",
+          url: "https://www.getyourguide.com/rabat-l208/rabat-city-tour-t456789"
+        },
+        {
+          id: "gyg-15",
+          title: "Chefchaouen Blue City Tour",
+          price: 350,
+          currency: "MAD",
+          url: "https://www.getyourguide.com/chefchaouen-l208/chefchaouen-blue-city-tour-t567890"
+        },
+        {
+          id: "gyg-16",
+          title: "Casablanca City Experience",
+          price: 180,
+          currency: "MAD",
+          url: "https://www.getyourguide.com/casablanca-l208/casablanca-city-experience-t678901"
+        },
+        {
+          id: "gyg-17",
+          title: "Fes Medina Walking Tour",
+          price: 150,
+          currency: "MAD",
+          url: "https://www.getyourguide.com/fes-l208/fes-medina-walking-tour-t789012"
+        },
+        {
+          id: "gyg-18",
+          title: "Surf Lesson in Taghazout",
+          price: 280,
+          currency: "MAD",
+          url: "https://www.getyourguide.com/taghazout-l208/surf-lesson-taghazout-t890123"
+        },
+        {
+          id: "gyg-19",
+          title: "Essaouira Surf Experience",
+          price: 320,
+          currency: "MAD",
+          url: "https://www.getyourguide.com/essaouira-l208/essaouira-surf-experience-t901234"
+        },
+        {
+          id: "gyg-20",
+          title: "Atlas Mountains Trekking",
+          price: 450,
+          currency: "MAD",
+          url: "https://www.getyourguide.com/marrakech-l208/atlas-mountains-trekking-t012345"
+        }
   ];
 
   // Create a more intelligent matching function with fuzzy search
@@ -153,8 +202,30 @@ function getMockGetYourGuideActivities(query: string): Array<{
     
     if (isGenericTerm) {
       // For generic terms, match any activity that contains location keywords
-      const locationKeywords = ['marrakech', 'agadir', 'essaouira', 'taghazout', 'tanger', 'tangier', 'atlas', 'desert', 'mountain', 'valley', 'waterfall', 'palace', 'garden'];
+      const locationKeywords = [
+        'marrakech', 'agadir', 'essaouira', 'taghazout', 'tanger', 'tangier', 
+        'rabat', 'chefchaouen', 'casablanca', 'fes', 'fez', 'meknes', 'oujda',
+        'atlas', 'desert', 'mountain', 'valley', 'waterfall', 'palace', 'garden',
+        'surf', 'surfing', 'beach', 'coast', 'medina', 'souk', 'square'
+      ];
       return locationKeywords.some(keyword => normalizedActivity.includes(keyword));
+    }
+    
+    // Handle city-specific searches
+    const cityMappings: { [key: string]: string[] } = {
+      'agadir': ['agadir', 'taghazout', 'surf', 'beach', 'coast'],
+      'essaouira': ['essaouira', 'surf', 'beach', 'coast', 'medina'],
+      'rabat': ['rabat', 'capital', 'city', 'tour'],
+      'chefchaouen': ['chefchaouen', 'blue', 'city', 'mountain'],
+      'tangier': ['tangier', 'tanger', 'strait', 'europe'],
+      'marrakech': ['marrakech', 'atlas', 'desert', 'palace', 'garden']
+    };
+    
+    // Check if search term matches any city
+    for (const [city, keywords] of Object.entries(cityMappings)) {
+      if (normalizedSearch.includes(city) || city.includes(normalizedSearch)) {
+        return keywords.some(keyword => normalizedActivity.includes(keyword));
+      }
     }
     
     // Handle common variations and synonyms

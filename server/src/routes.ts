@@ -1992,6 +1992,92 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(health);
   }));
 
+  // ===== DEBUG ENDPOINTS =====
+  
+  // Fake booking generator for testing
+  app.post("/api/debug/fake-booking", asyncHandler(async (req: Request, res: Response) => {
+    try {
+      console.log('🧪 Creating fake booking for testing...');
+      
+      // Create a fake booking
+      const fakeBooking = await storage.createBooking({
+        customerName: "Test Customer",
+        customerPhone: "+212636738343",
+        customerEmail: "test@example.com",
+        activityId: "fake-activity-id",
+        numberOfPeople: 2,
+        preferredDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
+        participantNames: ["Test Customer", "Test Guest"],
+        notes: "This is a test booking created via debug endpoint",
+        status: 'PENDING',
+        totalAmount: "600",
+        paymentStatus: 'unpaid',
+        paymentMethod: 'cash',
+        paidAmount: 0,
+        rescheduleCount: 0,
+      });
+      
+      // Get a real activity for the notification
+      const activities = await storage.getActivities();
+      const activity = activities[0] || {
+        name: "Test Activity",
+        description: "Test activity for debugging",
+        price: 300
+      };
+      
+      // Send WhatsApp notification to admins
+      const participantNames = fakeBooking.participantNames?.join(', ') || fakeBooking.customerName;
+      const bookingId = fakeBooking._id?.toString() || 'N/A';
+      const baseUrl = process.env.CLIENT_URL || 'https://marrakech-dunes.vercel.app';
+      
+      const adminNotificationData = {
+        customerName: fakeBooking.customerName,
+        customerPhone: fakeBooking.customerPhone,
+        activityName: activity.name,
+        numberOfPeople: fakeBooking.numberOfPeople,
+        preferredDate: new Date(fakeBooking.preferredDate),
+        totalAmount: parseInt(fakeBooking.totalAmount),
+        paymentMethod: fakeBooking.paymentMethod || 'cash',
+        paymentStatus: fakeBooking.paymentStatus || 'unpaid',
+        status: fakeBooking.status,
+        notes: fakeBooking.notes ? `Participants: ${participantNames}\n${fakeBooking.notes}` : `Participants: ${participantNames}`,
+        bookingId: bookingId,
+        confirmLink: `${baseUrl}/api/bookings/${bookingId}/confirm`,
+        rejectLink: `${baseUrl}/api/bookings/${bookingId}/reject`
+      };
+      
+      console.log('📤 Sending admin notifications for fake booking:', fakeBooking._id);
+      const whatsappResult = await whatsappService.sendBookingNotification(adminNotificationData);
+      
+      // Log results
+      if (whatsappResult.success) {
+        console.log('✅ Admin WhatsApp notifications sent successfully');
+        console.log('📱 Admin notification links:', whatsappResult.whatsappLinks);
+      } else {
+        console.log('⚠️ Admin WhatsApp notifications failed');
+      }
+      
+      res.status(201).json({
+        status: 'success',
+        message: 'Fake booking created and admin notifications sent',
+        booking: fakeBooking,
+        adminNotification: {
+          sent: whatsappResult.success,
+          method: whatsappResult.success ? 'whatsapp' : 'email_fallback',
+          links: whatsappResult.whatsappLinks
+        }
+      });
+      
+    } catch (error: any) {
+      console.error('❌ Fake booking creation failed:', error);
+      res.status(500).json({
+        status: 'error',
+        message: 'Failed to create fake booking',
+        error: error.message
+      });
+    }
+  }));
+
   // ===== BOOKING STATUS WORKFLOW ENDPOINTS =====
   
   // Pending booking endpoint (for admin notifications)

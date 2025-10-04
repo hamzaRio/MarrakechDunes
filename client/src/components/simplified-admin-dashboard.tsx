@@ -356,119 +356,170 @@ export default function SimplifiedAdminDashboard() {
         <CardContent>
           <div className="space-y-4">
             {filteredBookings.map((booking) => (
-              <div key={booking._id} className="flex items-center justify-between p-4 border rounded-lg">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <h3 className="font-semibold">{booking.customerName}</h3>
-                    <Badge variant={booking.status === 'confirmed' ? 'default' : booking.status === 'pending' ? 'secondary' : 'destructive'}>
-                      {booking.status}
-                    </Badge>
-                    <Badge 
-                      variant={
-                        booking.paymentStatus === 'fully_paid' ? 'default' : 
-                        booking.paymentStatus === 'deposit_paid' ? 'secondary' : 
-                        'destructive'
-                      }
-                      className={
-                        booking.paymentStatus === 'fully_paid' ? 'bg-green-100 text-green-800 border-green-200' :
-                        booking.paymentStatus === 'deposit_paid' ? 'bg-yellow-100 text-yellow-800 border-yellow-200' :
-                        'bg-red-100 text-red-800 border-red-200'
-                      }
-                    >
-                      {booking.paymentStatus === 'fully_paid' ? '✅ Paid' :
-                       booking.paymentStatus === 'deposit_paid' ? '💰 Deposit' :
-                       '❌ Unpaid'}
-                    </Badge>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-sm text-gray-600">
-                    <div className="flex items-center gap-1">
-                      <Phone className="h-3 w-3" />
-                      {booking.customerPhone}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Calendar className="h-3 w-3" />
-                      {new Date(booking.preferredDate).toLocaleDateString()}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Users className="h-3 w-3" />
-                      {booking.numberOfPeople} people
-                    </div>
-                  </div>
-                  <div className="mt-2">
-                    <span className="text-sm font-medium">{booking.activity?.name}</span>
-                    <span className="text-sm text-gray-500 ml-2">- {booking.totalAmount} MAD</span>
-                  </div>
-                </div>
-                
-                <div className="flex items-center gap-2">
-                  {/* Quick Actions */}
-                  {booking.status === 'PENDING' && (
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        onClick={() => confirmBookingMutation.mutate(booking._id)}
-                        className="bg-green-600 hover:bg-green-700"
-                        disabled={confirmBookingMutation.isPending}
+              <div key={booking._id} className="border rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow">
+                <div className="p-6">
+                  {/* Header with status badges */}
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <h3 className="font-semibold text-lg">{booking.customerName}</h3>
+                      <Badge variant={booking.status === 'confirmed' ? 'default' : booking.status === 'pending' ? 'secondary' : 'destructive'}>
+                        {booking.status}
+                      </Badge>
+                      <Badge 
+                        variant={
+                          booking.paymentStatus === 'fully_paid' ? 'default' : 
+                          booking.paymentStatus === 'deposit_paid' ? 'secondary' : 
+                          'destructive'
+                        }
+                        className={
+                          booking.paymentStatus === 'fully_paid' ? 'bg-green-100 text-green-800 border-green-200' :
+                          booking.paymentStatus === 'deposit_paid' ? 'bg-yellow-100 text-yellow-800 border-yellow-200' :
+                          'bg-red-100 text-red-800 border-red-200'
+                        }
                       >
-                        <CheckCircle className="h-4 w-4 mr-1" />
-                        {confirmBookingMutation.isPending ? 'Confirming...' : 'Confirm'}
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={() => rejectBookingMutation.mutate({ bookingId: booking._id, reason: 'Rejected by admin' })}
-                        className="bg-red-600 hover:bg-red-700"
-                        disabled={rejectBookingMutation.isPending}
-                      >
-                        <X className="h-4 w-4 mr-1" />
-                        {rejectBookingMutation.isPending ? 'Rejecting...' : 'Reject'}
-                      </Button>
+                        {booking.paymentStatus === 'fully_paid' ? '✅ Paid' :
+                         booking.paymentStatus === 'deposit_paid' ? '💰 Deposit' :
+                         '❌ Unpaid'}
+                      </Badge>
+                    </div>
+                    <div className="text-sm text-gray-500">
+                      {new Date(booking.createdAt).toLocaleDateString()}
+                    </div>
+                  </div>
+
+                  {/* Booking Details Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+                    <div className="space-y-2">
+                      <h4 className="font-medium text-sm text-gray-700">Activity</h4>
+                      <p className="text-sm">{booking.activity?.name}</p>
+                      <p className="text-lg font-semibold text-moroccan-blue">{booking.totalAmount} MAD</p>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <h4 className="font-medium text-sm text-gray-700">Date & Time</h4>
+                      <div className="flex items-center gap-1 text-sm">
+                        <Calendar className="h-4 w-4" />
+                        {new Date(booking.preferredDate).toLocaleDateString('en-US', { 
+                          weekday: 'long', 
+                          year: 'numeric', 
+                          month: 'long', 
+                          day: 'numeric' 
+                        })}
+                      </div>
+                      <div className="flex items-center gap-1 text-sm">
+                        <Users className="h-4 w-4" />
+                        {booking.numberOfPeople} {booking.numberOfPeople === 1 ? 'person' : 'people'}
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <h4 className="font-medium text-sm text-gray-700">Customer Info</h4>
+                      <div className="flex items-center gap-1 text-sm">
+                        <Phone className="h-4 w-4" />
+                        {booking.customerPhone}
+                      </div>
+                      {booking.customerEmail && (
+                        <div className="flex items-center gap-1 text-sm">
+                          <Mail className="h-4 w-4" />
+                          {booking.customerEmail}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Notes */}
+                  {booking.notes && (
+                    <div className="mb-4">
+                      <h4 className="font-medium text-sm text-gray-700 mb-1">Notes</h4>
+                      <p className="text-sm text-gray-600 bg-gray-50 p-2 rounded">{booking.notes}</p>
                     </div>
                   )}
-                  
-                  {booking.status === 'confirmed' && (
+
+                  {/* Contact and Action Buttons */}
+                  <div className="flex flex-wrap items-center gap-2 pt-4 border-t">
+                    {/* Contact Buttons */}
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => updateStatusMutation.mutate({ bookingId: booking._id, status: 'pending' })}
+                      onClick={() => window.open(`https://wa.me/${booking.customerPhone.replace(/\D/g, '')}`, '_blank')}
+                      className="flex items-center gap-1"
                     >
-                      <Clock className="h-4 w-4 mr-1" />
-                      Pending
+                      <MessageCircle className="h-4 w-4" />
+                      WhatsApp
                     </Button>
-                  )}
-
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => window.open(`https://wa.me/${booking.customerPhone.replace(/\D/g, '')}`, '_blank')}
-                  >
-                    <MessageCircle className="h-4 w-4 mr-1" />
-                    WhatsApp
-                  </Button>
-
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button size="sm" variant="destructive">
-                        <Trash2 className="h-4 w-4" />
+                    
+                    {booking.customerEmail && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => window.open(`mailto:${booking.customerEmail}`, '_blank')}
+                        className="flex items-center gap-1"
+                      >
+                        <Mail className="h-4 w-4" />
+                        Email
                       </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Delete Booking</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Are you sure you want to delete this booking? This action cannot be undone.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={() => deleteBookingMutation.mutate(booking._id)}
-                          className="bg-red-600 hover:bg-red-700"
+                    )}
+
+                    {/* Action Buttons */}
+                    {booking.status === 'PENDING' && (
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          onClick={() => confirmBookingMutation.mutate(booking._id)}
+                          className="bg-green-600 hover:bg-green-700 text-white"
+                          disabled={confirmBookingMutation.isPending}
                         >
-                          Delete
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                          <CheckCircle className="h-4 w-4 mr-1" />
+                          {confirmBookingMutation.isPending ? 'Confirming...' : 'Confirm Booking'}
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={() => rejectBookingMutation.mutate({ bookingId: booking._id, reason: 'Rejected by admin' })}
+                          className="bg-red-600 hover:bg-red-700 text-white"
+                          disabled={rejectBookingMutation.isPending}
+                        >
+                          <X className="h-4 w-4 mr-1" />
+                          {rejectBookingMutation.isPending ? 'Rejecting...' : 'Reject'}
+                        </Button>
+                      </div>
+                    )}
+                    
+                    {booking.status === 'confirmed' && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => updateStatusMutation.mutate({ bookingId: booking._id, status: 'pending' })}
+                      >
+                        <Clock className="h-4 w-4 mr-1" />
+                        Mark Pending
+                      </Button>
+                    )}
+
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button size="sm" variant="destructive">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete Booking</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Are you sure you want to delete this booking? This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => deleteBookingMutation.mutate(booking._id)}
+                            className="bg-red-600 hover:bg-red-700"
+                          >
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
                 </div>
               </div>
             ))}
@@ -478,3 +529,4 @@ export default function SimplifiedAdminDashboard() {
     </div>
   );
 }
+

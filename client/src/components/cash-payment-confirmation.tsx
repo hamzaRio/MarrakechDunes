@@ -41,8 +41,8 @@ export default function CashPaymentConfirmation({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
-      <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-white/95 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-white shadow-2xl border-2 border-moroccan-blue/20">
         <CardHeader className="text-center bg-moroccan-blue text-white">
           <CardTitle className="flex items-center justify-center gap-2">
             <Banknote className="w-6 h-6" />

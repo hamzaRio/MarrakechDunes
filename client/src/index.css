@@ -2,6 +2,33 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Enhanced dropdown and modal styles */
+@layer components {
+  .dropdown-content {
+    @apply bg-white shadow-xl border-2 border-moroccan-blue/20 z-50;
+  }
+  
+  .modal-backdrop {
+    @apply bg-white/95 backdrop-blur-sm;
+  }
+  
+  .modal-content {
+    @apply bg-white shadow-2xl border-2 border-moroccan-blue/20 z-50;
+  }
+  
+  .select-trigger {
+    @apply bg-white border-2 border-gray-200 hover:border-moroccan-blue/50 focus:border-moroccan-blue;
+  }
+  
+  .select-content {
+    @apply bg-white border-2 border-moroccan-blue/20 shadow-xl z-50;
+  }
+  
+  .select-item {
+    @apply hover:bg-moroccan-blue/10 focus:bg-moroccan-blue/10;
+  }
+}
+
 :root {
   --background: hsl(0, 0%, 100%);
   --foreground: hsl(20, 14.3%, 4.1%);
