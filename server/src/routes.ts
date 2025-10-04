@@ -337,7 +337,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const totalAmount = (parseInt(activity.price) * data.numberOfPeople).toString();
-      console.log('💰 Booking total calculated:', { activityPrice: activity.price, numberOfPeople: data.numberOfPeople, totalAmount });
+      console.log('[BOOKING] Total calculated:', { activityPrice: activity.price, numberOfPeople: data.numberOfPeople, totalAmount });
       
       const booking = await storage.createBooking({
         customerName: data.customerName,
@@ -356,7 +356,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         rescheduleCount: 0,
       });
       
-      console.log('✅ Booking created successfully:', {
+      console.log('[SUCCESS] Booking created:', {
         bookingId: booking._id,
         customerName: booking.customerName,
         status: booking.status,
@@ -395,7 +395,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         rejectLink: `${baseUrl}/api/bookings/${bookingId}/reject`
       };
       
-      console.log('📤 Sending admin notifications for new booking:', booking._id);
+      console.log('[NOTIFY] Sending admin notifications for new booking:', booking._id);
       const whatsappResult = await whatsappService.sendBookingNotification(adminNotificationData);
       
       // Log admin notifications

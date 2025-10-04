@@ -7,6 +7,10 @@ import pino from 'pino';
 import { validateProductionEnvironment, getSecurityRecommendations } from './production-validator.js';
 import { config as serverEnv } from './env.js';
 
+// Fix UTF-8 console encoding for emojis
+process.stdout.setEncoding("utf8");
+process.stderr.setEncoding("utf8");
+
 // Tour Business Logging Setup
 const logger = pino({
   level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',

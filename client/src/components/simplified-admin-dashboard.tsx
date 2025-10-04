@@ -19,7 +19,9 @@ import {
   Search,
   Filter,
   Phone,
-  Clock
+  Clock,
+  Mail,
+  X
 } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
