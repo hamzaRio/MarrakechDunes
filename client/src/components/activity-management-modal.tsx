@@ -35,8 +35,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { getAssetUrl } from "@/lib/utils";
 import { Plus, Settings, Trash2, Power, PowerOff, Upload, Search, ExternalLink } from "lucide-react";
 import { ObjectUploader } from "@/components/ObjectUploader";
-// import GetYourGuidePriceFetcher from "@/components/getyourguide-price-fetcher"; // Replaced with live API
-import GYGLiveSearch from "@/components/admin/GYGLiveSearch";
+import GYGSearchSuggestions from "@/components/admin/GYGSearchSuggestions";
 import type { ActivityType } from "marrakechdunes-shared/schema";
 import type { UploadResult } from "@uppy/core";
 
@@ -66,9 +65,6 @@ export default function ActivityManagementModal({
   trigger 
 }: ActivityManagementModalProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [priceSearchQuery, setPriceSearchQuery] = useState<string>("");
-  const [searchResults, setSearchResults] = useState<any[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { t } = useLanguage();
@@ -143,53 +139,6 @@ export default function ActivityManagementModal({
     },
   });
 
-  // GetYourGuide price search function
-  const searchGetYourGuidePrice = async () => {
-    if (!priceSearchQuery.trim()) return;
-    
-    setIsSearching(true);
-    try {
-      // Mock search results - in real implementation, you would call GetYourGuide API
-      const mockResults = [
-        {
-          name: priceSearchQuery + " - Premium Tour",
-          price: Math.floor(Math.random() * 500) + 200,
-          provider: "GetYourGuide",
-          url: "https://www.getyourguide.com/search?q=" + encodeURIComponent(priceSearchQuery)
-        },
-        {
-          name: priceSearchQuery + " - Standard Tour",
-          price: Math.floor(Math.random() * 300) + 150,
-          provider: "GetYourGuide",
-          url: "https://www.getyourguide.com/search?q=" + encodeURIComponent(priceSearchQuery)
-        }
-      ];
-      
-      setSearchResults(mockResults);
-      toast({
-        title: "Price Search Completed",
-        description: `Found ${mockResults.length} similar activities on GetYourGuide`,
-      });
-    } catch (error) {
-      toast({
-        title: "Search Failed",
-        description: "Could not fetch price data from GetYourGuide",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSearching(false);
-    }
-  };
-
-  // Set suggested price based on search results
-  const setSuggestedPrice = (suggestedPrice: number) => {
-    const competitivePrice = Math.floor(suggestedPrice * 0.85); // 15% discount from competitors
-    form.setValue("price", competitivePrice.toString());
-    toast({
-      title: "Price Updated",
-      description: `Set competitive price: ${competitivePrice} MAD (15% below GetYourGuide)`,
-    });
-  };
 
   // Update activity mutation
   const updateActivityMutation = useMutation({
@@ -370,27 +319,26 @@ export default function ActivityManagementModal({
                   )}
                 />
 
-                {/* GetYourGuide Competitor Analysis - Now using live API above */}
-
-                {/* GetYourGuide Live Search - Real Partner API */}
-                <GYGLiveSearch 
+                 {/* GetYourGuide Live Search - Real Partner API */}
+                <GYGSearchSuggestions 
                   className="mt-4" 
-                  onActivitySelect={(activity) => {
-                    form.setValue("name", activity.title);
-                    form.setValue("getyourguidePrice", activity.price.toString());
-                    toast({
-                      title: "Activity Data Applied",
-                      description: `Set title to: ${activity.title} and GYG price to ${activity.price} MAD`,
-                    });
-                  }}
-                  onPriceSelect={(price, title) => {
+                  activityName={form.watch("name") || ""}
+                  onPriceSelect={(price, activity) => {
                     form.setValue("price", price.toString());
+                    form.setValue("getyourguidePrice", activity.gygPrice.toString());
                     toast({
-                      title: "Price Applied",
-                      description: `Set price to ${price} MAD for: ${title}`,
+                      title: "Competitor Price Applied",
+                      description: `Set price to ${price} MAD based on GetYourGuide competitor: ${activity.title}`,
                     });
                   }}
-                  isLocked={form.watch("name") && form.watch("getyourguidePrice")}
+                  onTitleSelect={(title, activity) => {
+                    form.setValue("name", title);
+                    toast({
+                      title: "Activity Title Applied",
+                      description: `Set title to: ${title}`,
+                    });
+                  }}
+                  isLocked={form.watch("name") && form.watch("price") && form.watch("getyourguidePrice")}
                   onLockToggle={() => {
                     // Unlock by clearing the fields
                     form.setValue("name", "");
@@ -420,70 +368,9 @@ export default function ActivityManagementModal({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>{t("admin.price")}</FormLabel>
-                        <FormControl>
-                          <div className="space-y-2">
-                            <Input type="number" placeholder={t("admin.pricePlaceholder")} {...field} />
-                            
-                            {/* GetYourGuide Price Search */}
-                            <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
-                              <h4 className="text-sm font-semibold text-blue-900 mb-2 flex items-center">
-                                <Search className="h-4 w-4 mr-1" />
-                                Competitive Pricing Assistant
-                              </h4>
-                              <div className="flex gap-2">
-                                <Input
-                                  placeholder="Search activity name on GetYourGuide..."
-                                  value={priceSearchQuery}
-                                  onChange={(e) => setPriceSearchQuery(e.target.value)}
-                                  className="text-sm"
-                                />
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  onClick={searchGetYourGuidePrice}
-                                  disabled={isSearching || !priceSearchQuery.trim()}
-                                  className="bg-orange-600 hover:bg-orange-700"
-                                >
-                                  {isSearching ? "Searching..." : "Search"}
-                                </Button>
-                              </div>
-                              
-                              {searchResults.length > 0 && (
-                                <div className="mt-3 space-y-2">
-                                  <p className="text-xs text-blue-700">Found similar activities:</p>
-                                  {searchResults.map((result, index) => (
-                                    <div key={index} className="bg-white p-2 rounded border text-xs flex items-center justify-between">
-                                      <div>
-                                        <p className="font-medium">{result.name}</p>
-                                        <p className="text-orange-600 font-bold">{result.price} MAD</p>
-                                      </div>
-                                      <div className="flex gap-1">
-                                        <Button
-                                          type="button"
-                                          size="sm"
-                                          variant="outline"
-                                          onClick={() => setSuggestedPrice(result.price)}
-                                          className="h-6 px-2 text-xs"
-                                        >
-                                          Use -15%
-                                        </Button>
-                                        <Button
-                                          type="button"
-                                          size="sm"
-                                          variant="outline"
-                                          onClick={() => window.open(result.url, '_blank')}
-                                          className="h-6 px-2 text-xs"
-                                        >
-                                          <ExternalLink className="h-3 w-3" />
-                                        </Button>
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </FormControl>
+                         <FormControl>
+                           <Input type="number" placeholder={t("admin.pricePlaceholder")} {...field} />
+                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}

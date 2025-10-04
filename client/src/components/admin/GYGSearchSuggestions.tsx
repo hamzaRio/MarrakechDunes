@@ -4,7 +4,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ExternalLink, Search, Loader2, Lock, Unlock, Star, Clock, Users } from 'lucide-react';
+import { ExternalLink, Search, Loader2, Lock, Unlock, Star, Clock, Users, RefreshCw } from 'lucide-react';
 import { apiFetch } from '@/lib/api';
 
 interface GYGActivity {
@@ -19,6 +19,8 @@ interface GYGActivity {
   duration?: string;
   rating?: number;
   reviewCount?: number;
+  location?: string;
+  category?: string;
 }
 
 interface GYGSearchSuggestionsProps {
@@ -44,6 +46,7 @@ export default function GYGSearchSuggestions({
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedActivity, setSelectedActivity] = useState<GYGActivity | null>(null);
+  const [lastSearchTime, setLastSearchTime] = useState<number>(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
 
@@ -55,7 +58,7 @@ export default function GYGSearchSuggestions({
     }
   }, [activityName]);
 
-  // Debounced search effect
+  // Debounced search effect (500ms delay)
   useEffect(() => {
     if (query.length < 3) {
       setSuggestions([]);
@@ -65,7 +68,7 @@ export default function GYGSearchSuggestions({
 
     const timeoutId = setTimeout(() => {
       searchActivities(query);
-    }, 300);
+    }, 500);
 
     return () => clearTimeout(timeoutId);
   }, [query]);
@@ -90,15 +93,31 @@ export default function GYGSearchSuggestions({
   const searchActivities = async (searchQuery: string) => {
     if (searchQuery.length < 3) return;
 
+    // Prevent duplicate searches within 1 second
+    const now = Date.now();
+    if (now - lastSearchTime < 1000) {
+      return;
+    }
+    setLastSearchTime(now);
+
     setIsLoading(true);
     setError(null);
 
     try {
+      console.log('[GYG] Searching live GetYourGuide API for:', searchQuery);
       const response = await apiFetch(`/gyg/search?q=${encodeURIComponent(searchQuery)}`);
-      setSuggestions(response);
-      setShowSuggestions(true);
+      
+      if (Array.isArray(response)) {
+        setSuggestions(response);
+        setShowSuggestions(true);
+        console.log('[GYG] Live search returned:', response.length, 'activities');
+      } else {
+        setSuggestions([]);
+        setShowSuggestions(true);
+        console.log('[GYG] No activities found');
+      }
     } catch (err: any) {
-      console.error('[GYG] Search error:', err);
+      console.error('[GYG] Live search error:', err);
       const errorMessage = err.response?.data?.error || err.message || 'Failed to search GetYourGuide';
       setError(errorMessage);
       setSuggestions([]);
@@ -140,8 +159,18 @@ export default function GYGSearchSuggestions({
     }
   };
 
+  const handleRefresh = () => {
+    if (query.length >= 3) {
+      searchActivities(query);
+    }
+  };
+
   const formatPrice = (price: number, currency: string) => {
     return `${price} ${currency}`;
+  };
+
+  const formatRating = (rating: number) => {
+    return rating.toFixed(1);
   };
 
   return (
@@ -180,11 +209,23 @@ export default function GYGSearchSuggestions({
           onChange={handleInputChange}
           onFocus={() => setShowSuggestions(true)}
           disabled={isLocked}
-          className="pl-10 pr-4 py-2 border-2 border-gray-200 rounded-lg focus:border-moroccan-blue focus:ring-2 focus:ring-moroccan-blue/20 disabled:bg-gray-50 disabled:cursor-not-allowed"
+          className="pl-10 pr-10 border-2 border-gray-200 rounded-lg focus:border-moroccan-blue focus:ring-2 focus:ring-moroccan-blue/20 disabled:bg-gray-50 disabled:cursor-not-allowed"
         />
-        {isLoading && (
-          <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4 animate-spin" />
-        )}
+        <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center gap-1">
+          {isLoading && (
+            <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
+          )}
+          {!isLoading && query.length >= 3 && (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={handleRefresh}
+              className="h-6 w-6 p-0 hover:bg-gray-100"
+            >
+              <RefreshCw className="h-3 w-3" />
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Error message */}
@@ -219,13 +260,19 @@ export default function GYGSearchSuggestions({
                 {selectedActivity.rating && (
                   <div className="flex items-center gap-1 mt-1 text-xs text-green-600">
                     <Star className="h-3 w-3 fill-current" />
-                    {selectedActivity.rating} ({selectedActivity.reviewCount} reviews)
+                    {formatRating(selectedActivity.rating)} ({selectedActivity.reviewCount} reviews)
                   </div>
                 )}
                 {selectedActivity.duration && (
                   <div className="flex items-center gap-1 mt-1 text-xs text-green-600">
                     <Clock className="h-3 w-3" />
                     {selectedActivity.duration}
+                  </div>
+                )}
+                {selectedActivity.location && (
+                  <div className="flex items-center gap-1 mt-1 text-xs text-green-600">
+                    <Users className="h-3 w-3" />
+                    {selectedActivity.location}
                   </div>
                 )}
               </div>
@@ -244,6 +291,11 @@ export default function GYGSearchSuggestions({
             <div className="p-4 text-center text-red-600">
               <p className="text-sm">{error}</p>
               <p className="text-xs text-gray-500 mt-1">Try: Day Trip, Tour, or Experience near {query}</p>
+            </div>
+          ) : suggestions.length === 0 ? (
+            <div className="p-4 text-center text-gray-500">
+              <p className="text-sm">No match found – try different keywords</p>
+              <p className="text-xs text-gray-400 mt-1">Try: "Agadir", "Essaouira surf", "Fes Medina", "Rabat"</p>
             </div>
           ) : (
             suggestions.map((activity) => (
@@ -282,13 +334,19 @@ export default function GYGSearchSuggestions({
                         {activity.rating && (
                           <div className="flex items-center gap-1">
                             <Star className="h-3 w-3 fill-current text-yellow-400" />
-                            {activity.rating} ({activity.reviewCount})
+                            {formatRating(activity.rating)} ({activity.reviewCount})
                           </div>
                         )}
                         {activity.duration && (
                           <div className="flex items-center gap-1">
                             <Clock className="h-3 w-3" />
                             {activity.duration}
+                          </div>
+                        )}
+                        {activity.location && (
+                          <div className="flex items-center gap-1">
+                            <Users className="h-3 w-3" />
+                            {activity.location}
                           </div>
                         )}
                       </div>
@@ -306,7 +364,7 @@ export default function GYGSearchSuggestions({
 
       {/* Help text */}
       <p className="text-xs text-gray-500 mt-2">
-        💡 Live data from GetYourGuide — for reference only. Click suggestions to auto-fill and lock fields.
+        💡 Live data from GetYourGuide Partner API — for reference only. Click suggestions to auto-fill and lock fields.
       </p>
     </div>
   );

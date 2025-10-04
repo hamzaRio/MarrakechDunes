@@ -132,10 +132,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // GetYourGuide API routes (public for admin reference)
   app.use('/api/gyg', gygRoutes);
-  
-  // GetYourGuide Live API routes (real Partner API)
-  const gygLiveRoutes = await import('./routes/getyourguide-live.js');
-  app.use('/api/getyourguide', gygLiveRoutes.default);
 
   // Admin API routes with stricter rate limiting, audit logging, and admin authentication
   app.use('/api/admin', adminApiRateLimit, adminAuditLog, requireAdmin);
