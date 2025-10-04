@@ -3,7 +3,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ExternalLink, Search, Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { ExternalLink, Search, Loader2, Lock, Unlock, Star, Clock, Users } from 'lucide-react';
 import { apiFetch } from '@/lib/api';
 
 interface GYGActivity {
@@ -12,25 +13,37 @@ interface GYGActivity {
   gygPrice: number;
   suggestedPrice: number;
   currency: string;
-  url: string;
+  image?: string;
+  link: string;
+  description?: string;
+  duration?: string;
+  rating?: number;
+  reviewCount?: number;
 }
 
 interface GYGSearchSuggestionsProps {
   className?: string;
   activityName?: string;
   onPriceSelect?: (price: number, activity: GYGActivity) => void;
+  onTitleSelect?: (title: string, activity: GYGActivity) => void;
+  isLocked?: boolean;
+  onLockToggle?: () => void;
 }
 
 export default function GYGSearchSuggestions({ 
   className = '', 
   activityName = '', 
-  onPriceSelect 
+  onPriceSelect,
+  onTitleSelect,
+  isLocked = false,
+  onLockToggle
 }: GYGSearchSuggestionsProps) {
   const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState<GYGActivity[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedActivity, setSelectedActivity] = useState<GYGActivity | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const suggestionsRef = useRef<HTMLDivElement>(null);
 
@@ -52,7 +65,7 @@ export default function GYGSearchSuggestions({
 
     const timeoutId = setTimeout(() => {
       searchActivities(query);
-    }, 300); // 300ms debounce
+    }, 300);
 
     return () => clearTimeout(timeoutId);
   }, [query]);
@@ -77,17 +90,15 @@ export default function GYGSearchSuggestions({
   const searchActivities = async (searchQuery: string) => {
     if (searchQuery.length < 3) return;
 
-    console.log('🔍 Searching GetYourGuide for:', searchQuery);
     setIsLoading(true);
     setError(null);
 
     try {
       const response = await apiFetch(`/gyg/search?q=${encodeURIComponent(searchQuery)}`);
-      console.log('📊 GetYourGuide response:', response);
       setSuggestions(response);
       setShowSuggestions(true);
     } catch (err: any) {
-      console.error('❌ GetYourGuide search error:', err);
+      console.error('[GYG] Search error:', err);
       const errorMessage = err.response?.data?.error || err.message || 'Failed to search GetYourGuide';
       setError(errorMessage);
       setSuggestions([]);
@@ -98,11 +109,8 @@ export default function GYGSearchSuggestions({
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setQuery(value);
-    setError(null);
-    
-    if (value.length >= 3) {
+    setQuery(e.target.value);
+    if (e.target.value.length >= 3) {
       setShowSuggestions(true);
     } else {
       setShowSuggestions(false);
@@ -110,13 +118,26 @@ export default function GYGSearchSuggestions({
   };
 
   const handleSuggestionClick = (activity: GYGActivity) => {
-    // Call the price select callback if provided
+    setSelectedActivity(activity);
+    setShowSuggestions(false);
+    
+    // Call the callbacks if provided
     if (onPriceSelect) {
       onPriceSelect(activity.suggestedPrice, activity);
     }
+    if (onTitleSelect) {
+      onTitleSelect(activity.title, activity);
+    }
     
     // Open GetYourGuide link in new tab
-    window.open(activity.url, '_blank', 'noopener,noreferrer');
+    window.open(activity.link, '_blank', 'noopener,noreferrer');
+  };
+
+  const handleUnlock = () => {
+    setSelectedActivity(null);
+    if (onLockToggle) {
+      onLockToggle();
+    }
   };
 
   const formatPrice = (price: number, currency: string) => {
@@ -125,53 +146,131 @@ export default function GYGSearchSuggestions({
 
   return (
     <div className={`relative ${className}`}>
-      <Label htmlFor="gyg-search" className="text-sm font-medium text-gray-700 mb-2 block">
-        🏆 GetYourGuide Competitor Analysis
-      </Label>
-      
-      <div className="relative">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input
-            ref={inputRef}
-            id="gyg-search"
-            type="text"
-            placeholder="Type activity name (e.g., 'Agadir', 'Essaouira surf')..."
-            value={query}
-            onChange={handleInputChange}
-            className="pl-10 pr-10"
-          />
-          {isLoading && (
-            <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 animate-spin text-blue-500" />
-          )}
-        </div>
-
-        {/* Error message */}
-        {error && (
-          <div className="mt-2 text-sm text-red-600 bg-red-50 p-2 rounded border border-red-200">
-            {error}
+      <div className="flex items-center justify-between mb-2">
+        <Label htmlFor="gyg-search" className="text-sm font-medium text-gray-700">
+          🏆 GetYourGuide Live Search
+        </Label>
+        {selectedActivity && (
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
+              <Lock className="h-3 w-3 mr-1" />
+              Data Locked
+            </Badge>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleUnlock}
+              className="text-xs h-6 px-2"
+            >
+              <Unlock className="h-3 w-3 mr-1" />
+              Unlock
+            </Button>
           </div>
         )}
+      </div>
+      
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+        <Input
+          ref={inputRef}
+          id="gyg-search"
+          type="text"
+          placeholder="Search GetYourGuide activities (e.g., Agadir, Essaouira, Rabat...)"
+          value={query}
+          onChange={handleInputChange}
+          onFocus={() => setShowSuggestions(true)}
+          disabled={isLocked}
+          className="pl-10 pr-4 py-2 border-2 border-gray-200 rounded-lg focus:border-moroccan-blue focus:ring-2 focus:ring-moroccan-blue/20 disabled:bg-gray-50 disabled:cursor-not-allowed"
+        />
+        {isLoading && (
+          <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4 animate-spin" />
+        )}
+      </div>
 
-        {/* Suggestions dropdown */}
-        {showSuggestions && suggestions.length > 0 && (
-          <div
-            ref={suggestionsRef}
-            className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-80 overflow-y-auto"
-          >
-            {suggestions.map((activity) => (
+      {/* Error message */}
+      {error && (
+        <div className="mt-2 text-sm text-red-600 bg-red-50 p-2 rounded border border-red-200">
+          {error}
+        </div>
+      )}
+
+      {/* Selected Activity Display */}
+      {selectedActivity && (
+        <Card className="mt-3 bg-green-50 border-green-200">
+          <CardContent className="p-4">
+            <div className="flex items-start gap-3">
+              {selectedActivity.image && (
+                <img
+                  src={selectedActivity.image}
+                  alt={selectedActivity.title}
+                  className="w-16 h-16 object-cover rounded-lg"
+                />
+              )}
+              <div className="flex-1">
+                <h4 className="font-medium text-green-800">{selectedActivity.title}</h4>
+                <div className="flex items-center gap-2 mt-1">
+                  <Badge variant="outline" className="text-xs bg-red-50 text-red-700 border-red-200">
+                    GYG: {formatPrice(selectedActivity.gygPrice, selectedActivity.currency)}
+                  </Badge>
+                  <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
+                    Suggested: {formatPrice(selectedActivity.suggestedPrice, selectedActivity.currency)}
+                  </Badge>
+                </div>
+                {selectedActivity.rating && (
+                  <div className="flex items-center gap-1 mt-1 text-xs text-green-600">
+                    <Star className="h-3 w-3 fill-current" />
+                    {selectedActivity.rating} ({selectedActivity.reviewCount} reviews)
+                  </div>
+                )}
+                {selectedActivity.duration && (
+                  <div className="flex items-center gap-1 mt-1 text-xs text-green-600">
+                    <Clock className="h-3 w-3" />
+                    {selectedActivity.duration}
+                  </div>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Suggestions dropdown */}
+      {showSuggestions && (suggestions.length > 0 || error) && (
+        <div
+          ref={suggestionsRef}
+          className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl max-h-80 overflow-y-auto"
+        >
+          {error ? (
+            <div className="p-4 text-center text-red-600">
+              <p className="text-sm">{error}</p>
+              <p className="text-xs text-gray-500 mt-1">Try: Day Trip, Tour, or Experience near {query}</p>
+            </div>
+          ) : (
+            suggestions.map((activity) => (
               <Card
                 key={activity.id}
                 className="border-0 border-b border-gray-100 last:border-b-0 rounded-none hover:bg-gray-50 cursor-pointer transition-colors"
                 onClick={() => handleSuggestionClick(activity)}
               >
-                <CardContent className="p-3">
-                  <div className="flex items-center justify-between">
+                <CardContent className="p-4">
+                  <div className="flex items-start gap-3">
+                    {activity.image && (
+                      <img
+                        src={activity.image}
+                        alt={activity.title}
+                        className="w-12 h-12 object-cover rounded-lg flex-shrink-0"
+                      />
+                    )}
                     <div className="flex-1 min-w-0">
                       <h4 className="text-sm font-medium text-gray-900 truncate">
                         {activity.title}
                       </h4>
-                      <div className="flex items-center gap-2 mt-1">
+                      {activity.description && (
+                        <p className="text-xs text-gray-600 mt-1 line-clamp-2">
+                          {activity.description}
+                        </p>
+                      )}
+                      <div className="flex items-center gap-2 mt-2">
                         <Badge variant="outline" className="text-xs bg-red-50 text-red-700 border-red-200">
                           GYG: {formatPrice(activity.gygPrice, activity.currency)}
                         </Badge>
@@ -179,33 +278,35 @@ export default function GYGSearchSuggestions({
                           Suggested: {formatPrice(activity.suggestedPrice, activity.currency)}
                         </Badge>
                       </div>
+                      <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
+                        {activity.rating && (
+                          <div className="flex items-center gap-1">
+                            <Star className="h-3 w-3 fill-current text-yellow-400" />
+                            {activity.rating} ({activity.reviewCount})
+                          </div>
+                        )}
+                        {activity.duration && (
+                          <div className="flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            {activity.duration}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2 ml-2">
-                      <ExternalLink className="h-4 w-4 text-gray-400" />
-                      <span className="text-xs text-gray-500">View</span>
+                    <div className="flex items-center gap-1 text-gray-400">
+                      <ExternalLink className="h-4 w-4" />
                     </div>
                   </div>
                 </CardContent>
               </Card>
-            ))}
-          </div>
-        )}
-
-        {/* No results message */}
-        {showSuggestions && suggestions.length === 0 && !isLoading && query.length >= 3 && !error && (
-          <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg p-4">
-            <div className="text-center text-gray-500">
-              <Search className="h-8 w-8 mx-auto mb-2 opacity-50" />
-              <p className="text-sm">No activities found for "{query}"</p>
-              <p className="text-xs text-gray-400 mt-1">Try different keywords</p>
-            </div>
-          </div>
-        )}
-      </div>
+            ))
+          )}
+        </div>
+      )}
 
       {/* Help text */}
       <p className="text-xs text-gray-500 mt-2">
-        💡 Automatically searches GetYourGuide for similar activities when you type an activity name. Click on suggestions to apply competitive pricing.
+        💡 Live data from GetYourGuide — for reference only. Click suggestions to auto-fill and lock fields.
       </p>
     </div>
   );

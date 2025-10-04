@@ -389,10 +389,25 @@ export default function ActivityManagementModal({
                   activityName={form.watch("name") || ""}
                   onPriceSelect={(price, activity) => {
                     form.setValue("price", price.toString());
+                    form.setValue("getyourguidePrice", activity.gygPrice.toString());
                     toast({
                       title: "Competitor Price Applied",
                       description: `Set price to ${price} MAD based on GetYourGuide competitor: ${activity.title}`,
                     });
+                  }}
+                  onTitleSelect={(title, activity) => {
+                    form.setValue("name", title);
+                    toast({
+                      title: "Activity Title Applied",
+                      description: `Set title to: ${title}`,
+                    });
+                  }}
+                  isLocked={form.watch("name") && form.watch("price") && form.watch("getyourguidePrice")}
+                  onLockToggle={() => {
+                    // Unlock by clearing the fields
+                    form.setValue("name", "");
+                    form.setValue("price", "");
+                    form.setValue("getyourguidePrice", "");
                   }}
                 />
 

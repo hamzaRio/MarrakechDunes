@@ -3,6 +3,16 @@ import axios from 'axios';
 
 const router = Router();
 
+// In-memory cache for GetYourGuide API responses
+const cache = new Map<string, { data: any; timestamp: number }>();
+const CACHE_DURATION = 30 * 1000; // 30 seconds
+
+// Set UTF-8 encoding for all responses
+router.use((req, res, next) => {
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  next();
+});
+
 /**
  * Calculate suggested price based on GetYourGuide price and competitive pricing rules
  */
@@ -307,110 +317,135 @@ interface GetYourGuideActivity {
  * Search GetYourGuide activities
  * GET /api/gyg/search?q=...
  */
-router.get('/search', async (req: Request, res: Response) => {
-  try {
-    const { q } = req.query;
-    
-    if (!q || typeof q !== 'string' || q.length < 3) {
-      return res.status(400).json({
-        error: 'Query parameter "q" is required and must be at least 3 characters long'
-      });
-    }
-
-    console.log('🔍 GetYourGuide search request:', { query: q.trim() });
-    
-    // Try real GetYourGuide API first
-    const apiKey = process.env.GYG_API_KEY;
-    let activities: GetYourGuideActivity[] = [];
-    
-    if (apiKey && apiKey !== 'your_getyourguide_api_key') {
-      try {
-        console.log('🌐 Attempting real GetYourGuide API call...');
-        const response = await axios.get('https://api.getyourguide.com/1/activities', {
-          headers: {
-            'Authorization': `Bearer ${apiKey}`,
-            'Content-Type': 'application/json'
-          },
-          params: {
-            q: q.trim(),
-            limit: 10
-          },
-          timeout: 10000
+  router.get('/search', async (req: Request, res: Response) => {
+    try {
+      const { q } = req.query;
+      
+      if (!q || typeof q !== 'string' || q.length < 3) {
+        return res.status(400).json({
+          error: 'Query parameter "q" is required and must be at least 3 characters long'
         });
-        
-        if (response.data && response.data.activities) {
-          activities = response.data.activities.map((activity: any) => {
-            const gygPrice = activity.price || 0;
-            const currency = activity.currency || 'MAD';
-            const suggestedPrice = calculateSuggestedPrice(gygPrice, currency);
-            
-            return {
-              id: activity.id || `gyg-${Date.now()}`,
-              title: activity.title || 'Untitled Activity',
-              gygPrice: gygPrice,
-              suggestedPrice: suggestedPrice,
-              currency: currency,
-              url: activity.url || `https://www.getyourguide.com/activity-${activity.id}`
-            };
+      }
+
+      const query = q.trim();
+      console.log('[GYG] GetYourGuide search request:', { query });
+
+      // Check cache first
+      const cacheKey = `search_${query}`;
+      const cached = cache.get(cacheKey);
+      if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+        console.log('[GYG] Returning cached results for:', query);
+        return res.json(cached.data);
+      }
+      
+      // Try real GetYourGuide Partner API
+      const apiKey = process.env.GYG_API_KEY;
+      let activities: any[] = [];
+      
+      if (apiKey && apiKey !== 'your_getyourguide_api_key' && process.env.GYG_ENABLE_LIVE_SEARCH === 'true') {
+        try {
+          console.log('[GYG] Attempting real GetYourGuide Partner API call...');
+          
+          const response = await axios.get('https://api.getyourguide.com/1/tours', {
+            headers: {
+              'Authorization': `Bearer ${apiKey}`,
+              'Content-Type': 'application/json; charset=utf-8'
+            },
+            params: {
+              query: query,
+              currency: 'MAD',
+              limit: 10
+            },
+            timeout: 10000
           });
           
-          console.log('✅ Real GetYourGuide API returned:', activities.length, 'activities');
+          if (response.data && response.data.tours) {
+            activities = response.data.tours.map((tour: any) => {
+              const gygPrice = tour.price?.amount || 0;
+              const currency = tour.price?.currency || 'MAD';
+              const suggestedPrice = calculateSuggestedPrice(gygPrice, currency);
+              
+              return {
+                id: tour.id || `gyg-${Date.now()}`,
+                title: tour.title || 'Untitled Activity',
+                gygPrice: gygPrice,
+                suggestedPrice: suggestedPrice,
+                currency: currency,
+                image: tour.picture?.url || null,
+                link: tour.links?.activity_link || `https://www.getyourguide.com/activity-${tour.id}`,
+                description: tour.description || null,
+                duration: tour.duration || null,
+                rating: tour.rating || null,
+                reviewCount: tour.review_count || null
+              };
+            });
+            
+            console.log('[SUCCESS] Real GetYourGuide API returned:', activities.length, 'activities');
+          }
+        } catch (apiError: any) {
+          console.log('[WARNING] Real GetYourGuide API failed, falling back to mock data:', apiError.message);
+          if (apiError.response) {
+            console.log('[GYG] API Error Status:', apiError.response.status);
+            console.log('[GYG] API Error Data:', apiError.response.data);
+          }
         }
-      } catch (apiError: any) {
-        console.log('⚠️ Real GetYourGuide API failed, falling back to mock data:', apiError.message);
-      }
-    } else {
-      console.log('📝 No valid GetYourGuide API key, using mock data');
-    }
-    
-    // Fallback to mock data if real API failed or no key
-    if (activities.length === 0) {
-      const mockActivities = getMockGetYourGuideActivities(q.trim());
-      console.log('📊 Mock activities found:', mockActivities.length);
-      
-      activities = mockActivities.map((activity) => {
-        const gygPrice = activity.price;
-        const currency = activity.currency;
-        const suggestedPrice = calculateSuggestedPrice(gygPrice, currency);
-        
-        return {
-          id: activity.id,
-          title: activity.title,
-          gygPrice: gygPrice,
-          suggestedPrice: suggestedPrice,
-          currency: currency,
-          url: activity.url
-        };
-      });
-    }
-
-    console.log('✅ Returning GetYourGuide suggestions:', activities.length, 'activities');
-    res.json(activities);
-
-  } catch (error: any) {
-    console.error('GetYourGuide API Error:', error.message);
-    
-    // Handle different types of errors
-    if (error.response) {
-      // API returned an error response
-      const status = error.response.status;
-      const message = error.response.data?.message || 'GetYourGuide API error';
-      
-      if (status === 401) {
-        return res.status(401).json({ error: 'Invalid GetYourGuide API key' });
-      } else if (status === 429) {
-        return res.status(429).json({ error: 'Rate limit exceeded for GetYourGuide API' });
       } else {
-        return res.status(status).json({ error: message });
+        console.log('[GYG] No valid API key or live search disabled, using mock data');
       }
-    } else if (error.request) {
-      // Network error
-      return res.status(503).json({ error: 'Unable to connect to GetYourGuide API' });
-    } else {
-      // Other error
-      return res.status(500).json({ error: 'Internal server error' });
+      
+      // Fallback to mock data if real API failed or no key
+      if (activities.length === 0) {
+        const mockActivities = getMockGetYourGuideActivities(query);
+        console.log('[GYG] Mock activities found:', mockActivities.length);
+        
+        activities = mockActivities.map((activity) => {
+          const gygPrice = activity.price;
+          const currency = activity.currency;
+          const suggestedPrice = calculateSuggestedPrice(gygPrice, currency);
+          
+          return {
+            id: activity.id,
+            title: activity.title,
+            gygPrice: gygPrice,
+            suggestedPrice: suggestedPrice,
+            currency: currency,
+            image: null,
+            link: activity.url,
+            description: null,
+            duration: null,
+            rating: null,
+            reviewCount: null
+          };
+        });
+      }
+
+      // Cache the results
+      cache.set(cacheKey, { data: activities, timestamp: Date.now() });
+
+      console.log('[SUCCESS] Returning GetYourGuide suggestions:', activities.length, 'activities');
+      res.json(activities);
+
+    } catch (error: any) {
+      console.error('[ERROR] GetYourGuide API Error:', error.message);
+      
+      // Handle different types of errors
+      if (error.response) {
+        const status = error.response.status;
+        const message = error.response.data?.message || 'GetYourGuide API error';
+        
+        if (status === 401) {
+          return res.status(401).json({ error: 'Invalid GetYourGuide API key' });
+        } else if (status === 429) {
+          return res.status(429).json({ error: 'Rate limit exceeded for GetYourGuide API' });
+        } else {
+          return res.status(status).json({ error: message });
+        }
+      } else if (error.request) {
+        return res.status(503).json({ error: 'Unable to connect to GetYourGuide API' });
+      } else {
+        return res.status(500).json({ error: 'Internal server error' });
+      }
     }
-  }
-});
+  });
 
 export default router;
