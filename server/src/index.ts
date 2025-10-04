@@ -7,18 +7,9 @@ import pino from 'pino';
 import { validateProductionEnvironment, getSecurityRecommendations } from './production-validator.js';
 import { config as serverEnv } from './env.js';
 
-// Fix UTF-8 console encoding for emojis and international characters
+// Fix UTF-8 console encoding for emojis
 process.stdout.setEncoding("utf8");
 process.stderr.setEncoding("utf8");
-
-// Ensure proper UTF-8 handling for all console output
-const originalConsoleLog = console.log;
-console.log = (...args) => {
-  const message = args.map(arg => 
-    typeof arg === 'string' ? arg : JSON.stringify(arg, null, 2)
-  ).join(' ');
-  originalConsoleLog(message);
-};
 
 // Tour Business Logging Setup
 const logger = pino({

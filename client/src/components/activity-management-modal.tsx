@@ -35,6 +35,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { getAssetUrl } from "@/lib/utils";
 import { Plus, Settings, Trash2, Power, PowerOff, Upload, Search, ExternalLink } from "lucide-react";
 import { ObjectUploader } from "@/components/ObjectUploader";
+import GetYourGuidePriceFetcher from "@/components/getyourguide-price-fetcher";
 import GYGSearchSuggestions from "@/components/admin/GYGSearchSuggestions";
 import type { ActivityType } from "marrakechdunes-shared/schema";
 import type { UploadResult } from "@uppy/core";
@@ -65,6 +66,9 @@ export default function ActivityManagementModal({
   trigger 
 }: ActivityManagementModalProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [priceSearchQuery, setPriceSearchQuery] = useState<string>("");
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { t } = useLanguage();
@@ -139,6 +143,58 @@ export default function ActivityManagementModal({
     },
   });
 
+  // Live GetYourGuide price search function
+  const searchGetYourGuidePrice = async () => {
+    if (!priceSearchQuery.trim()) return;
+    
+    setIsSearching(true);
+    try {
+      console.log('[GYG] Searching live GetYourGuide API for:', priceSearchQuery);
+      const response = await apiFetch(`/gyg/search?q=${encodeURIComponent(priceSearchQuery)}`);
+      
+      if (Array.isArray(response) && response.length > 0) {
+        const results = response.map((activity: any) => ({
+          name: activity.title,
+          price: activity.gygPrice,
+          provider: "GetYourGuide",
+          url: activity.link,
+          suggestedPrice: activity.suggestedPrice
+        }));
+        
+        setSearchResults(results);
+        toast({
+          title: "Live Search Completed",
+          description: `Found ${results.length} real activities from GetYourGuide Partner API`,
+        });
+      } else {
+        setSearchResults([]);
+      toast({
+          title: "No Results Found",
+          description: "No matching activities found on GetYourGuide",
+          variant: "destructive",
+      });
+      }
+    } catch (error: any) {
+      console.error('[GYG] Live search error:', error);
+      toast({
+        title: "Search Failed",
+        description: error.response?.data?.error || "Could not fetch live data from GetYourGuide",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  // Set suggested price based on live search results
+  const setSuggestedPrice = (suggestedPrice: number) => {
+    const competitivePrice = Math.floor(suggestedPrice * 0.85); // 15% discount from competitors
+    form.setValue("price", competitivePrice.toString());
+    toast({
+      title: "Price Updated",
+      description: `Set competitive price: ${competitivePrice} MAD (15% below GetYourGuide)`,
+    });
+  };
 
   // Update activity mutation
   const updateActivityMutation = useMutation({
@@ -319,7 +375,20 @@ export default function ActivityManagementModal({
                   )}
                 />
 
-                 {/* GetYourGuide Live Search - Real Partner API */}
+                {/* GetYourGuide Competitor Analysis */}
+                <GetYourGuidePriceFetcher
+                  activityName={form.watch("name") || ""}
+                  onPriceSelect={(price, suggestions) => {
+                    form.setValue("getyourguidePrice", price.toString());
+                    toast({
+                      title: "Competitor Price Found",
+                      description: `GetYourGuide price: ${price} MAD. Consider setting your price based on the suggestions.`,
+                    });
+                  }}
+                  currentPrice={parseInt(form.watch("getyourguidePrice") || "0")}
+                />
+
+                {/* GetYourGuide Live Search Suggestions */}
                 <GYGSearchSuggestions 
                   className="mt-4" 
                   activityName={form.watch("name") || ""}
@@ -368,9 +437,73 @@ export default function ActivityManagementModal({
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>{t("admin.price")}</FormLabel>
-                         <FormControl>
-                           <Input type="number" placeholder={t("admin.pricePlaceholder")} {...field} />
-                         </FormControl>
+                        <FormControl>
+                          <div className="space-y-2">
+                            <Input type="number" placeholder={t("admin.pricePlaceholder")} {...field} />
+                            
+                            {/* GetYourGuide Price Search */}
+                            <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                              <h4 className="text-sm font-semibold text-blue-900 mb-2 flex items-center">
+                                <Search className="h-4 w-4 mr-1" />
+                                Competitive Pricing Assistant
+                              </h4>
+                              <div className="flex gap-2">
+                                <Input
+                                  placeholder="Search activity name on GetYourGuide..."
+                                  value={priceSearchQuery}
+                                  onChange={(e) => setPriceSearchQuery(e.target.value)}
+                                  className="text-sm"
+                                />
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  onClick={searchGetYourGuidePrice}
+                                  disabled={isSearching || !priceSearchQuery.trim()}
+                                  className="bg-orange-600 hover:bg-orange-700"
+                                >
+                                  {isSearching ? "Searching..." : "Search"}
+                                </Button>
+                              </div>
+                              
+                               {searchResults.length > 0 && (
+                                 <div className="mt-3 space-y-2">
+                                   <p className="text-xs text-blue-700">Live GetYourGuide Partner API results:</p>
+                                   {searchResults.map((result, index) => (
+                                     <div key={index} className="bg-white p-2 rounded border text-xs flex items-center justify-between">
+                                       <div>
+                                         <p className="font-medium">{result.name}</p>
+                                         <div className="flex gap-2 mt-1">
+                                           <p className="text-orange-600 font-bold">GYG: {result.price} MAD</p>
+                                           <p className="text-green-600 font-bold">Suggested: {result.suggestedPrice} MAD</p>
+                                         </div>
+                                       </div>
+                                       <div className="flex gap-1">
+                                         <Button
+                                           type="button"
+                                           size="sm"
+                                           variant="outline"
+                                           onClick={() => setSuggestedPrice(result.suggestedPrice)}
+                                           className="h-6 px-2 text-xs"
+                                         >
+                                           Use Suggested
+                                         </Button>
+                                         <Button
+                                           type="button"
+                                           size="sm"
+                                           variant="outline"
+                                           onClick={() => window.open(result.url, '_blank')}
+                                           className="h-6 px-2 text-xs"
+                                         >
+                                           <ExternalLink className="h-3 w-3" />
+                                         </Button>
+                                       </div>
+                                     </div>
+                                   ))}
+                                 </div>
+                               )}
+                            </div>
+                          </div>
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}

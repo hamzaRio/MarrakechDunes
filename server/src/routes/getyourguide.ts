@@ -35,205 +35,143 @@ function calculateSuggestedPrice(gygPrice: number, currency: string): number {
   return Math.round(suggestedPrice * 100) / 100;
 }
 
+// Mock data removed - using only real GetYourGuide Partner API
+
+interface GetYourGuideActivity {
+  id: string;
+  title: string;
+  gygPrice: number;
+  suggestedPrice: number;
+  currency: string;
+  url: string;
+}
+
 /**
- * Search GetYourGuide activities using the real Partner API
+ * Search GetYourGuide activities
  * GET /api/gyg/search?q=...
  */
-router.get('/search', async (req: Request, res: Response) => {
-  try {
-    const { q } = req.query;
-    
-    if (!q || typeof q !== 'string' || q.length < 3) {
-      return res.status(400).json({
-        error: 'Query parameter "q" is required and must be at least 3 characters long'
-      });
-    }
-
-    const query = q.trim();
-    console.log('[GYG] GetYourGuide live search request:', { query });
-
-    // Check cache first
-    const cacheKey = `search_${query}`;
-    const cached = cache.get(cacheKey);
-    if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-      console.log('[GYG] Returning cached results for:', query);
-      return res.json(cached.data);
-    }
-    
-    // Get API key from environment
-    const apiKey = process.env.GYG_API_KEY;
-    
-    if (!apiKey || apiKey === 'your_getyourguide_api_key' || apiKey === 'changeme') {
-      console.log('[GYG] No valid API key provided, returning empty results');
-      return res.json([]);
-    }
-    
-    let activities: any[] = [];
-    
+  router.get('/search', async (req: Request, res: Response) => {
     try {
-      console.log('[GYG] Calling GetYourGuide Partner API...');
+      const { q } = req.query;
       
-      // Call the real GetYourGuide Partner API
-      const response = await axios.get('https://api.getyourguide.com/1/tours', {
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json; charset=utf-8',
-          'Accept': 'application/json'
-        },
-        params: {
-          query: query,
-          currency: 'MAD',
-          limit: 10,
-          offset: 0
-        },
-        timeout: 15000 // 15 second timeout
-      });
+      if (!q || typeof q !== 'string' || q.length < 3) {
+        return res.status(400).json({
+          error: 'Query parameter "q" is required and must be at least 3 characters long'
+        });
+      }
+
+      const query = q.trim();
+      console.log('[GYG] Live GetYourGuide search request:', { query });
+
+      // Check cache first
+      const cacheKey = `search_${query}`;
+      const cached = cache.get(cacheKey);
+      if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+        console.log('[GYG] Returning cached results for:', query);
+        return res.json(cached.data);
+      }
       
-      console.log('[GYG] API Response Status:', response.status);
-      console.log('[GYG] API Response Data:', response.data);
+      // Validate API key
+      const apiKey = process.env.GYG_API_KEY;
+      if (!apiKey || apiKey === 'your_getyourguide_api_key' || apiKey === 'changeme') {
+        console.log('[ERROR] GetYourGuide API key not configured');
+        return res.status(400).json({ 
+          error: 'GetYourGuide API key not configured. Please set GYG_API_KEY in environment variables.' 
+        });
+      }
       
-      if (response.data && response.data.tours && Array.isArray(response.data.tours)) {
-        activities = response.data.tours.map((tour: any) => {
-          const gygPrice = tour.price?.amount || tour.price || 0;
-          const currency = tour.price?.currency || 'MAD';
-          const suggestedPrice = calculateSuggestedPrice(gygPrice, currency);
-          
-          return {
-            id: tour.id || `gyg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-            title: tour.title || 'Untitled Activity',
-            gygPrice: gygPrice,
-            suggestedPrice: suggestedPrice,
-            currency: currency,
-            image: tour.picture?.url || tour.image || null,
-            link: tour.links?.activity_link || tour.url || `https://www.getyourguide.com/activity-${tour.id}`,
-            description: tour.description || null,
-            duration: tour.duration || null,
-            rating: tour.rating || null,
-            reviewCount: tour.review_count || tour.reviews || null,
-            location: tour.location || null,
-            category: tour.category || null
-          };
+      let activities: any[] = [];
+      
+      try {
+        console.log('[GYG] Calling real GetYourGuide Partner API...');
+        
+        const response = await axios.get('https://api.getyourguide.com/1/tours', {
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json; charset=utf-8',
+            'Accept': 'application/json'
+          },
+          params: {
+            query: query,
+            currency: 'MAD',
+            limit: 10
+          },
+          timeout: 15000
         });
         
-        console.log('[SUCCESS] GetYourGuide API returned:', activities.length, 'activities');
-      } else {
-        console.log('[GYG] No tours found in API response');
-        activities = [];
+        console.log('[GYG] API Response Status:', response.status);
+        console.log('[GYG] API Response Data Keys:', Object.keys(response.data || {}));
+        
+        if (response.data && response.data.tours && Array.isArray(response.data.tours)) {
+          activities = response.data.tours.map((tour: any) => {
+            const gygPrice = tour.price?.amount || tour.price || 0;
+            const currency = tour.price?.currency || 'MAD';
+            const suggestedPrice = calculateSuggestedPrice(gygPrice, currency);
+            
+            return {
+              id: tour.id || `gyg-${Date.now()}`,
+              title: tour.title || 'Untitled Activity',
+              gygPrice: gygPrice,
+              suggestedPrice: suggestedPrice,
+              currency: currency,
+              image: tour.picture?.url || tour.image || null,
+              link: tour.links?.activity_link || tour.url || `https://www.getyourguide.com/activity-${tour.id}`,
+              description: tour.description || null,
+              duration: tour.duration || null,
+              rating: tour.rating || null,
+              reviewCount: tour.review_count || tour.reviewCount || null
+            };
+          });
+          
+          console.log('[SUCCESS] Real GetYourGuide API returned:', activities.length, 'activities');
+        } else {
+          console.log('[WARNING] No tours found in API response');
+          activities = [];
+        }
+      } catch (apiError: any) {
+        console.error('[ERROR] GetYourGuide API call failed:', {
+          message: apiError.message,
+          status: apiError.response?.status,
+          statusText: apiError.response?.statusText,
+          data: apiError.response?.data
+        });
+        
+        // Return specific error messages
+        if (apiError.response?.status === 401) {
+          return res.status(401).json({ 
+            error: 'Invalid GetYourGuide API key. Please check your GYG_API_KEY configuration.' 
+          });
+        } else if (apiError.response?.status === 429) {
+          return res.status(429).json({ 
+            error: 'Rate limit exceeded for GetYourGuide API. Please try again later.' 
+          });
+        } else if (apiError.response?.status === 403) {
+          return res.status(403).json({ 
+            error: 'Access forbidden. Please verify your GetYourGuide API permissions.' 
+          });
+        } else if (apiError.code === 'ECONNABORTED') {
+          return res.status(504).json({ 
+            error: 'GetYourGuide API timeout. Please try again.' 
+          });
+        } else {
+          return res.status(500).json({ 
+            error: `GetYourGuide API error: ${apiError.message}` 
+          });
+        }
       }
-      
-    } catch (apiError: any) {
-      console.error('[ERROR] GetYourGuide API call failed:', {
-        message: apiError.message,
-        status: apiError.response?.status,
-        statusText: apiError.response?.statusText,
-        data: apiError.response?.data
-      });
-      
-      // Handle specific API errors
-      if (apiError.response?.status === 401) {
-        console.error('[GYG] Invalid API key - check GYG_API_KEY environment variable');
-        return res.status(401).json({ 
-          error: 'Invalid GetYourGuide API key. Please check your GYG_API_KEY environment variable.' 
-        });
-      } else if (apiError.response?.status === 429) {
-        console.error('[GYG] Rate limit exceeded');
-        return res.status(429).json({ 
-          error: 'Rate limit exceeded for GetYourGuide API. Please try again later.' 
-        });
-      } else if (apiError.response?.status === 403) {
-        console.error('[GYG] Access forbidden - check API permissions');
-        return res.status(403).json({ 
-          error: 'Access forbidden. Please check your GetYourGuide API permissions.' 
-        });
-      } else if (apiError.code === 'ECONNABORTED') {
-        console.error('[GYG] Request timeout');
-        return res.status(504).json({ 
-          error: 'Request timeout. GetYourGuide API is not responding.' 
-        });
-      } else {
-        console.error('[GYG] Unknown API error:', apiError.message);
-        return res.status(500).json({ 
-          error: 'Failed to fetch data from GetYourGuide API. Please try again later.' 
-        });
-      }
-    }
 
-    // Cache the results
-    cache.set(cacheKey, { data: activities, timestamp: Date.now() });
+      // Cache the results
+      cache.set(cacheKey, { data: activities, timestamp: Date.now() });
 
-    console.log('[SUCCESS] Returning GetYourGuide live results:', activities.length, 'activities');
-    res.json(activities);
+      console.log('[SUCCESS] Returning GetYourGuide suggestions:', activities.length, 'activities');
+      res.json(activities);
 
-  } catch (error: any) {
-    console.error('[ERROR] GetYourGuide search error:', error.message);
-    
-    // Handle different types of errors
-    if (error.response) {
-      const status = error.response.status;
-      const message = error.response.data?.message || 'GetYourGuide API error';
-      
-      if (status === 401) {
-        return res.status(401).json({ error: 'Invalid GetYourGuide API key' });
-      } else if (status === 429) {
-        return res.status(429).json({ error: 'Rate limit exceeded for GetYourGuide API' });
-      } else {
-        return res.status(status).json({ error: message });
-      }
-    } else if (error.request) {
-      return res.status(503).json({ error: 'Unable to connect to GetYourGuide API' });
-    } else {
-      return res.status(500).json({ error: 'Internal server error' });
-    }
-  }
-});
-
-/**
- * Health check endpoint for GetYourGuide API
- * GET /api/gyg/health
- */
-router.get('/health', async (req: Request, res: Response) => {
-  try {
-    const apiKey = process.env.GYG_API_KEY;
-    
-    if (!apiKey || apiKey === 'your_getyourguide_api_key' || apiKey === 'changeme') {
-      return res.json({
-        status: 'error',
-        message: 'GetYourGuide API key not configured',
-        configured: false
+    } catch (error: any) {
+      console.error('[ERROR] GetYourGuide search error:', error.message);
+      return res.status(500).json({ 
+        error: 'Internal server error during GetYourGuide search' 
       });
     }
-    
-    // Test API connection with a simple query
-    const response = await axios.get('https://api.getyourguide.com/1/tours', {
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json; charset=utf-8'
-      },
-      params: {
-        query: 'test',
-        currency: 'MAD',
-        limit: 1
-      },
-      timeout: 10000
-    });
-    
-    return res.json({
-      status: 'success',
-      message: 'GetYourGuide API is accessible',
-      configured: true,
-      apiStatus: response.status
-    });
-    
-  } catch (error: any) {
-    console.error('[GYG] Health check failed:', error.message);
-    
-    return res.json({
-      status: 'error',
-      message: 'GetYourGuide API is not accessible',
-      configured: true,
-      error: error.message
-    });
-  }
-});
+  });
 
 export default router;
