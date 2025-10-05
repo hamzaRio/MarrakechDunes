@@ -185,17 +185,17 @@ router.get('/test', async (req: Request, res: Response) => {
     
     const result = await testConnection();
     
-    if (result.status === 'success') {
+    if (result.status === 'ok') {
       res.json({
         status: 'ok',
-        response: result.data,
-        message: 'GetYourGuide API connection successful'
+        response: result.response,
+        message: result.message || 'GetYourGuide API connection successful'
       });
     } else {
       res.status(500).json({
         status: 'error',
         error: result.error,
-        message: 'GetYourGuide API connection failed'
+        message: result.message || 'GetYourGuide API connection failed'
       });
     }
   } catch (error: any) {

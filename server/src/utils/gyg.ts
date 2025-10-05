@@ -48,16 +48,17 @@ export async function pushAvailability(
   try {
     console.log('[GYG] Pushing availability for product:', productId);
     
+    // Use the correct payload structure for GetYourGuide Sandbox API
     const payload = {
       product_id: productId,
       availability: dates.map(date => ({
         date: date.date,
-        price: date.price,
-        currency: date.currency,
-        min_participants: date.min_participants || 1,
-        max_participants: date.max_participants || 20
+        available: true,
+        price: date.price
       }))
     };
+
+    console.log('[GYG] Sending availability payload:', JSON.stringify(payload, null, 2));
 
     const response = await axios.post(
       `${GYG_SUPPLIER_BASE}/notify-availability-update`,
@@ -68,7 +69,7 @@ export async function pushAvailability(
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         },
-        timeout: 10000
+        timeout: 15000
       }
     );
 
@@ -232,49 +233,80 @@ export async function deleteDeal(dealId: string): Promise<GYGResponse> {
 /**
  * Test GetYourGuide API connection
  */
-export async function testConnection(): Promise<GYGResponse> {
+export async function testConnection(): Promise<{status: string; response?: any; error?: string; message?: string}> {
   try {
     console.log('[GYG] Testing connection to GetYourGuide API...');
     
-    // Test with sample availability data
-    const sampleAvailability: GYGAvailability[] = [
-      {
-        date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 7 days from now
-        price: 250,
-        currency: 'MAD',
-        min_participants: 1,
-        max_participants: 20
-      },
-      {
-        date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 14 days from now
-        price: 280,
-        currency: 'MAD',
-        min_participants: 1,
-        max_participants: 20
-      }
-    ];
-
-    const result = await pushAvailability('AGAFAY001', sampleAvailability);
-    
-    if (result.status === 'success') {
-      console.log('[GYG] Connection test successful');
-      return {
-        status: 'success',
-        message: 'GetYourGuide API connection successful',
-        data: result.data
-      };
-    } else {
-      console.error('[GYG] Connection test failed:', result.error);
+    // Validate environment variables
+    if (!GYG_SUPPLIER_USER || !GYG_SUPPLIER_PASS) {
+      console.error('[GYG] Missing credentials - GYG_SUPPLIER_USER or GYG_SUPPLIER_PASS not set');
       return {
         status: 'error',
-        error: result.error || 'Connection test failed'
+        error: 'Missing credentials - GYG_SUPPLIER_USER or GYG_SUPPLIER_PASS not set',
+        message: 'GetYourGuide API connection failed'
       };
     }
+    
+    console.log('[GYG] Using credentials:', {
+      user: GYG_SUPPLIER_USER,
+      base: GYG_SUPPLIER_BASE
+    });
+    
+    // Test with the correct payload structure for GetYourGuide Sandbox API
+    const payload = {
+      product_id: "AGAFAY001",
+      availability: [
+        { 
+          date: "2025-10-15", 
+          available: true, 
+          price: 400 
+        },
+        { 
+          date: "2025-10-16", 
+          available: true, 
+          price: 420 
+        }
+      ]
+    };
+    
+    console.log('[GYG] Sending test payload:', JSON.stringify(payload, null, 2));
+    
+    const response = await axios.post(
+      `${GYG_SUPPLIER_BASE}/notify-availability-update`,
+      payload,
+      {
+        headers: {
+          'Authorization': getAuthHeader(),
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        timeout: 15000
+      }
+    );
+    
+    console.log('[GYG] Availability pushed successfully');
+    console.log('[GYG] Response status:', response.status);
+    console.log('[GYG] Response data:', response.data);
+    
+    return {
+      status: 'ok',
+      response: response.data,
+      message: 'GetYourGuide API connection successful'
+    };
+    
   } catch (error: any) {
-    console.error('[GYG] Connection test error:', error.message);
+    console.error('[GYG] Connection failed:', error.message);
+    
+    if (error.response) {
+      console.error('[GYG] API Error Status:', error.response.status);
+      console.error('[GYG] API Error Data:', error.response.data);
+      console.error('[GYG] API Error Headers:', error.response.headers);
+    }
+    
     return {
       status: 'error',
-      error: error.message || 'Connection test failed'
+      error: error.response?.data?.message || error.message || 'GetYourGuide API connection failed',
+      message: 'GetYourGuide API connection failed'
     };
   }
 }
