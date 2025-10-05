@@ -60,10 +60,10 @@ export async function pushAvailability(
     const payload = {
       data: {
         productId: productId,
-        vacancy: vacancy, // Move vacancy to root level
         availabilities: dates.map(date => ({
           dateTime: new Date(date.date).toISOString(),
           available: true,
+          vacancy: vacancy, // Put vacancy back inside each availability
           price: {
             currency: date.currency || "EUR",
             value: date.price
@@ -305,11 +305,11 @@ export async function testConnection(activity?: any): Promise<{status: string; r
     const payload = {
       data: {
         productId: "AGAFAY001",
-        vacancy: vacancy, // Move vacancy to root level
         availabilities: [
           {
             dateTime: new Date("2025-10-15T10:00:00Z").toISOString(),
             available: true,
+            vacancy: vacancy, // Put vacancy back inside each availability
             price: {
               currency: "EUR",
               value: 400
@@ -318,6 +318,7 @@ export async function testConnection(activity?: any): Promise<{status: string; r
           {
             dateTime: new Date("2025-10-16T10:00:00Z").toISOString(),
             available: true,
+            vacancy: vacancy, // Put vacancy back inside each availability
             price: {
               currency: "EUR",
               value: 420
