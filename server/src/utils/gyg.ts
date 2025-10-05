@@ -61,9 +61,7 @@ export async function pushAvailability(
           price: {
             currency: date.currency || "EUR",
             value: date.price
-          },
-          minParticipants: date.min_participants || 1,
-          maxParticipants: date.max_participants || date.vacancy || 10
+          }
         }))
       }
     };
@@ -298,26 +296,22 @@ export async function testConnection(): Promise<{status: string; response?: any;
         productId: "AGAFAY001",
         availabilities: [
           {
-            dateTime: "2025-10-15T10:00:00Z",
+            dateTime: new Date("2025-10-15T10:00:00Z").toISOString(),
             available: true,
             vacancy: 10,
             price: {
               currency: "EUR",
               value: 400
-            },
-            minParticipants: 1,
-            maxParticipants: 10
+            }
           },
           {
-            dateTime: "2025-10-16T10:00:00Z",
+            dateTime: new Date("2025-10-16T10:00:00Z").toISOString(),
             available: true,
             vacancy: 12,
             price: {
               currency: "EUR",
               value: 420
-            },
-            minParticipants: 1,
-            maxParticipants: 12
+            }
           }
         ]
       }
