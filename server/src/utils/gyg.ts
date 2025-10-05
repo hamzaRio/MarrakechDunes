@@ -50,14 +50,15 @@ export async function pushAvailability(
     
     // Use the correct payload structure for GetYourGuide Sandbox API
     const payload = {
-      availability_update: {
-        product_id: productId,
-        availability: dates.map(date => ({
-          date: date.date,
-          available: true,
-          price: date.price
-        }))
-      }
+      product_id: productId,
+      availability: dates.map(date => ({
+        date: date.date,
+        available: true,
+        price: {
+          currency: date.currency || "EUR",
+          value: date.price
+        }
+      }))
     };
 
     console.log('[GYG] Sending availability payload:', JSON.stringify(payload, null, 2));
@@ -66,8 +67,11 @@ export async function pushAvailability(
       `${GYG_SUPPLIER_BASE}/notify-availability-update`,
       payload,
       {
+        auth: {
+          username: GYG_SUPPLIER_USER,
+          password: GYG_SUPPLIER_PASS
+        },
         headers: {
-          'Authorization': getAuthHeader(),
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         },
@@ -75,6 +79,8 @@ export async function pushAvailability(
       }
     );
 
+    console.log('[GYG] Response:', JSON.stringify(response.data, null, 2));
+    
     if (response.status === 200) {
       console.log('[GYG] Availability sync success:', response.status);
       return {
@@ -265,21 +271,25 @@ export async function testConnection(): Promise<{status: string; response?: any;
     
     // Test with the correct payload structure for GetYourGuide Sandbox API
     const payload = {
-      availability_update: {
-        product_id: "AGAFAY001", // Using requested product ID
-        availability: [
-          { 
-            date: "2025-10-15", 
-            available: true, 
-            price: 400 
-          },
-          { 
-            date: "2025-10-16", 
-            available: true, 
-            price: 420 
+      product_id: "AGAFAY001",
+      availability: [
+        {
+          date: "2025-10-15",
+          available: true,
+          price: {
+            currency: "EUR",
+            value: 400
           }
-        ]
-      }
+        },
+        {
+          date: "2025-10-16",
+          available: true,
+          price: {
+            currency: "EUR",
+            value: 420
+          }
+        }
+      ]
     };
     
     console.log('[GYG] Sending test payload:', JSON.stringify(payload, null, 2));
@@ -288,14 +298,19 @@ export async function testConnection(): Promise<{status: string; response?: any;
       `${GYG_SUPPLIER_BASE}/notify-availability-update`,
       payload,
       {
+        auth: {
+          username: GYG_SUPPLIER_USER,
+          password: GYG_SUPPLIER_PASS
+        },
         headers: {
-          'Authorization': getAuthHeader(),
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         },
         timeout: 15000
       }
     );
+    
+    console.log('[GYG] Response:', JSON.stringify(response.data, null, 2));
     
     if (response.status === 200) {
       console.log('[GYG] Availability pushed successfully');
