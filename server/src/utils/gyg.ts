@@ -266,7 +266,7 @@ export async function testConnection(): Promise<{status: string; response?: any;
     // Test with the correct payload structure for GetYourGuide Sandbox API
     const payload = {
       availability_update: {
-        product_id: "P00001", // Using sandbox product ID
+        product_id: "AGAFAY001", // Using requested product ID
         availability: [
           { 
             date: "2025-10-15", 
