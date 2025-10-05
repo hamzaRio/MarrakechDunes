@@ -16,6 +16,7 @@ export interface GYGAvailability {
   date: string;
   price: number;
   currency: string;
+  vacancy?: number;
   min_participants?: number;
   max_participants?: number;
 }
@@ -56,6 +57,7 @@ export async function pushAvailability(
         availabilities: dates.map(date => ({
           dateTime: new Date(date.date).toISOString(),
           available: true,
+          vacancy: date.vacancy || 10, // Default to 10 if not provided
           price: {
             currency: date.currency || "EUR",
             value: date.price
@@ -296,6 +298,7 @@ export async function testConnection(): Promise<{status: string; response?: any;
           {
             dateTime: "2025-10-15T10:00:00Z",
             available: true,
+            vacancy: 10,
             price: {
               currency: "EUR",
               value: 400
@@ -304,6 +307,7 @@ export async function testConnection(): Promise<{status: string; response?: any;
           {
             dateTime: "2025-10-16T10:00:00Z",
             available: true,
+            vacancy: 12,
             price: {
               currency: "EUR",
               value: 420
