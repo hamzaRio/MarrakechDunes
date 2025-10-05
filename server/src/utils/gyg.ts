@@ -36,6 +36,7 @@ export interface GYGResponse {
   message?: string;
   data?: any;
   error?: string;
+  details?: any;
 }
 
 /**
@@ -50,15 +51,17 @@ export async function pushAvailability(
     
     // Use the correct payload structure for GetYourGuide Sandbox API
     const payload = {
-      product_id: productId,
-      availability: dates.map(date => ({
-        date: date.date,
-        available: true,
-        price: {
-          currency: date.currency || "EUR",
-          value: date.price
-        }
-      }))
+      data: {
+        product_id: productId,
+        availability: dates.map(date => ({
+          date: date.date,
+          available: true,
+          price: {
+            currency: date.currency || "EUR",
+            value: date.price
+          }
+        }))
+      }
     };
 
     console.log('[GYG] Sending availability payload:', JSON.stringify(payload, null, 2));
@@ -81,7 +84,7 @@ export async function pushAvailability(
 
     console.log('[GYG] Response:', JSON.stringify(response.data, null, 2));
     
-    if (response.status === 200) {
+    if (response.status >= 200 && response.status < 300) {
       console.log('[GYG] Availability sync success:', response.status);
       return {
         status: 'success',
@@ -89,11 +92,13 @@ export async function pushAvailability(
         data: response.data
       };
     } else {
-      console.error('[GYG] Unexpected status:', response.status, response.data);
+      console.error('[GYG] API Error - Status:', response.status);
+      console.error('[GYG] API Error - Response:', response.data);
       return {
         status: 'error',
-        error: 'Unexpected GetYourGuide response',
-        message: 'Failed to push availability'
+        error: response.data?.errorMessage || response.data?.errorCode || 'API request failed',
+        message: 'Failed to push availability',
+        details: response.data
       };
     }
   } catch (error: any) {
@@ -102,11 +107,25 @@ export async function pushAvailability(
     if (error.response) {
       console.error('[GYG] API Error Status:', error.response.status);
       console.error('[GYG] API Error Data:', error.response.data);
+      console.error('[GYG] API Error Headers:', error.response.headers);
+      
+      // Handle specific GetYourGuide API errors
+      if (error.response.status >= 400) {
+        const errorData = error.response.data;
+        return {
+          status: 'error',
+          error: errorData?.errorMessage || errorData?.errorCode || 'API request failed',
+          message: 'Failed to push availability',
+          details: errorData
+        };
+      }
     }
     
     return {
       status: 'error',
-      error: error.response?.data?.message || error.message || 'Failed to push availability'
+      error: error.response?.data?.errorMessage || error.response?.data?.errorCode || error.message || 'Failed to push availability',
+      message: 'Failed to push availability',
+      details: error.response?.data
     };
   }
 }
@@ -250,7 +269,7 @@ export async function deleteDeal(dealId: string): Promise<GYGResponse> {
 /**
  * Test GetYourGuide API connection
  */
-export async function testConnection(): Promise<{status: string; response?: any; error?: string; message?: string}> {
+export async function testConnection(): Promise<{status: string; response?: any; error?: string; message?: string; details?: any}> {
   try {
     console.log('[GYG] Testing connection to GetYourGuide API...');
     
@@ -271,25 +290,27 @@ export async function testConnection(): Promise<{status: string; response?: any;
     
     // Test with the correct payload structure for GetYourGuide Sandbox API
     const payload = {
-      product_id: "AGAFAY001",
-      availability: [
-        {
-          date: "2025-10-15",
-          available: true,
-          price: {
-            currency: "EUR",
-            value: 400
+      data: {
+        product_id: "AGAFAY001",
+        availability: [
+          {
+            date: "2025-10-15",
+            available: true,
+            price: {
+              currency: "EUR",
+              value: 400
+            }
+          },
+          {
+            date: "2025-10-16",
+            available: true,
+            price: {
+              currency: "EUR",
+              value: 420
+            }
           }
-        },
-        {
-          date: "2025-10-16",
-          available: true,
-          price: {
-            currency: "EUR",
-            value: 420
-          }
-        }
-      ]
+        ]
+      }
     };
     
     console.log('[GYG] Sending test payload:', JSON.stringify(payload, null, 2));
@@ -312,7 +333,7 @@ export async function testConnection(): Promise<{status: string; response?: any;
     
     console.log('[GYG] Response:', JSON.stringify(response.data, null, 2));
     
-    if (response.status === 200) {
+    if (response.status >= 200 && response.status < 300) {
       console.log('[GYG] Availability pushed successfully');
       return {
         status: 'ok',
@@ -320,11 +341,13 @@ export async function testConnection(): Promise<{status: string; response?: any;
         message: 'GetYourGuide API connection successful'
       };
     } else {
-      console.error('[GYG] Unexpected status:', response.status, response.data);
+      console.error('[GYG] API Error - Status:', response.status);
+      console.error('[GYG] API Error - Response:', response.data);
       return {
         status: 'error',
-        error: 'Unexpected GetYourGuide response',
-        message: 'GetYourGuide API connection failed'
+        error: response.data?.errorMessage || response.data?.errorCode || 'API request failed',
+        message: 'GetYourGuide API connection failed',
+        details: response.data
       };
     }
     
@@ -335,12 +358,24 @@ export async function testConnection(): Promise<{status: string; response?: any;
       console.error('[GYG] API Error Status:', error.response.status);
       console.error('[GYG] API Error Data:', error.response.data);
       console.error('[GYG] API Error Headers:', error.response.headers);
+      
+      // Handle specific GetYourGuide API errors
+      if (error.response.status >= 400) {
+        const errorData = error.response.data;
+        return {
+          status: 'error',
+          error: errorData?.errorMessage || errorData?.errorCode || 'API request failed',
+          message: 'GetYourGuide API connection failed',
+          details: errorData
+        };
+      }
     }
     
     return {
       status: 'error',
-      error: error.response?.data?.message || error.message || 'GetYourGuide API connection failed',
-      message: 'GetYourGuide API connection failed'
+      error: error.response?.data?.errorMessage || error.response?.data?.errorCode || error.message || 'GetYourGuide API connection failed',
+      message: 'GetYourGuide API connection failed',
+      details: error.response?.data
     };
   }
 }
