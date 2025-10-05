@@ -54,7 +54,7 @@ export async function pushAvailability(
       data: {
         productId: productId,
         availabilities: dates.map(date => ({
-          date: date.date,
+          dateTime: new Date(date.date).toISOString(),
           available: true,
           price: {
             currency: date.currency || "EUR",
@@ -294,7 +294,7 @@ export async function testConnection(): Promise<{status: string; response?: any;
         productId: "AGAFAY001",
         availabilities: [
           {
-            date: "2025-10-15",
+            dateTime: "2025-10-15T10:00:00Z",
             available: true,
             price: {
               currency: "EUR",
@@ -302,7 +302,7 @@ export async function testConnection(): Promise<{status: string; response?: any;
             }
           },
           {
-            date: "2025-10-16",
+            dateTime: "2025-10-16T10:00:00Z",
             available: true,
             price: {
               currency: "EUR",
