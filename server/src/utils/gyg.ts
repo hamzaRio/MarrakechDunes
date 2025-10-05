@@ -50,12 +50,14 @@ export async function pushAvailability(
     
     // Use the correct payload structure for GetYourGuide Sandbox API
     const payload = {
-      product_id: productId,
-      availability: dates.map(date => ({
-        date: date.date,
-        available: true,
-        price: date.price
-      }))
+      availability_update: {
+        product_id: productId,
+        availability: dates.map(date => ({
+          date: date.date,
+          available: true,
+          price: date.price
+        }))
+      }
     };
 
     console.log('[GYG] Sending availability payload:', JSON.stringify(payload, null, 2));
@@ -73,12 +75,21 @@ export async function pushAvailability(
       }
     );
 
-    console.log('[GYG] Availability sync success:', response.status);
-    return {
-      status: 'success',
-      message: 'Availability updated successfully',
-      data: response.data
-    };
+    if (response.status === 200) {
+      console.log('[GYG] Availability sync success:', response.status);
+      return {
+        status: 'success',
+        message: 'Availability updated successfully',
+        data: response.data
+      };
+    } else {
+      console.error('[GYG] Unexpected status:', response.status, response.data);
+      return {
+        status: 'error',
+        error: 'Unexpected GetYourGuide response',
+        message: 'Failed to push availability'
+      };
+    }
   } catch (error: any) {
     console.error('[GYG] Availability sync error:', error.message);
     
@@ -254,19 +265,21 @@ export async function testConnection(): Promise<{status: string; response?: any;
     
     // Test with the correct payload structure for GetYourGuide Sandbox API
     const payload = {
-      product_id: "AGAFAY001",
-      availability: [
-        { 
-          date: "2025-10-15", 
-          available: true, 
-          price: 400 
-        },
-        { 
-          date: "2025-10-16", 
-          available: true, 
-          price: 420 
-        }
-      ]
+      availability_update: {
+        product_id: "P00001", // Using sandbox product ID
+        availability: [
+          { 
+            date: "2025-10-15", 
+            available: true, 
+            price: 400 
+          },
+          { 
+            date: "2025-10-16", 
+            available: true, 
+            price: 420 
+          }
+        ]
+      }
     };
     
     console.log('[GYG] Sending test payload:', JSON.stringify(payload, null, 2));
@@ -284,15 +297,21 @@ export async function testConnection(): Promise<{status: string; response?: any;
       }
     );
     
-    console.log('[GYG] Availability pushed successfully');
-    console.log('[GYG] Response status:', response.status);
-    console.log('[GYG] Response data:', response.data);
-    
-    return {
-      status: 'ok',
-      response: response.data,
-      message: 'GetYourGuide API connection successful'
-    };
+    if (response.status === 200) {
+      console.log('[GYG] Availability pushed successfully');
+      return {
+        status: 'ok',
+        response: response.data,
+        message: 'GetYourGuide API connection successful'
+      };
+    } else {
+      console.error('[GYG] Unexpected status:', response.status, response.data);
+      return {
+        status: 'error',
+        error: 'Unexpected GetYourGuide response',
+        message: 'GetYourGuide API connection failed'
+      };
+    }
     
   } catch (error: any) {
     console.error('[GYG] Connection failed:', error.message);
