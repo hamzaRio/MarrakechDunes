@@ -57,7 +57,7 @@ export async function pushAvailability(
         availabilities: dates.map(date => ({
           dateTime: new Date(date.date).toISOString(),
           available: true,
-          capacity: date.vacancy || 10, // Try 'capacity' instead of 'vacancy'
+          vacancy: date.vacancy || 10, // Revert back to 'vacancy'
           price: {
             currency: date.currency || "EUR",
             value: date.price
@@ -298,7 +298,7 @@ export async function testConnection(): Promise<{status: string; response?: any;
           {
             dateTime: new Date("2025-10-15T10:00:00Z").toISOString(),
             available: true,
-            capacity: 10, // Try 'capacity' instead of 'vacancy'
+            vacancy: 10, // Revert back to 'vacancy'
             price: {
               currency: "EUR",
               value: 400
@@ -307,7 +307,7 @@ export async function testConnection(): Promise<{status: string; response?: any;
           {
             dateTime: new Date("2025-10-16T10:00:00Z").toISOString(),
             available: true,
-            capacity: 12, // Try 'capacity' instead of 'vacancy'
+            vacancy: 12, // Revert back to 'vacancy'
             price: {
               currency: "EUR",
               value: 420
