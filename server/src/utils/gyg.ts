@@ -45,10 +45,16 @@ export interface GYGResponse {
  */
 export async function pushAvailability(
   productId: string,
-  dates: GYGAvailability[]
+  dates: GYGAvailability[],
+  activity?: any
 ): Promise<GYGResponse> {
   try {
     console.log('[GYG] Pushing availability for product:', productId);
+    
+    // Get capacity from activity or use default
+    const activityCapacity = activity?.maxParticipants || activity?.capacitySettings?.maxParticipants || 10;
+    const vacancy = Math.max(1, activityCapacity); // Ensure at least 1
+    console.log('[GYG] Using vacancy:', vacancy);
     
     // Use the correct payload structure for GetYourGuide Sandbox API
     const payload = {
@@ -57,7 +63,7 @@ export async function pushAvailability(
         availabilities: dates.map(date => ({
           dateTime: new Date(date.date).toISOString(),
           available: true,
-          vacancy: date.vacancy || 10, // Revert back to 'vacancy'
+          vacancy: vacancy, // Use dynamic capacity from activity
           price: {
             currency: date.currency || "EUR",
             value: date.price
@@ -271,7 +277,7 @@ export async function deleteDeal(dealId: string): Promise<GYGResponse> {
 /**
  * Test GetYourGuide API connection
  */
-export async function testConnection(): Promise<{status: string; response?: any; error?: string; message?: string; details?: any}> {
+export async function testConnection(activity?: any): Promise<{status: string; response?: any; error?: string; message?: string; details?: any}> {
   try {
     console.log('[GYG] Testing connection to GetYourGuide API...');
     
@@ -290,6 +296,11 @@ export async function testConnection(): Promise<{status: string; response?: any;
       base: GYG_SUPPLIER_BASE
     });
     
+    // Get capacity from activity or use default
+    const activityCapacity = activity?.maxParticipants || activity?.capacitySettings?.maxParticipants || 10;
+    const vacancy = Math.max(1, activityCapacity); // Ensure at least 1
+    console.log('[GYG] Using vacancy:', vacancy);
+    
     // Test with the correct payload structure for GetYourGuide Sandbox API
     const payload = {
       data: {
@@ -298,7 +309,7 @@ export async function testConnection(): Promise<{status: string; response?: any;
           {
             dateTime: new Date("2025-10-15T10:00:00Z").toISOString(),
             available: true,
-            vacancy: 10, // Revert back to 'vacancy'
+            vacancy: vacancy, // Use dynamic capacity from activity
             price: {
               currency: "EUR",
               value: 400
@@ -307,7 +318,7 @@ export async function testConnection(): Promise<{status: string; response?: any;
           {
             dateTime: new Date("2025-10-16T10:00:00Z").toISOString(),
             available: true,
-            vacancy: 12, // Revert back to 'vacancy'
+            vacancy: vacancy, // Use dynamic capacity from activity
             price: {
               currency: "EUR",
               value: 420

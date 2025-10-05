@@ -11,8 +11,20 @@ router.get('/test-gyg', async (req: Request, res: Response) => {
   try {
     console.log('[DEBUG] Manual GetYourGuide API test triggered...');
     
-    // Test connection first
-    const connectionResult = await testConnection();
+    // Create a sample activity with capacity settings for testing
+    const sampleActivity = {
+      maxParticipants: 15,
+      capacitySettings: {
+        maxParticipants: 15,
+        weatherDependent: false,
+        requiresGuide: true,
+        requiresEquipment: false,
+        overbookingAllowed: false
+      }
+    };
+    
+    // Test connection first with sample activity
+    const connectionResult = await testConnection(sampleActivity);
     
     if (connectionResult.status === 'error') {
       return res.status(500).json({
@@ -45,7 +57,7 @@ router.get('/test-gyg', async (req: Request, res: Response) => {
       }
     ];
     
-    const availabilityResult = await pushAvailability('AGAFAY001', sampleAvailability);
+    const availabilityResult = await pushAvailability('AGAFAY001', sampleAvailability, sampleActivity);
     
     res.json({
       status: 'success',
@@ -81,7 +93,7 @@ router.get('/test-gyg', async (req: Request, res: Response) => {
  */
 router.post('/test-availability', async (req: Request, res: Response) => {
   try {
-    const { productId, dates } = req.body;
+    const { productId, dates, activity } = req.body;
     
     if (!productId) {
       return res.status(400).json({
@@ -101,7 +113,7 @@ router.post('/test-availability', async (req: Request, res: Response) => {
     ];
     
     console.log('[DEBUG] Testing availability push for product:', productId);
-    const result = await pushAvailability(productId, availabilityData);
+    const result = await pushAvailability(productId, availabilityData, activity);
     
     res.json({
       status: result.status,
