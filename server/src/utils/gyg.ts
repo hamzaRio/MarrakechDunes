@@ -52,8 +52,8 @@ export async function pushAvailability(
     // Use the correct payload structure for GetYourGuide Sandbox API
     const payload = {
       data: {
-        product_id: productId,
-        availability: dates.map(date => ({
+        productId: productId,
+        availabilities: dates.map(date => ({
           date: date.date,
           available: true,
           price: {
@@ -291,8 +291,8 @@ export async function testConnection(): Promise<{status: string; response?: any;
     // Test with the correct payload structure for GetYourGuide Sandbox API
     const payload = {
       data: {
-        product_id: "AGAFAY001",
-        availability: [
+        productId: "AGAFAY001",
+        availabilities: [
           {
             date: "2025-10-15",
             available: true,
