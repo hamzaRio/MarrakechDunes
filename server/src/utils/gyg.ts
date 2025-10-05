@@ -63,7 +63,7 @@ export async function pushAvailability(
         availabilities: dates.map(date => ({
           dateTime: new Date(date.date).toISOString(),
           available: true,
-          vacancy: vacancy, // Use dynamic capacity from activity
+          capacity: vacancy, // Try 'capacity' instead of 'vacancy'
           price: {
             currency: date.currency || "EUR",
             value: date.price
@@ -309,7 +309,7 @@ export async function testConnection(activity?: any): Promise<{status: string; r
           {
             dateTime: new Date("2025-10-15T10:00:00Z").toISOString(),
             available: true,
-            vacancy: vacancy, // Use dynamic capacity from activity
+            capacity: vacancy, // Try 'capacity' instead of 'vacancy'
             price: {
               currency: "EUR",
               value: 400
@@ -318,7 +318,7 @@ export async function testConnection(activity?: any): Promise<{status: string; r
           {
             dateTime: new Date("2025-10-16T10:00:00Z").toISOString(),
             available: true,
-            vacancy: vacancy, // Use dynamic capacity from activity
+            capacity: vacancy, // Try 'capacity' instead of 'vacancy'
             price: {
               currency: "EUR",
               value: 420
