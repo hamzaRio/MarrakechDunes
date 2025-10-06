@@ -51,10 +51,10 @@ export async function pushAvailability(
   try {
     console.log('[GYG] Pushing availability for product:', productId);
     
-    // Get capacity from activity or use default
-    const activityCapacity = activity?.maxParticipants || activity?.capacitySettings?.maxParticipants || 10;
-    const vacancy = Math.max(1, activityCapacity); // Ensure at least 1
-    console.log('[GYG] Using vacancy:', vacancy);
+    // Get capacity from activity or use default with defensive fallback
+    const activityCapacity = activity?.maxParticipants || activity?.capacitySettings?.maxParticipants || activity?.capacity || 10;
+    const vacancy = typeof activityCapacity === "number" && activityCapacity > 0 ? activityCapacity : 10;
+    console.log("[GYG] Using vacancy:", typeof vacancy, vacancy);
     
     // Use the correct payload structure for GetYourGuide Sandbox API
     const payload = {
@@ -296,10 +296,10 @@ export async function testConnection(activity?: any): Promise<{status: string; r
       base: GYG_SUPPLIER_BASE
     });
     
-    // Get capacity from activity or use default
-    const activityCapacity = activity?.maxParticipants || activity?.capacitySettings?.maxParticipants || 10;
-    const vacancy = Math.max(1, activityCapacity); // Ensure at least 1
-    console.log('[GYG] Using vacancy:', vacancy);
+    // Get capacity from activity or use default with defensive fallback
+    const activityCapacity = activity?.maxParticipants || activity?.capacitySettings?.maxParticipants || activity?.capacity || 10;
+    const vacancy = typeof activityCapacity === "number" && activityCapacity > 0 ? activityCapacity : 10;
+    console.log("[GYG] Using vacancy:", typeof vacancy, vacancy);
     
     // Test with the correct payload structure for GetYourGuide Sandbox API
     const payload = {
