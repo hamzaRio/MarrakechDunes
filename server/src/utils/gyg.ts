@@ -284,6 +284,187 @@ export async function deleteDeal(dealId: string): Promise<GYGResponse> {
 }
 
 /**
+ * Validate GetYourGuide API connection
+ */
+export async function validateGYGConnection(): Promise<{status: string; message: string; details?: any}> {
+  try {
+    console.log('[GYG] Validating GetYourGuide API connection...');
+    
+    // Test basic connectivity with a simple GET request
+    const response = await axios.get(
+      `${GYG_SUPPLIER_BASE}/products`,
+      {
+        headers: {
+          'Authorization': getAuthHeader(),
+          'Accept': 'application/json'
+        },
+        timeout: 10000
+      }
+    );
+    
+    console.log('[GYG] API validation successful:', response.status);
+    return {
+      status: 'success',
+      message: 'GetYourGuide API connection validated',
+      details: response.data
+    };
+  } catch (error: any) {
+    console.error('[GYG] API validation failed:', error.message);
+    
+    if (error.response) {
+      console.error('[GYG] Validation Error Status:', error.response.status);
+      console.error('[GYG] Validation Error Data:', error.response.data);
+      
+      return {
+        status: 'error',
+        message: `API validation failed: ${error.response.status} - ${error.response.data?.errorMessage || error.response.data?.errorCode || 'Unknown error'}`,
+        details: error.response.data
+      };
+    }
+    
+    return {
+      status: 'error',
+      message: `API validation failed: ${error.message}`,
+      details: error.response?.data
+    };
+  }
+}
+
+/**
+ * Test different payload structures for GetYourGuide API
+ */
+export async function testPayloadStructures(): Promise<{status: string; results: any[]; message: string}> {
+  console.log('[GYG] Testing different payload structures...');
+  
+  const testStructures = [
+    {
+      name: 'Structure 1: vacancy at root level',
+      payload: {
+        data: {
+          productId: "AGAFAY001",
+          vacancy: 10,
+          availabilities: [
+            {
+              dateTime: "2025-10-15T10:00:00.000Z",
+              available: true,
+              price: { currency: "EUR", value: 400 }
+            }
+          ]
+        }
+      }
+    },
+    {
+      name: 'Structure 2: vacancy inside each availability',
+      payload: {
+        data: {
+          productId: "AGAFAY001",
+          availabilities: [
+            {
+              dateTime: "2025-10-15T10:00:00.000Z",
+              available: true,
+              vacancy: 10,
+              price: { currency: "EUR", value: 400 }
+            }
+          ]
+        }
+      }
+    },
+    {
+      name: 'Structure 3: capacity instead of vacancy',
+      payload: {
+        data: {
+          productId: "AGAFAY001",
+          availabilities: [
+            {
+              dateTime: "2025-10-15T10:00:00.000Z",
+              available: true,
+              capacity: 10,
+              price: { currency: "EUR", value: 400 }
+            }
+          ]
+        }
+      }
+    },
+    {
+      name: 'Structure 4: maxParticipants instead of vacancy',
+      payload: {
+        data: {
+          productId: "AGAFAY001",
+          availabilities: [
+            {
+              dateTime: "2025-10-15T10:00:00.000Z",
+              available: true,
+              maxParticipants: 10,
+              price: { currency: "EUR", value: 400 }
+            }
+          ]
+        }
+      }
+    },
+    {
+      name: 'Structure 5: No data wrapper',
+      payload: {
+        productId: "AGAFAY001",
+        availabilities: [
+          {
+            dateTime: "2025-10-15T10:00:00.000Z",
+            available: true,
+            vacancy: 10,
+            price: { currency: "EUR", value: 400 }
+          }
+        ]
+      }
+    }
+  ];
+  
+  const results = [];
+  
+  for (const structure of testStructures) {
+    try {
+      console.log(`[GYG] Testing ${structure.name}...`);
+      
+      const response = await axios.post(
+        `${GYG_SUPPLIER_BASE}/notify-availability-update`,
+        structure.payload,
+        {
+          headers: {
+            'Authorization': getAuthHeader(),
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          timeout: 15000
+        }
+      );
+      
+      results.push({
+        structure: structure.name,
+        status: 'success',
+        response: response.data,
+        statusCode: response.status
+      });
+      
+      console.log(`[GYG] ${structure.name} - SUCCESS:`, response.status);
+      
+    } catch (error: any) {
+      results.push({
+        structure: structure.name,
+        status: 'error',
+        error: error.response?.data || error.message,
+        statusCode: error.response?.status || 'N/A'
+      });
+      
+      console.log(`[GYG] ${structure.name} - FAILED:`, error.response?.data || error.message);
+    }
+  }
+  
+  return {
+    status: 'completed',
+    results: results,
+    message: 'Payload structure testing completed'
+  };
+}
+
+/**
  * Test GetYourGuide API connection
  */
 export async function testConnection(activity?: any): Promise<{status: string; response?: any; error?: string; message?: string; details?: any}> {

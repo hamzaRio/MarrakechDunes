@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { testConnection, pushAvailability, GYGAvailability } from '../utils/gyg.js';
+import { testConnection, pushAvailability, validateGYGConnection, testPayloadStructures, GYGAvailability } from '../utils/gyg.js';
 
 const router = Router();
 
@@ -128,6 +128,68 @@ router.post('/test-availability', async (req: Request, res: Response) => {
     res.status(500).json({
       status: 'error',
       message: 'Availability test failed',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * Debug route to validate GetYourGuide API connection
+ * GET /api/debug/validate-gyg
+ */
+router.get('/validate-gyg', async (req: Request, res: Response) => {
+  try {
+    console.log('[DEBUG] Validating GetYourGuide API connection...');
+    
+    const result = await validateGYGConnection();
+    
+    res.json({
+      status: result.status,
+      message: result.message,
+      details: result.details,
+      environment: {
+        supplier_base: process.env.GYG_SUPPLIER_BASE,
+        supplier_user: process.env.GYG_SUPPLIER_USER,
+        enable_live_search: process.env.GYG_ENABLE_LIVE_SEARCH
+      }
+    });
+    
+  } catch (error: any) {
+    console.error('[DEBUG] GYG validation error:', error.message);
+    res.status(500).json({
+      status: 'error',
+      message: 'GetYourGuide API validation failed',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * Debug route to test different payload structures
+ * GET /api/debug/test-payloads
+ */
+router.get('/test-payloads', async (req: Request, res: Response) => {
+  try {
+    console.log('[DEBUG] Testing different payload structures...');
+    
+    const result = await testPayloadStructures();
+    
+    res.json({
+      status: result.status,
+      message: result.message,
+      results: result.results,
+      summary: {
+        total: result.results.length,
+        successful: result.results.filter(r => r.status === 'success').length,
+        failed: result.results.filter(r => r.status === 'error').length
+      }
+    });
+    
+  } catch (error: any) {
+    console.error('[DEBUG] Payload testing error:', error.message);
+    res.status(500).json({
+      status: 'error',
+      message: 'Payload structure testing failed',
       error: error.message
     });
   }
