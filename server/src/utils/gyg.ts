@@ -1,8 +1,4 @@
 import axios from 'axios';
-import dotenv from 'dotenv';
-
-// Load environment variables
-dotenv.config();
 
 // GetYourGuide API configuration
 const GYG_SUPPLIER_BASE = process.env.GYG_SUPPLIER_BASE || 'https://supplier-api.getyourguide.com/sandbox/1';
