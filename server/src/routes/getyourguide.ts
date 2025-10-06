@@ -72,12 +72,11 @@ interface GetYourGuideActivity {
         return res.json(cached.data);
       }
       
-      // Validate API key
-      const apiKey = process.env.GYG_API_KEY;
-      if (!apiKey || apiKey === 'your_getyourguide_api_key' || apiKey === 'changeme') {
-        console.log('[ERROR] GetYourGuide API key not configured');
+      // Validate credentials
+      if (!process.env.GYG_SUPPLIER_USER || !process.env.GYG_SUPPLIER_PASS) {
+        console.log('[ERROR] GetYourGuide credentials not configured');
         return res.status(400).json({ 
-          error: 'GetYourGuide API key not configured. Please set GYG_API_KEY in environment variables.' 
+          error: 'GetYourGuide credentials not configured. Please set GYG_SUPPLIER_USER and GYG_SUPPLIER_PASS in environment variables.' 
         });
       }
       
@@ -86,16 +85,13 @@ interface GetYourGuideActivity {
       try {
         console.log('[GYG] Calling real GetYourGuide Partner API...');
         
-        const response = await axios.get('https://api.getyourguide.com/1/tours', {
-          headers: {
-            'Authorization': `Bearer ${apiKey}`,
-            'Content-Type': 'application/json; charset=utf-8',
-            'Accept': 'application/json'
+        const response = await axios.get(`https://partner-api.getyourguide.com/1/tours?location=${query}`, {
+          auth: {
+            username: process.env.GYG_SUPPLIER_USER!,
+            password: process.env.GYG_SUPPLIER_PASS!,
           },
-          params: {
-            query: query,
-            currency: 'MAD',
-            limit: 10
+          headers: { 
+            Accept: "application/json" 
           },
           timeout: 15000
         });
@@ -140,7 +136,7 @@ interface GetYourGuideActivity {
         // Return specific error messages
         if (apiError.response?.status === 401) {
           return res.status(401).json({ 
-            error: 'Invalid GetYourGuide API key. Please check your GYG_API_KEY configuration.' 
+            error: 'Invalid GetYourGuide credentials. Please check your GYG_SUPPLIER_USER and GYG_SUPPLIER_PASS configuration.' 
           });
         } else if (apiError.response?.status === 429) {
           return res.status(429).json({ 
