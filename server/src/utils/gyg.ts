@@ -60,10 +60,10 @@ export async function pushAvailability(
     const payload = {
       data: {
         productId: productId,
+        vacancy: vacancy, // Move vacancy to root level of data
         availabilities: dates.map(date => ({
           dateTime: new Date(date.date).toISOString(),
           available: true,
-          vacancy: vacancy, // Put vacancy back inside each availability
           price: {
             currency: date.currency || "EUR",
             value: date.price
@@ -99,6 +99,18 @@ export async function pushAvailability(
     } else {
       console.error('[GYG] API Error - Status:', response.status);
       console.error('[GYG] API Error - Response:', response.data);
+      
+      // Check for specific GetYourGuide API errors
+      if (response.data?.data?.message?.includes('Vacancy can not be null or less than 0')) {
+        console.error('[GYG] Vacancy validation error - API expects different payload structure');
+        return {
+          status: 'error',
+          error: 'Vacancy validation failed - API expects different payload structure',
+          message: 'GetYourGuide API rejected payload due to vacancy field format',
+          details: response.data
+        };
+      }
+      
       return {
         status: 'error',
         error: response.data?.errorMessage || response.data?.errorCode || 'API request failed',
@@ -302,11 +314,11 @@ export async function testConnection(activity?: any): Promise<{status: string; r
     const payload = {
       data: {
         productId: "AGAFAY001",
+        vacancy: vacancy, // Move vacancy to root level of data
         availabilities: [
           {
             dateTime: new Date("2025-10-15T10:00:00Z").toISOString(),
             available: true,
-            vacancy: vacancy, // Put vacancy back inside each availability
             price: {
               currency: "EUR",
               value: 400
@@ -315,7 +327,6 @@ export async function testConnection(activity?: any): Promise<{status: string; r
           {
             dateTime: new Date("2025-10-16T10:00:00Z").toISOString(),
             available: true,
-            vacancy: vacancy, // Put vacancy back inside each availability
             price: {
               currency: "EUR",
               value: 420
