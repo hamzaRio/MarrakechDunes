@@ -1,4 +1,8 @@
 import axios from 'axios';
+import dotenv from 'dotenv';
+
+// Load environment variables
+dotenv.config();
 
 // GetYourGuide API configuration
 const GYG_SUPPLIER_BASE = process.env.GYG_SUPPLIER_BASE || 'https://supplier-api.getyourguide.com/sandbox/1';
@@ -78,11 +82,8 @@ export async function pushAvailability(
       `${GYG_SUPPLIER_BASE}/notify-availability-update`,
       payload,
       {
-        auth: {
-          username: GYG_SUPPLIER_USER,
-          password: GYG_SUPPLIER_PASS
-        },
         headers: {
+          'Authorization': getAuthHeader(),
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         },
@@ -334,11 +335,8 @@ export async function testConnection(activity?: any): Promise<{status: string; r
       `${GYG_SUPPLIER_BASE}/notify-availability-update`,
       payload,
       {
-        auth: {
-          username: GYG_SUPPLIER_USER,
-          password: GYG_SUPPLIER_PASS
-        },
         headers: {
+          'Authorization': getAuthHeader(),
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         },
