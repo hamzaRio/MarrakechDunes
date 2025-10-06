@@ -21,484 +21,39 @@ export interface GYGAvailability {
   max_participants?: number;
 }
 
-export interface GYGDeal {
-  deal_id: string;
-  title: string;
-  description: string;
-  discount_percentage: number;
-  valid_from: string;
-  valid_to: string;
-  min_participants?: number;
-  max_participants?: number;
-}
-
 export interface GYGResponse {
-  status: 'success' | 'error';
+  status: 'success' | 'error' | 'ok';
   message?: string;
   data?: any;
   error?: string;
   details?: any;
+  response?: any;
 }
 
 /**
- * Push availability updates to GetYourGuide
+ * Test GetYourGuide API connection (health check)
  */
-export async function pushAvailability(
-  productId: string,
-  dates: GYGAvailability[],
-  activity?: any
-): Promise<GYGResponse> {
-  try {
-    console.log('[GYG] Pushing availability for product:', productId);
-    
-    // Get capacity from activity or use default with defensive fallback
-    const activityCapacity = activity?.maxParticipants || activity?.capacitySettings?.maxParticipants || activity?.capacity || 10;
-    const vacancy = typeof activityCapacity === "number" && activityCapacity > 0 ? activityCapacity : 10;
-    console.log("[GYG] Using vacancy:", typeof vacancy, vacancy);
-    
-    // Use the correct payload structure for GetYourGuide Sandbox API
-    const payload = {
-      data: {
-        productId: productId,
-        vacancy: vacancy, // Move vacancy to root level of data
-        availabilities: dates.map(date => ({
-          dateTime: new Date(date.date).toISOString(),
-          available: true,
-          price: {
-            currency: date.currency || "EUR",
-            value: date.price
-          }
-        }))
-      }
-    };
-
-    console.log('[GYG] Sending availability payload:', JSON.stringify(payload, null, 2));
-
-    const response = await axios.post(
-      `${GYG_SUPPLIER_BASE}/notify-availability-update`,
-      payload,
-      {
-        headers: {
-          'Authorization': getAuthHeader(),
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        timeout: 15000
-      }
-    );
-
-    console.log('[GYG] Response:', JSON.stringify(response.data, null, 2));
-    
-    if (response.status >= 200 && response.status < 300) {
-      console.log('[GYG] Availability sync success:', response.status);
-      return {
-        status: 'success',
-        message: 'Availability updated successfully',
-        data: response.data
-      };
-    } else {
-      console.error('[GYG] API Error - Status:', response.status);
-      console.error('[GYG] API Error - Response:', response.data);
-      
-      // Check for specific GetYourGuide API errors
-      if (response.data?.data?.message?.includes('Vacancy can not be null or less than 0')) {
-        console.error('[GYG] Vacancy validation error - API expects different payload structure');
-        return {
-          status: 'error',
-          error: 'Vacancy validation failed - API expects different payload structure',
-          message: 'GetYourGuide API rejected payload due to vacancy field format',
-          details: response.data
-        };
-      }
-      
-      return {
-        status: 'error',
-        error: response.data?.errorMessage || response.data?.errorCode || 'API request failed',
-        message: 'Failed to push availability',
-        details: response.data
-      };
-    }
-  } catch (error: any) {
-    console.error('[GYG] Availability sync error:', error.message);
-    
-    if (error.response) {
-      console.error('[GYG] API Error Status:', error.response.status);
-      console.error('[GYG] API Error Data:', error.response.data);
-      console.error('[GYG] API Error Headers:', error.response.headers);
-      
-      // Handle specific GetYourGuide API errors
-      if (error.response.status >= 400) {
-        const errorData = error.response.data;
-        return {
-          status: 'error',
-          error: errorData?.errorMessage || errorData?.errorCode || 'API request failed',
-          message: 'Failed to push availability',
-          details: errorData
-        };
-      }
-    }
-    
-    return {
-      status: 'error',
-      error: error.response?.data?.errorMessage || error.response?.data?.errorCode || error.message || 'Failed to push availability',
-      message: 'Failed to push availability',
-      details: error.response?.data
-    };
-  }
-}
-
-/**
- * Push deals to GetYourGuide
- */
-export async function pushDeals(
-  productId: string,
-  dealData: GYGDeal
-): Promise<GYGResponse> {
-  try {
-    console.log('[GYG] Pushing deal for product:', productId);
-    
-    const payload = {
-      product_id: productId,
-      deal: {
-        deal_id: dealData.deal_id,
-        title: dealData.title,
-        description: dealData.description,
-        discount_percentage: dealData.discount_percentage,
-        valid_from: dealData.valid_from,
-        valid_to: dealData.valid_to,
-        min_participants: dealData.min_participants || 1,
-        max_participants: dealData.max_participants || 20
-      }
-    };
-
-    const response = await axios.post(
-      `${GYG_SUPPLIER_BASE}/deals`,
-      payload,
-      {
-        headers: {
-          'Authorization': getAuthHeader(),
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        timeout: 10000
-      }
-    );
-
-    console.log('[GYG] Deal sync success:', response.status);
-    return {
-      status: 'success',
-      message: 'Deal created successfully',
-      data: response.data
-    };
-  } catch (error: any) {
-    console.error('[GYG] Deal sync error:', error.message);
-    
-    if (error.response) {
-      console.error('[GYG] API Error Status:', error.response.status);
-      console.error('[GYG] API Error Data:', error.response.data);
-    }
-    
-    return {
-      status: 'error',
-      error: error.response?.data?.message || error.message || 'Failed to push deal'
-    };
-  }
-}
-
-/**
- * List deals from GetYourGuide
- */
-export async function listDeals(productId: string): Promise<GYGResponse> {
-  try {
-    console.log('[GYG] Listing deals for product:', productId);
-    
-    const response = await axios.get(
-      `${GYG_SUPPLIER_BASE}/deals?product_id=${productId}`,
-      {
-        headers: {
-          'Authorization': getAuthHeader(),
-          'Accept': 'application/json'
-        },
-        timeout: 10000
-      }
-    );
-
-    console.log('[GYG] Deals list success:', response.status);
-    return {
-      status: 'success',
-      message: 'Deals retrieved successfully',
-      data: response.data
-    };
-  } catch (error: any) {
-    console.error('[GYG] Deals list error:', error.message);
-    
-    if (error.response) {
-      console.error('[GYG] API Error Status:', error.response.status);
-      console.error('[GYG] API Error Data:', error.response.data);
-    }
-    
-    return {
-      status: 'error',
-      error: error.response?.data?.message || error.message || 'Failed to list deals'
-    };
-  }
-}
-
-/**
- * Delete deal from GetYourGuide
- */
-export async function deleteDeal(dealId: string): Promise<GYGResponse> {
-  try {
-    console.log('[GYG] Deleting deal:', dealId);
-    
-    const response = await axios.delete(
-      `${GYG_SUPPLIER_BASE}/deals/${dealId}`,
-      {
-        headers: {
-          'Authorization': getAuthHeader(),
-          'Accept': 'application/json'
-        },
-        timeout: 10000
-      }
-    );
-
-    console.log('[GYG] Deal deletion success:', response.status);
-    return {
-      status: 'success',
-      message: 'Deal deleted successfully',
-      data: response.data
-    };
-  } catch (error: any) {
-    console.error('[GYG] Deal deletion error:', error.message);
-    
-    if (error.response) {
-      console.error('[GYG] API Error Status:', error.response.status);
-      console.error('[GYG] API Error Data:', error.response.data);
-    }
-    
-    return {
-      status: 'error',
-      error: error.response?.data?.message || error.message || 'Failed to delete deal'
-    };
-  }
-}
-
-/**
- * Validate GetYourGuide API connection
- */
-export async function validateGYGConnection(): Promise<{status: string; message: string; details?: any}> {
-  try {
-    console.log('[GYG] Validating GetYourGuide API connection...');
-    
-    // Test basic connectivity with a simple GET request
-    const response = await axios.get(
-      `${GYG_SUPPLIER_BASE}/products`,
-      {
-        headers: {
-          'Authorization': getAuthHeader(),
-          'Accept': 'application/json'
-        },
-        timeout: 10000
-      }
-    );
-    
-    console.log('[GYG] API validation successful:', response.status);
-    return {
-      status: 'success',
-      message: 'GetYourGuide API connection validated',
-      details: response.data
-    };
-  } catch (error: any) {
-    console.error('[GYG] API validation failed:', error.message);
-    
-    if (error.response) {
-      console.error('[GYG] Validation Error Status:', error.response.status);
-      console.error('[GYG] Validation Error Data:', error.response.data);
-      
-      return {
-        status: 'error',
-        message: `API validation failed: ${error.response.status} - ${error.response.data?.errorMessage || error.response.data?.errorCode || 'Unknown error'}`,
-        details: error.response.data
-      };
-    }
-    
-    return {
-      status: 'error',
-      message: `API validation failed: ${error.message}`,
-      details: error.response?.data
-    };
-  }
-}
-
-/**
- * Test different payload structures for GetYourGuide API
- */
-export async function testPayloadStructures(): Promise<{status: string; results: any[]; message: string}> {
-  console.log('[GYG] Testing different payload structures...');
-  
-  const testStructures = [
-    {
-      name: 'Structure 1: vacancy at root level',
-      payload: {
-        data: {
-          productId: "AGAFAY001",
-          vacancy: 10,
-          availabilities: [
-            {
-              dateTime: "2025-10-15T10:00:00.000Z",
-              available: true,
-              price: { currency: "EUR", value: 400 }
-            }
-          ]
-        }
-      }
-    },
-    {
-      name: 'Structure 2: vacancy inside each availability',
-      payload: {
-        data: {
-          productId: "AGAFAY001",
-          availabilities: [
-            {
-              dateTime: "2025-10-15T10:00:00.000Z",
-              available: true,
-              vacancy: 10,
-              price: { currency: "EUR", value: 400 }
-            }
-          ]
-        }
-      }
-    },
-    {
-      name: 'Structure 3: capacity instead of vacancy',
-      payload: {
-        data: {
-          productId: "AGAFAY001",
-          availabilities: [
-            {
-              dateTime: "2025-10-15T10:00:00.000Z",
-              available: true,
-              capacity: 10,
-              price: { currency: "EUR", value: 400 }
-            }
-          ]
-        }
-      }
-    },
-    {
-      name: 'Structure 4: maxParticipants instead of vacancy',
-      payload: {
-        data: {
-          productId: "AGAFAY001",
-          availabilities: [
-            {
-              dateTime: "2025-10-15T10:00:00.000Z",
-              available: true,
-              maxParticipants: 10,
-              price: { currency: "EUR", value: 400 }
-            }
-          ]
-        }
-      }
-    },
-    {
-      name: 'Structure 5: No data wrapper',
-      payload: {
-        productId: "AGAFAY001",
-        availabilities: [
-          {
-            dateTime: "2025-10-15T10:00:00.000Z",
-            available: true,
-            vacancy: 10,
-            price: { currency: "EUR", value: 400 }
-          }
-        ]
-      }
-    }
-  ];
-  
-  const results = [];
-  
-  for (const structure of testStructures) {
-    try {
-      console.log(`[GYG] Testing ${structure.name}...`);
-      
-      const response = await axios.post(
-        `${GYG_SUPPLIER_BASE}/notify-availability-update`,
-        structure.payload,
-        {
-          headers: {
-            'Authorization': getAuthHeader(),
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
-          },
-          timeout: 15000
-        }
-      );
-      
-      results.push({
-        structure: structure.name,
-        status: 'success',
-        response: response.data,
-        statusCode: response.status
-      });
-      
-      console.log(`[GYG] ${structure.name} - SUCCESS:`, response.status);
-      
-    } catch (error: any) {
-      results.push({
-        structure: structure.name,
-        status: 'error',
-        error: error.response?.data || error.message,
-        statusCode: error.response?.status || 'N/A'
-      });
-      
-      console.log(`[GYG] ${structure.name} - FAILED:`, error.response?.data || error.message);
-    }
-  }
-  
-  return {
-    status: 'completed',
-    results: results,
-    message: 'Payload structure testing completed'
-  };
-}
-
-/**
- * Test GetYourGuide API connection
- */
-export async function testConnection(activity?: any): Promise<{status: string; response?: any; error?: string; message?: string; details?: any}> {
+export async function testConnection(activity?: any): Promise<GYGResponse> {
   try {
     console.log('[GYG] Testing connection to GetYourGuide API...');
-    
-    // Validate environment variables
-    if (!GYG_SUPPLIER_USER || !GYG_SUPPLIER_PASS) {
-      console.error('[GYG] Missing credentials - GYG_SUPPLIER_USER or GYG_SUPPLIER_PASS not set');
-      return {
-        status: 'error',
-        error: 'Missing credentials - GYG_SUPPLIER_USER or GYG_SUPPLIER_PASS not set',
-        message: 'GetYourGuide API connection failed'
-      };
-    }
-    
     console.log('[GYG] Using credentials:', {
       user: GYG_SUPPLIER_USER,
       base: GYG_SUPPLIER_BASE
     });
-    
+
     // Get capacity from activity or use default with defensive fallback
     const activityCapacity = activity?.maxParticipants || activity?.capacitySettings?.maxParticipants || activity?.capacity || 10;
     const vacancy = typeof activityCapacity === "number" && activityCapacity > 0 ? activityCapacity : 10;
     console.log("[GYG] Using vacancy:", typeof vacancy, vacancy);
-    
-    // Test with the correct payload structure for GetYourGuide Sandbox API
+
+    // Use the correct payload structure for GetYourGuide Sandbox API
     const payload = {
       data: {
         productId: "AGAFAY001",
-        vacancy: vacancy, // Move vacancy to root level of data
+        vacancy: vacancy,
         availabilities: [
           {
-            dateTime: new Date("2025-10-15T10:00:00Z").toISOString(),
+            dateTime: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days from now
             available: true,
             price: {
               currency: "EUR",
@@ -506,7 +61,7 @@ export async function testConnection(activity?: any): Promise<{status: string; r
             }
           },
           {
-            dateTime: new Date("2025-10-16T10:00:00Z").toISOString(),
+            dateTime: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(), // 14 days from now
             available: true,
             price: {
               currency: "EUR",
@@ -516,9 +71,9 @@ export async function testConnection(activity?: any): Promise<{status: string; r
         ]
       }
     };
-    
+
     console.log('[GYG] Sending test payload:', JSON.stringify(payload, null, 2));
-    
+
     const response = await axios.post(
       `${GYG_SUPPLIER_BASE}/notify-availability-update`,
       payload,
@@ -528,30 +83,18 @@ export async function testConnection(activity?: any): Promise<{status: string; r
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         },
-        timeout: 15000
+        timeout: 30000
       }
     );
-    
-    console.log('[GYG] Response:', JSON.stringify(response.data, null, 2));
-    
-    if (response.status >= 200 && response.status < 300) {
-      console.log('[GYG] Availability pushed successfully');
-      return {
-        status: 'ok',
-        response: response.data,
-        message: 'GetYourGuide API connection successful'
-      };
-    } else {
-      console.error('[GYG] API Error - Status:', response.status);
-      console.error('[GYG] API Error - Response:', response.data);
-      return {
-        status: 'error',
-        error: response.data?.errorMessage || response.data?.errorCode || 'API request failed',
-        message: 'GetYourGuide API connection failed',
-        details: response.data
-      };
-    }
-    
+
+    console.log('[GYG] Connection API Response Status:', response.status);
+    console.log('[GYG] Connection API Response Data:', response.data);
+
+    return {
+      status: 'ok',
+      response: response.data,
+      message: 'GetYourGuide API connection successful'
+    };
   } catch (error: any) {
     console.error('[GYG] Connection failed:', error.message);
     
@@ -560,23 +103,18 @@ export async function testConnection(activity?: any): Promise<{status: string; r
       console.error('[GYG] API Error Data:', error.response.data);
       console.error('[GYG] API Error Headers:', error.response.headers);
       
-      // Handle specific GetYourGuide API errors
-      if (error.response.status >= 400) {
-        const errorData = error.response.data;
-        return {
-          status: 'error',
-          error: errorData?.errorMessage || errorData?.errorCode || 'API request failed',
-          message: 'GetYourGuide API connection failed',
-          details: errorData
-        };
-      }
+      return {
+        status: 'error',
+        error: error.response.data?.errorMessage || error.response.data?.errorCode || 'API request failed',
+        message: 'GetYourGuide API connection failed',
+        details: error.response.data
+      };
     }
     
     return {
       status: 'error',
-      error: error.response?.data?.errorMessage || error.response?.data?.errorCode || error.message || 'GetYourGuide API connection failed',
-      message: 'GetYourGuide API connection failed',
-      details: error.response?.data
+      error: error.message,
+      message: 'Network or connection error'
     };
   }
 }

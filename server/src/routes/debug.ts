@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { testConnection, pushAvailability, validateGYGConnection, testPayloadStructures, GYGAvailability } from '../utils/gyg.js';
+import { testConnection } from '../utils/gyg.js';
 
 const router = Router();
 
@@ -39,32 +39,13 @@ router.get('/test-gyg', async (req: Request, res: Response) => {
       });
     }
     
-    // Test availability push with sample data
-    const sampleAvailability: GYGAvailability[] = [
-      {
-        date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 7 days from now
-        price: 250,
-        currency: 'MAD',
-        min_participants: 1,
-        max_participants: 20
-      },
-      {
-        date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 14 days from now
-        price: 280,
-        currency: 'MAD',
-        min_participants: 1,
-        max_participants: 20
-      }
-    ];
-    
-    const availabilityResult = await pushAvailability('AGAFAY001', sampleAvailability, sampleActivity);
+    // Test completed with connection only
     
     res.json({
       status: 'success',
       message: 'GetYourGuide API test completed',
       results: {
-        connection: connectionResult,
-        availability: availabilityResult
+        connection: connectionResult
       },
       environment: {
         supplier_base: process.env.GYG_SUPPLIER_BASE,
@@ -88,108 +69,33 @@ router.get('/test-gyg', async (req: Request, res: Response) => {
 });
 
 /**
- * Debug route to test availability push with custom data
- * POST /api/debug/test-availability
+ * Debug route to test GetYourGuide live search
+ * GET /api/debug/test-search?q=Marrakech
  */
-router.post('/test-availability', async (req: Request, res: Response) => {
+router.get('/test-search', async (req: Request, res: Response) => {
   try {
-    const { productId, dates, activity } = req.body;
+    const { q } = req.query;
+    const query = q || 'Marrakech';
     
-    if (!productId) {
-      return res.status(400).json({
-        status: 'error',
-        error: 'productId is required'
-      });
-    }
+    console.log('[DEBUG] Testing GetYourGuide live search for:', query);
     
-    const availabilityData: GYGAvailability[] = dates || [
-      {
-        date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        price: 250,
-        currency: 'MAD',
-        min_participants: 1,
-        max_participants: 20
-      }
-    ];
-    
-    console.log('[DEBUG] Testing availability push for product:', productId);
-    const result = await pushAvailability(productId, availabilityData, activity);
+    // Test the live search endpoint
+    const response = await fetch(`${process.env.CLIENT_URL || 'http://localhost:5173'}/api/gyg/search?q=${encodeURIComponent(query as string)}`);
+    const data = await response.json();
     
     res.json({
-      status: result.status,
-      message: result.status === 'success' ? 'Availability test successful' : 'Availability test failed',
-      result: result,
-      productId: productId,
-      dates: availabilityData
+      status: 'success',
+      message: 'GetYourGuide live search test completed',
+      query: query,
+      results: data,
+      endpoint: '/api/gyg/search'
     });
     
   } catch (error: any) {
-    console.error('[DEBUG] Availability test error:', error.message);
+    console.error('[DEBUG] Search test error:', error.message);
     res.status(500).json({
       status: 'error',
-      message: 'Availability test failed',
-      error: error.message
-    });
-  }
-});
-
-/**
- * Debug route to validate GetYourGuide API connection
- * GET /api/debug/validate-gyg
- */
-router.get('/validate-gyg', async (req: Request, res: Response) => {
-  try {
-    console.log('[DEBUG] Validating GetYourGuide API connection...');
-    
-    const result = await validateGYGConnection();
-    
-    res.json({
-      status: result.status,
-      message: result.message,
-      details: result.details,
-      environment: {
-        supplier_base: process.env.GYG_SUPPLIER_BASE,
-        supplier_user: process.env.GYG_SUPPLIER_USER,
-        enable_live_search: process.env.GYG_ENABLE_LIVE_SEARCH
-      }
-    });
-    
-  } catch (error: any) {
-    console.error('[DEBUG] GYG validation error:', error.message);
-    res.status(500).json({
-      status: 'error',
-      message: 'GetYourGuide API validation failed',
-      error: error.message
-    });
-  }
-});
-
-/**
- * Debug route to test different payload structures
- * GET /api/debug/test-payloads
- */
-router.get('/test-payloads', async (req: Request, res: Response) => {
-  try {
-    console.log('[DEBUG] Testing different payload structures...');
-    
-    const result = await testPayloadStructures();
-    
-    res.json({
-      status: result.status,
-      message: result.message,
-      results: result.results,
-      summary: {
-        total: result.results.length,
-        successful: result.results.filter(r => r.status === 'success').length,
-        failed: result.results.filter(r => r.status === 'error').length
-      }
-    });
-    
-  } catch (error: any) {
-    console.error('[DEBUG] Payload testing error:', error.message);
-    res.status(500).json({
-      status: 'error',
-      message: 'Payload structure testing failed',
+      message: 'GetYourGuide search test failed',
       error: error.message
     });
   }
