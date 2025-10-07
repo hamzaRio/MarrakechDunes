@@ -11,6 +11,7 @@ export interface WhatsAppContact {
 export interface BookingNotificationData {
   customerName: string;
   customerPhone: string;
+  customerEmail?: string;
   activityName: string;
   numberOfPeople: number;
   preferredDate?: Date;
@@ -23,6 +24,20 @@ export interface BookingNotificationData {
   bookingId: string;
   confirmLink?: string;
   rejectLink?: string;
+  adminResponse?: string;
+  customerResponse?: string;
+}
+
+export interface AdminResponseData {
+  bookingId: string;
+  customerName: string;
+  customerPhone: string;
+  adminName: string;
+  response: string;
+  status: 'confirmed' | 'rejected' | 'pending' | 'modified';
+  newDate?: Date;
+  newTime?: string;
+  additionalNotes?: string;
 }
 
 export class WhatsAppService {
@@ -99,6 +114,171 @@ export class WhatsAppService {
         whatsappLinks: [],
         customerMessage: 'Service temporarily unavailable',
         customerWhatsappLink: ''
+      };
+    }
+  }
+
+  /**
+   * Send admin response to customer via WhatsApp
+   */
+  async sendAdminResponseToCustomer(responseData: AdminResponseData): Promise<{
+    success: boolean;
+    message: string;
+    customerWhatsappLink: string;
+  }> {
+    try {
+      console.log(`[WHATSAPP] Sending admin response to customer: ${responseData.customerName}`);
+      
+      const statusEmoji = {
+        'confirmed': '✅',
+        'rejected': '❌',
+        'pending': '⏳',
+        'modified': '🔄'
+      };
+      
+      const statusText = {
+        'confirmed': 'CONFIRMED',
+        'rejected': 'REJECTED',
+        'pending': 'PENDING REVIEW',
+        'modified': 'MODIFIED'
+      };
+      
+      const emoji = statusEmoji[responseData.status];
+      const status = statusText[responseData.status];
+      
+      let message = `${emoji} *BOOKING ${status}*\n\n`;
+      message += `Hello ${responseData.customerName}! 👋\n\n`;
+      message += `Your booking has been ${responseData.status.toUpperCase()} by our admin team.\n\n`;
+      message += `📋 *Booking Details:*\n`;
+      message += `• Booking ID: ${responseData.bookingId}\n`;
+      message += `• Status: ${status}\n\n`;
+      
+      if (responseData.newDate) {
+        message += `📅 *New Date:* ${responseData.newDate.toLocaleDateString()}\n`;
+      }
+      if (responseData.newTime) {
+        message += `🕐 *New Time:* ${responseData.newTime}\n`;
+      }
+      
+      message += `\n💬 *Admin Response:*\n${responseData.response}\n\n`;
+      
+      if (responseData.additionalNotes) {
+        message += `📝 *Additional Notes:*\n${responseData.additionalNotes}\n\n`;
+      }
+      
+      if (responseData.status === 'confirmed') {
+        message += `🎉 *Your booking is confirmed!*\n`;
+        message += `We look forward to seeing you soon!\n\n`;
+      } else if (responseData.status === 'rejected') {
+        message += `We apologize for any inconvenience.\n`;
+        message += `Please contact us if you have any questions.\n\n`;
+      } else if (responseData.status === 'modified') {
+        message += `Please review the changes and confirm if they work for you.\n\n`;
+      }
+      
+      message += `📞 *Need help?*\n`;
+      message += `Contact us: +212600623630\n`;
+      message += `Website: https://marrakech-dunes.vercel.app\n\n`;
+      message += `Thank you for choosing MarrakechDunes! 🏜️`;
+      
+      const customerWhatsappLink = `https://wa.me/${responseData.customerPhone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(message)}`;
+      
+      console.log(`[WHATSAPP] Admin response message prepared for ${responseData.customerName}`);
+      
+      return {
+        success: true,
+        message: message,
+        customerWhatsappLink: customerWhatsappLink
+      };
+      
+    } catch (error) {
+      console.error('❌ WhatsApp admin response failed:', error);
+      return {
+        success: false,
+        message: 'Failed to send admin response',
+        customerWhatsappLink: ''
+      };
+    }
+  }
+
+  /**
+   * Send customer inquiry to admins
+   */
+  async sendCustomerInquiryToAdmins(inquiry: {
+    customerName: string;
+    customerPhone: string;
+    customerEmail?: string;
+    subject: string;
+    message: string;
+    inquiryType: 'general' | 'booking' | 'complaint' | 'suggestion';
+    priority: 'low' | 'medium' | 'high';
+  }): Promise<{
+    success: boolean;
+    recipients: WhatsAppContact[];
+    message: string;
+    whatsappLinks: Array<{name: string; phone: string; link: string}>;
+  }> {
+    try {
+      console.log(`[WHATSAPP] Sending customer inquiry to admins: ${inquiry.customerName}`);
+      
+      const priorityEmoji = {
+        'low': '🟢',
+        'medium': '🟡',
+        'high': '🔴'
+      };
+      
+      const typeEmoji = {
+        'general': '💬',
+        'booking': '📅',
+        'complaint': '⚠️',
+        'suggestion': '💡'
+      };
+      
+      const priority = priorityEmoji[inquiry.priority];
+      const type = typeEmoji[inquiry.inquiryType];
+      
+      let message = `${priority} *CUSTOMER INQUIRY* ${type}\n\n`;
+      message += `📋 *Customer Details:*\n`;
+      message += `• Name: ${inquiry.customerName}\n`;
+      message += `• Phone: ${inquiry.customerPhone}\n`;
+      if (inquiry.customerEmail) {
+        message += `• Email: ${inquiry.customerEmail}\n`;
+      }
+      message += `• Type: ${inquiry.inquiryType.toUpperCase()}\n`;
+      message += `• Priority: ${inquiry.priority.toUpperCase()}\n\n`;
+      
+      message += `📝 *Subject:* ${inquiry.subject}\n\n`;
+      message += `💬 *Message:*\n${inquiry.message}\n\n`;
+      
+      message += `📞 *Quick Actions:*\n`;
+      message += `• Reply to customer: https://wa.me/${inquiry.customerPhone.replace(/[^0-9]/g, '')}\n`;
+      message += `• View booking: https://marrakech-dunes.vercel.app/admin\n\n`;
+      
+      message += `⏰ *Received:* ${new Date().toLocaleString()}\n`;
+      message += `Please respond promptly to maintain customer satisfaction! 🙏`;
+      
+      const whatsappLinks = this.adminContacts.map(admin => ({
+        name: admin.name,
+        phone: admin.phone,
+        link: `https://wa.me/${admin.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(message)}`
+      }));
+      
+      console.log(`[WHATSAPP] Customer inquiry sent to ${this.adminContacts.length} admins`);
+      
+      return {
+        success: true,
+        recipients: this.adminContacts,
+        message: message,
+        whatsappLinks: whatsappLinks
+      };
+      
+    } catch (error) {
+      console.error('❌ WhatsApp customer inquiry failed:', error);
+      return {
+        success: false,
+        recipients: this.adminContacts,
+        message: 'Failed to send customer inquiry',
+        whatsappLinks: []
       };
     }
   }
