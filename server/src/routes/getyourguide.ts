@@ -1,6 +1,8 @@
 import { Router, Request, Response } from 'express';
 import axios from 'axios';
 import { testConnection } from '../utils/gyg.js';
+import { GYGFetcher, GYGActivity } from '../utils/gygFetcher.js';
+import GYGCache from '../models/GYGCache.js';
 
 const router = Router();
 
@@ -44,139 +46,143 @@ interface GetYourGuideActivity {
 }
 
 /**
- * Search GetYourGuide activities
- * GET /api/gyg/search?q=...
+ * Search GetYourGuide activities with MongoDB caching and public site scraping
+ * GET /api/gyg/search?q=...&forceRefresh=true
  */
-  router.get('/search', async (req: Request, res: Response) => {
-    try {
-      const { q } = req.query;
-      
-      if (!q || typeof q !== 'string' || q.length < 3) {
-        return res.status(400).json({
-          error: 'Query parameter "q" is required and must be at least 3 characters long'
-        });
-      }
-
-      const query = q.trim();
-      console.log('[GYG] Live GetYourGuide search request:', { query });
-
-      // Check cache first
-      const cacheKey = `search_${query}`;
-      const cached = cache.get(cacheKey);
-      if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-        console.log('[GYG] Returning cached results for:', query);
-        return res.json(cached.data);
-      }
-      
-      // Validate credentials
-      if (!process.env.GYG_SUPPLIER_USER || !process.env.GYG_SUPPLIER_PASS) {
-        console.log('[ERROR] GetYourGuide credentials not configured');
-        return res.status(400).json({ 
-          error: 'GetYourGuide credentials not configured. Please set GYG_SUPPLIER_USER and GYG_SUPPLIER_PASS in environment variables.' 
-        });
-      }
-      
-      let activities: any[] = [];
-      
-      try {
-        console.log('[GYG] Calling real GetYourGuide Partner API...');
-        
-        const response = await axios.get(`${process.env.GYG_SUPPLIER_BASE}/tours?location=${query}`, {
-          auth: {
-            username: process.env.GYG_SUPPLIER_USER!,
-            password: process.env.GYG_SUPPLIER_PASS!,
-          },
-          headers: { 
-            Accept: "application/json",
-            'Content-Type': 'application/json'
-          },
-          timeout: 15000
-        });
-        
-        console.log('[GYG] API Response Status:', response.status);
-        console.log('[GYG] API Response Data Keys:', Object.keys(response.data || {}));
-        
-        if (response.data && response.data.tours && Array.isArray(response.data.tours)) {
-          activities = response.data.tours.map((tour: any) => {
-            const gygPrice = tour.price?.amount || tour.price || 0;
-            const currency = tour.price?.currency || 'MAD';
-            const suggestedPrice = calculateSuggestedPrice(gygPrice, currency);
-            
-            return {
-              id: tour.id || `gyg-${Date.now()}`,
-              title: tour.title || 'Untitled Activity',
-              gygPrice: gygPrice,
-              suggestedPrice: suggestedPrice,
-              currency: currency,
-              image: tour.picture?.url || tour.image || null,
-              link: tour.links?.activity_link || tour.url || `https://www.getyourguide.com/activity-${tour.id}`,
-              description: tour.description || null,
-              duration: tour.duration || null,
-              rating: tour.rating || null,
-              reviewCount: tour.review_count || tour.reviewCount || null
-            };
-          });
-          
-          console.log('[SUCCESS] Real GetYourGuide API returned:', activities.length, 'activities');
-        } else {
-          console.log('[WARNING] No tours found in API response');
-          activities = [];
-        }
-      } catch (apiError: any) {
-        console.error('[ERROR] GetYourGuide API call failed:', {
-          message: apiError.message,
-          status: apiError.response?.status,
-          statusText: apiError.response?.statusText,
-          data: apiError.response?.data
-        });
-        
-        // Fallback to mock data when API fails
-        console.log('[GYG] Using fallback mock data for:', query);
-        activities = [
-          {
-            id: `mock-${Date.now()}-1`,
-            title: `${query} Day Trip`,
-            gygPrice: 250,
-            suggestedPrice: 225,
-            currency: 'MAD',
-            image: null,
-            link: `https://www.getyourguide.com/search?q=${encodeURIComponent(query)}`,
-            description: `Discover the beauty of ${query} with our guided day trip`,
-            duration: '8 hours',
-            rating: 4.5,
-            reviewCount: 120
-          },
-          {
-            id: `mock-${Date.now()}-2`,
-            title: `${query} City Tour`,
-            gygPrice: 180,
-            suggestedPrice: 162,
-            currency: 'MAD',
-            image: null,
-            link: `https://www.getyourguide.com/search?q=${encodeURIComponent(query)}`,
-            description: `Explore ${query} with our comprehensive city tour`,
-            duration: '4 hours',
-            rating: 4.2,
-            reviewCount: 85
-          }
-        ];
-        
-        console.log('[GYG] Fallback data generated:', activities.length, 'activities');
-      }
-
-      // Cache the results
-      cache.set(cacheKey, { data: activities, timestamp: Date.now() });
-
-      console.log('[SUCCESS] Returning GetYourGuide suggestions:', activities.length, 'activities');
-      res.json(activities);
-
-    } catch (error: any) {
-      console.error('[ERROR] GetYourGuide search error:', error.message);
-      return res.status(500).json({ 
-        error: 'Internal server error during GetYourGuide search' 
+router.get('/search', async (req: Request, res: Response) => {
+  try {
+    const { q, forceRefresh } = req.query;
+    
+    if (!q || typeof q !== 'string' || q.length < 3) {
+      return res.status(400).json({
+        error: 'Query parameter "q" is required and must be at least 3 characters long'
       });
     }
-  });
+
+    const query = q.trim().toLowerCase();
+    const shouldForceRefresh = forceRefresh === 'true';
+    
+    console.log(`[GYG Search] Query="${query}" | ForceRefresh=${shouldForceRefresh}`);
+
+    // Check MongoDB cache first (unless force refresh is requested)
+    if (!shouldForceRefresh) {
+      try {
+        const cachedResult = await GYGCache.findOne({ 
+          query: query,
+          expiresAt: { $gt: new Date() }
+        });
+
+        if (cachedResult) {
+          console.log(`[GYG Search] Query="${query}" | Source=cache | Results=${cachedResult.results.length}`);
+          return res.json(cachedResult.results);
+        }
+      } catch (cacheError: any) {
+        console.warn(`[GYG Search] Cache lookup failed for "${query}":`, cacheError.message);
+      }
+    }
+
+    // Fetch fresh data from GetYourGuide public site
+    let activities: GYGActivity[] = [];
+    let source = 'live';
+
+    try {
+      console.log(`[GYG Search] Query="${query}" | Fetching from live GetYourGuide...`);
+      
+      // Check if live search is enabled
+      if (process.env.GYG_ENABLE_LIVE_SEARCH === 'true') {
+        activities = await GYGFetcher.searchActivities(query);
+        
+        if (activities.length === 0) {
+          console.log(`[GYG Search] Query="${query}" | No live results, using fallback`);
+          activities = GYGFetcher.generateFallbackActivities(query);
+          source = 'fallback';
+        }
+      } else {
+        console.log(`[GYG Search] Query="${query}" | Live search disabled, using fallback`);
+        activities = GYGFetcher.generateFallbackActivities(query);
+        source = 'fallback';
+      }
+
+      // Transform activities to match expected format
+      const transformedActivities = activities.map(activity => ({
+        id: activity.id,
+        title: activity.title,
+        gygPrice: activity.price,
+        suggestedPrice: calculateSuggestedPrice(activity.price, activity.currency),
+        currency: activity.currency,
+        image: activity.image || null,
+        link: activity.link,
+        description: `${activity.title} - ${activity.duration || 'Duration varies'}`,
+        duration: activity.duration || null,
+        rating: activity.rating,
+        reviewCount: activity.reviewCount,
+        location: activity.location || null
+      }));
+
+      // Save to MongoDB cache
+      try {
+        await GYGCache.findOneAndUpdate(
+          { query: query },
+          {
+            query: query,
+            results: transformedActivities,
+            lastFetched: new Date(),
+            source: source,
+            expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
+          },
+          { upsert: true, new: true }
+        );
+        console.log(`[GYG Search] Query="${query}" | Cached ${transformedActivities.length} results`);
+      } catch (cacheError: any) {
+        console.warn(`[GYG Search] Failed to cache results for "${query}":`, cacheError.message);
+      }
+
+      console.log(`[GYG Search] Query="${query}" | Source=${source} | Results=${transformedActivities.length}`);
+      res.json(transformedActivities);
+
+    } catch (fetchError: any) {
+      console.error(`[GYG Search] Live fetch failed for "${query}":`, fetchError.message);
+      
+      // Try to return cached results even if expired
+      try {
+        const expiredCache = await GYGCache.findOne({ query: query });
+        if (expiredCache && expiredCache.results.length > 0) {
+          console.log(`[GYG Search] Query="${query}" | Source=expired-cache | Results=${expiredCache.results.length}`);
+          return res.json(expiredCache.results);
+        }
+      } catch (cacheError: any) {
+        console.warn(`[GYG Search] Failed to get expired cache for "${query}":`, cacheError.message);
+      }
+
+      // Final fallback
+      const fallbackActivities = GYGFetcher.generateFallbackActivities(query);
+      const transformedFallback = fallbackActivities.map(activity => ({
+        id: activity.id,
+        title: activity.title,
+        gygPrice: activity.price,
+        suggestedPrice: calculateSuggestedPrice(activity.price, activity.currency),
+        currency: activity.currency,
+        image: activity.image || null,
+        link: activity.link,
+        description: `${activity.title} - ${activity.duration || 'Duration varies'}`,
+        duration: activity.duration || null,
+        rating: activity.rating,
+        reviewCount: activity.reviewCount,
+        location: activity.location || null
+      }));
+
+      console.log(`[GYG Search] Query="${query}" | Source=emergency-fallback | Results=${transformedFallback.length}`);
+      res.json(transformedFallback);
+    }
+
+  } catch (error: any) {
+    console.error('[GYG Search] Unexpected error:', error.message);
+    return res.status(500).json({ 
+      error: 'Internal server error during GetYourGuide search',
+      message: error.message
+    });
+  }
+});
 
 /**
  * Test GetYourGuide API connection
@@ -350,6 +356,82 @@ router.get('/activities', async (req: Request, res: Response) => {
     console.error('[ERROR] GetYourGuide all activities error:', error.message);
     return res.status(500).json({
       error: 'Internal server error during GetYourGuide all activities fetch'
+    });
+  }
+});
+
+/**
+ * Cache management endpoints
+ * GET /api/gyg/cache/stats - Get cache statistics
+ * DELETE /api/gyg/cache/clear - Clear all cache
+ * DELETE /api/gyg/cache/clear?query=... - Clear specific query cache
+ */
+router.get('/cache/stats', async (req: Request, res: Response) => {
+  try {
+    const totalEntries = await GYGCache.countDocuments();
+    const activeEntries = await GYGCache.countDocuments({ expiresAt: { $gt: new Date() } });
+    const expiredEntries = totalEntries - activeEntries;
+    
+    const recentEntries = await GYGCache.find({})
+      .sort({ lastFetched: -1 })
+      .limit(10)
+      .select('query lastFetched source results')
+      .lean();
+
+    res.json({
+      status: 'success',
+      cache: {
+        totalEntries,
+        activeEntries,
+        expiredEntries,
+        recentEntries: recentEntries.map(entry => ({
+          query: entry.query,
+          lastFetched: entry.lastFetched,
+          source: entry.source,
+          resultCount: entry.results.length
+        }))
+      },
+      timestamp: new Date().toISOString()
+    });
+  } catch (error: any) {
+    console.error('[GYG] Cache stats error:', error.message);
+    res.status(500).json({
+      status: 'error',
+      error: error.message,
+      message: 'Failed to get cache statistics'
+    });
+  }
+});
+
+router.delete('/cache/clear', async (req: Request, res: Response) => {
+  try {
+    const { query } = req.query;
+    
+    if (query && typeof query === 'string') {
+      // Clear specific query
+      const result = await GYGCache.deleteOne({ query: query.trim().toLowerCase() });
+      console.log(`[GYG] Cleared cache for query: "${query}"`);
+      res.json({
+        status: 'success',
+        message: `Cache cleared for query: "${query}"`,
+        deletedCount: result.deletedCount
+      });
+    } else {
+      // Clear all cache
+      const result = await GYGCache.deleteMany({});
+      console.log(`[GYG] Cleared all cache entries: ${result.deletedCount}`);
+      res.json({
+        status: 'success',
+        message: 'All cache entries cleared',
+        deletedCount: result.deletedCount
+      });
+    }
+  } catch (error: any) {
+    console.error('[GYG] Cache clear error:', error.message);
+    res.status(500).json({
+      status: 'error',
+      error: error.message,
+      message: 'Failed to clear cache'
     });
   }
 });

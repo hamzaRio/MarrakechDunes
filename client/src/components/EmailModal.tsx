@@ -102,77 +102,82 @@ export default function EmailModal({
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl bg-white shadow-xl rounded-lg border-0">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+          <DialogTitle className="flex items-center gap-2 text-gray-900">
             <Mail className="h-5 w-5" />
             Send Email to Customer
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-gray-600">
             Send a personalized email message to the customer.
           </DialogDescription>
         </DialogHeader>
         
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4 bg-white">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="customerName">Customer Name</Label>
+              <Label htmlFor="customerName" className="text-gray-700 font-medium">Customer Name</Label>
               <Input
                 id="customerName"
                 value={formData.customerName}
                 onChange={(e) => handleInputChange('customerName', e.target.value)}
                 placeholder="Enter customer name"
+                className="bg-white border-gray-300 text-gray-900"
                 required
               />
             </div>
             <div>
-              <Label htmlFor="customerEmail">Customer Email</Label>
+              <Label htmlFor="customerEmail" className="text-gray-700 font-medium">Customer Email</Label>
               <Input
                 id="customerEmail"
                 type="email"
                 value={formData.customerEmail}
                 onChange={(e) => handleInputChange('customerEmail', e.target.value)}
                 placeholder="Enter customer email"
+                className="bg-white border-gray-300 text-gray-900"
                 required
               />
             </div>
           </div>
           
           <div>
-            <Label htmlFor="subject">Subject</Label>
+            <Label htmlFor="subject" className="text-gray-700 font-medium">Subject</Label>
             <Input
               id="subject"
               value={formData.subject}
               onChange={(e) => handleInputChange('subject', e.target.value)}
               placeholder="Enter email subject"
+              className="bg-white border-gray-300 text-gray-900"
               required
             />
           </div>
           
           <div>
-            <Label htmlFor="message">Message</Label>
+            <Label htmlFor="message" className="text-gray-700 font-medium">Message</Label>
             <Textarea
               id="message"
               value={formData.message}
               onChange={(e) => handleInputChange('message', e.target.value)}
               placeholder="Enter your message to the customer..."
               rows={6}
+              className="bg-white border-gray-300 text-gray-900"
               required
             />
           </div>
           
-          <div className="flex justify-end gap-2 pt-4">
+          <div className="flex justify-end gap-2 pt-4 bg-white">
             <Button 
               type="button" 
               variant="outline" 
               onClick={() => setIsOpen(false)}
+              className="border-gray-300 text-gray-700 hover:bg-gray-50"
             >
               Cancel
             </Button>
             <Button 
               type="submit" 
               disabled={sendEmailMutation.isPending}
-              className="bg-blue-600 hover:bg-blue-700"
+              className="bg-blue-600 hover:bg-blue-700 text-white"
             >
               {sendEmailMutation.isPending ? (
                 <>

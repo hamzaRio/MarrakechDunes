@@ -244,7 +244,7 @@ export default function GYGSearchSuggestions({
       )}
 
       {/* Suggestions dropdown */}
-      {showSuggestions && (suggestions.length > 0 || error) && (
+      {showSuggestions && (suggestions.length > 0 || error || (!isLoading && query.length >= 3)) && (
         <div
           ref={suggestionsRef}
           className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl max-h-80 overflow-y-auto"
@@ -253,6 +253,11 @@ export default function GYGSearchSuggestions({
             <div className="p-4 text-center text-red-600">
               <p className="text-sm">{error}</p>
               <p className="text-xs text-gray-500 mt-1">Try: Day Trip, Tour, or Experience near {query}</p>
+            </div>
+          ) : suggestions.length === 0 && !isLoading ? (
+            <div className="p-4 text-center text-gray-600">
+              <p className="text-sm">No exact match found on GetYourGuide</p>
+              <p className="text-xs text-gray-500 mt-1">Try variations like "Day Trip", "Tour", or "Experience"</p>
             </div>
           ) : (
             suggestions.map((activity) => (
@@ -315,7 +320,7 @@ export default function GYGSearchSuggestions({
 
       {/* Help text */}
       <p className="text-xs text-gray-500 mt-2">
-        💡 Live data from GetYourGuide Partner API — for reference only. Click suggestions to auto-fill and lock fields.
+        💡 Live data from GetYourGuide public site with MongoDB caching — for reference only. Click suggestions to auto-fill and lock fields.
       </p>
     </div>
   );
