@@ -18,19 +18,15 @@ router.use((req, res, next) => {
  * Calculate suggested price based on GetYourGuide price and competitive pricing rules
  */
 function calculateSuggestedPrice(gygPrice: number, currency: string): number {
-  // Get configuration from environment variables
-  const undercutPercent = parseFloat(process.env.GYG_UNDERCUT_PERCENT || '0.1'); // Default 10%
-  const marginFixed = parseFloat(process.env.GYG_MARGIN_FIXED || '0'); // Default 0
-  const minPrice = parseFloat(process.env.GYG_MIN_PRICE || '15'); // Default 15 EUR
+  // Simple pricing strategy: 10% undercut with minimum price
+  const undercutPercent = 0.1; // 10% undercut
+  const minPrice = 15; // Minimum 15 MAD
   
   // Calculate undercut price (percentage cheaper than GYG)
   const undercut = gygPrice * (1 - undercutPercent);
   
-  // Apply fixed margin adjustment
-  const marginAdjusted = undercut + marginFixed;
-  
   // Ensure minimum price is respected
-  const suggestedPrice = Math.max(marginAdjusted, minPrice);
+  const suggestedPrice = Math.max(undercut, minPrice);
   
   // Round to 2 decimal places
   return Math.round(suggestedPrice * 100) / 100;
@@ -200,6 +196,40 @@ router.get('/test', async (req: Request, res: Response) => {
       status: 'error',
       error: error.message,
       message: 'GetYourGuide API test failed'
+    });
+  }
+});
+
+/**
+ * Simple test route for debugging
+ * GET /api/gyg/debug
+ */
+router.get('/debug', async (req: Request, res: Response) => {
+  try {
+    console.log('[GYG] Debug route called');
+    
+    // Test environment variables
+    const envCheck = {
+      GYG_SUPPLIER_BASE: process.env.GYG_SUPPLIER_BASE,
+      GYG_SUPPLIER_USER: process.env.GYG_SUPPLIER_USER ? 'SET' : 'NOT SET',
+      GYG_SUPPLIER_PASS: process.env.GYG_SUPPLIER_PASS ? 'SET' : 'NOT SET',
+      GYG_ENABLE_LIVE_SEARCH: process.env.GYG_ENABLE_LIVE_SEARCH
+    };
+    
+    console.log('[GYG] Environment check:', envCheck);
+    
+    res.json({
+      status: 'success',
+      message: 'GetYourGuide debug route working',
+      environment: envCheck,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error: any) {
+    console.error('[GYG] Debug route error:', error.message);
+    res.status(500).json({
+      status: 'error',
+      error: error.message,
+      message: 'GetYourGuide debug route failed'
     });
   }
 });
