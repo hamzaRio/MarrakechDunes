@@ -21,13 +21,15 @@ export class GYGFetcher {
   private static readonly MAX_RESULTS = 15;
 
   /**
-   * Search GetYourGuide public site for activities (Global Search)
+   * Search GetYourGuide public site for Morocco activities only
    */
   static async searchActivities(query: string): Promise<GYGActivity[]> {
     try {
-      console.log(`[GYG Fetcher] Global search for: "${query}"`);
+      console.log(`[GYG Fetcher] Morocco-only search for: "${query}"`);
       
-      const searchUrl = `${this.SEARCH_URL}?q=${encodeURIComponent(query)}&searchSource=3`;
+      // Add Morocco location filter to search
+      const moroccoQuery = `${query} Morocco`;
+      const searchUrl = `${this.SEARCH_URL}?q=${encodeURIComponent(moroccoQuery)}&searchSource=3`;
       
       const response = await axios.get(searchUrl, {
         headers: {
@@ -53,10 +55,13 @@ export class GYGFetcher {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
-      const activities = this.parseGlobalSearchResults(response.data, query);
-      console.log(`[GYG Fetcher] Found ${activities.length} global activities for "${query}"`);
+      const allActivities = this.parseGlobalSearchResults(response.data, query);
       
-      return activities;
+      // Filter to only Morocco activities
+      const moroccoActivities = this.filterMoroccoActivities(allActivities, query);
+      console.log(`[GYG Fetcher] Found ${moroccoActivities.length} Morocco activities for "${query}" (from ${allActivities.length} total)`);
+      
+      return moroccoActivities;
     } catch (error: any) {
       console.error(`[GYG Fetcher] Global search error for "${query}":`, error.message);
       throw error;
@@ -424,13 +429,73 @@ export class GYGFetcher {
   }
 
   /**
-   * Generate fallback activities for global destinations
+   * Filter activities to only include Morocco-based ones
+   */
+  private static filterMoroccoActivities(activities: GYGActivity[], query: string): GYGActivity[] {
+    const moroccoKeywords = [
+      'morocco', 'marrakech', 'agadir', 'casablanca', 'rabat', 'fes', 'fez',
+      'essaouira', 'chefchaouen', 'tangier', 'ouarzazate', 'merzouga', 'agafay',
+      'ouzoud', 'atlas', 'sahara', 'medina', 'souk', 'riad', 'kasbah',
+      'berber', 'argan', 'hammam', 'tagine', 'mint tea'
+    ];
+
+    return activities.filter(activity => {
+      const searchText = `${activity.title} ${activity.location || ''}`.toLowerCase();
+      
+      // Check if activity is clearly Morocco-related
+      const isMorocco = moroccoKeywords.some(keyword => searchText.includes(keyword));
+      
+      // Also check if the original query contains Morocco keywords
+      const queryIsMorocco = moroccoKeywords.some(keyword => query.toLowerCase().includes(keyword));
+      
+      return isMorocco || queryIsMorocco;
+    });
+  }
+
+  /**
+   * Generate fallback activities for Morocco destinations only
    */
   static generateFallbackActivities(query: string): GYGActivity[] {
     const queryLower = query.toLowerCase();
     
-    const globalFallbackActivities: Record<string, GYGActivity[]> = {
-      // Morocco
+    const moroccoFallbackActivities: Record<string, GYGActivity[]> = {
+      // Marrakech
+      'marrakech': [
+        {
+          id: 'fallback-marrakech-1',
+          title: 'Marrakech City Tour with Local Guide',
+          price: 180,
+          currency: 'MAD',
+          rating: 4.5,
+          reviewCount: 120,
+          link: 'https://www.getyourguide.com/marrakech-l208/marrakech-city-tour-t123456/',
+          duration: '4 hours',
+          location: 'Marrakech, Morocco'
+        },
+        {
+          id: 'fallback-marrakech-2',
+          title: 'Jemaa el-Fnaa Food Tour',
+          price: 120,
+          currency: 'MAD',
+          rating: 4.3,
+          reviewCount: 78,
+          link: 'https://www.getyourguide.com/marrakech-l208/jemaa-el-fnaa-food-tour-t123457/',
+          duration: '3 hours',
+          location: 'Marrakech, Morocco'
+        },
+        {
+          id: 'fallback-marrakech-3',
+          title: 'Atlas Mountains Day Trip',
+          price: 350,
+          currency: 'MAD',
+          rating: 4.8,
+          reviewCount: 95,
+          link: 'https://www.getyourguide.com/marrakech-l208/atlas-mountains-day-trip-t123458/',
+          duration: '8 hours',
+          location: 'Atlas Mountains, Morocco'
+        }
+      ],
+      // Agafay
       'agafay': [
         {
           id: 'fallback-agafay-1',
@@ -516,323 +581,287 @@ export class GYGFetcher {
           location: 'Chefchaouen, Morocco'
         }
       ],
-      // Paris
-      'paris': [
+      // Agadir
+      'agadir': [
         {
-          id: 'fallback-paris-1',
-          title: 'Eiffel Tower Summit Access with Guide',
-          price: 60,
-          currency: 'EUR',
-          rating: 4.7,
-          reviewCount: 2341,
-          link: 'https://www.getyourguide.com/paris-l16/eiffel-tower-summit-t123463/',
-          duration: '2 hours',
-          location: 'Paris, France'
-        },
-        {
-          id: 'fallback-paris-2',
-          title: 'Louvre Museum Skip-the-Line Ticket',
-          price: 25,
-          currency: 'EUR',
-          rating: 4.6,
-          reviewCount: 1876,
-          link: 'https://www.getyourguide.com/paris-l16/louvre-museum-t123464/',
-          duration: '3 hours',
-          location: 'Paris, France'
-        }
-      ],
-      'eiffel': [
-        {
-          id: 'fallback-eiffel-1',
-          title: 'Eiffel Tower Summit Access with Guide',
-          price: 60,
-          currency: 'EUR',
-          rating: 4.7,
-          reviewCount: 2341,
-          link: 'https://www.getyourguide.com/paris-l16/eiffel-tower-summit-t123463/',
-          duration: '2 hours',
-          location: 'Paris, France'
-        }
-      ],
-      // Rome
-      'rome': [
-        {
-          id: 'fallback-rome-1',
-          title: 'Colosseum Skip-the-Line Tour with Arena Floor',
-          price: 45,
-          currency: 'EUR',
-          rating: 4.8,
-          reviewCount: 3421,
-          link: 'https://www.getyourguide.com/rome-l33/colosseum-arena-tour-t123465/',
-          duration: '3 hours',
-          location: 'Rome, Italy'
-        },
-        {
-          id: 'fallback-rome-2',
-          title: 'Vatican Museums and Sistine Chapel Tour',
-          price: 35,
-          currency: 'EUR',
-          rating: 4.6,
-          reviewCount: 2156,
-          link: 'https://www.getyourguide.com/rome-l33/vatican-museums-t123466/',
-          duration: '4 hours',
-          location: 'Vatican City'
-        }
-      ],
-      'colosseum': [
-        {
-          id: 'fallback-colosseum-1',
-          title: 'Colosseum Skip-the-Line Tour with Arena Floor',
-          price: 45,
-          currency: 'EUR',
-          rating: 4.8,
-          reviewCount: 3421,
-          link: 'https://www.getyourguide.com/rome-l33/colosseum-arena-tour-t123465/',
-          duration: '3 hours',
-          location: 'Rome, Italy'
-        }
-      ],
-      // London
-      'london': [
-        {
-          id: 'fallback-london-1',
-          title: 'London Eye Standard Ticket',
-          price: 35,
-          currency: 'GBP',
-          rating: 4.4,
-          reviewCount: 1876,
-          link: 'https://www.getyourguide.com/london-l57/london-eye-t123467/',
-          duration: '30 minutes',
-          location: 'London, UK'
-        },
-        {
-          id: 'fallback-london-2',
-          title: 'Tower of London and Crown Jewels Tour',
-          price: 28,
-          currency: 'GBP',
-          rating: 4.5,
-          reviewCount: 1234,
-          link: 'https://www.getyourguide.com/london-l57/tower-london-t123468/',
-          duration: '2 hours',
-          location: 'London, UK'
-        }
-      ],
-      'london eye': [
-        {
-          id: 'fallback-london-eye-1',
-          title: 'London Eye Standard Ticket',
-          price: 35,
-          currency: 'GBP',
-          rating: 4.4,
-          reviewCount: 1876,
-          link: 'https://www.getyourguide.com/london-l57/london-eye-t123467/',
-          duration: '30 minutes',
-          location: 'London, UK'
-        }
-      ],
-      // New York
-      'new york': [
-        {
-          id: 'fallback-ny-1',
-          title: 'Statue of Liberty and Ellis Island Tour',
-          price: 45,
-          currency: 'USD',
-          rating: 4.6,
-          reviewCount: 2876,
-          link: 'https://www.getyourguide.com/new-york-l59/statue-liberty-t123469/',
-          duration: '4 hours',
-          location: 'New York, USA'
-        },
-        {
-          id: 'fallback-ny-2',
-          title: 'Central Park Walking Tour',
-          price: 25,
-          currency: 'USD',
-          rating: 4.5,
-          reviewCount: 1456,
-          link: 'https://www.getyourguide.com/new-york-l59/central-park-t123470/',
-          duration: '2 hours',
-          location: 'New York, USA'
-        }
-      ],
-      'central park': [
-        {
-          id: 'fallback-central-park-1',
-          title: 'Central Park Walking Tour',
-          price: 25,
-          currency: 'USD',
-          rating: 4.5,
-          reviewCount: 1456,
-          link: 'https://www.getyourguide.com/new-york-l59/central-park-t123470/',
-          duration: '2 hours',
-          location: 'New York, USA'
-        }
-      ],
-      // Dubai
-      'dubai': [
-        {
-          id: 'fallback-dubai-1',
-          title: 'Dubai Desert Safari with BBQ Dinner',
-          price: 85,
-          currency: 'USD',
-          rating: 4.7,
-          reviewCount: 2134,
-          link: 'https://www.getyourguide.com/dubai-l71/desert-safari-t123471/',
+          id: 'fallback-agadir-1',
+          title: 'Agadir Beach Day Experience',
+          price: 150,
+          currency: 'MAD',
+          rating: 4.2,
+          reviewCount: 65,
+          link: 'https://www.getyourguide.com/agadir-l209/agadir-beach-day-t123459/',
           duration: '6 hours',
-          location: 'Dubai, UAE'
+          location: 'Agadir, Morocco'
         },
         {
-          id: 'fallback-dubai-2',
-          title: 'Burj Khalifa At the Top Ticket',
-          price: 65,
-          currency: 'USD',
+          id: 'fallback-agadir-2',
+          title: 'Souss Valley Tour from Agadir',
+          price: 280,
+          currency: 'MAD',
+          rating: 4.6,
+          reviewCount: 45,
+          link: 'https://www.getyourguide.com/agadir-l209/souss-valley-tour-t123460/',
+          duration: '7 hours',
+          location: 'Souss Valley, Morocco'
+        }
+      ],
+      // Casablanca
+      'casablanca': [
+        {
+          id: 'fallback-casablanca-1',
+          title: 'Hassan II Mosque Tour',
+          price: 200,
+          currency: 'MAD',
+          rating: 4.7,
+          reviewCount: 89,
+          link: 'https://www.getyourguide.com/casablanca-l210/hassan-ii-mosque-t123461/',
+          duration: '2 hours',
+          location: 'Casablanca, Morocco'
+        },
+        {
+          id: 'fallback-casablanca-2',
+          title: 'Casablanca City Center Tour',
+          price: 160,
+          currency: 'MAD',
+          rating: 4.1,
+          reviewCount: 52,
+          link: 'https://www.getyourguide.com/casablanca-l210/casablanca-city-tour-t123462/',
+          duration: '4 hours',
+          location: 'Casablanca, Morocco'
+        }
+      ],
+      // Rabat
+      'rabat': [
+        {
+          id: 'fallback-rabat-1',
+          title: 'Rabat Royal Tour',
+          price: 220,
+          currency: 'MAD',
+          rating: 4.4,
+          reviewCount: 67,
+          link: 'https://www.getyourguide.com/rabat-l211/rabat-royal-tour-t123463/',
+          duration: '5 hours',
+          location: 'Rabat, Morocco'
+        },
+        {
+          id: 'fallback-rabat-2',
+          title: 'Chellah Necropolis Visit',
+          price: 140,
+          currency: 'MAD',
+          rating: 4.0,
+          reviewCount: 34,
+          link: 'https://www.getyourguide.com/rabat-l211/chellah-necropolis-t123464/',
+          duration: '3 hours',
+          location: 'Rabat, Morocco'
+        }
+      ],
+      // Fes
+      'fes': [
+        {
+          id: 'fallback-fes-1',
+          title: 'Fes Medina Walking Tour',
+          price: 190,
+          currency: 'MAD',
+          rating: 4.6,
+          reviewCount: 112,
+          link: 'https://www.getyourguide.com/fes-l212/fes-medina-tour-t123465/',
+          duration: '4 hours',
+          location: 'Fes, Morocco'
+        },
+        {
+          id: 'fallback-fes-2',
+          title: 'Al-Qarawiyyin University Tour',
+          price: 110,
+          currency: 'MAD',
           rating: 4.3,
-          reviewCount: 1876,
-          link: 'https://www.getyourguide.com/dubai-l71/burj-khalifa-t123472/',
-          duration: '1 hour',
-          location: 'Dubai, UAE'
+          reviewCount: 56,
+          link: 'https://www.getyourguide.com/fes-l212/al-qarawiyyin-university-t123466/',
+          duration: '2 hours',
+          location: 'Fes, Morocco'
         }
       ],
-      'desert safari': [
+      // Essaouira
+      'essaouira': [
         {
-          id: 'fallback-desert-safari-1',
-          title: 'Dubai Desert Safari with BBQ Dinner',
-          price: 85,
-          currency: 'USD',
-          rating: 4.7,
-          reviewCount: 2134,
-          link: 'https://www.getyourguide.com/dubai-l71/desert-safari-t123471/',
+          id: 'fallback-essaouira-1',
+          title: 'Essaouira Beach Day',
+          price: 170,
+          currency: 'MAD',
+          rating: 4.5,
+          reviewCount: 83,
+          link: 'https://www.getyourguide.com/essaouira-l213/essaouira-beach-day-t123467/',
           duration: '6 hours',
-          location: 'Dubai, UAE'
-        }
-      ],
-      // Bangkok
-      'bangkok': [
-        {
-          id: 'fallback-bangkok-1',
-          title: 'Floating Market Day Trip from Bangkok',
-          price: 35,
-          currency: 'USD',
-          rating: 4.4,
-          reviewCount: 1234,
-          link: 'https://www.getyourguide.com/bangkok-l169/floating-market-t123473/',
-          duration: '8 hours',
-          location: 'Bangkok, Thailand'
+          location: 'Essaouira, Morocco'
         },
         {
-          id: 'fallback-bangkok-2',
-          title: 'Grand Palace and Wat Pho Temple Tour',
-          price: 25,
-          currency: 'USD',
-          rating: 4.6,
-          reviewCount: 1876,
-          link: 'https://www.getyourguide.com/bangkok-l169/grand-palace-t123474/',
-          duration: '4 hours',
-          location: 'Bangkok, Thailand'
+          id: 'fallback-essaouira-2',
+          title: 'Essaouira Medina Tour',
+          price: 130,
+          currency: 'MAD',
+          rating: 4.2,
+          reviewCount: 47,
+          link: 'https://www.getyourguide.com/essaouira-l213/essaouira-medina-tour-t123468/',
+          duration: '3 hours',
+          location: 'Essaouira, Morocco'
         }
       ],
-      'floating market': [
+      // Tangier
+      'tangier': [
         {
-          id: 'fallback-floating-market-1',
-          title: 'Floating Market Day Trip from Bangkok',
-          price: 35,
-          currency: 'USD',
+          id: 'fallback-tangier-1',
+          title: 'Tangier City Tour',
+          price: 180,
+          currency: 'MAD',
+          rating: 4.3,
+          reviewCount: 91,
+          link: 'https://www.getyourguide.com/tangier-l214/tangier-city-tour-t123469/',
+          duration: '4 hours',
+          location: 'Tangier, Morocco'
+        },
+        {
+          id: 'fallback-tangier-2',
+          title: 'Hercules Caves Tour',
+          price: 140,
+          currency: 'MAD',
+          rating: 4.1,
+          reviewCount: 58,
+          link: 'https://www.getyourguide.com/tangier-l214/hercules-caves-t123470/',
+          duration: '3 hours',
+          location: 'Tangier, Morocco'
+        }
+      ],
+      // Ouarzazate
+      'ouarzazate': [
+        {
+          id: 'fallback-ouarzazate-1',
+          title: 'Ouarzazate Film Studios Tour',
+          price: 250,
+          currency: 'MAD',
           rating: 4.4,
-          reviewCount: 1234,
-          link: 'https://www.getyourguide.com/bangkok-l169/floating-market-t123473/',
-          duration: '8 hours',
-          location: 'Bangkok, Thailand'
+          reviewCount: 78,
+          link: 'https://www.getyourguide.com/ouarzazate-l215/film-studios-tour-t123471/',
+          duration: '3 hours',
+          location: 'Ouarzazate, Morocco'
+        }
+      ],
+      // Merzouga
+      'merzouga': [
+        {
+          id: 'fallback-merzouga-1',
+          title: 'Merzouga Desert Camp Experience',
+          price: 450,
+          currency: 'MAD',
+          rating: 4.8,
+          reviewCount: 156,
+          link: 'https://www.getyourguide.com/merzouga-l216/desert-camp-t123472/',
+          duration: '2 days',
+          location: 'Merzouga, Morocco'
         }
       ]
     };
 
     // Find matching fallback activities
-    for (const [key, activities] of Object.entries(globalFallbackActivities)) {
+    for (const [key, activities] of Object.entries(moroccoFallbackActivities)) {
       if (queryLower.includes(key)) {
-        console.log(`[GYG Fetcher] Using global fallback activities for "${query}"`);
+        console.log(`[GYG Fetcher] Using Morocco fallback activities for "${query}"`);
         return activities;
       }
     }
 
-    // Generic fallback based on query
-    const genericFallback = this.generateGenericFallback(query);
-    console.log(`[GYG Fetcher] Using generic fallback for "${query}"`);
+    // Generic Morocco fallback based on query
+    const genericFallback = this.generateMoroccoGenericFallback(query);
+    console.log(`[GYG Fetcher] Using generic Morocco fallback for "${query}"`);
     return genericFallback;
   }
 
   /**
-   * Generate generic fallback activities
+   * Generate generic Morocco fallback activities
    */
-  private static generateGenericFallback(query: string): GYGActivity[] {
+  private static generateMoroccoGenericFallback(query: string): GYGActivity[] {
     const queryWords = query.toLowerCase().split(' ');
-    const isCity = this.isLikelyCity(query);
+    const isCity = this.isLikelyMoroccoCity(query);
     const isActivity = this.isLikelyActivity(query);
     
     if (isCity) {
       return [
         {
-          id: `fallback-city-${Date.now()}`,
-          title: `${query} City Tour`,
-          price: 35,
-          currency: 'USD',
+          id: `fallback-morocco-city-${Date.now()}`,
+          title: `${query} City Tour in Morocco`,
+          price: 180,
+          currency: 'MAD',
           rating: 4.5,
           reviewCount: 150,
-          link: `https://www.getyourguide.com/s/?q=${encodeURIComponent(query)}`,
-          duration: '3 hours',
-          location: query
+          link: `https://www.getyourguide.com/s/?q=${encodeURIComponent(query + ' Morocco')}`,
+          duration: '4 hours',
+          location: `${query}, Morocco`
         },
         {
-          id: `fallback-city-2-${Date.now()}`,
+          id: `fallback-morocco-city-2-${Date.now()}`,
           title: `${query} Walking Tour`,
-          price: 25,
-          currency: 'USD',
+          price: 120,
+          currency: 'MAD',
           rating: 4.3,
           reviewCount: 89,
-          link: `https://www.getyourguide.com/s/?q=${encodeURIComponent(query)}`,
-          duration: '2 hours',
-          location: query
+          link: `https://www.getyourguide.com/s/?q=${encodeURIComponent(query + ' Morocco')}`,
+          duration: '3 hours',
+          location: `${query}, Morocco`
         }
       ];
     } else if (isActivity) {
       return [
         {
-          id: `fallback-activity-${Date.now()}`,
-          title: `${query} Experience`,
-          price: 45,
-          currency: 'USD',
+          id: `fallback-morocco-activity-${Date.now()}`,
+          title: `${query} Experience in Morocco`,
+          price: 250,
+          currency: 'MAD',
           rating: 4.4,
           reviewCount: 120,
-          link: `https://www.getyourguide.com/s/?q=${encodeURIComponent(query)}`,
+          link: `https://www.getyourguide.com/s/?q=${encodeURIComponent(query + ' Morocco')}`,
           duration: '4 hours',
-          location: 'Various locations'
+          location: 'Morocco'
         }
       ];
     } else {
       return [
         {
-          id: `fallback-generic-${Date.now()}`,
-          title: `${query} Tour and Experience`,
-          price: 40,
-          currency: 'USD',
+          id: `fallback-morocco-generic-${Date.now()}`,
+          title: `${query} Tour and Experience in Morocco`,
+          price: 200,
+          currency: 'MAD',
           rating: 4.5,
           reviewCount: 75,
-          link: `https://www.getyourguide.com/s/?q=${encodeURIComponent(query)}`,
+          link: `https://www.getyourguide.com/s/?q=${encodeURIComponent(query + ' Morocco')}`,
           duration: '3 hours',
-          location: 'Various locations'
+          location: 'Morocco'
         }
       ];
     }
   }
 
   /**
-   * Check if query is likely a city name
+   * Check if query is likely a Morocco city name
    */
-  private static isLikelyCity(query: string): boolean {
-    const cityKeywords = ['city', 'town', 'capital', 'metropolis'];
+  private static isLikelyMoroccoCity(query: string): boolean {
+    const moroccoCities = [
+      'marrakech', 'agadir', 'casablanca', 'rabat', 'fes', 'fez',
+      'essaouira', 'chefchaouen', 'tangier', 'ouarzazate', 'merzouga',
+      'tetouan', 'meknes', 'el jadida', 'safi', 'kenitra', 'nador'
+    ];
+    
     const queryLower = query.toLowerCase();
     
-    return cityKeywords.some(keyword => queryLower.includes(keyword)) ||
-           queryLower.split(' ').length <= 2; // Short queries are likely cities
+    // Check if it's a known Morocco city
+    const isKnownCity = moroccoCities.some(city => queryLower.includes(city));
+    
+    // Check if it has city keywords
+    const cityKeywords = ['city', 'town', 'capital', 'medina'];
+    const hasCityKeywords = cityKeywords.some(keyword => queryLower.includes(keyword));
+    
+    // Short queries are likely cities
+    const isShortQuery = queryLower.split(' ').length <= 2;
+    
+    return isKnownCity || hasCityKeywords || isShortQuery;
   }
 
   /**

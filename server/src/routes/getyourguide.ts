@@ -64,7 +64,7 @@ router.get('/search', async (req: Request, res: Response) => {
     const shouldForceRefresh = forceRefresh === 'true';
     const startTime = Date.now();
     
-    console.log(`[GYG Global Search] Query="${query}" | ForceRefresh=${shouldForceRefresh}`);
+    console.log(`[GYG Morocco Search] Query="${query}" | ForceRefresh=${shouldForceRefresh}`);
 
     // Check MongoDB cache first (unless force refresh is requested)
     if (!shouldForceRefresh) {
@@ -76,11 +76,11 @@ router.get('/search', async (req: Request, res: Response) => {
 
         if (cachedResult) {
           const searchTime = Date.now() - startTime;
-          console.log(`[GYG Global Search] Query="${query}" | Source=cache | Results=${cachedResult.resultCount} | Time=${searchTime}ms`);
+          console.log(`[GYG Morocco Search] Query="${query}" | Source=cache | Results=${cachedResult.resultCount} | Time=${searchTime}ms`);
           return res.json(cachedResult.results);
         }
       } catch (cacheError: any) {
-        console.warn(`[GYG Global Search] Cache lookup failed for "${query}":`, cacheError.message);
+        console.warn(`[GYG Morocco Search] Cache lookup failed for "${query}":`, cacheError.message);
       }
     }
 
@@ -139,32 +139,32 @@ router.get('/search', async (req: Request, res: Response) => {
           },
           { upsert: true, new: true }
         );
-        console.log(`[GYG Global Search] Query="${query}" | Cached ${transformedActivities.length} results | Time=${searchTime}ms`);
+        console.log(`[GYG Morocco Search] Query="${query}" | Cached ${transformedActivities.length} results | Time=${searchTime}ms`);
       } catch (cacheError: any) {
-        console.warn(`[GYG Global Search] Failed to cache results for "${query}":`, cacheError.message);
+        console.warn(`[GYG Morocco Search] Failed to cache results for "${query}":`, cacheError.message);
       }
 
       const searchTime = Date.now() - startTime;
-      console.log(`[GYG Global Search] Query="${query}" | Source=${source} | Results=${transformedActivities.length} | Time=${searchTime}ms`);
+      console.log(`[GYG Morocco Search] Query="${query}" | Source=${source} | Results=${transformedActivities.length} | Time=${searchTime}ms`);
       res.json(transformedActivities);
 
     } catch (fetchError: any) {
-      console.error(`[GYG Global Search] Live fetch failed for "${query}":`, fetchError.message);
+      console.error(`[GYG Morocco Search] Live fetch failed for "${query}":`, fetchError.message);
       
       // Try to return cached results even if expired
       try {
         const expiredCache = await GYGCache.findOne({ normalizedQuery: normalizedQuery });
         if (expiredCache && expiredCache.results.length > 0) {
           const searchTime = Date.now() - startTime;
-          console.log(`[GYG Global Search] Query="${query}" | Source=expired-cache | Results=${expiredCache.resultCount} | Time=${searchTime}ms`);
+          console.log(`[GYG Morocco Search] Query="${query}" | Source=expired-cache | Results=${expiredCache.resultCount} | Time=${searchTime}ms`);
           return res.json(expiredCache.results);
         }
       } catch (cacheError: any) {
-        console.warn(`[GYG Global Search] Failed to get expired cache for "${query}":`, cacheError.message);
+        console.warn(`[GYG Morocco Search] Failed to get expired cache for "${query}":`, cacheError.message);
       }
 
       // Final fallback with enhanced logging
-      console.log(`[GYG Global Search] Using global fallback data for: "${query}"`);
+      console.log(`[GYG Morocco Search] Using Morocco fallback data for: "${query}"`);
       const fallbackActivities = GYGFetcher.generateFallbackActivities(query);
       const transformedFallback = fallbackActivities.map(activity => ({
         id: activity.id,
@@ -199,11 +199,11 @@ router.get('/search', async (req: Request, res: Response) => {
           { upsert: true, new: true }
         );
       } catch (cacheError: any) {
-        console.warn(`[GYG Global Search] Failed to cache fallback for "${query}":`, cacheError.message);
+        console.warn(`[GYG Morocco Search] Failed to cache fallback for "${query}":`, cacheError.message);
       }
 
       const searchTime = Date.now() - startTime;
-      console.log(`[GYG Global Search] Query="${query}" | Source=emergency-fallback | Results=${transformedFallback.length} | Time=${searchTime}ms`);
+      console.log(`[GYG Morocco Search] Query="${query}" | Source=emergency-fallback | Results=${transformedFallback.length} | Time=${searchTime}ms`);
       res.json(transformedFallback);
     }
 
