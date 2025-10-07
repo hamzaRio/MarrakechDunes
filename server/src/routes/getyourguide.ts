@@ -87,7 +87,8 @@ interface GetYourGuideActivity {
             password: process.env.GYG_SUPPLIER_PASS!,
           },
           headers: { 
-            Accept: "application/json" 
+            Accept: "application/json",
+            'Content-Type': 'application/json'
           },
           timeout: 15000
         });

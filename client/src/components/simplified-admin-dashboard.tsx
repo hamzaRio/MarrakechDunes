@@ -27,6 +27,7 @@ import { apiFetch } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { useLanguage } from "@/hooks/use-language";
+import EmailModal from "@/components/EmailModal";
 import type { BookingType, ActivityType } from "marrakechdunes-shared/schema";
 
 interface BookingWithActivity extends BookingType {
@@ -451,15 +452,21 @@ export default function SimplifiedAdminDashboard() {
                     </Button>
                     
                     {booking.customerEmail && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => window.open(`mailto:${booking.customerEmail}`, '_blank')}
-                        className="flex items-center gap-1"
-                      >
-                        <Mail className="h-4 w-4" />
-                        Email
-                      </Button>
+                      <EmailModal
+                        customerEmail={booking.customerEmail}
+                        customerName={booking.customerName}
+                        bookingId={booking._id}
+                        trigger={
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="flex items-center gap-1"
+                          >
+                            <Mail className="h-4 w-4" />
+                            Email
+                          </Button>
+                        }
+                      />
                     )}
 
                     {/* Action Buttons */}

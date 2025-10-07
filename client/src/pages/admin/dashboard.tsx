@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, Users, TrendingUp, Activity, Settings, Crown, MessageCircle, LogOut, BarChart3, PieChart, Monitor, Server, Download, FileText } from "lucide-react";
+import { Calendar, Users, TrendingUp, Activity, Settings, Crown, MessageCircle, LogOut, BarChart3, PieChart, Monitor, Server, Download, FileText, Mail } from "lucide-react";
 import AdminRoute from "@/components/admin-route";
 import { useAuth } from "@/hooks/use-auth";
 import { useLanguage } from "@/hooks/use-language";
@@ -15,6 +15,7 @@ import { WhatsAppNotificationPanel } from "@/components/whatsapp-notification-pa
 import ActivityManagementModal from "@/components/activity-management-modal";
 import CashAnalyticsDashboard from "@/components/cash-analytics-dashboard";
 import CashBookingReminders from "@/components/cash-booking-reminders";
+import EmailModal from "@/components/EmailModal";
 import { apiFetch, logout } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import SEOHead from "@/components/seo-head";
@@ -494,6 +495,19 @@ Average per booking: ${activityBookings.length ? Math.round(totalRevenue / activ
                           >
                             Send WhatsApp
                           </Button>
+                          {booking.customerEmail && (
+                            <EmailModal
+                              customerEmail={booking.customerEmail}
+                              customerName={booking.customerName}
+                              bookingId={booking._id || booking.id || ''}
+                              trigger={
+                                <Button size="sm" variant="outline" className="flex items-center gap-1">
+                                  <Mail className="h-4 w-4" />
+                                  Email
+                                </Button>
+                              }
+                            />
+                          )}
                           <Button
                             variant="destructive"
                             size="sm"

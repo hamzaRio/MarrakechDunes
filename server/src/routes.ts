@@ -2629,6 +2629,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   }));
 
+  // Send email to customer endpoint
+  app.post("/api/notifications/email/send", adminSecurityMiddleware, asyncHandler(async (req: Request, res: Response) => {
+    const authReq = req as AuthenticatedRequest;
+    const { customerEmail, customerName, subject, message, bookingId } = req.body;
+    
+    if (!customerEmail || !customerName || !subject || !message) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'All fields are required: customerEmail, customerName, subject, message',
+        code: 'MISSING_FIELDS'
+      });
+    }
+    
+    try {
+      // Send email using the email service
+      const emailData = {
+        customerName,
+        customerPhone: customerEmail,
+        activityName: 'Custom Message',
+        numberOfPeople: 1,
+        preferredDate: new Date(),
+        totalAmount: 0,
+        bookingId: bookingId || 'EMAIL-' + Date.now()
+      };
+      
+      const emailSent = await emailService.sendBookingConfirmation(emailData);
+      
+      // Create audit log
+      await storage.createAuditLog({
+        userId: authReq.session.user!.id,
+        action: `Sent email to ${customerName} (${customerEmail})`,
+        details: JSON.stringify({ 
+          customerEmail, 
+          customerName, 
+          subject, 
+          message, 
+          bookingId,
+          emailSent 
+        })
+      });
+      
+      res.json({
+        status: emailSent ? 'success' : 'error',
+        message: emailSent ? 'Email sent successfully' : 'Failed to send email',
+        emailSent
+      });
+    } catch (error: any) {
+      console.error('Email sending error:', error);
+      res.status(500).json({
+        status: 'error',
+        message: 'Failed to send email',
+        error: error.message
+      });
+    }
+  }));
+
   // ===== DYNAMIC PRICING ENDPOINTS =====
   
   // Get pricing quote
