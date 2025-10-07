@@ -157,7 +157,7 @@ export default function GYGSearchSuggestions({
     <div className={`relative ${className}`}>
       <div className="flex items-center justify-between mb-2">
         <Label htmlFor="gyg-search" className="text-sm font-medium text-gray-700">
-          🏆 GetYourGuide Live Search
+          🌍 GetYourGuide Global Search
         </Label>
         {selectedActivity && (
           <div className="flex items-center gap-2">
@@ -184,7 +184,7 @@ export default function GYGSearchSuggestions({
           ref={inputRef}
           id="gyg-search"
           type="text"
-          placeholder="Search GetYourGuide activities (e.g., Agadir, Essaouira, Rabat...)"
+          placeholder="Search global destinations (e.g., Paris Eiffel Tower, Rome Colosseum, London Eye, Dubai Desert Safari...)"
           value={query}
           onChange={handleInputChange}
           onFocus={() => setShowSuggestions(true)}
@@ -257,7 +257,8 @@ export default function GYGSearchSuggestions({
           ) : suggestions.length === 0 && !isLoading ? (
             <div className="p-4 text-center text-gray-600">
               <p className="text-sm">No exact match found on GetYourGuide</p>
-              <p className="text-xs text-gray-500 mt-1">Try variations like "Day Trip", "Tour", or "Experience"</p>
+              <p className="text-xs text-gray-500 mt-1">Try variations like "City Tour", "Day Trip", or "Experience"</p>
+              <p className="text-xs text-gray-400 mt-1">Supports global destinations: Paris, Rome, London, New York, Dubai, Bangkok...</p>
             </div>
           ) : (
             suggestions.map((activity) => (
@@ -291,6 +292,11 @@ export default function GYGSearchSuggestions({
                         <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
                           Suggested: {formatPrice(activity.suggestedPrice, activity.currency)}
                         </Badge>
+                        {activity.location && (
+                          <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                            📍 {activity.location}
+                          </Badge>
+                        )}
                       </div>
                       <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
                         {activity.rating && (
@@ -320,7 +326,7 @@ export default function GYGSearchSuggestions({
 
       {/* Help text */}
       <p className="text-xs text-gray-500 mt-2">
-        💡 Live data from GetYourGuide public site with MongoDB caching — for reference only. Click suggestions to auto-fill and lock fields.
+        💡 Global live data from GetYourGuide public site with MongoDB caching — for reference only. Click suggestions to auto-fill and lock fields.
       </p>
     </div>
   );

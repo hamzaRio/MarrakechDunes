@@ -59,25 +59,28 @@ router.get('/search', async (req: Request, res: Response) => {
       });
     }
 
-    const query = q.trim().toLowerCase();
+    const query = q.trim();
+    const normalizedQuery = query.toLowerCase();
     const shouldForceRefresh = forceRefresh === 'true';
+    const startTime = Date.now();
     
-    console.log(`[GYG Search] Query="${query}" | ForceRefresh=${shouldForceRefresh}`);
+    console.log(`[GYG Global Search] Query="${query}" | ForceRefresh=${shouldForceRefresh}`);
 
     // Check MongoDB cache first (unless force refresh is requested)
     if (!shouldForceRefresh) {
       try {
         const cachedResult = await GYGCache.findOne({ 
-          query: query,
+          normalizedQuery: normalizedQuery,
           expiresAt: { $gt: new Date() }
         });
 
         if (cachedResult) {
-          console.log(`[GYG Search] Query="${query}" | Source=cache | Results=${cachedResult.results.length}`);
+          const searchTime = Date.now() - startTime;
+          console.log(`[GYG Global Search] Query="${query}" | Source=cache | Results=${cachedResult.resultCount} | Time=${searchTime}ms`);
           return res.json(cachedResult.results);
         }
       } catch (cacheError: any) {
-        console.warn(`[GYG Search] Cache lookup failed for "${query}":`, cacheError.message);
+        console.warn(`[GYG Global Search] Cache lookup failed for "${query}":`, cacheError.message);
       }
     }
 
@@ -119,42 +122,49 @@ router.get('/search', async (req: Request, res: Response) => {
         location: activity.location || null
       }));
 
-      // Save to MongoDB cache
+      // Save to MongoDB cache with enhanced metadata
       try {
+        const searchTime = Date.now() - startTime;
         await GYGCache.findOneAndUpdate(
-          { query: query },
+          { normalizedQuery: normalizedQuery },
           {
             query: query,
+            normalizedQuery: normalizedQuery,
             results: transformedActivities,
-            lastFetched: new Date(),
             source: source,
+            resultCount: transformedActivities.length,
+            searchTime: searchTime,
+            lastFetched: new Date(),
             expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
           },
           { upsert: true, new: true }
         );
-        console.log(`[GYG Search] Query="${query}" | Cached ${transformedActivities.length} results`);
+        console.log(`[GYG Global Search] Query="${query}" | Cached ${transformedActivities.length} results | Time=${searchTime}ms`);
       } catch (cacheError: any) {
-        console.warn(`[GYG Search] Failed to cache results for "${query}":`, cacheError.message);
+        console.warn(`[GYG Global Search] Failed to cache results for "${query}":`, cacheError.message);
       }
 
-      console.log(`[GYG Search] Query="${query}" | Source=${source} | Results=${transformedActivities.length}`);
+      const searchTime = Date.now() - startTime;
+      console.log(`[GYG Global Search] Query="${query}" | Source=${source} | Results=${transformedActivities.length} | Time=${searchTime}ms`);
       res.json(transformedActivities);
 
     } catch (fetchError: any) {
-      console.error(`[GYG Search] Live fetch failed for "${query}":`, fetchError.message);
+      console.error(`[GYG Global Search] Live fetch failed for "${query}":`, fetchError.message);
       
       // Try to return cached results even if expired
       try {
-        const expiredCache = await GYGCache.findOne({ query: query });
+        const expiredCache = await GYGCache.findOne({ normalizedQuery: normalizedQuery });
         if (expiredCache && expiredCache.results.length > 0) {
-          console.log(`[GYG Search] Query="${query}" | Source=expired-cache | Results=${expiredCache.results.length}`);
+          const searchTime = Date.now() - startTime;
+          console.log(`[GYG Global Search] Query="${query}" | Source=expired-cache | Results=${expiredCache.resultCount} | Time=${searchTime}ms`);
           return res.json(expiredCache.results);
         }
       } catch (cacheError: any) {
-        console.warn(`[GYG Search] Failed to get expired cache for "${query}":`, cacheError.message);
+        console.warn(`[GYG Global Search] Failed to get expired cache for "${query}":`, cacheError.message);
       }
 
-      // Final fallback
+      // Final fallback with enhanced logging
+      console.log(`[GYG Global Search] Using global fallback data for: "${query}"`);
       const fallbackActivities = GYGFetcher.generateFallbackActivities(query);
       const transformedFallback = fallbackActivities.map(activity => ({
         id: activity.id,
@@ -171,7 +181,29 @@ router.get('/search', async (req: Request, res: Response) => {
         location: activity.location || null
       }));
 
-      console.log(`[GYG Search] Query="${query}" | Source=emergency-fallback | Results=${transformedFallback.length}`);
+      // Cache fallback results
+      try {
+        const searchTime = Date.now() - startTime;
+        await GYGCache.findOneAndUpdate(
+          { normalizedQuery: normalizedQuery },
+          {
+            query: query,
+            normalizedQuery: normalizedQuery,
+            results: transformedFallback,
+            source: 'fallback',
+            resultCount: transformedFallback.length,
+            searchTime: searchTime,
+            lastFetched: new Date(),
+            expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
+          },
+          { upsert: true, new: true }
+        );
+      } catch (cacheError: any) {
+        console.warn(`[GYG Global Search] Failed to cache fallback for "${query}":`, cacheError.message);
+      }
+
+      const searchTime = Date.now() - startTime;
+      console.log(`[GYG Global Search] Query="${query}" | Source=emergency-fallback | Results=${transformedFallback.length} | Time=${searchTime}ms`);
       res.json(transformedFallback);
     }
 
@@ -372,10 +404,30 @@ router.get('/cache/stats', async (req: Request, res: Response) => {
     const activeEntries = await GYGCache.countDocuments({ expiresAt: { $gt: new Date() } });
     const expiredEntries = totalEntries - activeEntries;
     
+    // Get source distribution
+    const sourceStats = await GYGCache.aggregate([
+      {
+        $group: {
+          _id: '$source',
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+    
+    // Get average search time
+    const avgSearchTime = await GYGCache.aggregate([
+      {
+        $group: {
+          _id: null,
+          avgSearchTime: { $avg: '$searchTime' }
+        }
+      }
+    ]);
+    
     const recentEntries = await GYGCache.find({})
       .sort({ lastFetched: -1 })
       .limit(10)
-      .select('query lastFetched source results')
+      .select('query normalizedQuery lastFetched source resultCount searchTime')
       .lean();
 
     res.json({
@@ -384,11 +436,18 @@ router.get('/cache/stats', async (req: Request, res: Response) => {
         totalEntries,
         activeEntries,
         expiredEntries,
+        sourceDistribution: sourceStats.reduce((acc, stat) => {
+          acc[stat._id] = stat.count;
+          return acc;
+        }, {} as Record<string, number>),
+        averageSearchTime: avgSearchTime[0]?.avgSearchTime || 0,
         recentEntries: recentEntries.map(entry => ({
           query: entry.query,
+          normalizedQuery: entry.normalizedQuery,
           lastFetched: entry.lastFetched,
           source: entry.source,
-          resultCount: entry.results.length
+          resultCount: entry.resultCount,
+          searchTime: entry.searchTime
         }))
       },
       timestamp: new Date().toISOString()
@@ -408,9 +467,10 @@ router.delete('/cache/clear', async (req: Request, res: Response) => {
     const { query } = req.query;
     
     if (query && typeof query === 'string') {
-      // Clear specific query
-      const result = await GYGCache.deleteOne({ query: query.trim().toLowerCase() });
-      console.log(`[GYG] Cleared cache for query: "${query}"`);
+      // Clear specific query (both normalized and original)
+      const normalizedQuery = query.trim().toLowerCase();
+      const result = await GYGCache.deleteOne({ normalizedQuery: normalizedQuery });
+      console.log(`[GYG] Cleared cache for query: "${query}" (normalized: "${normalizedQuery}")`);
       res.json({
         status: 'success',
         message: `Cache cleared for query: "${query}"`,

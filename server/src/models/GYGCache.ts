@@ -1,24 +1,52 @@
 import mongoose from "mongoose";
 
+export interface GYGCacheDocument extends mongoose.Document {
+  query: string;
+  normalizedQuery: string;
+  results: any[];
+  source: 'live' | 'cache' | 'fallback';
+  resultCount: number;
+  searchTime: number;
+  lastFetched: Date;
+  expiresAt: Date;
+}
+
 const GYGCacheSchema = new mongoose.Schema({
   query: { 
     type: String, 
-    required: true, 
+    required: true,
+    trim: true
+  },
+  normalizedQuery: {
+    type: String,
+    required: true,
     unique: true,
-    index: true 
+    lowercase: true,
+    trim: true,
+    index: true
   },
   results: { 
     type: Array, 
     default: [] 
   },
+  source: {
+    type: String,
+    enum: ['live', 'cache', 'fallback'],
+    default: 'live'
+  },
+  resultCount: {
+    type: Number,
+    required: true,
+    default: 0
+  },
+  searchTime: {
+    type: Number,
+    required: true,
+    default: 0
+  },
   lastFetched: { 
     type: Date, 
     default: Date.now 
-  },
-  source: {
-    type: String,
-    enum: ['live', 'cache'],
-    default: 'live'
   },
   expiresAt: {
     type: Date,
@@ -28,7 +56,23 @@ const GYGCacheSchema = new mongoose.Schema({
   timestamps: true
 });
 
+// Compound indexes for better performance
+GYGCacheSchema.index({ normalizedQuery: 1, source: 1 });
+GYGCacheSchema.index({ lastFetched: -1 });
+GYGCacheSchema.index({ resultCount: -1 });
+
 // Create TTL index for automatic cleanup
 GYGCacheSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
-export default mongoose.model("GYGCache", GYGCacheSchema);
+// Pre-save middleware to normalize query
+GYGCacheSchema.pre('save', function(this: GYGCacheDocument, next) {
+  if (this.isModified('query')) {
+    this.normalizedQuery = this.query.toLowerCase().trim();
+  }
+  if (this.isModified('results')) {
+    this.resultCount = this.results.length;
+  }
+  next();
+});
+
+export default mongoose.model<GYGCacheDocument>("GYGCache", GYGCacheSchema);
