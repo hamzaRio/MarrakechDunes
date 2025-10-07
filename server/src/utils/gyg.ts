@@ -41,46 +41,13 @@ export async function testConnection(activity?: any): Promise<GYGResponse> {
       base: GYG_SUPPLIER_BASE
     });
 
-    // Get capacity from activity or use default with defensive fallback
-    const activityCapacity = activity?.maxParticipants || activity?.capacitySettings?.maxParticipants || activity?.capacity || 10;
-    const vacancy = typeof activityCapacity === "number" && activityCapacity > 0 ? activityCapacity : 10;
-    console.log("[GYG] Using vacancy:", typeof vacancy, vacancy);
-
-    // Use the correct payload structure for GetYourGuide Sandbox API
-    const payload = {
-      data: {
-        productId: "AGAFAY001",
-        vacancy: vacancy,
-        availabilities: [
-          {
-            dateTime: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days from now
-            available: true,
-            price: {
-              currency: "EUR",
-              value: 400
-            }
-          },
-          {
-            dateTime: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(), // 14 days from now
-            available: true,
-            price: {
-              currency: "EUR",
-              value: 420
-            }
-          }
-        ]
-      }
-    };
-
-    console.log('[GYG] Sending test payload:', JSON.stringify(payload, null, 2));
-
-    const response = await axios.post(
-      `${GYG_SUPPLIER_BASE}/notify-availability-update`,
-      payload,
+    // Simple GET request to test basic connectivity and authentication
+    // This avoids the product ID validation issue
+    const response = await axios.get(
+      `${GYG_SUPPLIER_BASE}/products`,
       {
         headers: {
           'Authorization': getAuthHeader(),
-          'Content-Type': 'application/json',
           'Accept': 'application/json'
         },
         timeout: 30000
@@ -88,7 +55,7 @@ export async function testConnection(activity?: any): Promise<GYGResponse> {
     );
 
     console.log('[GYG] Connection API Response Status:', response.status);
-    console.log('[GYG] Connection API Response Data:', response.data);
+    console.log('[GYG] Connection API Response Data Keys:', Object.keys(response.data || {}));
 
     return {
       status: 'ok',

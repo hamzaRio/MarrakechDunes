@@ -81,7 +81,7 @@ interface GetYourGuideActivity {
       try {
         console.log('[GYG] Calling real GetYourGuide Partner API...');
         
-        const response = await axios.get(`https://partner-api.getyourguide.com/1/tours?location=${query}`, {
+        const response = await axios.get(`${process.env.GYG_SUPPLIER_BASE}/tours?location=${query}`, {
           auth: {
             username: process.env.GYG_SUPPLIER_USER!,
             password: process.env.GYG_SUPPLIER_PASS!,
@@ -244,7 +244,7 @@ router.get('/activities', async (req: Request, res: Response) => {
       
       for (const destination of destinations) {
         try {
-          const response = await axios.get(`https://partner-api.getyourguide.com/1/tours?location=${destination}`, {
+          const response = await axios.get(`${process.env.GYG_SUPPLIER_BASE}/tours?location=${destination}`, {
             auth: {
               username: process.env.GYG_SUPPLIER_USER!,
               password: process.env.GYG_SUPPLIER_PASS!,
