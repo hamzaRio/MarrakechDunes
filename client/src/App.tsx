@@ -9,7 +9,7 @@ import { LanguageProvider } from "@/hooks/use-language";
 import SecurityWrapper from "@/components/security-wrapper";
 import AutoLogout from "@/components/auto-logout";
 import { ErrorBoundary } from "@/components/error-boundary";
-import { HelmetProvider } from "@/components/SEOHead";
+import { HelmetProvider } from "react-helmet-async";
 import ReactGA from "react-ga4";
 import PWAInstallPrompt from "@/components/pwa-install-prompt";
 
