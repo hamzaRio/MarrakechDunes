@@ -37,6 +37,7 @@ import { Plus, Settings, Trash2, Power, PowerOff, Upload, Search, ExternalLink }
 import { ObjectUploader } from "@/components/ObjectUploader";
 import GetYourGuidePriceFetcher from "@/components/getyourguide-price-fetcher";
 import GYGDirectRedirect from "@/components/admin/GYGDirectRedirect";
+import CompetitorPriceFetcher from "@/components/competitor-price-fetcher";
 import type { ActivityType } from "marrakechdunes-shared/schema";
 import type { UploadResult } from "@uppy/core";
 
@@ -409,6 +410,38 @@ export default function ActivityManagementModal({
                   }}
                 />
 
+                {/* Market Intelligence System */}
+                <div className="bg-gradient-to-r from-purple-50 to-indigo-50 p-4 rounded-lg border border-purple-200">
+                  <h4 className="text-sm font-semibold text-purple-900 mb-3 flex items-center">
+                    <Search className="h-4 w-4 mr-2" />
+                    🎯 Market Intelligence System
+                  </h4>
+                  <p className="text-xs text-purple-700 mb-3">
+                    Get comprehensive competitor analysis from multiple sources (GetYourGuide, Viator, TripAdvisor, Airbnb)
+                  </p>
+                  <CompetitorPriceFetcher
+                    activityName={form.watch("name") || ""}
+                    onPriceSelect={(price, source) => {
+                      form.setValue("price", price.toString());
+                      toast({
+                        title: "Competitive Price Applied",
+                        description: `Set price to ${price} MAD based on ${source} competitor analysis`,
+                      });
+                    }}
+                    onAddActivity={(activityData) => {
+                      form.setValue("name", activityData.name);
+                      form.setValue("price", activityData.price.toString());
+                      form.setValue("description", activityData.name);
+                      form.setValue("getyourguidePrice", activityData.getyourguidePrice.toString());
+                      toast({
+                        title: "Activity Data Applied",
+                        description: `Applied competitive pricing: ${activityData.price} MAD (vs ${activityData.getyourguidePrice} MAD competitor)`,
+                      });
+                    }}
+                    currentPrice={parseInt(form.watch("price") || "0")}
+                  />
+                </div>
+
                 <FormField
                   control={form.control}
                   name="description"
@@ -494,6 +527,37 @@ export default function ActivityManagementModal({
                                    ))}
                                  </div>
                                )}
+                            </div>
+                            
+                            {/* Market Intelligence System */}
+                            <div className="bg-gradient-to-r from-purple-50 to-blue-50 p-4 rounded-lg border border-purple-200 mt-3">
+                              <h4 className="text-sm font-semibold text-purple-900 mb-3 flex items-center">
+                                <Search className="h-4 w-4 mr-2" />
+                                🎯 Market Intelligence System
+                              </h4>
+                              <p className="text-xs text-purple-700 mb-3">
+                                Get real-time competitor analysis and competitive pricing for any Morocco activity
+                              </p>
+                              <CompetitorPriceFetcher
+                                activityName={form.watch("name") || ""}
+                                onPriceSelect={(price, source) => {
+                                  form.setValue("price", price.toString());
+                                  toast({
+                                    title: "Competitive Price Applied",
+                                    description: `Set price to ${price} MAD based on ${source} competitor analysis`,
+                                  });
+                                }}
+                                onAddActivity={(activityData) => {
+                                  form.setValue("name", activityData.name);
+                                  form.setValue("price", activityData.price.toString());
+                                  form.setValue("description", activityData.name);
+                                  toast({
+                                    title: "Activity Data Applied",
+                                    description: `Applied competitive pricing: ${activityData.price} MAD`,
+                                  });
+                                }}
+                                currentPrice={parseInt(form.watch("price") || "0")}
+                              />
                             </div>
                           </div>
                         </FormControl>
