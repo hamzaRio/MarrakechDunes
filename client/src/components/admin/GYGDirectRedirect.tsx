@@ -28,15 +28,33 @@ export default function GYGDirectRedirect({
 
   // Handle search redirect
   const handleSearchRedirect = () => {
-    if (query.trim()) {
-      const searchUrl = getGYGSearchUrl(query);
-      console.log('Redirecting to GetYourGuide:', searchUrl);
-      window.open(searchUrl, '_blank', 'noopener,noreferrer');
-    } else {
-      // If no query, redirect to general Morocco search
-      const generalUrl = 'https://www.getyourguide.com/s/?q=morocco&searchSource=3&location=Morocco';
-      console.log('Redirecting to general Morocco search:', generalUrl);
-      window.open(generalUrl, '_blank', 'noopener,noreferrer');
+    try {
+      if (query.trim()) {
+        const searchUrl = getGYGSearchUrl(query);
+        console.log('🔗 Redirecting to GetYourGuide:', searchUrl);
+        console.log('📝 Query:', query);
+        const newWindow = window.open(searchUrl, '_blank', 'noopener,noreferrer');
+        if (!newWindow) {
+          console.error('❌ Pop-up blocked! Please allow pop-ups for this site.');
+          alert('Pop-up blocked! Please allow pop-ups and try again.');
+        } else {
+          console.log('✅ Successfully opened GetYourGuide in new tab');
+        }
+      } else {
+        // If no query, redirect to general Morocco search
+        const generalUrl = 'https://www.getyourguide.com/s/?q=morocco&searchSource=3&location=Morocco';
+        console.log('🇲🇦 Redirecting to general Morocco search:', generalUrl);
+        const newWindow = window.open(generalUrl, '_blank', 'noopener,noreferrer');
+        if (!newWindow) {
+          console.error('❌ Pop-up blocked! Please allow pop-ups for this site.');
+          alert('Pop-up blocked! Please allow pop-ups and try again.');
+        } else {
+          console.log('✅ Successfully opened GetYourGuide in new tab');
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error opening GetYourGuide:', error);
+      alert('Error opening GetYourGuide. Please check console for details.');
     }
   };
 

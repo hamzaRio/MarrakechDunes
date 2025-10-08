@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard GetYourGuide Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            background: #fafafa;
+        }
+        .test-button {
+            display: inline-block;
+            padding: 12px 24px;
+            margin: 5px;
+            background: #0066cc;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            text-decoration: none;
+            text-align: center;
+        }
+        .test-button:hover {
+            background: #0052a3;
+        }
+        .test-button.green {
+            background: #28a745;
+        }
+        .test-button.green:hover {
+            background: #218838;
+        }
+        .test-button.orange {
+            background: #fd7e14;
+        }
+        .test-button.orange:hover {
+            background: #e8650e;
+        }
+        .url-display {
+            background: #f0f0f0;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            word-break: break-all;
+            margin: 10px 0;
+        }
+        .activity-card {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .activity-card:hover {
+            background: #e3f2fd;
+            border-color: #2196f3;
+        }
+        .activity-title {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        .activity-details {
+            display: flex;
+            gap: 15px;
+            font-size: 14px;
+            color: #666;
+        }
+        .search-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            margin: 10px 0;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Admin Dashboard GetYourGuide Test</h1>
+        <p>This simulates the admin dashboard activity creation form with GetYourGuide redirect functionality.</p>
+        
+        <!-- Simulated Activity Creation Form -->
+        <div class="test-section">
+            <h2>📝 Create New Activity Form</h2>
+            
+            <div>
+                <label><strong>Activity Name *</strong></label>
+                <input type="text" id="activityName" class="search-input" placeholder="Enter activity name (e.g., Marrakech, Agafay Desert)" value="Marrakech">
+            </div>
+            
+            <div>
+                <label><strong>Price (MAD) *</strong></label>
+                <input type="number" id="activityPrice" class="search-input" placeholder="Enter price" value="0">
+            </div>
+            
+            <!-- GetYourGuide Competitor Analysis Section -->
+            <div style="background: #e3f2fd; border: 2px solid #2196f3; border-radius: 8px; padding: 20px; margin: 20px 0;">
+                <h3>🇲🇦 GetYourGuide Morocco Search</h3>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <div>
+                        <span style="font-weight: bold;">GetYourGuide Competitor Analysis</span>
+                        <span style="background: #4caf50; color: white; padding: 2px 8px; border-radius: 4px; font-size: 12px; margin-left: 10px;">Direct Search</span>
+                    </div>
+                    <button class="test-button green" onclick="testTopRedirect()">
+                        🔗 Go to GetYourGuide
+                    </button>
+                </div>
+                
+                <div>
+                    <input type="text" id="gygSearch" class="search-input" placeholder="Search Morocco activities on GetYourGuide..." value="Marrakech">
+                    <button class="test-button" onclick="testSearchRedirect()">
+                        🔍 Search on GetYourGuide.com
+                    </button>
+                </div>
+                
+                <div id="urlDisplay" class="url-display">
+                    Click a button above to see the GetYourGuide URL
+                </div>
+            </div>
+            
+            <!-- Popular Activities -->
+            <div>
+                <h4>Popular Morocco Activities</h4>
+                <div class="activity-card" onclick="testActivityRedirect('Marrakech city tour')">
+                    <div class="activity-title">Marrakech City Tour</div>
+                    <div class="activity-details">
+                        <span>💰 From 180 MAD</span>
+                        <span>⏱️ 4 hours</span>
+                        <span>⭐ 4.5★</span>
+                    </div>
+                </div>
+                
+                <div class="activity-card" onclick="testActivityRedirect('Agafay Desert')">
+                    <div class="activity-title">Agafay Desert Day Trip</div>
+                    <div class="activity-details">
+                        <span>💰 From 520 MAD</span>
+                        <span>⏱️ 8 hours</span>
+                        <span>⭐ 4.8★</span>
+                    </div>
+                </div>
+                
+                <div class="activity-card" onclick="testActivityRedirect('Ouzoud Waterfalls')">
+                    <div class="activity-title">Ouzoud Waterfalls</div>
+                    <div class="activity-details">
+                        <span>💰 From 350 MAD</span>
+                        <span>⏱️ 10 hours</span>
+                        <span>⭐ 4.6★</span>
+                    </div>
+                </div>
+                
+                <div class="activity-card" onclick="testActivityRedirect('Hammam massage Marrakech')">
+                    <div class="activity-title">Hammam & Massage</div>
+                    <div class="activity-details">
+                        <span>💰 From 300 MAD</span>
+                        <span>⏱️ 2 hours</span>
+                        <span>⭐ 4.9★</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Test Results -->
+        <div class="test-section">
+            <h2>🧪 Test Results</h2>
+            <div id="testResults">
+                <div class="status success">
+                    ✅ All redirect buttons should open GetYourGuide.com in new tabs
+                </div>
+                <div class="status success">
+                    ✅ URLs should include Morocco-specific search parameters
+                </div>
+                <div class="status success">
+                    ✅ Console should show redirect URLs for debugging
+                </div>
+            </div>
+        </div>
+        
+        <!-- Expected Behavior -->
+        <div class="test-section">
+            <h2>📋 Expected Behavior in Admin Dashboard</h2>
+            <ul>
+                <li><strong>Green "Go to GetYourGuide" button</strong> - Should always redirect to Morocco search</li>
+                <li><strong>Search input + button</strong> - Should redirect with specific query</li>
+                <li><strong>Popular activity cards</strong> - Should redirect to specific activity searches</li>
+                <li><strong>Console logging</strong> - Should show "Redirecting to GetYourGuide:" messages</li>
+                <li><strong>New tab opening</strong> - Should open GetYourGuide.com in new tab</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        function getGYGSearchUrl(searchQuery) {
+            const moroccoQuery = `${searchQuery} morocco`;
+            return `https://www.getyourguide.com/s/?q=${encodeURIComponent(moroccoQuery)}&searchSource=3&location=Morocco`;
+        }
+
+        function testTopRedirect() {
+            const query = document.getElementById('gygSearch').value || 'morocco';
+            const searchUrl = getGYGSearchUrl(query);
+            document.getElementById('urlDisplay').textContent = searchUrl;
+            console.log('Top redirect button clicked:', searchUrl);
+            window.open(searchUrl, '_blank', 'noopener,noreferrer');
+        }
+
+        function testSearchRedirect() {
+            const query = document.getElementById('gygSearch').value;
+            if (query.trim()) {
+                const searchUrl = getGYGSearchUrl(query);
+                document.getElementById('urlDisplay').textContent = searchUrl;
+                console.log('Search redirect button clicked:', searchUrl);
+                window.open(searchUrl, '_blank', 'noopener,noreferrer');
+            } else {
+                const generalUrl = 'https://www.getyourguide.com/s/?q=morocco&searchSource=3&location=Morocco';
+                document.getElementById('urlDisplay').textContent = generalUrl;
+                console.log('Search redirect (no query):', generalUrl);
+                window.open(generalUrl, '_blank', 'noopener,noreferrer');
+            }
+        }
+
+        function testActivityRedirect(activityName) {
+            const searchUrl = getGYGSearchUrl(activityName);
+            document.getElementById('urlDisplay').textContent = searchUrl;
+            console.log('Activity card clicked:', activityName, searchUrl);
+            window.open(searchUrl, '_blank', 'noopener,noreferrer');
+        }
+
+        // Update URL display when typing
+        document.getElementById('gygSearch').addEventListener('input', function() {
+            const query = this.value;
+            if (query.trim()) {
+                const searchUrl = getGYGSearchUrl(query);
+                document.getElementById('urlDisplay').textContent = searchUrl;
+            } else {
+                document.getElementById('urlDisplay').textContent = 'Enter a search term to see the GetYourGuide URL';
+            }
+        });
+
+        // Initialize with default search
+        document.getElementById('gygSearch').dispatchEvent(new Event('input'));
+    </script>
+</body>
+</html>
