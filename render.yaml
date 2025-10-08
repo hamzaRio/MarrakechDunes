@@ -1,16 +1,12 @@
 services:
   - type: web
     name: marrakechdunes-backend
-    runtime: node
+    runtime: docker
     plan: starter
     scaling:
       minInstances: 1
       maxInstances: 5
-    buildCommand: |
-      npm ci --legacy-peer-deps
-      npm run build
-      npm prune --omit=dev
-    startCommand: cd server && npm start
+    dockerfilePath: ./Dockerfile
     healthCheckPath: /api/health
     port: 10000
     envVars:
@@ -18,6 +14,10 @@ services:
         value: production
       - key: PORT
         value: 10000
+      - key: DOCKER_BUILDKIT
+        value: "0"
+      - key: BUILDKIT_PROGRESS
+        value: plain
       - key: CLIENT_URL
         value: https://marrakech-dunes.vercel.app,https://marrakech-dunes-*.vercel.app,http://localhost:5173
       - key: MAP_PROVIDER

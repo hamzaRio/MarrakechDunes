@@ -1,6 +1,10 @@
 # Builder stage
 FROM node:20-alpine AS builder
 
+# Set buildkit environment variables to avoid connection issues
+ENV DOCKER_BUILDKIT=0
+ENV BUILDKIT_PROGRESS=plain
+
 WORKDIR /app
 
 # Copy workspace manifests
@@ -9,8 +13,8 @@ COPY client/package*.json client/
 COPY server/package*.json server/
 COPY shared/package*.json shared/
 
-# Install dependencies across workspaces
-RUN npm ci --legacy-peer-deps
+# Install dependencies across workspaces with explicit cache configuration
+RUN npm ci --legacy-peer-deps --no-audit --no-fund
 
 # Copy source code
 COPY client client
@@ -20,10 +24,10 @@ COPY shared shared
 # Copy environment files separately for proper separation (handled at runtime)
 # Environment files should be mounted or configured at deployment time
 
-# Build shared package before others
-RUN npm run build:shared
-RUN npm run build:client
-RUN npm run build:server
+# Build shared package before others with explicit error handling
+RUN npm run build:shared || (echo "Shared build failed" && exit 1)
+RUN npm run build:client || (echo "Client build failed" && exit 1)
+RUN npm run build:server || (echo "Server build failed" && exit 1)
 
 # Prepare server runtime assets (frontend build only - static assets served by Vercel)
 WORKDIR /app/server
