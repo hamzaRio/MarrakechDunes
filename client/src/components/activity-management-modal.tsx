@@ -36,7 +36,7 @@ import { getAssetUrl } from "@/lib/utils";
 import { Plus, Settings, Trash2, Power, PowerOff, Upload, Search, ExternalLink } from "lucide-react";
 import { ObjectUploader } from "@/components/ObjectUploader";
 import GetYourGuidePriceFetcher from "@/components/getyourguide-price-fetcher";
-import GYGSearchSuggestions from "@/components/admin/GYGSearchSuggestions";
+import GYGDirectRedirect from "@/components/admin/GYGDirectRedirect";
 import type { ActivityType } from "marrakechdunes-shared/schema";
 import type { UploadResult } from "@uppy/core";
 
@@ -388,8 +388,8 @@ export default function ActivityManagementModal({
                   currentPrice={parseInt(form.watch("getyourguidePrice") || "0")}
                 />
 
-                {/* GetYourGuide Live Search Suggestions */}
-                <GYGSearchSuggestions 
+                {/* GetYourGuide Direct Search Redirect */}
+                <GYGDirectRedirect 
                   className="mt-4" 
                   activityName={form.watch("name") || ""}
                   onPriceSelect={(price, activity) => {
@@ -406,13 +406,6 @@ export default function ActivityManagementModal({
                       title: "Activity Title Applied",
                       description: `Set title to: ${title}`,
                     });
-                  }}
-                  isLocked={form.watch("name") && form.watch("price") && form.watch("getyourguidePrice")}
-                  onLockToggle={() => {
-                    // Unlock by clearing the fields
-                    form.setValue("name", "");
-                    form.setValue("price", "");
-                    form.setValue("getyourguidePrice", "");
                   }}
                 />
 

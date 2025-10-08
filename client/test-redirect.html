@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GetYourGuide Redirect Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .search-box {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        input {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+        button {
+            padding: 12px 24px;
+            background: #0066cc;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #0052a3;
+        }
+        .popular-activities {
+            margin-top: 30px;
+        }
+        .activity-card {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .activity-card:hover {
+            background: #e3f2fd;
+            border-color: #2196f3;
+        }
+        .activity-title {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        .activity-details {
+            display: flex;
+            gap: 15px;
+            font-size: 14px;
+            color: #666;
+        }
+        .url-display {
+            background: #f0f0f0;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            word-break: break-all;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🇲🇦 GetYourGuide Morocco Search Test</h1>
+        <p>This component redirects users directly to GetYourGuide.com with Morocco-specific search parameters.</p>
+        
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="Search Morocco activities..." value="Marrakech">
+            <button onclick="searchGetYourGuide()">Search on GetYourGuide</button>
+        </div>
+        
+        <div id="urlDisplay" class="url-display"></div>
+        
+        <div class="popular-activities">
+            <h3>Popular Morocco Activities</h3>
+            <div class="activity-card" onclick="searchActivity('Marrakech city tour')">
+                <div class="activity-title">Marrakech City Tour</div>
+                <div class="activity-details">
+                    <span>💰 From 180 MAD</span>
+                    <span>⏱️ 4 hours</span>
+                    <span>⭐ 4.5★</span>
+                </div>
+            </div>
+            
+            <div class="activity-card" onclick="searchActivity('Agafay Desert')">
+                <div class="activity-title">Agafay Desert Day Trip</div>
+                <div class="activity-details">
+                    <span>💰 From 520 MAD</span>
+                    <span>⏱️ 8 hours</span>
+                    <span>⭐ 4.8★</span>
+                </div>
+            </div>
+            
+            <div class="activity-card" onclick="searchActivity('Ouzoud Waterfalls')">
+                <div class="activity-title">Ouzoud Waterfalls</div>
+                <div class="activity-details">
+                    <span>💰 From 350 MAD</span>
+                    <span>⏱️ 10 hours</span>
+                    <span>⭐ 4.6★</span>
+                </div>
+            </div>
+            
+            <div class="activity-card" onclick="searchActivity('Chefchaouen')">
+                <div class="activity-title">Chefchaouen Day Trip</div>
+                <div class="activity-details">
+                    <span>💰 From 400 MAD</span>
+                    <span>⏱️ 12 hours</span>
+                    <span>⭐ 4.8★</span>
+                </div>
+            </div>
+            
+            <div class="activity-card" onclick="searchActivity('Hammam massage Marrakech')">
+                <div class="activity-title">Hammam & Massage</div>
+                <div class="activity-details">
+                    <span>💰 From 300 MAD</span>
+                    <span>⏱️ 2 hours</span>
+                    <span>⭐ 4.9★</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function getGYGSearchUrl(searchQuery) {
+            const moroccoQuery = `${searchQuery} morocco`;
+            return `https://www.getyourguide.com/s/?q=${encodeURIComponent(moroccoQuery)}&searchSource=3&location=Morocco`;
+        }
+
+        function searchGetYourGuide() {
+            const query = document.getElementById('searchInput').value;
+            if (query.trim()) {
+                const searchUrl = getGYGSearchUrl(query);
+                document.getElementById('urlDisplay').textContent = searchUrl;
+                window.open(searchUrl, '_blank', 'noopener,noreferrer');
+            }
+        }
+
+        function searchActivity(activityName) {
+            document.getElementById('searchInput').value = activityName;
+            const searchUrl = getGYGSearchUrl(activityName);
+            document.getElementById('urlDisplay').textContent = searchUrl;
+            window.open(searchUrl, '_blank', 'noopener,noreferrer');
+        }
+
+        // Update URL display when typing
+        document.getElementById('searchInput').addEventListener('input', function() {
+            const query = this.value;
+            if (query.trim()) {
+                const searchUrl = getGYGSearchUrl(query);
+                document.getElementById('urlDisplay').textContent = searchUrl;
+            } else {
+                document.getElementById('urlDisplay').textContent = 'Enter a search term to see the GetYourGuide URL';
+            }
+        });
+
+        // Initialize with default search
+        document.getElementById('searchInput').dispatchEvent(new Event('input'));
+    </script>
+</body>
+</html>
