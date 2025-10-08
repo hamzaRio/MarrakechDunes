@@ -119,11 +119,53 @@ export default function GetYourGuidePriceFetcher({
 
           {notFound && !isLoading && (
             <div className="text-center py-4">
-              <div className="text-gray-500 mb-2">
+              <div className="text-gray-500 mb-4">
                 <ExternalLink className="h-8 w-8 mx-auto mb-2 opacity-50" />
                 <p className="text-sm">No exact match found on GetYourGuide</p>
                 <p className="text-xs text-gray-400 mt-1">Activity: "{activityName}"</p>
               </div>
+              
+              {/* Redirect to GetYourGuide buttons */}
+              <div className="space-y-3 mb-4">
+                <Button
+                  onClick={() => {
+                    const moroccoQuery = `${activityName} morocco`;
+                    const searchUrl = `https://www.getyourguide.com/s/?q=${encodeURIComponent(moroccoQuery)}&searchSource=3&location=Morocco`;
+                    console.log('🔗 Redirecting to GetYourGuide:', searchUrl);
+                    const newWindow = window.open(searchUrl, '_blank', 'noopener,noreferrer');
+                    if (!newWindow) {
+                      console.error('❌ Pop-up blocked! Please allow pop-ups for this site.');
+                      alert('Pop-up blocked! Please allow pop-ups and try again.');
+                    } else {
+                      console.log('✅ Successfully opened GetYourGuide in new tab');
+                    }
+                  }}
+                  className="w-full bg-green-600 hover:bg-green-700 text-white"
+                >
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Search "{activityName}" on GetYourGuide.com
+                </Button>
+                
+                <Button
+                  onClick={() => {
+                    const generalUrl = 'https://www.getyourguide.com/s/?q=morocco&searchSource=3&location=Morocco';
+                    console.log('🇲🇦 Redirecting to general Morocco search:', generalUrl);
+                    const newWindow = window.open(generalUrl, '_blank', 'noopener,noreferrer');
+                    if (!newWindow) {
+                      console.error('❌ Pop-up blocked! Please allow pop-ups for this site.');
+                      alert('Pop-up blocked! Please allow pop-ups and try again.');
+                    } else {
+                      console.log('✅ Successfully opened GetYourGuide in new tab');
+                    }
+                  }}
+                  variant="outline"
+                  className="w-full"
+                >
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Browse All Morocco Activities
+                </Button>
+              </div>
+              
               <div className="text-xs text-gray-400 bg-gray-50 p-2 rounded">
                 💡 Try variations like "Day Trip", "Tour", or "Experience"
               </div>
@@ -137,17 +179,38 @@ export default function GetYourGuidePriceFetcher({
                   <h4 className="font-medium text-gray-900">{foundActivity.name}</h4>
                   <p className="text-sm text-gray-600">GetYourGuide Price: {formatPrice(foundActivity.price)}</p>
                 </div>
-                <Button 
-                  size="sm" 
-                  variant="outline" 
-                  onClick={() => {
-                    setFoundActivity(null);
-                    setPricingSuggestions(null);
-                    setShowResults(false);
-                  }}
-                >
-                  Change
-                </Button>
+                <div className="flex gap-2">
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => {
+                      const moroccoQuery = `${activityName} morocco`;
+                      const searchUrl = `https://www.getyourguide.com/s/?q=${encodeURIComponent(moroccoQuery)}&searchSource=3&location=Morocco`;
+                      console.log('🔗 Redirecting to GetYourGuide:', searchUrl);
+                      const newWindow = window.open(searchUrl, '_blank', 'noopener,noreferrer');
+                      if (!newWindow) {
+                        console.error('❌ Pop-up blocked! Please allow pop-ups for this site.');
+                        alert('Pop-up blocked! Please allow pop-ups and try again.');
+                      } else {
+                        console.log('✅ Successfully opened GetYourGuide in new tab');
+                      }
+                    }}
+                  >
+                    <ExternalLink className="h-3 w-3 mr-1" />
+                    View on GetYourGuide
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    onClick={() => {
+                      setFoundActivity(null);
+                      setPricingSuggestions(null);
+                      setShowResults(false);
+                    }}
+                  >
+                    Change
+                  </Button>
+                </div>
               </div>
 
               {pricingSuggestions && (
