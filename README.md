@@ -660,4 +660,5 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **Built with ❤️ for the Marrakech tourism community**
 
-*Experience the magic of Morocco with MarrakechDunes* 🏜️✨
+*Experience the magic of Morocco with MarrakechDunes* 🏜️✨#   U p d a t e d   1 0 / 0 8 / 2 0 2 5   1 3 : 5 9 : 4 7  
+ 
