@@ -155,10 +155,15 @@ export default function GYGSearchSuggestions({
 
   return (
     <div className={`relative ${className}`}>
-      <div className="flex items-center justify-between mb-2">
-        <Label htmlFor="gyg-search" className="text-sm font-medium text-gray-700">
-          🇲🇦 GetYourGuide Morocco Search
-        </Label>
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <Label htmlFor="gyg-search" className="text-sm font-semibold text-gray-800">
+            🇲🇦 GetYourGuide Morocco Search
+          </Label>
+          <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+            Live Data
+          </Badge>
+        </div>
         {selectedActivity && (
           <div className="flex items-center gap-2">
             <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
@@ -189,7 +194,7 @@ export default function GYGSearchSuggestions({
           onChange={handleInputChange}
           onFocus={() => setShowSuggestions(true)}
           disabled={isLocked}
-          className="pl-10 pr-4 py-2 border-2 border-gray-200 rounded-lg focus:border-moroccan-blue focus:ring-2 focus:ring-moroccan-blue/20 disabled:bg-gray-50 disabled:cursor-not-allowed"
+          className="pl-10 pr-4 py-3 border-2 border-gray-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 disabled:bg-gray-50 disabled:cursor-not-allowed shadow-sm transition-all duration-200"
         />
         {isLoading && (
           <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4 animate-spin" />
@@ -247,7 +252,7 @@ export default function GYGSearchSuggestions({
       {showSuggestions && (suggestions.length > 0 || error || (!isLoading && query.length >= 3)) && (
         <div
           ref={suggestionsRef}
-          className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-xl max-h-80 overflow-y-auto"
+          className="absolute z-50 w-full mt-2 bg-white border border-gray-200 rounded-xl shadow-xl max-h-80 overflow-y-auto backdrop-blur-sm"
         >
           {error ? (
             <div className="p-4 text-center text-red-600">
@@ -264,7 +269,7 @@ export default function GYGSearchSuggestions({
             suggestions.map((activity) => (
               <Card
                 key={activity.id}
-                className="border-0 border-b border-gray-100 last:border-b-0 rounded-none hover:bg-gray-50 cursor-pointer transition-colors"
+                className="border-0 border-b border-gray-100 last:border-b-0 rounded-none hover:bg-blue-50 cursor-pointer transition-all duration-200 hover:shadow-md"
                 onClick={() => handleSuggestionClick(activity)}
               >
                 <CardContent className="p-4">
@@ -330,9 +335,22 @@ export default function GYGSearchSuggestions({
       )}
 
       {/* Help text */}
-      <p className="text-xs text-gray-500 mt-2">
-        💡 Morocco live data from GetYourGuide public site with MongoDB caching — for reference only. Click suggestions to auto-fill and lock fields.
-      </p>
+      <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+        <p className="text-xs text-blue-700 mb-2">
+          💡 Morocco live data from GetYourGuide public site with MongoDB caching — for reference only. Click suggestions to auto-fill and lock fields.
+        </p>
+        <div className="flex items-center gap-2">
+          <a 
+            href={`https://www.getyourguide.com/s/?q=${encodeURIComponent(query || 'morocco')}&searchSource=3`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 hover:underline"
+          >
+            <ExternalLink className="h-3 w-3" />
+            Search on GetYourGuide.com
+          </a>
+        </div>
+      </div>
     </div>
   );
 }

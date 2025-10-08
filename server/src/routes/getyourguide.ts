@@ -91,17 +91,22 @@ router.get('/search', async (req: Request, res: Response) => {
     try {
       console.log(`[GYG Search] Query="${query}" | Fetching from live GetYourGuide...`);
       
-      // Check if live search is enabled
-      if (process.env.GYG_ENABLE_LIVE_SEARCH === 'true') {
+      // Always try live search first for Morocco activities
+      console.log(`[GYG Morocco Search] Query="${query}" | Attempting live Morocco search...`);
+      try {
         activities = await GYGFetcher.searchActivities(query);
+        console.log(`[GYG Morocco Search] Query="${query}" | Live search returned ${activities.length} Morocco activities`);
         
         if (activities.length === 0) {
-          console.log(`[GYG Search] Query="${query}" | No live results, using fallback`);
+          console.log(`[GYG Morocco Search] Query="${query}" | No live Morocco results, using fallback`);
           activities = GYGFetcher.generateFallbackActivities(query);
           source = 'fallback';
+        } else {
+          source = 'live';
         }
-      } else {
-        console.log(`[GYG Search] Query="${query}" | Live search disabled, using fallback`);
+      } catch (liveError: any) {
+        console.error(`[GYG Morocco Search] Query="${query}" | Live search failed:`, liveError.message);
+        console.log(`[GYG Morocco Search] Query="${query}" | Falling back to Morocco fallback data`);
         activities = GYGFetcher.generateFallbackActivities(query);
         source = 'fallback';
       }
