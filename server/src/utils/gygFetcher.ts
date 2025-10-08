@@ -22,14 +22,15 @@ export class GYGFetcher {
 
   /**
    * Search GetYourGuide public site for Morocco activities only
+   * Uses official GetYourGuide Morocco search URL with strict filtering
    */
   static async searchActivities(query: string): Promise<GYGActivity[]> {
     try {
       console.log(`[GYG Fetcher] Morocco-only search for: "${query}"`);
       
-      // Add Morocco location filter to search
-      const moroccoQuery = `${query} Morocco`;
-      const searchUrl = `${this.SEARCH_URL}?q=${encodeURIComponent(moroccoQuery)}&searchSource=3`;
+      // Use official GetYourGuide Morocco search URL
+      const moroccoQuery = `${query} morocco`;
+      const searchUrl = `https://www.getyourguide.com/s/?q=${encodeURIComponent(moroccoQuery)}&searchSource=3`;
       
       const response = await axios.get(searchUrl, {
         headers: {
@@ -429,26 +430,43 @@ export class GYGFetcher {
   }
 
   /**
-   * Filter activities to only include Morocco-based ones
+   * Filter activities to only include Morocco-based ones with strict validation
    */
   private static filterMoroccoActivities(activities: GYGActivity[], query: string): GYGActivity[] {
+    // Comprehensive list of Morocco cities and regions
+    const moroccoCities = [
+      'marrakech', 'rabat', 'casablanca', 'tanger', 'tangier', 'meknes', 
+      'chefchaouen', 'essaouira', 'agadir', 'merzouga', 'ouarzazate', 
+      'oujda', 'fes', 'fez', 'oukaimeden', 'agafay', 'ouarzazate',
+      'tetouan', 'el jadida', 'safi', 'kenitra', 'nador', 'larache',
+      'azrou', 'ifrane', 'midelt', 'erfoud', 'zagora', 'tinghir'
+    ];
+
+    // Morocco-specific keywords and experiences
     const moroccoKeywords = [
-      'morocco', 'marrakech', 'agadir', 'casablanca', 'rabat', 'fes', 'fez',
-      'essaouira', 'chefchaouen', 'tangier', 'ouarzazate', 'merzouga', 'agafay',
-      'ouzoud', 'atlas', 'sahara', 'medina', 'souk', 'riad', 'kasbah',
-      'berber', 'argan', 'hammam', 'tagine', 'mint tea'
+      'morocco', 'moroccan', 'atlas', 'sahara', 'medina', 'souk', 
+      'riad', 'kasbah', 'berber', 'argan', 'hammam', 'tagine', 
+      'mint tea', 'ouzoud', 'desert', 'camel', 'quad', 'balloon'
     ];
 
     return activities.filter(activity => {
-      const searchText = `${activity.title} ${activity.location || ''}`.toLowerCase();
+      const searchText = `${activity.title} ${activity.location || ''} ${activity.link || ''}`.toLowerCase();
       
-      // Check if activity is clearly Morocco-related
-      const isMorocco = moroccoKeywords.some(keyword => searchText.includes(keyword));
+      // Check if activity contains Morocco city names
+      const hasMoroccoCity = moroccoCities.some(city => searchText.includes(city));
       
-      // Also check if the original query contains Morocco keywords
-      const queryIsMorocco = moroccoKeywords.some(keyword => query.toLowerCase().includes(keyword));
+      // Check if activity contains Morocco keywords
+      const hasMoroccoKeyword = moroccoKeywords.some(keyword => searchText.includes(keyword));
       
-      return isMorocco || queryIsMorocco;
+      // Check if link contains Morocco
+      const linkHasMorocco = activity.link?.toLowerCase().includes('morocco') || false;
+      
+      // Check if original query contains Morocco keywords
+      const queryIsMorocco = moroccoCities.some(city => query.toLowerCase().includes(city)) ||
+                             moroccoKeywords.some(keyword => query.toLowerCase().includes(keyword));
+      
+      // Activity must pass at least one Morocco validation
+      return hasMoroccoCity || hasMoroccoKeyword || linkHasMorocco || queryIsMorocco;
     });
   }
 
@@ -844,9 +862,11 @@ export class GYGFetcher {
    */
   private static isLikelyMoroccoCity(query: string): boolean {
     const moroccoCities = [
-      'marrakech', 'agadir', 'casablanca', 'rabat', 'fes', 'fez',
-      'essaouira', 'chefchaouen', 'tangier', 'ouarzazate', 'merzouga',
-      'tetouan', 'meknes', 'el jadida', 'safi', 'kenitra', 'nador'
+      'marrakech', 'rabat', 'casablanca', 'tanger', 'tangier', 'meknes', 
+      'chefchaouen', 'essaouira', 'agadir', 'merzouga', 'ouarzazate', 
+      'oujda', 'fes', 'fez', 'oukaimeden', 'agafay', 'ouarzazate',
+      'tetouan', 'el jadida', 'safi', 'kenitra', 'nador', 'larache',
+      'azrou', 'ifrane', 'midelt', 'erfoud', 'zagora', 'tinghir'
     ];
     
     const queryLower = query.toLowerCase();

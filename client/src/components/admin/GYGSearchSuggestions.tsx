@@ -256,9 +256,9 @@ export default function GYGSearchSuggestions({
             </div>
           ) : suggestions.length === 0 && !isLoading ? (
             <div className="p-4 text-center text-gray-600">
-              <p className="text-sm">No exact match found on GetYourGuide</p>
-              <p className="text-xs text-gray-500 mt-1">Try variations like "City Tour", "Day Trip", or "Experience"</p>
-              <p className="text-xs text-gray-400 mt-1">Supports Morocco destinations: Marrakech, Agadir, Casablanca, Rabat, Fes, Essaouira, Chefchaouen...</p>
+              <p className="text-sm">No Morocco activity found on GetYourGuide</p>
+              <p className="text-xs text-gray-500 mt-1">Try variations like "Tour", "Day Trip", or "Experience"</p>
+              <p className="text-xs text-gray-400 mt-1">Supports Morocco destinations: Marrakech, Rabat, Casablanca, Tanger, Meknes, Chefchaouen, Essaouira, Agadir, Merzouga, Ouarzazate, Fes, Agafay...</p>
             </div>
           ) : (
             suggestions.map((activity) => (
@@ -277,9 +277,14 @@ export default function GYGSearchSuggestions({
                       />
                     )}
                     <div className="flex-1 min-w-0">
-                      <h4 className="text-sm font-medium text-gray-900 truncate">
-                        {activity.title}
-                      </h4>
+                      <div className="flex items-center gap-2">
+                        <h4 className="text-sm font-medium text-gray-900 truncate">
+                          {activity.title}
+                        </h4>
+                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800 border border-red-200">
+                          🇲🇦 Morocco
+                        </span>
+                      </div>
                       {activity.description && (
                         <p className="text-xs text-gray-600 mt-1 line-clamp-2">
                           {activity.description}
