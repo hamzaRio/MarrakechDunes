@@ -134,6 +134,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // GetYourGuide API routes (public for admin reference)
   app.use('/api/gyg', gygRoutes);
   
+  // Market Intelligence routes
+  const marketIntelligenceRoutes = (await import('./routes/market-intelligence.js')).default;
+  app.use('/api/market', marketIntelligenceRoutes);
+  
   // Debug routes (for testing and development)
   app.use('/api/debug', debugRoutes);
 

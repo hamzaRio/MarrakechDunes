@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, Users, TrendingUp, Activity, Settings, Crown, MessageCircle, LogOut, BarChart3, PieChart, Monitor, Server, Download, FileText, Mail } from "lucide-react";
+import { Calendar, Users, TrendingUp, Activity, Settings, Crown, MessageCircle, LogOut, BarChart3, PieChart, Monitor, Server, Download, FileText, Mail, Target } from "lucide-react";
 import AdminRoute from "@/components/admin-route";
 import { useAuth } from "@/hooks/use-auth";
 import { useLanguage } from "@/hooks/use-language";
@@ -25,6 +25,7 @@ import BusinessMetrics from "@/components/analytics/business-metrics";
 import SystemHealth from "@/components/analytics/system-health";
 import AdminManagement from "@/components/admin-management";
 import CEOOperationsDashboard from "@/components/ceo-operations-dashboard";
+import MarketIntelligenceDashboard from "@/components/market-intelligence-dashboard";
 
 // Removed useState import as no longer needed
 import type { BookingType, ActivityType, AuditLogType } from "marrakechdunes-shared/schema";
@@ -335,9 +336,13 @@ Average per booking: ${activityBookings.length ? Math.round(totalRevenue / activ
           </div>
 
           <Tabs defaultValue="bookings" className="space-y-6">
-            <TabsList className={`grid w-full ${user?.role === 'superadmin' ? 'grid-cols-14' : 'grid-cols-11'}`}>
+            <TabsList className={`grid w-full ${user?.role === 'superadmin' ? 'grid-cols-15' : 'grid-cols-12'}`}>
               <TabsTrigger value="bookings">Bookings</TabsTrigger>
               <TabsTrigger value="activities">Activities</TabsTrigger>
+              <TabsTrigger value="market-intelligence">
+                <Target className="h-4 w-4 mr-1" />
+                Market Intel
+              </TabsTrigger>
               <TabsTrigger value="cash-analytics">Cash Analytics</TabsTrigger>
               <TabsTrigger value="reminders">Reminders</TabsTrigger>
               <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
@@ -632,6 +637,11 @@ Average per booking: ${activityBookings.length ? Math.round(totalRevenue / activ
                   </div>
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            {/* Market Intelligence Tab */}
+            <TabsContent value="market-intelligence" className="space-y-4">
+              <MarketIntelligenceDashboard />
             </TabsContent>
 
             <TabsContent value="whatsapp" className="space-y-4">
