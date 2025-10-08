@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GetYourGuide Redirect Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-button {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            margin: 10px 0;
+            background: #0066cc;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            text-decoration: none;
+            text-align: center;
+        }
+        .test-button:hover {
+            background: #0052a3;
+        }
+        .test-button.green {
+            background: #28a745;
+        }
+        .test-button.green:hover {
+            background: #218838;
+        }
+        .url-display {
+            background: #f0f0f0;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            word-break: break-all;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🇲🇦 GetYourGuide Redirect Test</h1>
+        <p>Click the buttons below to test GetYourGuide redirects:</p>
+        
+        <button class="test-button" onclick="testRedirect('Marrakech')">
+            🔍 Search "Marrakech" on GetYourGuide
+        </button>
+        
+        <button class="test-button" onclick="testRedirect('Agafay Desert')">
+            🔍 Search "Agafay Desert" on GetYourGuide
+        </button>
+        
+        <button class="test-button" onclick="testRedirect('Ouzoud Waterfalls')">
+            🔍 Search "Ouzoud Waterfalls" on GetYourGuide
+        </button>
+        
+        <button class="test-button green" onclick="testGeneralMorocco()">
+            🇲🇦 General Morocco Search on GetYourGuide
+        </button>
+        
+        <div id="urlDisplay" class="url-display">
+            Click a button above to see the GetYourGuide URL
+        </div>
+        
+        <h3>Expected Behavior:</h3>
+        <ul>
+            <li>✅ Each button should open GetYourGuide.com in a new tab</li>
+            <li>✅ URLs should include Morocco-specific parameters</li>
+            <li>✅ Search should be filtered to Morocco activities</li>
+            <li>✅ No console errors should appear</li>
+        </ul>
+    </div>
+
+    <script>
+        function getGYGSearchUrl(searchQuery) {
+            const moroccoQuery = `${searchQuery} morocco`;
+            return `https://www.getyourguide.com/s/?q=${encodeURIComponent(moroccoQuery)}&searchSource=3&location=Morocco`;
+        }
+
+        function testRedirect(query) {
+            const searchUrl = getGYGSearchUrl(query);
+            document.getElementById('urlDisplay').textContent = searchUrl;
+            console.log('Redirecting to GetYourGuide:', searchUrl);
+            window.open(searchUrl, '_blank', 'noopener,noreferrer');
+        }
+
+        function testGeneralMorocco() {
+            const generalUrl = 'https://www.getyourguide.com/s/?q=morocco&searchSource=3&location=Morocco';
+            document.getElementById('urlDisplay').textContent = generalUrl;
+            console.log('Redirecting to general Morocco search:', generalUrl);
+            window.open(generalUrl, '_blank', 'noopener,noreferrer');
+        }
+    </script>
+</body>
+</html>

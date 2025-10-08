@@ -30,7 +30,13 @@ export default function GYGDirectRedirect({
   const handleSearchRedirect = () => {
     if (query.trim()) {
       const searchUrl = getGYGSearchUrl(query);
+      console.log('Redirecting to GetYourGuide:', searchUrl);
       window.open(searchUrl, '_blank', 'noopener,noreferrer');
+    } else {
+      // If no query, redirect to general Morocco search
+      const generalUrl = 'https://www.getyourguide.com/s/?q=morocco&searchSource=3&location=Morocco';
+      console.log('Redirecting to general Morocco search:', generalUrl);
+      window.open(generalUrl, '_blank', 'noopener,noreferrer');
     }
   };
 
@@ -98,6 +104,14 @@ export default function GYGDirectRedirect({
             Direct Search
           </Badge>
         </div>
+        <Button
+          onClick={handleSearchRedirect}
+          size="sm"
+          className="bg-green-600 hover:bg-green-700 text-white"
+        >
+          <ExternalLink className="h-3 w-3 mr-1" />
+          Go to GetYourGuide
+        </Button>
       </div>
       
       <div className="space-y-3">
@@ -118,11 +132,10 @@ export default function GYGDirectRedirect({
         {/* Search Button */}
         <Button
           onClick={handleSearchRedirect}
-          disabled={!query.trim()}
           className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-xl transition-all duration-200 shadow-sm hover:shadow-md"
         >
           <ExternalLink className="h-4 w-4 mr-2" />
-          Search on GetYourGuide.com
+          {query.trim() ? `Search "${query}" on GetYourGuide.com` : 'Search Morocco on GetYourGuide.com'}
         </Button>
       </div>
 
