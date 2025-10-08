@@ -2,6 +2,8 @@ import { Router, Request, Response } from 'express';
 import axios from 'axios';
 import { testConnection } from '../utils/gyg.js';
 import { GYGFetcher, GYGActivity } from '../utils/gygFetcher.js';
+import { MoroccoActivityFetcher, MoroccoActivity } from '../utils/moroccoActivityFetcher.js';
+import { MoroccoDatabase, MoroccoActivityData } from '../utils/moroccoDatabase.js';
 import GYGCache from '../models/GYGCache.js';
 
 const router = Router();
@@ -91,24 +93,45 @@ router.get('/search', async (req: Request, res: Response) => {
     try {
       console.log(`[GYG Search] Query="${query}" | Fetching from live GetYourGuide...`);
       
-      // Always try live search first for Morocco activities
-      console.log(`[GYG Morocco Search] Query="${query}" | Attempting live Morocco search...`);
+      // Use curated Morocco database for reliable results
+      console.log(`[Morocco Database] Query="${query}" | Searching curated Morocco database...`);
       try {
-        activities = await GYGFetcher.searchActivities(query);
-        console.log(`[GYG Morocco Search] Query="${query}" | Live search returned ${activities.length} Morocco activities`);
+        const moroccoActivities = MoroccoDatabase.searchActivities(query);
+        console.log(`[Morocco Database] Query="${query}" | Found ${moroccoActivities.length} activities from curated database`);
         
-        if (activities.length === 0) {
-          console.log(`[GYG Morocco Search] Query="${query}" | No live Morocco results, using fallback`);
+        if (moroccoActivities.length === 0) {
+          console.log(`[Morocco Database] Query="${query}" | No results found, using fallback`);
           activities = GYGFetcher.generateFallbackActivities(query);
           source = 'fallback';
         } else {
-          source = 'live';
+          // Convert MoroccoActivityData to GYGActivity format
+          activities = moroccoActivities.map(activity => ({
+            id: activity.id,
+            title: activity.title,
+            price: activity.price,
+            currency: activity.currency,
+            rating: activity.rating,
+            reviewCount: activity.reviewCount,
+            image: activity.image,
+            link: activity.link,
+            description: activity.description,
+            duration: activity.duration,
+            location: activity.location
+          }));
+          source = 'curated-database';
         }
-      } catch (liveError: any) {
-        console.error(`[GYG Morocco Search] Query="${query}" | Live search failed:`, liveError.message);
-        console.log(`[GYG Morocco Search] Query="${query}" | Falling back to Morocco fallback data`);
-        activities = GYGFetcher.generateFallbackActivities(query);
-        source = 'fallback';
+      } catch (databaseError: any) {
+        console.error(`[Morocco Database] Query="${query}" | Database search failed:`, databaseError.message);
+        console.log(`[Morocco Database] Query="${query}" | Falling back to original fetcher`);
+        
+        try {
+          activities = await GYGFetcher.searchActivities(query);
+          source = 'original-fetcher';
+        } catch (originalError: any) {
+          console.error(`[Morocco Database] Query="${query}" | Original fetcher failed:`, originalError.message);
+          activities = GYGFetcher.generateFallbackActivities(query);
+          source = 'fallback';
+        }
       }
 
       // Transform activities to match expected format
