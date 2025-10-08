@@ -125,24 +125,25 @@ export default function SecurityWrapper({
     return cleanup;
   }, [enableThreatDetection, logSecurityEvent]);
 
-  // Monitor connection attempts
+  // Monitor connection attempts - disabled for normal admin usage
   useEffect(() => {
-    const monitorConnections = () => {
-      const attempts = connectionAttempts + 1;
-      setConnectionAttempts(attempts);
+    // Disabled to prevent false security alerts during normal admin usage
+    // const monitorConnections = () => {
+    //   const attempts = connectionAttempts + 1;
+    //   setConnectionAttempts(attempts);
 
-      if (attempts > 5) {
-        logSecurityEvent('suspicious_connection_attempts', { count: attempts });
-        toast({
-          title: "Security Alert",
-          description: "Multiple connection attempts detected",
-          variant: "destructive",
-        });
-      }
-    };
+    //   if (attempts > 5) {
+    //     logSecurityEvent('suspicious_connection_attempts', { count: attempts });
+    //     toast({
+    //       title: "Security Alert",
+    //       description: "Multiple connection attempts detected",
+    //       variant: "destructive",
+    //     });
+    //   }
+    // };
 
-    window.addEventListener('focus', monitorConnections);
-    return () => window.removeEventListener('focus', monitorConnections);
+    // window.addEventListener('focus', monitorConnections);
+    // return () => window.removeEventListener('focus', monitorConnections);
   }, [connectionAttempts, logSecurityEvent, toast]);
 
   // Block access if secure connection required but not available

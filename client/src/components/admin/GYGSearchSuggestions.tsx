@@ -138,8 +138,8 @@ export default function GYGSearchSuggestions({
       onTitleSelect(activity.title, activity);
     }
     
-    // Open GetYourGuide link in new tab
-    window.open(activity.link, '_blank', 'noopener,noreferrer');
+    // Don't redirect - just populate the form fields
+    console.log('[GYG] Selected activity for form:', activity.title);
   };
 
   const handleUnlock = () => {

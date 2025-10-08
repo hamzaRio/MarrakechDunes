@@ -128,40 +128,66 @@ export default function GetYourGuidePriceFetcher({
               {/* Redirect to GetYourGuide buttons */}
               <div className="space-y-3 mb-4">
                 <Button
-                  onClick={() => {
-                    const moroccoQuery = `${activityName} morocco`;
-                    const searchUrl = `https://www.getyourguide.com/s/?q=${encodeURIComponent(moroccoQuery)}&searchSource=3&location=Morocco`;
-                    console.log('🔗 Redirecting to GetYourGuide:', searchUrl);
-                    const newWindow = window.open(searchUrl, '_blank', 'noopener,noreferrer');
-                    if (!newWindow) {
-                      console.error('❌ Pop-up blocked! Please allow pop-ups for this site.');
-                      alert('Pop-up blocked! Please allow pop-ups and try again.');
-                    } else {
-                      console.log('✅ Successfully opened GetYourGuide in new tab');
+                  onClick={async () => {
+                    try {
+                      console.log('🔍 Searching GetYourGuide API for:', activityName);
+                      const response = await apiFetch(`/gyg/search?q=${encodeURIComponent(activityName)}`);
+                      
+                      if (Array.isArray(response) && response.length > 0) {
+                        console.log('✅ Found activities:', response.length);
+                        // Update the form with the first result
+                        if (onPriceSelect) {
+                          onPriceSelect(response[0].suggestedPrice, response[0]);
+                        }
+                        if (onTitleSelect) {
+                          onTitleSelect(response[0].title, response[0]);
+                        }
+                      } else {
+                        console.log('ℹ️ No activities found, opening GetYourGuide for reference');
+                        const moroccoQuery = `${activityName} morocco`;
+                        const searchUrl = `https://www.getyourguide.com/s/?q=${encodeURIComponent(moroccoQuery)}&searchSource=3&location=Morocco`;
+                        window.open(searchUrl, '_blank', 'noopener,noreferrer');
+                      }
+                    } catch (error) {
+                      console.error('❌ API search failed:', error);
+                      // Fallback to opening GetYourGuide
+                      const moroccoQuery = `${activityName} morocco`;
+                      const searchUrl = `https://www.getyourguide.com/s/?q=${encodeURIComponent(moroccoQuery)}&searchSource=3&location=Morocco`;
+                      window.open(searchUrl, '_blank', 'noopener,noreferrer');
                     }
                   }}
                   className="w-full bg-green-600 hover:bg-green-700 text-white"
                 >
-                  <ExternalLink className="h-4 w-4 mr-2" />
-                  Search "{activityName}" on GetYourGuide.com
+                  <Search className="h-4 w-4 mr-2" />
+                  Search "{activityName}" on GetYourGuide API
                 </Button>
                 
                 <Button
-                  onClick={() => {
-                    const generalUrl = 'https://www.getyourguide.com/s/?q=morocco&searchSource=3&location=Morocco';
-                    console.log('🇲🇦 Redirecting to general Morocco search:', generalUrl);
-                    const newWindow = window.open(generalUrl, '_blank', 'noopener,noreferrer');
-                    if (!newWindow) {
-                      console.error('❌ Pop-up blocked! Please allow pop-ups for this site.');
-                      alert('Pop-up blocked! Please allow pop-ups and try again.');
-                    } else {
-                      console.log('✅ Successfully opened GetYourGuide in new tab');
+                  onClick={async () => {
+                    try {
+                      console.log('🔍 Searching GetYourGuide API for Morocco activities');
+                      const response = await apiFetch(`/gyg/search?q=morocco`);
+                      
+                      if (Array.isArray(response) && response.length > 0) {
+                        console.log('✅ Found Morocco activities:', response.length);
+                        // Show the first few results
+                        console.log('Top Morocco activities:', response.slice(0, 3));
+                      } else {
+                        console.log('ℹ️ No Morocco activities found, opening GetYourGuide for reference');
+                        const generalUrl = 'https://www.getyourguide.com/s/?q=morocco&searchSource=3&location=Morocco';
+                        window.open(generalUrl, '_blank', 'noopener,noreferrer');
+                      }
+                    } catch (error) {
+                      console.error('❌ API search failed:', error);
+                      // Fallback to opening GetYourGuide
+                      const generalUrl = 'https://www.getyourguide.com/s/?q=morocco&searchSource=3&location=Morocco';
+                      window.open(generalUrl, '_blank', 'noopener,noreferrer');
                     }
                   }}
                   variant="outline"
                   className="w-full"
                 >
-                  <ExternalLink className="h-4 w-4 mr-2" />
+                  <Search className="h-4 w-4 mr-2" />
                   Browse All Morocco Activities
                 </Button>
               </div>

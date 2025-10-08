@@ -755,7 +755,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   }));
 
   // PDF Export endpoints
-  app.get("/api/admin/export/bookings/pdf", asyncHandler(async (req: Request, res: Response) => {
+  app.get("/api/admin/export/bookings/pdf", adminSecurityMiddleware, asyncHandler(async (req: Request, res: Response) => {
     try {
       console.log("Starting PDF export...");
       
