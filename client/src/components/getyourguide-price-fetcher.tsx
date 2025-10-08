@@ -26,12 +26,14 @@ import {
 interface GetYourGuidePriceFetcherProps {
   activityName: string;
   onPriceSelect: (price: number, suggestions: any) => void;
+  onTitleSelect?: (title: string, activity: any) => void;
   currentPrice?: number;
 }
 
 export default function GetYourGuidePriceFetcher({ 
   activityName, 
-  onPriceSelect, 
+  onPriceSelect,
+  onTitleSelect,
   currentPrice = 0 
 }: GetYourGuidePriceFetcherProps) {
   const [foundActivity, setFoundActivity] = useState<GetYourGuideActivity | null>(null);
@@ -66,12 +68,17 @@ export default function GetYourGuidePriceFetcher({
     setPricingSuggestions(null);
     
     try {
-      const activity = await findExactGetYourGuideActivity(searchTerm);
-      if (activity) {
+      const activities = await searchActivityWithMorocco(searchTerm);
+      if (activities.length > 0) {
+        const activity = activities[0]; // Use first result
         setFoundActivity(activity);
-        const suggestions = getCompetitivePricingSuggestions(activity.price);
+        const suggestions = {
+          suggestedPrice: activity.suggestedPrice,
+          gygPrice: activity.gygPrice,
+          savings: activity.gygPrice - activity.suggestedPrice
+        };
         setPricingSuggestions(suggestions);
-        onPriceSelect(activity.price, suggestions);
+        onPriceSelect(activity.suggestedPrice, suggestions);
         setShowResults(true);
         setNotFound(false);
       } else {
