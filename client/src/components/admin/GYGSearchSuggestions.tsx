@@ -5,21 +5,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ExternalLink, Search, Loader2, Lock, Unlock, Star, Clock, Users } from 'lucide-react';
-import { apiFetch } from '@/lib/api';
+import { searchGetYourGuideActivities, formatGYGPrice, GYGActivity } from '@/lib/getyourguide-api';
 
-interface GYGActivity {
-  id: string;
-  title: string;
-  gygPrice: number;
-  suggestedPrice: number;
-  currency: string;
-  image?: string;
-  link: string;
-  description?: string;
-  duration?: string;
-  rating?: number;
-  reviewCount?: number;
-}
+// GYGActivity interface is now imported from getyourguide-api.ts
 
 interface GYGSearchSuggestionsProps {
   className?: string;
@@ -94,22 +82,12 @@ export default function GYGSearchSuggestions({
     setError(null);
 
     try {
-      console.log('[GYG] Searching live GetYourGuide API for:', searchQuery);
-      const response = await apiFetch(`/gyg/search?q=${encodeURIComponent(searchQuery)}`);
-      
-      if (Array.isArray(response)) {
-        setSuggestions(response);
-        setShowSuggestions(true);
-        console.log('[GYG] Live search returned:', response.length, 'activities');
-      } else {
-        setSuggestions([]);
-        setShowSuggestions(true);
-        console.log('[GYG] No activities found');
-      }
+      const activities = await searchGetYourGuideActivities(searchQuery);
+      setSuggestions(activities);
+      setShowSuggestions(true);
     } catch (err: any) {
       console.error('[GYG] Live search error:', err);
-      const errorMessage = err.response?.data?.error || err.message || 'Failed to search GetYourGuide';
-      setError(errorMessage);
+      setError(err.message);
       setSuggestions([]);
       setShowSuggestions(true); // Show error in dropdown
     } finally {
@@ -149,9 +127,7 @@ export default function GYGSearchSuggestions({
     }
   };
 
-  const formatPrice = (price: number, currency: string) => {
-    return `${price} ${currency}`;
-  };
+  // formatPrice is now imported from getyourguide-api.ts
 
   return (
     <div className={`relative ${className}`}>
@@ -224,10 +200,10 @@ export default function GYGSearchSuggestions({
                 <h4 className="font-medium text-green-800">{selectedActivity.title}</h4>
                 <div className="flex items-center gap-2 mt-1">
                   <Badge variant="outline" className="text-xs bg-red-50 text-red-700 border-red-200">
-                    GYG: {formatPrice(selectedActivity.gygPrice, selectedActivity.currency)}
+                    GYG: {formatGYGPrice(selectedActivity.gygPrice, selectedActivity.currency)}
                   </Badge>
                   <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
-                    Suggested: {formatPrice(selectedActivity.suggestedPrice, selectedActivity.currency)}
+                    Suggested: {formatGYGPrice(selectedActivity.suggestedPrice, selectedActivity.currency)}
                   </Badge>
                 </div>
                 {selectedActivity.rating && (
@@ -297,10 +273,10 @@ export default function GYGSearchSuggestions({
                       )}
                       <div className="flex items-center gap-2 mt-2">
                         <Badge variant="outline" className="text-xs bg-red-50 text-red-700 border-red-200">
-                          GYG: {formatPrice(activity.gygPrice, activity.currency)}
+                          GYG: {formatGYGPrice(activity.gygPrice, activity.currency)}
                         </Badge>
                         <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
-                          Suggested: {formatPrice(activity.suggestedPrice, activity.currency)}
+                          Suggested: {formatGYGPrice(activity.suggestedPrice, activity.currency)}
                         </Badge>
                         {activity.location && (
                           <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">

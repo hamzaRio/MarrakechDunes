@@ -33,6 +33,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { getAssetUrl } from "@/lib/utils";
+import { searchGetYourGuideActivities } from "@/lib/getyourguide-api";
 import { Plus, Settings, Trash2, Power, PowerOff, Upload, Search, ExternalLink } from "lucide-react";
 import { ObjectUploader } from "@/components/ObjectUploader";
 import GetYourGuidePriceFetcher from "@/components/getyourguide-price-fetcher";
@@ -151,10 +152,10 @@ export default function ActivityManagementModal({
     setIsSearching(true);
     try {
       console.log('[GYG] Searching live GetYourGuide API for:', priceSearchQuery);
-      const response = await apiFetch(`/gyg/search?q=${encodeURIComponent(priceSearchQuery)}`);
+      const activities = await searchGetYourGuideActivities(priceSearchQuery);
       
-      if (Array.isArray(response) && response.length > 0) {
-        const results = response.map((activity: any) => ({
+      if (activities.length > 0) {
+        const results = activities.map((activity) => ({
           name: activity.title,
           price: activity.gygPrice,
           provider: "GetYourGuide",

@@ -17,10 +17,10 @@ import {
   Loader2
 } from "lucide-react";
 import { 
-  findExactGetYourGuideActivity, 
-  getCompetitivePricingSuggestions, 
-  formatPrice,
-  type GetYourGuideActivity 
+  searchActivityWithMorocco, 
+  searchMoroccoActivities, 
+  formatGYGPrice,
+  type GYGActivity 
 } from "@/lib/getyourguide-api";
 
 interface GetYourGuidePriceFetcherProps {
@@ -131,16 +131,16 @@ export default function GetYourGuidePriceFetcher({
                   onClick={async () => {
                     try {
                       console.log('🔍 Searching GetYourGuide API for:', activityName);
-                      const response = await apiFetch(`/gyg/search?q=${encodeURIComponent(activityName)}`);
+                      const activities = await searchActivityWithMorocco(activityName);
                       
-                      if (Array.isArray(response) && response.length > 0) {
-                        console.log('✅ Found activities:', response.length);
+                      if (activities.length > 0) {
+                        console.log('✅ Found activities:', activities.length);
                         // Update the form with the first result
                         if (onPriceSelect) {
-                          onPriceSelect(response[0].suggestedPrice, response[0]);
+                          onPriceSelect(activities[0].suggestedPrice, activities[0]);
                         }
                         if (onTitleSelect) {
-                          onTitleSelect(response[0].title, response[0]);
+                          onTitleSelect(activities[0].title, activities[0]);
                         }
                       } else {
                         console.log('ℹ️ No activities found, opening GetYourGuide for reference');
@@ -166,12 +166,12 @@ export default function GetYourGuidePriceFetcher({
                   onClick={async () => {
                     try {
                       console.log('🔍 Searching GetYourGuide API for Morocco activities');
-                      const response = await apiFetch(`/gyg/search?q=morocco`);
+                      const activities = await searchMoroccoActivities();
                       
-                      if (Array.isArray(response) && response.length > 0) {
-                        console.log('✅ Found Morocco activities:', response.length);
+                      if (activities.length > 0) {
+                        console.log('✅ Found Morocco activities:', activities.length);
                         // Show the first few results
-                        console.log('Top Morocco activities:', response.slice(0, 3));
+                        console.log('Top Morocco activities:', activities.slice(0, 3));
                       } else {
                         console.log('ℹ️ No Morocco activities found, opening GetYourGuide for reference');
                         const generalUrl = 'https://www.getyourguide.com/s/?q=morocco&searchSource=3&location=Morocco';
