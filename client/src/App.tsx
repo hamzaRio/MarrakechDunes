@@ -22,10 +22,7 @@ const Reviews = lazy(() => import("@/pages/reviews"));
 const Contact = lazy(() => import("@/pages/contact"));
 const AdminLogin = lazy(() => import("@/pages/admin/login"));
 const AdminDashboard = lazy(() => import("@/pages/admin/dashboard"));
-const SimplifiedAdminDashboard = lazy(() => import("@/pages/admin/simplified-dashboard"));
-const CEODashboard = lazy(() => import("@/pages/admin/ceo-dashboard"));
-const CEOSimplifiedDashboard = lazy(() => import("@/pages/admin/ceo-simplified-dashboard"));
-const PerformanceDashboard = lazy(() => import("@/pages/admin/performance-dashboard"));
+// Removed duplicate dashboard imports
 const AdminAccessGuide = lazy(() => import("@/components/admin-access-guide"));
 const CustomerPortal = lazy(() => import("@/pages/customer-portal"));
 const BusinessIntelligence = lazy(() => import("@/pages/admin/business-intelligence"));
@@ -76,12 +73,8 @@ function Router() {
       <Route path="/booking" component={Booking} />
       <Route path="/confirmation-and-pay" component={BookingConfirmationPage} />
       <Route path="/admin/login" component={withSecurity(AdminLogin, ADMIN_ROUTE)} />
-      <Route path="/admin/ceo" component={withSecurity(CEODashboard, ADMIN_ROUTE)} />
-      <Route path="/admin/ceo-simple" component={withSecurity(CEOSimplifiedDashboard, ADMIN_ROUTE)} />
       <Route path="/admin/dashboard" component={withSecurity(AdminDashboard, ADMIN_ROUTE)} />
-      <Route path="/admin/simple" component={withSecurity(SimplifiedAdminDashboard, ADMIN_ROUTE)} />
-      <Route path="/admin" component={withSecurity(SimplifiedAdminDashboard, ADMIN_ROUTE)} />
-      <Route path="/admin/performance" component={withSecurity(PerformanceDashboard, ADMIN_ROUTE)} />
+      <Route path="/admin" component={withSecurity(AdminDashboard, ADMIN_ROUTE)} />
       <Route path="/admin/business-intelligence" component={withSecurity(BusinessIntelligence, ADMIN_ROUTE)} />
       <Route path="/admin/access-guide" component={withSecurity(AdminAccessGuide, PUBLIC_ROUTE)} />
       <Route path="/customer" component={withSecurity(CustomerPortal, PUBLIC_ROUTE)} />

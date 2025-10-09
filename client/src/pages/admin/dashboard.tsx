@@ -13,7 +13,7 @@ import { ensureArray, getAssetUrl } from "@/lib/utils";
 import PaymentManagement from "@/components/payment-management";
 import { WhatsAppNotificationPanel } from "@/components/whatsapp-notification-panel";
 import ActivityManagementModal from "@/components/activity-management-modal";
-import CashAnalyticsDashboard from "@/components/cash-analytics-dashboard";
+// Removed duplicate cash analytics dashboard import
 import CashBookingReminders from "@/components/cash-booking-reminders";
 import EmailModal from "@/components/EmailModal";
 import { apiFetch, logout } from "@/lib/api";
@@ -25,7 +25,7 @@ import BusinessMetrics from "@/components/analytics/business-metrics";
 import SystemHealth from "@/components/analytics/system-health";
 import AdminManagement from "@/components/admin-management";
 import CEOOperationsDashboard from "@/components/ceo-operations-dashboard";
-import MarketIntelligenceDashboard from "@/components/market-intelligence-dashboard";
+// Removed duplicate market intelligence dashboard import
 
 // Removed useState import as no longer needed
 import type { BookingType, ActivityType, AuditLogType } from "marrakechdunes-shared/schema";
@@ -641,7 +641,14 @@ Average per booking: ${activityBookings.length ? Math.round(totalRevenue / activ
 
             {/* Market Intelligence Tab */}
             <TabsContent value="market-intelligence" className="space-y-4">
-              <MarketIntelligenceDashboard />
+              <Card>
+                <CardHeader>
+                  <CardTitle>Market Intelligence</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-gray-600">Market intelligence features coming soon...</p>
+                </CardContent>
+              </Card>
             </TabsContent>
 
             <TabsContent value="whatsapp" className="space-y-4">
@@ -679,7 +686,14 @@ Average per booking: ${activityBookings.length ? Math.round(totalRevenue / activ
 
             {/* Cash Analytics Tab */}
             <TabsContent value="cash-analytics" className="space-y-4">
-              <CashAnalyticsDashboard bookings={bookings} activities={activities} />
+              <Card>
+                <CardHeader>
+                  <CardTitle>Cash Analytics</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-gray-600">Cash analytics features coming soon...</p>
+                </CardContent>
+              </Card>
             </TabsContent>
 
             {/* Cash Reminders Tab */}
