@@ -213,7 +213,7 @@ export default function ActivityCard({ activity, showDescription = false }: Acti
 
                 <div className="text-orange-700 font-medium">GetYourGuide</div>
 
-                <div className="text-lg font-bold text-orange-600">{activity.getyourguidePrice || Number(activity.price) + 150} MAD</div>
+                <div className="text-lg font-bold text-orange-600">{activity.getyourguidePrice || (Number(activity.price) + 150)} MAD</div>
 
               </div>
 

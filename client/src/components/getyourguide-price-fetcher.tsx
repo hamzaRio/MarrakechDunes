@@ -220,13 +220,8 @@ export default function GetYourGuidePriceFetcher({
                       const moroccoQuery = `${activityName} morocco`;
                       const searchUrl = `https://www.getyourguide.com/s/?q=${encodeURIComponent(moroccoQuery)}&searchSource=3&location=Morocco`;
                       console.log('🔗 Redirecting to GetYourGuide:', searchUrl);
-                      const newWindow = window.open(searchUrl, '_blank', 'noopener,noreferrer');
-                      if (!newWindow) {
-                        console.error('❌ Pop-up blocked! Please allow pop-ups for this site.');
-                        alert('Pop-up blocked! Please allow pop-ups and try again.');
-                      } else {
-                        console.log('✅ Successfully opened GetYourGuide in new tab');
-                      }
+                      // Use direct navigation instead of pop-up
+                      window.location.href = searchUrl;
                     }}
                   >
                     <ExternalLink className="h-3 w-3 mr-1" />

@@ -568,7 +568,7 @@ Average per booking: ${activityBookings.length ? Math.round(totalRevenue / activ
                             </div>
                             <div className="bg-white p-3 rounded border">
                               <div className="text-sm font-medium text-orange-700">GetYourGuide</div>
-                              <div className="text-xl font-bold text-orange-600">{activity.getyourguidePrice || activity.price + 150} MAD</div>
+                              <div className="text-xl font-bold text-orange-600">{activity.getyourguidePrice || (Number(activity.price) + 150)} MAD</div>
                               <div className="text-xs text-red-600">
                                 +{Math.round(((activity.getyourguidePrice || (Number(activity.price) + 150)) - Number(activity.price)) / Number(activity.price) * 100)}% higher
                               </div>
