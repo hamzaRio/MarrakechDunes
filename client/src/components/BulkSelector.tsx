@@ -182,7 +182,7 @@ export const SelectableItem: React.FC<{
 };
 
 // Hook for managing bulk selection state
-export const useBulkSelection = <T>(items: T[], getItemId: (item: T) => string) => {
+export const useBulkSelection = <T,>(items: T[], getItemId: (item: T) => string) => {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const selectedItems = items.filter(item => selectedIds.has(getItemId(item)));

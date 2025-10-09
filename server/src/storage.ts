@@ -459,28 +459,59 @@ class MongoStorage implements IStorage {
   // CSV Export operations
   async exportBookingsToCSV(bookings: BookingWithActivity[]): Promise<string> {
     const headers = [
-      'ID', 'Customer Name', 'Customer Phone', 'Customer Email', 
-      'Activity Name', 'Number of People', 'Preferred Date', 
-      'Total Amount', 'Payment Status', 'Status', 'Created At'
+      'Booking ID', 
+      'Customer Name', 
+      'Customer Phone', 
+      'Customer Email', 
+      'Activity Name', 
+      'Activity Price',
+      'Number of People', 
+      'Preferred Date', 
+      'Total Amount (MAD)', 
+      'Paid Amount (MAD)',
+      'Remaining Amount (MAD)',
+      'Payment Status', 
+      'Booking Status',
+      'Payment Method',
+      'Notes',
+      'Created At',
+      'Updated At'
     ];
     
     const rows = bookings.map(booking => [
-      booking._id,
-      booking.customerName,
-      booking.customerPhone,
+      booking._id || booking.id || '',
+      booking.customerName || '',
+      booking.customerPhone || '',
       booking.customerEmail || '',
-      booking.activity?.name || 'Unknown',
-      booking.numberOfPeople,
-      booking.preferredDate,
-      booking.totalAmount,
+      booking.activity?.name || 'Unknown Activity',
+      booking.activity?.price || 0,
+      booking.numberOfPeople || 1,
+      new Date(booking.preferredDate).toLocaleDateString('en-CA'),
+      booking.totalAmount || 0,
+      booking.paidAmount || 0,
+      (Number(booking.totalAmount) || 0) - (Number(booking.paidAmount) || 0),
       booking.paymentStatus || 'unpaid',
-      booking.status,
-      new Date(booking.createdAt).toISOString()
+      booking.status || 'pending',
+      booking.paymentMethod || 'cash',
+      (booking.notes || '').replace(/\n/g, ' ').replace(/\r/g, ' '),
+      new Date(booking.createdAt).toISOString(),
+      new Date(booking.updatedAt || booking.createdAt).toISOString()
     ]);
     
-    return [headers, ...rows].map(row => 
-      row.map(field => `"${String(field).replace(/"/g, '""')}"`).join(',')
+    // Create CSV with proper escaping and BOM for Excel compatibility
+    const csvContent = [headers, ...rows].map(row => 
+      row.map(field => {
+        const stringField = String(field || '');
+        // Escape quotes and wrap in quotes if contains comma, quote, or newline
+        if (stringField.includes(',') || stringField.includes('"') || stringField.includes('\n') || stringField.includes('\r')) {
+          return `"${stringField.replace(/"/g, '""')}"`;
+        }
+        return stringField;
+      }).join(',')
     ).join('\n');
+    
+    // Add BOM for proper UTF-8 encoding in Excel
+    return '\uFEFF' + csvContent;
   }
 
   async exportAuditLogsToCSV(logs: AuditLogType[]): Promise<string> {
@@ -506,53 +537,115 @@ class MongoStorage implements IStorage {
     // Import jsPDF using dynamic import for ES modules
     const jsPDFModule = await import('jspdf');
     const jsPDF = jsPDFModule.jsPDF;
-    const doc = new jsPDF();
+    const doc = new jsPDF('l', 'mm', 'a4'); // Landscape for better table layout
     
-    // Add title
-    doc.setFontSize(20);
+    // Add title and header
+    doc.setFontSize(24);
     doc.text('MarrakechDunes - Bookings Report', 20, 20);
+    
     doc.setFontSize(12);
-    doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 20, 30);
-    doc.text(`Total Bookings: ${bookings.length}`, 20, 35);
+    doc.text(`Generated on: ${new Date().toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })}`, 20, 30);
     
     // Add summary statistics
-    const totalRevenue = bookings.reduce((sum, booking) => sum + parseInt(booking.totalAmount), 0);
+    const totalRevenue = bookings.reduce((sum, booking) => sum + (Number(booking.totalAmount) || 0), 0);
     const confirmedBookings = bookings.filter(b => b.status === 'CONFIRMED').length;
     const pendingBookings = bookings.filter(b => b.status === 'PENDING').length;
+    const paidBookings = bookings.filter(b => b.paymentStatus === 'fully_paid').length;
+    const totalPaid = bookings.reduce((sum, booking) => sum + (Number(booking.paidAmount) || 0), 0);
     
-    doc.text(`Total Revenue: ${totalRevenue} MAD`, 20, 45);
-    doc.text(`Confirmed: ${confirmedBookings} | Pending: ${pendingBookings}`, 20, 50);
+    doc.text(`Total Bookings: ${bookings.length}`, 20, 40);
+    doc.text(`Total Revenue: ${totalRevenue.toLocaleString()} MAD`, 20, 47);
+    doc.text(`Total Paid: ${totalPaid.toLocaleString()} MAD`, 20, 54);
+    doc.text(`Outstanding: ${(totalRevenue - totalPaid).toLocaleString()} MAD`, 20, 61);
+    doc.text(`Status: Confirmed: ${confirmedBookings} | Pending: ${pendingBookings} | Paid: ${paidBookings}`, 20, 68);
     
-    // Add bookings table
-    let yPosition = 60;
+    // Add bookings table with better structure
+    let yPosition = 80;
     doc.setFontSize(10);
     
-    // Table headers
-    doc.text('Customer', 20, yPosition);
-    doc.text('Activity', 60, yPosition);
-    doc.text('Date', 100, yPosition);
-    doc.text('Amount', 130, yPosition);
-    doc.text('Status', 160, yPosition);
-    yPosition += 5;
+    // Table headers with background
+    doc.setFillColor(240, 240, 240);
+    doc.rect(15, yPosition - 5, 260, 8, 'F');
+    doc.setTextColor(0, 0, 0);
+    doc.setFont('helvetica', 'bold');
     
-    // Add line
-    doc.line(20, yPosition, 190, yPosition);
-    yPosition += 5;
+    doc.text('ID', 20, yPosition);
+    doc.text('Customer', 35, yPosition);
+    doc.text('Phone', 80, yPosition);
+    doc.text('Activity', 110, yPosition);
+    doc.text('Date', 150, yPosition);
+    doc.text('People', 170, yPosition);
+    doc.text('Total', 185, yPosition);
+    doc.text('Paid', 205, yPosition);
+    doc.text('Status', 225, yPosition);
+    doc.text('Payment', 250, yPosition);
     
-    // Add booking rows
+    yPosition += 8;
+    doc.setFont('helvetica', 'normal');
+    
+    // Add booking rows with alternating colors
     bookings.forEach((booking, index) => {
-      if (yPosition > 280) { // Start new page if needed
+      if (yPosition > 190) { // Start new page if needed
         doc.addPage();
         yPosition = 20;
+        
+        // Re-add headers on new page
+        doc.setFillColor(240, 240, 240);
+        doc.rect(15, yPosition - 5, 260, 8, 'F');
+        doc.setTextColor(0, 0, 0);
+        doc.setFont('helvetica', 'bold');
+        doc.text('ID', 20, yPosition);
+        doc.text('Customer', 35, yPosition);
+        doc.text('Phone', 80, yPosition);
+        doc.text('Activity', 110, yPosition);
+        doc.text('Date', 150, yPosition);
+        doc.text('People', 170, yPosition);
+        doc.text('Total', 185, yPosition);
+        doc.text('Paid', 205, yPosition);
+        doc.text('Status', 225, yPosition);
+        doc.text('Payment', 250, yPosition);
+        yPosition += 8;
+        doc.setFont('helvetica', 'normal');
       }
       
-      doc.text(booking.customerName, 20, yPosition);
-      doc.text(booking.activity?.name || 'Unknown', 60, yPosition);
-      doc.text(new Date(booking.preferredDate).toLocaleDateString(), 100, yPosition);
-      doc.text(`${booking.totalAmount} MAD`, 130, yPosition);
-      doc.text(booking.status, 160, yPosition);
-      yPosition += 5;
+      // Alternating row colors
+      if (index % 2 === 0) {
+        doc.setFillColor(250, 250, 250);
+        doc.rect(15, yPosition - 3, 260, 6, 'F');
+      }
+      
+      // Truncate long text
+      const truncate = (text: string, maxLength: number) => 
+        text.length > maxLength ? text.substring(0, maxLength - 3) + '...' : text;
+      
+      doc.text(truncate(booking._id || booking.id || '', 8), 20, yPosition);
+      doc.text(truncate(booking.customerName || '', 20), 35, yPosition);
+      doc.text(truncate(booking.customerPhone || '', 15), 80, yPosition);
+      doc.text(truncate(booking.activity?.name || 'Unknown', 25), 110, yPosition);
+      doc.text(new Date(booking.preferredDate).toLocaleDateString('en-CA'), 150, yPosition);
+      doc.text(String(booking.numberOfPeople || 1), 170, yPosition);
+      doc.text(`${Number(booking.totalAmount || 0).toLocaleString()}`, 185, yPosition);
+      doc.text(`${Number(booking.paidAmount || 0).toLocaleString()}`, 205, yPosition);
+      doc.text(truncate(booking.status || 'pending', 8), 225, yPosition);
+      doc.text(truncate(booking.paymentStatus || 'unpaid', 8), 250, yPosition);
+      
+      yPosition += 6;
     });
+    
+    // Add footer with page numbers
+    const pageCount = doc.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.text(`Page ${i} of ${pageCount}`, 20, 290);
+      doc.text(`MarrakechDunes Bookings Report`, 200, 290);
+    }
     
     return Buffer.from(doc.output('arraybuffer'));
   }
@@ -622,45 +715,158 @@ class MongoStorage implements IStorage {
     // Import jsPDF using dynamic import for ES modules
     const jsPDFModule = await import('jspdf');
     const jsPDF = jsPDFModule.jsPDF;
-    const doc = new jsPDF();
+    const doc = new jsPDF('l', 'mm', 'a4'); // Landscape for better layout
     
-    // Add title
-    doc.setFontSize(20);
+    // Add title and header
+    doc.setFontSize(24);
     doc.text('MarrakechDunes - Operations Report', 20, 20);
+    
     doc.setFontSize(12);
-    doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 20, 30);
+    doc.text(`Generated on: ${new Date().toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })}`, 20, 30);
     
-    // Summary section
-    doc.setFontSize(14);
-    doc.text('Executive Summary', 20, 45);
+    // Executive Summary with better formatting
+    doc.setFillColor(240, 240, 240);
+    doc.rect(15, 40, 260, 25, 'F');
+    doc.setFontSize(16);
+    doc.setTextColor(0, 0, 0);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Executive Summary', 20, 50);
+    
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Total Bookings: ${reportData.summary.totalBookings}`, 20, 58);
+    doc.text(`Total Revenue: ${Number(reportData.summary.totalRevenue).toLocaleString()} MAD`, 20, 63);
+    doc.text(`Average Booking Value: ${Number(reportData.summary.averageBookingValue).toFixed(2)} MAD`, 20, 68);
+    doc.text(`Average Rating: ${Number(reportData.summary.averageRating).toFixed(1)}/5`, 20, 73);
+    
+    // Top Performing Activities with table format
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Top Performing Activities', 20, 90);
+    
+    // Table headers
+    doc.setFillColor(220, 220, 220);
+    doc.rect(15, 95, 260, 8, 'F');
     doc.setFontSize(10);
-    doc.text(`Total Bookings: ${reportData.summary.totalBookings}`, 20, 55);
-    doc.text(`Total Revenue: ${reportData.summary.totalRevenue} MAD`, 20, 60);
-    doc.text(`Average Booking Value: ${reportData.summary.averageBookingValue.toFixed(2)} MAD`, 20, 65);
-    doc.text(`Average Rating: ${reportData.summary.averageRating.toFixed(1)}/5`, 20, 70);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Rank', 20, 101);
+    doc.text('Activity Name', 40, 101);
+    doc.text('Bookings', 120, 101);
+    doc.text('Revenue (MAD)', 150, 101);
+    doc.text('Rating', 200, 101);
+    doc.text('Popularity %', 230, 101);
     
-    // Top Activities
-    doc.setFontSize(14);
-    doc.text('Top Performing Activities', 20, 85);
-    doc.setFontSize(10);
-    
-    let yPos = 95;
+    // Activity rows
+    doc.setFont('helvetica', 'normal');
+    let yPos = 110;
     reportData.topActivities.forEach((activity: any, index: number) => {
-      doc.text(`${index + 1}. ${activity.name}`, 20, yPos);
-      doc.text(`   Revenue: ${activity.revenue} MAD | Bookings: ${activity.bookings}`, 20, yPos + 5);
-      yPos += 15;
+      if (yPos > 190) { // Start new page if needed
+        doc.addPage();
+        yPos = 20;
+        
+        // Re-add headers on new page
+        doc.setFillColor(220, 220, 220);
+        doc.rect(15, yPos - 5, 260, 8, 'F');
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Rank', 20, yPos);
+        doc.text('Activity Name', 40, yPos);
+        doc.text('Bookings', 120, yPos);
+        doc.text('Revenue (MAD)', 150, yPos);
+        doc.text('Rating', 200, yPos);
+        doc.text('Popularity %', 230, yPos);
+        yPos += 10;
+        doc.setFont('helvetica', 'normal');
+      }
+      
+      // Alternating row colors
+      if (index % 2 === 0) {
+        doc.setFillColor(250, 250, 250);
+        doc.rect(15, yPos - 3, 260, 6, 'F');
+      }
+      
+      doc.text(`${index + 1}`, 20, yPos);
+      doc.text(activity.name.length > 25 ? activity.name.substring(0, 25) + '...' : activity.name, 40, yPos);
+      doc.text(String(activity.bookings), 120, yPos);
+      doc.text(Number(activity.revenue).toLocaleString(), 150, yPos);
+      doc.text(Number(activity.rating).toFixed(1), 200, yPos);
+      doc.text(Number(activity.popularity).toFixed(1) + '%', 230, yPos);
+      
+      yPos += 6;
     });
     
-    // Monthly Trends Chart (simplified)
-    doc.setFontSize(14);
-    doc.text('Monthly Trends', 20, yPos + 10);
+    // Monthly Trends with better formatting
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Monthly Performance Trends', 20, yPos + 10);
+    
+    // Monthly trends table
+    doc.setFillColor(220, 220, 220);
+    doc.rect(15, yPos + 20, 260, 8, 'F');
     doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Month', 20, yPos + 26);
+    doc.text('Bookings', 80, yPos + 26);
+    doc.text('Revenue (MAD)', 120, yPos + 26);
+    doc.text('Avg per Booking', 180, yPos + 26);
+    doc.text('Growth %', 230, yPos + 26);
     
-    yPos += 20;
-    reportData.monthlyTrends.slice(-6).forEach((month: any) => {
-      doc.text(`${month.month}: ${month.bookings} bookings, ${month.revenue} MAD`, 20, yPos);
-      yPos += 5;
+    doc.setFont('helvetica', 'normal');
+    yPos += 35;
+    
+    reportData.monthlyTrends.slice(-12).forEach((month: any, index: number) => {
+      if (yPos > 190) { // Start new page if needed
+        doc.addPage();
+        yPos = 20;
+        
+        // Re-add headers on new page
+        doc.setFillColor(220, 220, 220);
+        doc.rect(15, yPos - 5, 260, 8, 'F');
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Month', 20, yPos);
+        doc.text('Bookings', 80, yPos);
+        doc.text('Revenue (MAD)', 120, yPos);
+        doc.text('Avg per Booking', 180, yPos);
+        doc.text('Growth %', 230, yPos);
+        yPos += 10;
+        doc.setFont('helvetica', 'normal');
+      }
+      
+      const avgPerBooking = month.bookings > 0 ? (month.revenue / month.bookings).toFixed(2) : '0.00';
+      const prevMonth = reportData.monthlyTrends[reportData.monthlyTrends.indexOf(month) - 1];
+      const growth = prevMonth && prevMonth.bookings > 0 ? 
+        (((month.bookings - prevMonth.bookings) / prevMonth.bookings) * 100).toFixed(1) : '0.0';
+      
+      // Alternating row colors
+      if (index % 2 === 0) {
+        doc.setFillColor(250, 250, 250);
+        doc.rect(15, yPos - 3, 260, 6, 'F');
+      }
+      
+      doc.text(month.month, 20, yPos);
+      doc.text(String(month.bookings), 80, yPos);
+      doc.text(Number(month.revenue).toLocaleString(), 120, yPos);
+      doc.text(avgPerBooking, 180, yPos);
+      doc.text(growth + '%', 230, yPos);
+      
+      yPos += 6;
     });
+    
+    // Add footer with page numbers
+    const pageCount = doc.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.text(`Page ${i} of ${pageCount}`, 20, 290);
+      doc.text(`MarrakechDunes Operations Report`, 200, 290);
+    }
     
     return Buffer.from(doc.output('arraybuffer'));
   }

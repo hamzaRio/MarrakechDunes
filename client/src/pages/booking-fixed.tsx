@@ -97,7 +97,7 @@ export default function BookingFixed() {
       customerEmail: "",
       activityId: "",
       numberOfPeople: 1,
-      preferredDate: new Date(),
+      preferredDate: new Date().toISOString().split('T')[0],
       participantNames: [""],
       notes: "",
     },

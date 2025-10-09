@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, Users, TrendingUp, Activity, Settings, Crown, MessageCircle, LogOut, BarChart3, PieChart, Monitor, Server, Download, FileText, Mail, Target } from "lucide-react";
+import { Calendar, Users, TrendingUp, Activity, Crown, MessageCircle, LogOut, BarChart3, Monitor, Server, Download, FileText, Mail, Target } from "lucide-react";
 import AdminRoute from "@/components/admin-route";
 import { useAuth } from "@/hooks/use-auth";
 import { useLanguage } from "@/hooks/use-language";
@@ -54,11 +54,11 @@ function AdminDashboardContent() {
   });
 
   const totalRevenue = bookings
-    .filter(b => b.status === 'confirmed')
+    .filter(b => b.status === 'confirmed' as any)
     .reduce((sum, b) => sum + Number(b.totalAmount), 0);
 
-  const pendingBookings = bookings.filter(b => b.status === 'pending').length;
-  const confirmedBookings = bookings.filter(b => b.status === 'confirmed').length;
+  const pendingBookings = bookings.filter(b => b.status === 'pending' as any).length;
+  const confirmedBookings = bookings.filter(b => b.status === 'confirmed' as any).length;
 
   // Admin booking management functions
   const handleBookingStatusUpdate = async (bookingId: string, status: string) => {
@@ -166,12 +166,24 @@ Notes: ${booking.notes || 'None'}`);
   // Export bookings handler
   const handleExportBookings = async () => {
     try {
-      const response = await fetch('/api/admin/export/bookings');
+      const apiBaseUrl = import.meta.env.VITE_API_URL || 'https://marrakechdunes-sppy.onrender.com/api';
+      const response = await fetch(`${apiBaseUrl}/admin/export/bookings`, {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'bookings.csv';
+      a.download = `bookings-${new Date().toISOString().split('T')[0]}.csv`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -179,7 +191,7 @@ Notes: ${booking.notes || 'None'}`);
       
       toast({
         title: "Export Successful",
-        description: "Bookings data exported as CSV file.",
+        description: "Bookings exported as CSV with improved structure.",
       });
     } catch (error) {
       console.error('Export error:', error);
@@ -194,12 +206,24 @@ Notes: ${booking.notes || 'None'}`);
   // Export bookings PDF handler
   const handleExportBookingsPDF = async () => {
     try {
-      const response = await fetch('/api/admin/export/bookings/pdf');
+      const apiBaseUrl = import.meta.env.VITE_API_URL || 'https://marrakechdunes-sppy.onrender.com/api';
+      const response = await fetch(`${apiBaseUrl}/admin/export/bookings/pdf`, {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'bookings-report.pdf';
+      a.download = `bookings-report-${new Date().toISOString().split('T')[0]}.pdf`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -207,7 +231,7 @@ Notes: ${booking.notes || 'None'}`);
       
       toast({
         title: "Export Successful",
-        description: "Bookings report exported as PDF file.",
+        description: "Bookings report exported as PDF with professional layout.",
       });
     } catch (error) {
       console.error('Export PDF error:', error);
@@ -239,11 +263,11 @@ Notes: ${booking.notes || 'None'}`);
 
   const handleViewActivityBookings = (activity: ActivityType) => {
     const activityBookings = bookings.filter(b => b.activity.id === activity.id);
-    const totalRevenue = activityBookings.filter(b => b.status === 'confirmed').reduce((sum, b) => sum + Number(b.totalAmount), 0);
+    const totalRevenue = activityBookings.filter(b => b.status === 'confirmed' as any).reduce((sum, b) => sum + Number(b.totalAmount), 0);
     alert(`Activity: ${activity.name}
 Total Bookings: ${activityBookings.length}
-Confirmed: ${activityBookings.filter(b => b.status === 'confirmed').length}
-Pending: ${activityBookings.filter(b => b.status === 'pending').length}
+Confirmed: ${activityBookings.filter(b => b.status === 'confirmed' as any).length}
+Pending: ${activityBookings.filter(b => b.status === 'pending' as any).length}
 Total Revenue: ${totalRevenue} MAD
 Average per booking: ${activityBookings.length ? Math.round(totalRevenue / activityBookings.length) : 0} MAD`);
   };
@@ -422,7 +446,7 @@ Average per booking: ${activityBookings.length ? Math.round(totalRevenue / activ
                                 <p className="text-sm text-gray-600">{booking.activity.name}</p>
                                 <p className="text-sm text-gray-500">{booking.customerPhone}</p>
                               </div>
-                              <Badge variant={booking.status === 'pending' ? 'destructive' : booking.status === 'confirmed' ? 'default' : 'secondary'}>
+                              <Badge variant={booking.status === 'pending' as any ? 'destructive' : booking.status === 'confirmed' as any ? 'default' : 'secondary'}>
                                 {booking.status}
                               </Badge>
                             </div>
@@ -468,7 +492,7 @@ Average per booking: ${activityBookings.length ? Math.round(totalRevenue / activ
                         <PaymentManagement booking={booking} />
 
                         <div className="flex gap-2 pt-4">
-                          {booking.status === 'pending' && (
+                          {booking.status === 'pending' as any && (
                             <>
                               <Button 
                                 size="sm" 
@@ -533,12 +557,7 @@ Average per booking: ${activityBookings.length ? Math.round(totalRevenue / activ
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle>Activity Management & Pricing</CardTitle>
-                  <ActivityManagementModal mode="create">
-                    <Button className="bg-moroccan-blue hover:bg-blue-700 text-white">
-                      <Activity className="h-4 w-4 mr-2" />
-                      Add New Activity
-                    </Button>
-                  </ActivityManagementModal>
+                  <ActivityManagementModal mode="create" />
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-6">

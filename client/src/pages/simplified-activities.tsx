@@ -29,8 +29,8 @@ export default function SimplifiedActivities() {
     
     const matchesFilter = filterBy === "all" || 
                          (filterBy === "popular" && activity.rating && activity.rating >= 4.5) ||
-                         (filterBy === "budget" && activity.price <= 500) ||
-                         (filterBy === "premium" && activity.price > 500);
+                          (filterBy === "budget" && Number(activity.price) <= 500) || 
+                          (filterBy === "premium" && Number(activity.price) > 500);
     
     return matchesSearch && matchesFilter;
   }) || [];
@@ -38,9 +38,9 @@ export default function SimplifiedActivities() {
   const sortedActivities = [...filteredActivities].sort((a, b) => {
     switch (sortBy) {
       case "price-low":
-        return a.price - b.price;
+        return Number(a.price) - Number(b.price);
       case "price-high":
-        return b.price - a.price;
+        return Number(b.price) - Number(a.price);
       case "rating":
         return (b.rating || 0) - (a.rating || 0);
       case "name":
