@@ -210,7 +210,7 @@ export default function GetYourGuidePriceFetcher({
               <div className="flex items-center justify-between">
                 <div>
                   <h4 className="font-medium text-gray-900">{foundActivity.name}</h4>
-                  <p className="text-sm text-gray-600">GetYourGuide Price: {formatPrice(foundActivity.price)}</p>
+                  <p className="text-sm text-gray-600">GetYourGuide Price: {formatGYGPrice(foundActivity.gygPrice, foundActivity.currency)}</p>
                 </div>
                 <div className="flex gap-2">
                   <Button 
@@ -266,7 +266,7 @@ export default function GetYourGuidePriceFetcher({
                           <span className="text-xs font-medium text-green-600">Aggressive</span>
                         </div>
                         <div className="text-lg font-bold text-gray-900">
-                          {formatPrice(pricingSuggestions.aggressive)}
+                          {formatGYGPrice(pricingSuggestions.aggressive, foundActivity.currency)}
                         </div>
                         <div className="text-xs text-gray-500">15% below</div>
                       </CardContent>
@@ -286,7 +286,7 @@ export default function GetYourGuidePriceFetcher({
                           <span className="text-xs font-medium text-blue-600">Competitive</span>
                         </div>
                         <div className="text-lg font-bold text-gray-900">
-                          {formatPrice(pricingSuggestions.competitive)}
+                          {formatGYGPrice(pricingSuggestions.competitive, foundActivity.currency)}
                         </div>
                         <div className="text-xs text-gray-500">5% below</div>
                       </CardContent>
@@ -306,7 +306,7 @@ export default function GetYourGuidePriceFetcher({
                           <span className="text-xs font-medium text-purple-600">Premium</span>
                         </div>
                         <div className="text-lg font-bold text-gray-900">
-                          {formatPrice(pricingSuggestions.premium)}
+                          {formatGYGPrice(pricingSuggestions.premium, foundActivity.currency)}
                         </div>
                         <div className="text-xs text-gray-500">10% above</div>
                       </CardContent>
