@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, Users, TrendingUp, Activity, Crown, MessageCircle, LogOut, BarChart3, Monitor, Server, Download, FileText, Mail, Target } from "lucide-react";
+import { Calendar, Users, TrendingUp, Activity, Crown, MessageCircle, LogOut, BarChart3, Monitor, Server, Download, FileText, Mail, Target, Settings } from "lucide-react";
 import AdminRoute from "@/components/admin-route";
 import { useAuth } from "@/hooks/use-auth";
 import { useLanguage } from "@/hooks/use-language";
