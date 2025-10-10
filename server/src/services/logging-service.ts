@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { createWriteStream } from 'fs';
+import { createWriteStream, mkdirSync } from 'fs';
 import { join } from 'path';
 
 export interface LogEntry {
@@ -36,6 +36,14 @@ export class LoggingService {
 
   constructor() {
     const logDir = process.env.LOG_DIR || './logs';
+    
+    // Ensure logs directory exists
+    try {
+      mkdirSync(logDir, { recursive: true });
+    } catch (error) {
+      console.warn('Could not create logs directory:', error);
+    }
+    
     this.logFile = join(logDir, 'application.log');
     this.errorLogFile = join(logDir, 'error.log');
     this.accessLogFile = join(logDir, 'access.log');
@@ -56,6 +64,12 @@ export class LoggingService {
 
   private writeToFile(filename: string, message: string): void {
     try {
+      // Ensure directory exists before writing
+      const dir = filename.substring(0, filename.lastIndexOf('/'));
+      if (dir) {
+        mkdirSync(dir, { recursive: true });
+      }
+      
       const stream = createWriteStream(filename, { flags: 'a' });
       stream.write(message + '\n');
       stream.end();
