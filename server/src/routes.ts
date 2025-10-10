@@ -33,7 +33,10 @@ import {
   validateInput,
   securityHeaders,
   adminAuditLog,
-  sessionSecurity
+  sessionSecurity,
+  sqlInjectionProtection,
+  requestSizeLimit,
+  strictApiRateLimit
 } from "./security-middleware.js";
 import { strictLimiter } from './rate-limiters.js';
 import { 
@@ -122,6 +125,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Apply input validation
   app.use(validateInput);
+  
+  // Apply SQL injection protection
+  app.use(sqlInjectionProtection);
+  
+  // Apply request size limiting
+  app.use(requestSizeLimit);
 
   // Initialize database
   await storage.seedInitialData();

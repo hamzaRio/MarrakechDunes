@@ -131,15 +131,29 @@ export const superadminSecurityMiddleware = (req: Request, res: Response, next: 
   next();
 };
 
-// Input validation middleware
+// Enhanced input validation middleware
 export const validateInput = (req: Request, res: Response, next: NextFunction) => {
-  // Sanitize common XSS patterns
+  // Enhanced sanitize function for better security
   const sanitizeString = (str: string): string => {
     if (typeof str !== 'string') return str;
     return str
+      // Remove script tags and their content
       .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+      // Remove javascript: protocols
       .replace(/javascript:/gi, '')
+      // Remove event handlers
       .replace(/on\w+\s*=/gi, '')
+      // Remove data: URLs that could be malicious
+      .replace(/data:text\/html/gi, '')
+      // Remove iframe tags
+      .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
+      // Remove object and embed tags
+      .replace(/<(object|embed)\b[^<]*(?:(?!<\/\1>)<[^<]*)*<\/\1>/gi, '')
+      // Remove style attributes with javascript
+      .replace(/style\s*=\s*["'][^"']*javascript:[^"']*["']/gi, '')
+      // Remove dangerous CSS expressions
+      .replace(/expression\s*\(/gi, '')
+      // Trim whitespace
       .trim();
   };
 
@@ -315,3 +329,65 @@ export const sessionSecurity = {
 };
 
 // Session configuration is set up - no need to log details
+
+// SQL injection protection middleware
+export const sqlInjectionProtection = (req: Request, res: Response, next: NextFunction) => {
+  const sqlPatterns = [
+    /(\b(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|EXEC|UNION|SCRIPT)\b)/gi,
+    /(\b(OR|AND)\s+\d+\s*=\s*\d+)/gi,
+    /(\b(OR|AND)\s+['"]\s*=\s*['"])/gi,
+    /(\bUNION\s+SELECT\b)/gi,
+    /(\bDROP\s+TABLE\b)/gi,
+    /(\bINSERT\s+INTO\b)/gi,
+    /(\bDELETE\s+FROM\b)/gi,
+    /(\bUPDATE\s+SET\b)/gi
+  ];
+
+  const checkForSQLInjection = (obj: any): boolean => {
+    if (typeof obj === 'string') {
+      return sqlPatterns.some(pattern => pattern.test(obj));
+    }
+    if (typeof obj === 'object' && obj !== null) {
+      return Object.values(obj).some(value => checkForSQLInjection(value));
+    }
+    return false;
+  };
+
+  if (checkForSQLInjection(req.body) || checkForSQLInjection(req.query) || checkForSQLInjection(req.params)) {
+    return res.status(400).json({
+      error: 'Invalid Request',
+      message: 'Request contains potentially malicious content'
+    });
+  }
+
+  next();
+};
+
+// Request size limiting middleware
+export const requestSizeLimit = (req: Request, res: Response, next: NextFunction) => {
+  const maxSize = 10 * 1024 * 1024; // 10MB limit
+  
+  if (req.headers['content-length'] && parseInt(req.headers['content-length']) > maxSize) {
+    return res.status(413).json({
+      error: 'Request Too Large',
+      message: 'Request size exceeds maximum allowed limit'
+    });
+  }
+
+  next();
+};
+
+// Enhanced rate limiting for specific endpoints
+export const strictApiRateLimit = rateLimit({
+  windowMs: 5 * 60 * 1000, // 5 minutes
+  max: process.env.NODE_ENV === 'production' ? 50 : 100,
+  message: {
+    error: 'Too many requests',
+    retryAfter: '5 minutes'
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => {
+    return process.env.NODE_ENV === 'development';
+  }
+});

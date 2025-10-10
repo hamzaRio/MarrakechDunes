@@ -34,10 +34,10 @@ export async function connectToDatabase(): Promise<void> {
       console.log(`[db] Attempting MongoDB connection (${attempt}/${maxRetries}) using ${redactedDatabaseUrl}`);
 
       await mongoose.connect(databaseUrl, {
-        maxPoolSize: process.env.NODE_ENV === 'production' ? 15 : 10, // Handle peak booking times
+        maxPoolSize: process.env.NODE_ENV === 'production' ? 20 : 10, // Increased for better performance
         minPoolSize: process.env.NODE_ENV === 'production' ? 5 : 1,   // Maintain connections during low season
-        serverSelectionTimeoutMS: 10000,
-        socketTimeoutMS: 15000,
+        serverSelectionTimeoutMS: 5000,  // Reduced for faster failover
+        socketTimeoutMS: 45000,          // Increased for long-running operations
         connectTimeoutMS: 10000,
         family: 4,
         bufferCommands: false,
@@ -52,6 +52,11 @@ export async function connectToDatabase(): Promise<void> {
           j: true,
           wtimeout: 10000,
         },
+        // Additional performance optimizations
+        maxStalenessSeconds: 90,
+        readPreference: 'secondaryPreferred',
+        compressors: ['zlib'],
+        zlibCompressionLevel: 6,
       });
 
       console.log('[db] Connected to MongoDB - ready for tour bookings');

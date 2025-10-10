@@ -125,6 +125,8 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import helmet from "helmet";
 import session from "express-session";
+import compression from "compression";
+import morgan from "morgan";
 import { generateCSRFToken, verifyCSRFToken } from "./csrf-protection.js";
 import { 
   requestSizeLimit, 
@@ -274,6 +276,27 @@ app.use(helmet({
     }
   }
 }));
+
+// Performance optimizations
+app.use(compression({
+  level: 6,
+  threshold: 1024,
+  filter: (req: Request, res: Response) => {
+    if (req.headers['x-no-compression']) {
+      return false;
+    }
+    return compression.filter(req, res);
+  }
+}));
+
+// Request logging
+app.use(morgan('combined', {
+  skip: (req: Request, res: Response) => {
+    // Skip logging for health checks and static assets
+    return req.url === '/api/health' || req.url.startsWith('/images/');
+  }
+}));
+
 // Ensure OpenStreetMap iframes allowed in CSP
 app.use((_, res, next) => {
   const existingCsp = res.getHeader('Content-Security-Policy');
@@ -374,6 +397,43 @@ app.use((req, res, next) => {
   // ✅ Connect to MongoDB before starting the server
   await connectToDatabase();
 
+  // ✅ Initialize cache service
+  const { cacheService } = await import('./services/cache-service.js');
+  await cacheService.connect();
+
+  // ✅ Initialize error monitoring
+  const { errorMonitoring } = await import('./services/error-monitoring.js');
+
+  // ✅ Initialize logging service
+  const { loggingService } = await import('./services/logging-service.js');
+
+  // Add performance monitoring middleware
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    const startTime = Date.now();
+    
+    res.on('finish', () => {
+      const duration = Date.now() - startTime;
+      
+      // Log performance metrics
+      errorMonitoring.logPerformance(req, res, startTime);
+      
+      // Log access
+      loggingService.logRequest(req, res, duration);
+      
+      // Log slow requests
+      if (duration > 1000) {
+        loggingService.warn('Slow request detected', {
+          endpoint: req.path,
+          method: req.method,
+          duration: duration,
+          statusCode: res.statusCode
+        });
+      }
+    });
+    
+    next();
+  });
+
   // Mount session router BEFORE other routes
   app.use("/api/session", sessionRouter);
   const server = await registerRoutes(app);
@@ -396,6 +456,53 @@ app.use((req, res, next) => {
       timestamp: new Date().toISOString(),
       version: "1.0"
     });
+  });
+
+  // Monitoring endpoints
+  app.get('/api/monitoring/errors', (req, res) => {
+    const errorStats = errorMonitoring.getErrorStats();
+    res.json({
+      errorStats,
+      timestamp: new Date().toISOString()
+    });
+  });
+
+  app.get('/api/monitoring/performance', (req, res) => {
+    const performanceStats = errorMonitoring.getPerformanceStats();
+    res.json({
+      performance: performanceStats,
+      timestamp: new Date().toISOString()
+    });
+  });
+
+  // System health monitoring
+  app.get('/api/monitoring/health', (req, res) => {
+    const memoryUsage = process.memoryUsage();
+    const cpuUsage = process.cpuUsage();
+    
+    const healthData = {
+      status: 'healthy',
+      uptime: process.uptime(),
+      memory: {
+        used: Math.round(memoryUsage.heapUsed / 1024 / 1024),
+        total: Math.round(memoryUsage.heapTotal / 1024 / 1024),
+        external: Math.round(memoryUsage.external / 1024 / 1024)
+      },
+      cpu: {
+        user: Math.round(cpuUsage.user / 1000000),
+        system: Math.round(cpuUsage.system / 1000000)
+      },
+      timestamp: new Date().toISOString()
+    };
+
+    // Log system health
+    loggingService.logSystemHealth({
+      memoryUsage,
+      uptime: process.uptime(),
+      cpuUsage
+    });
+
+    res.json(healthData);
   });
 
   // Handle favicon.ico requests to prevent 404 errors

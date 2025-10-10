@@ -1,5 +1,7 @@
 import mongoose from 'mongoose';
 import bcrypt from 'bcrypt';
+import { cacheService } from './services/cache-service.js';
+import { loggingService } from './services/logging-service.js';
 import type {
   UserType,
   ActivityType,
@@ -91,21 +93,42 @@ const reviewSchema = new mongoose.Schema({
   approved: { type: Boolean, default: false },
 }, { timestamps: true });
 
-// Tour Business Performance Indexes
+// Tour Business Performance Indexes - Enhanced for Production
 // Activity discovery for tourists
 activitySchema.index({ name: 'text', description: 'text', location: 'text' });
 activitySchema.index({ category: 1, isActive: 1, rating: -1 });
 activitySchema.index({ price: 1, rating: -1 });
 activitySchema.index({ location: 1, isActive: 1 });
 activitySchema.index({ isActive: 1, approvalStatus: 1, category: 1, rating: -1 });
+// Additional performance indexes
+activitySchema.index({ createdAt: -1, isActive: 1 });
+activitySchema.index({ category: 1, difficulty: 1, isActive: 1 });
+activitySchema.index({ maxParticipants: 1, isActive: 1 });
 
-// Booking management for peak seasons
+// Booking management for peak seasons - Enhanced
 bookingSchema.index({ activityId: 1, preferredDate: 1 });
 bookingSchema.index({ status: 1, createdAt: -1 });
 bookingSchema.index({ customerPhone: 1 });
 bookingSchema.index({ preferredDate: 1, status: 1 });
 bookingSchema.index({ createdAt: -1, paymentStatus: 1, totalAmount: 1 });
 bookingSchema.index({ preferredDate: 1, status: 1, activityId: 1 });
+// Additional performance indexes for production
+bookingSchema.index({ paymentStatus: 1, status: 1, createdAt: -1 });
+bookingSchema.index({ customerEmail: 1 });
+bookingSchema.index({ numberOfPeople: 1, status: 1 });
+bookingSchema.index({ totalAmount: 1, paymentStatus: 1 });
+bookingSchema.index({ updatedAt: -1, status: 1 });
+
+// Review performance indexes
+reviewSchema.index({ activityId: 1, approved: 1, rating: -1 });
+reviewSchema.index({ customerEmail: 1 });
+reviewSchema.index({ createdAt: -1, approved: 1 });
+reviewSchema.index({ rating: -1, approved: 1 });
+
+// Audit log performance indexes
+auditLogSchema.index({ userId: 1, createdAt: -1 });
+auditLogSchema.index({ action: 1, createdAt: -1 });
+auditLogSchema.index({ createdAt: -1 });
 
 // Models
 const User = mongoose.model('User', userSchema);
@@ -243,16 +266,25 @@ class MongoStorage implements IStorage {
 
   async getActivities(options = { includeSeeded: true }): Promise<ActivityType[]> {
     try {
-      const query = {
-        isActive: true,
-        $or: [
-          { approvalStatus: 'approved' },
-          ...(options.includeSeeded ? [{ isSeeded: true }] : [])
-        ]
-      };
+      const cacheKey = `activities_${JSON.stringify(options)}`;
       
-      const activities = await Activity.find(query);
-      return activities.map(activity => this.transformDocument(activity));
+      return await cacheService.withCache(
+        'activities',
+        cacheKey,
+        async () => {
+          const query = {
+            isActive: true,
+            $or: [
+              { approvalStatus: 'approved' },
+              ...(options.includeSeeded ? [{ isSeeded: true }] : [])
+            ]
+          };
+          
+          const activities = await Activity.find(query);
+          return activities.map(activity => this.transformDocument(activity));
+        },
+        3600 // 1 hour cache
+      );
     } catch (error) {
       console.error('Error fetching activities:', error);
       throw error;
@@ -365,15 +397,22 @@ class MongoStorage implements IStorage {
 
   // Booking operations
   async getBookings(): Promise<BookingWithActivity[]> {
-    const bookings = await Booking.find().populate('activityId').sort({ createdAt: -1 });
-    return bookings.map(booking => {
-      const bookingObj = this.transformDocument(booking);
-      if (bookingObj.activityId && typeof bookingObj.activityId === 'object') {
-        bookingObj.activity = this.transformDocument(bookingObj.activityId);
-        bookingObj.activityId = bookingObj.activity._id;
-      }
-      return bookingObj;
-    });
+    return await cacheService.withCache(
+      'bookings',
+      'all',
+      async () => {
+        const bookings = await Booking.find().populate('activityId').sort({ createdAt: -1 });
+        return bookings.map(booking => {
+          const bookingObj = this.transformDocument(booking);
+          if (bookingObj.activityId && typeof bookingObj.activityId === 'object') {
+            bookingObj.activity = this.transformDocument(bookingObj.activityId);
+            bookingObj.activityId = bookingObj.activity._id;
+          }
+          return bookingObj;
+        });
+      },
+      300 // 5 minutes cache
+    );
   }
 
   async getBooking(id: string): Promise<BookingWithActivity | null> {
@@ -389,9 +428,33 @@ class MongoStorage implements IStorage {
   }
 
   async createBooking(bookingData: InsertBooking): Promise<BookingType> {
-    const booking = new Booking(bookingData);
-    const savedBooking = await booking.save();
-    return this.transformDocument(savedBooking);
+    const startTime = Date.now();
+    
+    try {
+      const booking = new Booking(bookingData);
+      const savedBooking = await booking.save();
+      
+      // Invalidate bookings cache
+      await cacheService.invalidateBookings();
+      
+      // Log booking creation
+      loggingService.logBooking(savedBooking._id?.toString() || 'unknown', 'created', {
+        customerName: bookingData.customerName,
+        activityId: bookingData.activityId,
+        totalAmount: bookingData.totalAmount,
+        numberOfPeople: bookingData.numberOfPeople
+      });
+      
+      const duration = Date.now() - startTime;
+      loggingService.logDatabaseOperation('create', 'bookings', duration, true);
+      
+      return this.transformDocument(savedBooking);
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      loggingService.logDatabaseOperation('create', 'bookings', duration, false);
+      loggingService.error('Failed to create booking', error as Error);
+      throw error;
+    }
   }
 
   async updateBooking(id: string, updateData: Partial<InsertBooking>): Promise<BookingType | null> {
