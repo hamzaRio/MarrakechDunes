@@ -2,11 +2,13 @@
 
 > **A modern, full-stack tourism platform for booking authentic Marrakech experiences with competitive pricing intelligence and smart business management.**
 
-[![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](https://github.com/yourusername/marrakechdunes)
+[![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](https://github.com/hamzaRio/MarrakechDunes)
 [![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![React](https://img.shields.io/badge/React-20232A?logo=react&logoColor=61DAFB)](https://reactjs.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-43853D?logo=node.js&logoColor=white)](https://nodejs.org/)
 [![MongoDB](https://img.shields.io/badge/MongoDB-4EA94B?logo=mongodb&logoColor=white)](https://www.mongodb.com/)
+[![Redis](https://img.shields.io/badge/Redis-DC382D?logo=redis&logoColor=white)](https://redis.io/)
+[![Performance](https://img.shields.io/badge/Performance-Optimized-green)](https://github.com/hamzaRio/MarrakechDunes)
 
 ## 🌟 Overview
 
@@ -33,6 +35,8 @@ MarrakechDunes is a comprehensive tourism platform that combines modern web tech
 - **👤 Customer Portal** - OTP-based self-service portal
 - **📱 PWA Mobile App** - Offline booking, GPS navigation, photo sharing
 - **📊 Business Intelligence Dashboard** - Executive KPI tracking and reporting
+- **⚡ Performance Optimized** - Redis caching, database indexing, monitoring
+- **🔒 Security Enhanced** - Input validation, SQL injection protection, rate limiting
 
 ## 🏗️ Architecture
 
@@ -44,22 +48,27 @@ MarrakechDunes is a comprehensive tourism platform that combines modern web tech
 - **Forms**: React Hook Form with Zod validation
 - **Charts**: Recharts for analytics
 - **Maps**: Leaflet for interactive maps
+- **PWA**: Service Worker with offline capabilities
 
 ### Backend (Node.js + Express)
 - **Runtime**: Node.js with TypeScript
-- **Framework**: Express.js
+- **Framework**: Express.js with compression
 - **Database**: MongoDB with Mongoose ODM
+- **Caching**: Redis for performance optimization
 - **Authentication**: JWT + Session management
-- **Security**: Helmet, CORS, CSRF protection
+- **Security**: Helmet, CORS, CSRF protection, SQL injection prevention
 - **File Upload**: Uppy with AWS S3 integration
-- **Notifications**: WhatsApp API integration
+- **Notifications**: WhatsApp API + Email integration
+- **Monitoring**: Error tracking, performance metrics, logging
 
 ### Infrastructure
 - **Frontend Hosting**: Vercel
 - **Backend Hosting**: Render
-- **Database**: MongoDB Atlas
+- **Database**: MongoDB Atlas with optimized indexes
+- **Caching**: Redis (optional, with graceful fallback)
 - **File Storage**: AWS S3
 - **Containerization**: Docker
+- **Monitoring**: Built-in performance and error monitoring
 
 ## 🚀 Quick Start
 
@@ -68,13 +77,14 @@ MarrakechDunes is a comprehensive tourism platform that combines modern web tech
 - MongoDB Atlas account
 - Vercel account (for frontend)
 - Render account (for backend)
+- Redis account (optional, for caching)
 
 ### Local Development
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/marrakechdunes.git
-   cd marrakechdunes
+   git clone https://github.com/hamzaRio/MarrakechDunes.git
+   cd MarrakechDunes
    ```
 
 2. **Install dependencies**
@@ -100,15 +110,22 @@ MarrakechDunes is a comprehensive tourism platform that combines modern web tech
    # Email Service (SMTP)
    SMTP_HOST=smtp.gmail.com
    SMTP_PORT=587
-   SMTP_USER=your-email@gmail.com
+   SMTP_USER=timedizzy45@gmail.com
    SMTP_PASS=your-app-password
-   SMTP_FROM=MarrakechDunes <noreply@marrakechdunes.com>
+   SMTP_FROM=MarrakechDunes <timedizzy45@gmail.com>
    
    # WhatsApp Integration
-   WHATSAPP_RECEIVERS=+212XXXXXXXXX,+212YYYYYYYYY
+   WHATSAPP_RECEIVERS=+212600623630,+212693323368,+212654497354
    
    # Customer Portal
    OTP_WINDOW_MINUTES=10
+   
+   # Redis Caching (Optional)
+   REDIS_URL=redis://localhost:6379
+   
+   # GetYourGuide API
+   GYG_SUPPLIER_USER=your-gyg-username
+   GYG_SUPPLIER_PASS=your-gyg-password
    ```
 
    **Frontend (.env in client/)**
@@ -148,6 +165,8 @@ MarrakechDunes is a comprehensive tourism platform that combines modern web tech
    - Admin Dashboard: http://localhost:5173/admin
    - Customer Portal: http://localhost:5173/customer
    - Business Intelligence: http://localhost:5173/admin/business-intelligence
+   - Health Check: http://localhost:10000/api/health
+   - Monitoring: http://localhost:10000/api/monitoring/health
 
 ## 📱 PWA Installation
 
@@ -248,6 +267,32 @@ MarrakechDunes is a comprehensive tourism platform that combines modern web tech
 - **Operational Metrics**: Capacity utilization, weather impact
 - **Export Capabilities**: CSV downloads for external analysis
 
+## ⚡ Performance Optimizations
+
+### **Database Performance**
+- **Optimized Indexes**: Comprehensive indexing for faster queries
+- **Connection Pooling**: 20 max connections in production
+- **Query Optimization**: Read preferences and compression
+- **Caching Strategy**: Redis caching with intelligent TTL
+
+### **Caching System**
+- **Redis Integration**: High-performance caching layer
+- **Smart TTL**: Different cache durations for different data types
+- **Cache Invalidation**: Automatic cache clearing on updates
+- **Graceful Fallback**: Works without Redis if unavailable
+
+### **Monitoring & Logging**
+- **Real-time Error Tracking**: Categorized error monitoring
+- **Performance Metrics**: Response time and throughput tracking
+- **System Health**: Memory, CPU, and database monitoring
+- **Business Metrics**: Revenue, bookings, and conversion tracking
+
+### **Security Enhancements**
+- **Input Validation**: Enhanced XSS and injection protection
+- **Rate Limiting**: Different limits for different endpoint types
+- **Request Size Limiting**: Protection against large payload attacks
+- **Security Headers**: Improved CSP and security configurations
+
 ## 📱 Features Overview
 
 ### 🎯 Customer Experience
@@ -338,6 +383,9 @@ server/src/
 ├── middleware/          # Express middleware
 ├── storage/             # Database operations
 ├── services/            # Business logic
+│   ├── cache-service.ts # Redis caching
+│   ├── error-monitoring.ts # Error tracking
+│   └── logging-service.ts # Comprehensive logging
 └── utils/               # Utility functions
 ```
 
@@ -385,7 +433,7 @@ interface Booking {
 
 ### **Data Protection**
 - **Input Validation**: Zod schema validation
-- **SQL Injection Prevention**: Parameterized queries
+- **SQL Injection Prevention**: Parameterized queries and pattern detection
 - **XSS Protection**: Content Security Policy
 - **Rate Limiting**: API request throttling
 - **File Upload Security**: Type and size validation
@@ -560,74 +608,94 @@ npm run test:e2e
 
 ### **Authentication Endpoints**
 ```typescript
-POST /api/auth/login
-POST /api/auth/logout
-GET /api/auth/me
+GET /api/auth/test          # Test authentication status
+GET /api/auth/user          # Get current user
+POST /api/auth/login        # Login with credentials
+POST /api/auth/logout       # Logout user
 ```
 
 ### **Activity Endpoints**
 ```typescript
-GET /api/activities
-POST /api/admin/activities
-PUT /api/admin/activities/:id
-DELETE /api/admin/activities/:id
+GET /api/activities         # Get all activities
+GET /api/admin/activities   # Get all activities (admin)
+POST /api/admin/activities  # Create new activity
+PUT /api/admin/activities/:id # Update activity
+DELETE /api/admin/activities/:id # Delete activity
 ```
 
 ### **Booking Endpoints**
 ```typescript
-POST /api/bookings
-GET /api/admin/bookings
-PUT /api/admin/bookings/:id
-DELETE /api/admin/bookings/:id
+POST /api/bookings          # Create new booking
+GET /api/admin/bookings     # Get all bookings (admin)
+PUT /api/admin/bookings/:id # Update booking
+DELETE /api/admin/bookings/:id # Delete booking
+PATCH /api/bookings/:id/status # Update booking status
+PATCH /api/bookings/:id/cancel # Cancel booking
+PATCH /api/bookings/:id/reschedule # Reschedule booking
 ```
 
 ### **Analytics Endpoints**
 ```typescript
-GET /api/analytics/performance
-GET /api/analytics/business
-GET /api/analytics/users
-GET /api/analytics/demand
-GET /api/analytics/weather-impact
-GET /api/analytics/cancellations
-GET /api/analytics/revenue
-```
-
-### **Booking Management Endpoints**
-```typescript
-PATCH /api/bookings/:id/status
-PATCH /api/bookings/:id/cancel
-PATCH /api/bookings/:id/reschedule
-POST /api/bookings/group
+GET /api/analytics/performance    # Performance metrics
+GET /api/analytics/business       # Business metrics
+GET /api/analytics/users          # User analytics
+GET /api/analytics/demand         # Demand forecasting
+GET /api/analytics/weather-impact # Weather impact analysis
+GET /api/analytics/cancellations  # Cancellation analysis
+GET /api/analytics/revenue        # Revenue analytics
 ```
 
 ### **Notification Endpoints**
 ```typescript
-GET /api/notifications/templates
-POST /api/notifications/preview
-POST /api/notifications/send
-POST /api/notifications/email/test
+GET /api/notifications/templates  # Get notification templates
+POST /api/notifications/preview   # Preview notification
+POST /api/notifications/send      # Send notification
+POST /api/notifications/email/test # Test email notification
 ```
 
 ### **Pricing Endpoints**
 ```typescript
-GET /api/pricing/quote
+GET /api/pricing/quote      # Get pricing quote
 ```
 
 ### **Customer Portal Endpoints**
 ```typescript
-POST /api/portal/request-otp
-POST /api/portal/login
-GET /api/portal/me/bookings
-POST /api/portal/bookings/:id/cancel
-POST /api/portal/bookings/:id/reschedule
-POST /api/portal/reviews
+POST /api/portal/request-otp     # Request OTP
+POST /api/portal/login           # Login with OTP
+GET /api/portal/me/bookings      # Get user bookings
+POST /api/portal/bookings/:id/cancel # Cancel booking
+POST /api/portal/bookings/:id/reschedule # Reschedule booking
+POST /api/portal/reviews         # Submit review
 ```
 
 ### **Business Intelligence Endpoints**
 ```typescript
-GET /api/bi/revenue
-GET /api/bi/customers
-GET /api/bi/operations
+GET /api/bi/revenue         # Revenue analytics
+GET /api/bi/customers       # Customer analytics
+GET /api/bi/operations      # Operations analytics
+```
+
+### **Monitoring Endpoints**
+```typescript
+GET /api/health             # Health check
+GET /api/health/status      # Detailed health status
+GET /api/monitoring/errors   # Error statistics
+GET /api/monitoring/performance # Performance metrics
+GET /api/monitoring/health   # System health metrics
+```
+
+### **GetYourGuide Integration**
+```typescript
+GET /api/gyg/search         # Search GetYourGuide activities
+GET /api/gyg/activities     # Get all GYG activities
+POST /api/gyg/test          # Test GYG connection
+```
+
+### **Market Intelligence**
+```typescript
+GET /api/market/analysis    # Market analysis
+GET /api/market/competitors # Competitor analysis
+GET /api/market/pricing     # Pricing intelligence
 ```
 
 ## 🤝 Contributing
@@ -644,9 +712,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🆘 Support
 
-- **Documentation**: [Wiki](https://github.com/yourusername/marrakechdunes/wiki)
-- **Issues**: [GitHub Issues](https://github.com/yourusername/marrakechdunes/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/yourusername/marrakechdunes/discussions)
+- **Documentation**: [Wiki](https://github.com/hamzaRio/MarrakechDunes/wiki)
+- **Issues**: [GitHub Issues](https://github.com/hamzaRio/MarrakechDunes/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/hamzaRio/MarrakechDunes/discussions)
 
 ## 🙏 Acknowledgments
 
@@ -654,11 +722,13 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Vercel**: For frontend hosting
 - **Render**: For backend hosting
 - **MongoDB**: For database services
+- **Redis**: For caching services
 - **Open Source Community**: For amazing tools and libraries
 
 ---
 
 **Built with ❤️ for the Marrakech tourism community**
 
-*Experience the magic of Morocco with MarrakechDunes* 🏜️✨#   U p d a t e d   1 0 / 0 8 / 2 0 2 5   1 3 : 5 9 : 4 7  
- 
+*Experience the magic of Morocco with MarrakechDunes* 🏜️✨
+
+**Updated**: 10/10/2025 14:30:00
