@@ -4,7 +4,7 @@ FROM node:20-alpine AS builder
 # Set buildkit environment variables
 ENV DOCKER_BUILDKIT=0
 ENV BUILDKIT_PROGRESS=plain
-ENV NODE_ENV=production
+# Don't set NODE_ENV=production during build - we need dev dependencies
 
 WORKDIR /app
 
@@ -15,7 +15,7 @@ COPY server/package*.json ./server/
 COPY shared/package*.json ./shared/
 
 # Install ALL dependencies (including dev dependencies for building)
-RUN npm ci --legacy-peer-deps --no-audit --no-fund --silent
+RUN npm ci --legacy-peer-deps --no-audit --no-fund --silent --include=dev
 
 # Install TypeScript globally to ensure it's available
 RUN npm install -g typescript
