@@ -275,17 +275,17 @@ Average per booking: ${activityBookings.length ? Math.round(totalRevenue / activ
   return (
     <>
       <SEOHead 
-        title="Admin Dashboard - MarrakechDunes"
-        description="Manage bookings, activities, and analytics for MarrakechDunes tour operations."
-        keywords="admin, dashboard, MarrakechDunes, booking management, activities"
+        title="Tableau de Bord Admin - MarrakechDunes"
+        description="Gérez les réservations, activités et analyses pour les opérations touristiques MarrakechDunes."
+        keywords="admin, tableau de bord, MarrakechDunes, gestion réservations, activités"
       />
       <div className="min-h-screen bg-gray-50 p-6">
         <div className="max-w-7xl mx-auto">
           <div className="mb-8">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-3xl font-bold text-moroccan-blue">{t('dashboard')}</h1>
-                <p className="text-gray-600">Welcome back, {user?.username}</p>
+                <h1 className="text-3xl font-bold text-moroccan-blue">{t('admin.dashboard')}</h1>
+                <p className="text-gray-600">{t('admin.welcome')} {user?.username}</p>
               </div>
               <div className="flex gap-3">
                 {user?.role === 'superadmin' && (
@@ -308,105 +308,56 @@ Average per booking: ${activityBookings.length ? Math.round(totalRevenue / activ
             </div>
           </div>
 
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <Card>
+          {/* Stats Cards - Simplified */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <Card className="bg-white border-2 border-gray-200 shadow-lg">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-                <TrendingUp className="h-4 w-4 text-moroccan-gold" />
+                <CardTitle className="text-sm font-medium text-gray-700">{t('admin.totalRevenue')}</CardTitle>
+                <TrendingUp className="h-4 w-4 text-green-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-moroccan-red">
+                <div className="text-2xl font-bold text-gray-900">
                   {totalRevenue.toLocaleString()} MAD
                 </div>
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="bg-white border-2 border-gray-200 shadow-lg">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Pending Bookings</CardTitle>
-                <Calendar className="h-4 w-4 text-orange-500" />
+                <CardTitle className="text-sm font-medium text-gray-700">{t('admin.pendingBookings')}</CardTitle>
+                <Calendar className="h-4 w-4 text-orange-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-orange-600">
+                <div className="text-2xl font-bold text-gray-900">
                   {pendingBookings}
                 </div>
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="bg-white border-2 border-gray-200 shadow-lg">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Confirmed Bookings</CardTitle>
-                <Users className="h-4 w-4 text-green-500" />
+                <CardTitle className="text-sm font-medium text-gray-700">{t('admin.confirmedBookings')}</CardTitle>
+                <Users className="h-4 w-4 text-blue-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-green-600">
+                <div className="text-2xl font-bold text-gray-900">
                   {confirmedBookings}
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Active Activities</CardTitle>
-                <Activity className="h-4 w-4 text-moroccan-blue" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-moroccan-blue">
-                  {activities.length}
                 </div>
               </CardContent>
             </Card>
           </div>
 
           <Tabs defaultValue="bookings" className="space-y-6">
-            <TabsList className={`grid w-full ${user?.role === 'superadmin' ? 'grid-cols-15' : 'grid-cols-12'}`}>
-              <TabsTrigger value="bookings">Bookings</TabsTrigger>
-              <TabsTrigger value="activities">Activities</TabsTrigger>
-              <TabsTrigger value="market-intelligence">
-                <Target className="h-4 w-4 mr-1" />
-                Market Intel
-              </TabsTrigger>
-              <TabsTrigger value="cash-analytics">Cash Analytics</TabsTrigger>
-              <TabsTrigger value="reminders">Reminders</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="bookings">{t('admin.bookings')}</TabsTrigger>
+              <TabsTrigger value="activities">Activités</TabsTrigger>
               <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
-              <TabsTrigger value="calendar">Calendar</TabsTrigger>
-              <TabsTrigger value="performance">
-                <Monitor className="h-4 w-4 mr-1" />
-                Performance
-              </TabsTrigger>
-              <TabsTrigger value="users">
-                <Users className="h-4 w-4 mr-1" />
-                Users
-              </TabsTrigger>
-              <TabsTrigger value="business">
-                <BarChart3 className="h-4 w-4 mr-1" />
-                Business
-              </TabsTrigger>
-              <TabsTrigger value="ceo-operations">
-                <TrendingUp className="h-4 w-4 mr-1" />
-                CEO Ops
-              </TabsTrigger>
-              {user?.role === 'superadmin' && (
-                <TabsTrigger value="admin-management">
-                  <Users className="h-4 w-4 mr-1" />
-                  Admin Mgmt
-                </TabsTrigger>
-              )}
-              {user?.role === 'superadmin' && (
-                <TabsTrigger value="audit">Audit Logs</TabsTrigger>
-              )}
-              {user?.role === 'superadmin' && (
-                <TabsTrigger value="system">
-                  <Server className="h-4 w-4 mr-1" />
-                  System
-                </TabsTrigger>
-              )}
+              <TabsTrigger value="reports">Rapports</TabsTrigger>
             </TabsList>
 
             <TabsContent value="bookings" className="space-y-4">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold">Booking Management</h2>
+                <h2 className="text-xl font-semibold">Gestion des Réservations</h2>
                 <div className="flex gap-2">
                   <Button 
                     onClick={handleExportBookings} 

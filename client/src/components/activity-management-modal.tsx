@@ -362,7 +362,7 @@ export default function ActivityManagementModal({
               </DialogDescription>
             </DialogHeader>
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 mt-4 bg-white/95 p-6 rounded-lg border border-gray-200">
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 mt-4 bg-white p-6 rounded-lg border-2 border-gray-300">
                 <FormField
                   control={form.control}
                   name="name"
@@ -720,7 +720,7 @@ export default function ActivityManagementModal({
         {trigger || getDefaultTrigger()}
       </DialogTrigger>
       <DialogContent 
-        className="max-w-4xl max-h-[90vh] overflow-y-auto bg-white/98 backdrop-blur-sm border-2 border-moroccan-gold/30 shadow-xl"
+        className="max-w-4xl max-h-[90vh] overflow-y-auto bg-white border-2 border-gray-300 shadow-xl"
         aria-describedby={mode === "create" ? "create-activity-description" : mode === "edit" ? "edit-activity-description" : mode === "delete" ? "delete-activity-description" : "activity-dialog-description"}
       >
         {getDialogContent()}
