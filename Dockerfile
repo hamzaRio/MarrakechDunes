@@ -25,6 +25,9 @@ COPY client ./client
 COPY server ./server
 COPY shared ./shared
 
+# Create logs directory for runtime
+RUN mkdir -p logs
+
 # Build in order with error handling
 RUN cd shared && npm run build
 RUN npm run build:client
@@ -46,6 +49,7 @@ COPY --from=builder /app/shared/dist ./shared/dist
 COPY --from=builder /app/server/package*.json ./server/
 COPY --from=builder /app/server/node_modules ./server/node_modules
 COPY --from=builder /app/server/dist ./server/dist
+COPY --from=builder /app/logs ./logs
 
 # Set working directory to server
 WORKDIR /app/server
