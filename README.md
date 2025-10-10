@@ -110,12 +110,12 @@ MarrakechDunes is a comprehensive tourism platform that combines modern web tech
    # Email Service (SMTP)
    SMTP_HOST=smtp.gmail.com
    SMTP_PORT=587
-   SMTP_USER=timedizzy45@gmail.com
+   SMTP_USER=your-email@gmail.com
    SMTP_PASS=your-app-password
-   SMTP_FROM=MarrakechDunes <timedizzy45@gmail.com>
+   SMTP_FROM=MarrakechDunes <noreply@marrakechdunes.com>
    
    # WhatsApp Integration
-   WHATSAPP_RECEIVERS=+212600623630,+212693323368,+212654497354
+   WHATSAPP_RECEIVERS=+212XXXXXXXXX,+212YYYYYYYYY
    
    # Customer Portal
    OTP_WINDOW_MINUTES=10
