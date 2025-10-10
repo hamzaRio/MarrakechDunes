@@ -49,6 +49,7 @@ COPY --from=builder /app/shared/dist ./shared/dist
 COPY --from=builder /app/server/package*.json ./server/
 COPY --from=builder /app/server/node_modules ./server/node_modules
 COPY --from=builder /app/server/dist ./server/dist
+COPY --from=builder /app/client/dist ./client/dist
 COPY --from=builder /app/logs ./logs
 
 # Set working directory to server
