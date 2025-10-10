@@ -17,6 +17,9 @@ COPY shared/package*.json ./shared/
 # Install ALL dependencies (including dev dependencies for building)
 RUN npm ci --legacy-peer-deps --no-audit --no-fund --silent
 
+# Install TypeScript globally to ensure it's available
+RUN npm install -g typescript
+
 # Copy source code
 COPY client ./client
 COPY server ./server
