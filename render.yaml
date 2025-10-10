@@ -9,6 +9,13 @@ services:
     dockerfilePath: ./Dockerfile
     healthCheckPath: /api/health
     port: 10000
+    # Build optimizations
+    buildCommand: |
+      echo "Starting optimized build..."
+      docker build --no-cache --progress=plain -t marrakechdunes .
+    # Increase timeout for build
+    buildTimeout: 1800
+    # Environment variables
     envVars:
       - key: NODE_ENV
         value: production
@@ -24,6 +31,7 @@ services:
         value: iframe
       - key: LEAFLET_ENABLED
         value: false
+      # Sensitive variables (set in Render dashboard)
       - key: DATABASE_URL
         sync: false
       - key: SESSION_SECRET
@@ -37,4 +45,20 @@ services:
       - key: SUPERADMIN_PASSWORD
         sync: false
       - key: SENTRY_DSN
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false
+      - key: SMTP_FROM
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: GYG_SUPPLIER_USER
+        sync: false
+      - key: GYG_SUPPLIER_PASS
         sync: false
