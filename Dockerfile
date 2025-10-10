@@ -14,7 +14,7 @@ COPY client/package*.json ./client/
 COPY server/package*.json ./server/
 COPY shared/package*.json ./shared/
 
-# Install dependencies with optimizations
+# Install ALL dependencies (including dev dependencies for building)
 RUN npm ci --legacy-peer-deps --no-audit --no-fund --silent
 
 # Copy source code
