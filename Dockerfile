@@ -26,7 +26,7 @@ COPY server ./server
 COPY shared ./shared
 
 # Build in order with error handling
-RUN npm run build:shared
+RUN cd shared && npm run build
 RUN npm run build:client
 RUN npm run build:server
 
