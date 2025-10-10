@@ -406,6 +406,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('[NOTIFY] Sending admin notifications for new booking:', booking._id);
       const whatsappResult = await whatsappService.sendBookingNotification(adminNotificationData);
       
+      // Send email confirmation to customer if email is provided
+      if (data.customerEmail) {
+        try {
+          const emailData = {
+            customerName: booking.customerName,
+            customerPhone: booking.customerPhone,
+            activityName: activity.name,
+            numberOfPeople: booking.numberOfPeople,
+            preferredDate: new Date(booking.preferredDate),
+            totalAmount: parseInt(booking.totalAmount),
+            bookingId: bookingId
+          };
+          
+          const emailSent = await emailService.sendBookingConfirmation(emailData);
+          console.log('[EMAIL] Customer email notification:', emailSent ? 'sent' : 'failed');
+        } catch (error) {
+          console.error('[EMAIL] Failed to send customer email:', error);
+        }
+      }
+      
       // Log admin notifications
       if (whatsappResult.success) {
         console.log('✅ Admin WhatsApp notifications sent successfully');
@@ -2631,6 +2651,89 @@ export async function registerRoutes(app: Express): Promise<Server> {
       message: emailSent ? 'Test email sent successfully' : 'Failed to send test email',
       emailSent
     });
+  }));
+
+  // Test notification system endpoint
+  app.post("/api/notifications/test", adminSecurityMiddleware, asyncHandler(async (req: Request, res: Response) => {
+    const authReq = req as AuthenticatedRequest;
+    const { testType } = req.body;
+    
+    try {
+      let result = { success: false, message: '', details: {} };
+      
+      if (testType === 'whatsapp') {
+        // Test WhatsApp notifications
+        const testBooking = {
+          customerName: 'Test Customer',
+          customerPhone: '+212600000000',
+          activityName: 'Test Activity',
+          numberOfPeople: 1,
+          preferredDate: new Date(),
+          totalAmount: 500,
+          paymentMethod: 'cash',
+          paymentStatus: 'unpaid',
+          status: 'pending',
+          notes: 'Test booking notification',
+          bookingId: 'TEST-' + Date.now(),
+          confirmLink: 'https://marrakech-dunes.vercel.app/admin',
+          rejectLink: 'https://marrakech-dunes.vercel.app/admin'
+        };
+        
+        const whatsappResult = await whatsappService.sendBookingNotification(testBooking);
+        result = {
+          success: whatsappResult.success,
+          message: 'WhatsApp test completed',
+          details: {
+            recipients: whatsappResult.recipients,
+            whatsappLinks: whatsappResult.whatsappLinks
+          }
+        };
+      } else if (testType === 'email') {
+        // Test email notifications
+        const testEmailData = {
+          customerName: 'Test Customer',
+          customerPhone: '+212600000000',
+          activityName: 'Test Activity',
+          numberOfPeople: 1,
+          preferredDate: new Date(),
+          totalAmount: 500,
+          bookingId: 'TEST-' + Date.now()
+        };
+        
+        const emailSent = await emailService.sendBookingConfirmation(testEmailData);
+        result = {
+          success: emailSent,
+          message: emailSent ? 'Email test sent successfully' : 'Email test failed',
+          details: { emailSent }
+        };
+      } else {
+        return res.status(400).json({
+          status: 'error',
+          message: 'Invalid test type. Use "whatsapp" or "email"',
+          code: 'INVALID_TEST_TYPE'
+        });
+      }
+      
+      // Create audit log
+      await storage.createAuditLog({
+        userId: authReq.session.user!.id,
+        action: `Tested ${testType} notification system`,
+        details: JSON.stringify(result)
+      });
+      
+      res.json({
+        status: result.success ? 'success' : 'error',
+        message: result.message,
+        ...result.details
+      });
+    } catch (error: any) {
+      console.error('Notification test error:', error);
+      res.status(500).json({
+        status: 'error',
+        message: 'Failed to test notifications',
+        error: error.message
+      });
+    }
   }));
 
   // Send email to customer endpoint
