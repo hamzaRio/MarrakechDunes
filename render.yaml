@@ -9,12 +9,8 @@ services:
     dockerfilePath: ./Dockerfile
     healthCheckPath: /api/health
     port: 10000
-    # Build optimizations
-    buildCommand: |
-      echo "Starting optimized build..."
-      docker build --no-cache --progress=plain -t marrakechdunes .
-    # Increase timeout for build
-    buildTimeout: 1800
+    # Build timeout
+    buildTimeoutSeconds: 1800
     # Environment variables
     envVars:
       - key: NODE_ENV
