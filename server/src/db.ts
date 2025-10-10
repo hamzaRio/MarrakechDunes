@@ -54,7 +54,7 @@ export async function connectToDatabase(): Promise<void> {
         },
         // Additional performance optimizations
         maxStalenessSeconds: 90,
-        readPreference: 'secondaryPreferred',
+        readPreference: 'primary', // Changed from 'secondaryPreferred' to 'primary' to allow index creation
         compressors: ['zlib'],
         zlibCompressionLevel: 6,
       });
