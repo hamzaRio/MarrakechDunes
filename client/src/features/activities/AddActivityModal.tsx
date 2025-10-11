@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import axios from '@/lib/api';
 import { toast } from 'sonner';
+import ActivityAutocomplete from '@/components/ActivityAutocomplete';
 
 type ExternalActivity = {
   title: string;
@@ -62,20 +63,69 @@ export default function AddActivityModal(/* your props */) {
     }
   };
 
-  const useActivity = (a: ExternalActivity) => {
-    setName(a.title);
-    setCity(a.city);
-    setPrice(a.priceMAD);
-    setDuration(a.durationText);
-    toast.success('Champs autofillés.');
+  const handleActivitySelect = (activity: ExternalActivity) => {
+    setName(activity.title);
+    setCity(activity.city);
+    setPrice(activity.priceMAD);
+    setDuration(activity.durationText);
+    toast.success('Données de l\'activité appliquées');
   };
 
   return (
     <div>
-      {/* … vos champs existants (nom, description, prix, catégorie, lieu, durée) … */}
+      {/* Activity Name Field with Autocomplete */}
+      <div className="space-y-2">
+        <label className="block text-sm font-medium">
+          Nom de l'Activité (Recherche Intelligente) *
+        </label>
+        <ActivityAutocomplete
+          value={name}
+          onChange={setName}
+          onSelectActivity={handleActivitySelect}
+          placeholder="Tapez pour rechercher au Maroc..."
+        />
+        <p className="text-xs text-gray-500">
+          💡 Commencez à taper pour voir les activités similaires au Maroc
+        </p>
+      </div>
 
+      {/* Other form fields */}
+      <div className="mt-4 space-y-2">
+        <label className="block text-sm font-medium">Ville</label>
+        <input
+          type="text"
+          value={city}
+          onChange={(e) => setCity(e.target.value)}
+          placeholder="Ville de l'activité"
+          className="w-full rounded-md border border-gray-300 p-2"
+        />
+      </div>
+
+      <div className="mt-4 space-y-2">
+        <label className="block text-sm font-medium">Prix (MAD)</label>
+        <input
+          type="number"
+          value={price}
+          onChange={(e) => setPrice(Number(e.target.value) || '')}
+          placeholder="Prix en MAD"
+          className="w-full rounded-md border border-gray-300 p-2"
+        />
+      </div>
+
+      <div className="mt-4 space-y-2">
+        <label className="block text-sm font-medium">Durée</label>
+        <input
+          type="text"
+          value={duration}
+          onChange={(e) => setDuration(e.target.value)}
+          placeholder="Ex: 4 heures, 1 jour"
+          className="w-full rounded-md border border-gray-300 p-2"
+        />
+      </div>
+
+      {/* Legacy search section for reference */}
       <div className="mt-4 rounded-lg border bg-gradient-to-r from-blue-50 to-indigo-50 p-3">
-        <div className="font-semibold mb-2">MA Recherche Concurrence Maroc</div>
+        <div className="font-semibold mb-2">Recherche Concurrence Maroc (Legacy)</div>
         <p className="text-sm text-muted-foreground mb-3">
           Recherchez des activités similaires au Maroc pour comparer les prix.
         </p>
@@ -97,7 +147,7 @@ export default function AddActivityModal(/* your props */) {
                 </div>
                 <div className="text-sm font-semibold mt-1">{a.priceMAD} MAD</div>
                 <div className="mt-2 flex gap-2">
-                  <button onClick={() => useActivity(a)} className="px-2 py-1 rounded-md bg-green-600 text-white">
+                  <button onClick={() => handleActivitySelect(a)} className="px-2 py-1 rounded-md bg-green-600 text-white">
                     Utiliser Prix
                   </button>
                   {a.providerUrl && (
@@ -112,7 +162,12 @@ export default function AddActivityModal(/* your props */) {
         )}
       </div>
 
-      {/* … bouton Enregistrer existant … */}
+      {/* Save button */}
+      <div className="mt-6 flex justify-end">
+        <button className="px-4 py-2 rounded-md bg-green-600 text-white">
+          Enregistrer l'Activité
+        </button>
+      </div>
     </div>
   );
 }

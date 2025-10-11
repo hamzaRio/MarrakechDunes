@@ -87,13 +87,13 @@ function AdminDashboardContent() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/admin/bookings"] });
       toast({
-        title: "Booking Deleted",
-        description: "Booking has been deleted successfully.",
+        title: "Réservation Supprimée",
+        description: "La réservation a été supprimée avec succès.",
       });
     },
     onError: (error) => {
       toast({
-        title: "Deletion Failed",
+        title: "Échec de la Suppression",
         description: error.message,
         variant: "destructive",
       });
@@ -101,7 +101,7 @@ function AdminDashboardContent() {
   });
 
   const handleDeleteBooking = (bookingId: string, customerName: string) => {
-    if (confirm(`Are you sure you want to delete the booking for ${customerName}? This action cannot be undone.`)) {
+    if (confirm(`Êtes-vous sûr de vouloir supprimer la réservation de ${customerName} ? Cette action ne peut pas être annulée.`)) {
       deleteBookingMutation.mutate(bookingId);
     }
   };
@@ -245,31 +245,31 @@ Notes: ${booking.notes || 'None'}`);
 
   // Admin activity management functions
   const handleEditPricing = (activity: ActivityType) => {
-    const newPrice = prompt(`Edit price for ${activity.name} (current: ${activity.price} MAD):`, activity.price.toString());
+    const newPrice = prompt(`Modifier le prix pour ${activity.name} (actuel: ${activity.price} MAD):`, activity.price.toString());
     if (newPrice && !isNaN(Number(newPrice))) {
       // Update activity pricing
-      alert(`Price updated to ${newPrice} MAD for ${activity.name}`);
+      alert(`Prix mis à jour à ${newPrice} MAD pour ${activity.name}`);
     }
   };
 
   const handleUpdateGetYourGuidePrice = (activity: ActivityType) => {
     const currentCompetitorPrice = activity.getyourguidePrice || activity.price + 150;
-    const newPrice = prompt(`Update GetYourGuide competitor price for ${activity.name} (current: ${currentCompetitorPrice} MAD):`, String(currentCompetitorPrice));
+    const newPrice = prompt(`Mettre à jour le prix concurrent GetYourGuide pour ${activity.name} (actuel: ${currentCompetitorPrice} MAD):`, String(currentCompetitorPrice));
     if (newPrice && !isNaN(Number(newPrice))) {
       // Update GetYourGuide price
-      alert(`GetYourGuide price updated to ${newPrice} MAD for ${activity.name}. New profit margin: ${Number(newPrice) - Number(activity.price)} MAD per booking.`);
+      alert(`Prix GetYourGuide mis à jour à ${newPrice} MAD pour ${activity.name}. Nouvelle marge de profit: ${Number(newPrice) - Number(activity.price)} MAD par réservation.`);
     }
   };
 
   const handleViewActivityBookings = (activity: ActivityType) => {
     const activityBookings = bookings.filter(b => b.activity.id === activity.id);
     const totalRevenue = activityBookings.filter(b => b.status === 'confirmed' as any).reduce((sum, b) => sum + Number(b.totalAmount), 0);
-    alert(`Activity: ${activity.name}
-Total Bookings: ${activityBookings.length}
-Confirmed: ${activityBookings.filter(b => b.status === 'confirmed' as any).length}
-Pending: ${activityBookings.filter(b => b.status === 'pending' as any).length}
-Total Revenue: ${totalRevenue} MAD
-Average per booking: ${activityBookings.length ? Math.round(totalRevenue / activityBookings.length) : 0} MAD`);
+    alert(`Activité: ${activity.name}
+Total Réservations: ${activityBookings.length}
+Confirmées: ${activityBookings.filter(b => b.status === 'confirmed' as any).length}
+En Attente: ${activityBookings.filter(b => b.status === 'pending' as any).length}
+Revenus Totaux: ${totalRevenue} MAD
+Moyenne par réservation: ${activityBookings.length ? Math.round(totalRevenue / activityBookings.length) : 0} MAD`);
   };
 
   return (

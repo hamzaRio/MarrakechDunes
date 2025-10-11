@@ -28,6 +28,7 @@ export default function PaymentModal({
 }: Props) {
   const [type, setType] = useState<PaymentType>(PaymentType.CASH);
   const [paidAmount, setPaidAmount] = useState<number>(initialPaidAmount || 0);
+  const [isUpdating, setIsUpdating] = useState(false);
   const descId = useId();
 
   const remaining = useMemo(
@@ -36,14 +37,21 @@ export default function PaymentModal({
   );
 
   const updatePayment = async () => {
+    if (isUpdating) return;
+    
+    setIsUpdating(true);
     try {
+      console.log('Updating payment:', { bookingId, type, paidAmount });
       await axios.post(`/api/bookings/${bookingId}/payment`, { type, paidAmount });
-      toast.success('Paiement mis à jour');
+      toast.success('Paiement mis à jour avec succès');
       const { data } = await axios.get(`/api/bookings/${bookingId}`);
       onUpdated(data.payment);
       onClose();
-    } catch {
-      toast.error('Erreur de mise à jour du paiement');
+    } catch (error) {
+      console.error('Payment update error:', error);
+      toast.error('Erreur lors de la mise à jour du paiement');
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -63,8 +71,12 @@ export default function PaymentModal({
       <label className="block mt-4 text-sm font-medium">Type de Paiement</label>
       <select
         value={type}
-        onChange={(e) => setType(e.target.value as PaymentType)}
-        className="w-full rounded-md border p-2"
+        onChange={(e) => {
+          const newType = e.target.value as PaymentType;
+          console.log('Payment type changed:', newType);
+          setType(newType);
+        }}
+        className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500"
       >
         {paymentOptions.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
       </select>
@@ -81,8 +93,16 @@ export default function PaymentModal({
       />
 
       <div className="mt-5 flex gap-2 justify-end">
-        <button onClick={onClose} className="px-4 py-2 rounded-md border">Cancel</button>
-        <button onClick={updatePayment} className="px-4 py-2 rounded-md bg-red-600 text-white">Update Payment</button>
+        <button onClick={onClose} className="px-4 py-2 rounded-md border" disabled={isUpdating}>
+          Annuler
+        </button>
+        <button 
+          onClick={updatePayment} 
+          className="px-4 py-2 rounded-md bg-red-600 text-white disabled:opacity-50" 
+          disabled={isUpdating}
+        >
+          {isUpdating ? 'Mise à jour...' : 'Mettre à Jour le Paiement'}
+        </button>
       </div>
     </div>
   );

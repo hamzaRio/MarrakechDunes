@@ -22,6 +22,27 @@ import {
 } from "lucide-react";
 import type { BookingWithActivity } from "marrakechdunes-shared/schema";
 
+const FR_LABELS = {
+  paymentUpdated: 'Paiement Mis à Jour',
+  paymentSuccess: 'Le statut de paiement a été mis à jour avec succès',
+  updateFailed: 'Échec de la Mise à Jour',
+  paymentManagement: 'Gestion des Paiements',
+  status: 'Statut',
+  fullyPaid: 'Entièrement Payé',
+  depositPaid: 'Acompte Payé',
+  unpaid: 'Non Payé',
+  totalAmount: 'Montant Total',
+  paidAmount: 'Montant Payé',
+  remaining: 'Restant',
+  paymentMethod: 'Méthode de Paiement',
+  cash: 'Espèces',
+  cashDeposit: 'Acompte en Espèces',
+  paymentProgress: 'Progression du Paiement',
+  updatePayment: 'Mettre à Jour le Paiement',
+  cancel: 'Annuler',
+  save: 'Enregistrer',
+};
+
 interface PaymentManagementProps {
   booking: BookingWithActivity;
 }
@@ -50,14 +71,14 @@ export default function PaymentManagement({ booking }: PaymentManagementProps) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/admin/bookings"] });
       toast({
-        title: "Payment Updated",
-        description: "Payment status has been successfully updated.",
+        title: "Paiement Mis à Jour",
+        description: "Le statut de paiement a été mis à jour avec succès.",
       });
       setIsOpen(false);
     },
     onError: (error: Error) => {
       toast({
-        title: "Update Failed",
+        title: "Échec de la Mise à Jour",
         description: error.message,
         variant: "destructive",
       });
@@ -139,14 +160,14 @@ export default function PaymentManagement({ booking }: PaymentManagementProps) {
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-lg">
           <Receipt className="w-5 h-5 text-moroccan-blue" />
-          Payment Management
+          {FR_LABELS.paymentManagement}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Payment Status */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-sm font-medium">Status:</span>
+            <span className="text-sm font-medium">{FR_LABELS.status}:</span>
             <Badge className={`${getPaymentStatusColor(booking.paymentStatus)} flex items-center gap-1`}>
               {getPaymentStatusIcon(booking.paymentStatus)}
               {booking.paymentStatus?.replace('_', ' ').toUpperCase()}
@@ -156,7 +177,7 @@ export default function PaymentManagement({ booking }: PaymentManagementProps) {
             <DialogTrigger asChild>
               <Button variant="outline" size="sm" className="flex items-center gap-1">
                 <Edit className="w-4 h-4" />
-                Update Payment
+                {FR_LABELS.updatePayment}
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-md bg-white border-2 border-gray-300 shadow-xl">
@@ -174,15 +195,15 @@ export default function PaymentManagement({ booking }: PaymentManagementProps) {
                 <div className="bg-moroccan-sand/20 p-3 rounded-lg">
                   <div className="text-sm space-y-1">
                     <div className="flex justify-between">
-                      <span>Total Amount:</span>
+                      <span>{FR_LABELS.totalAmount}:</span>
                       <span className="font-medium">{booking.totalAmount} MAD</span>
                     </div>
                     <div className="flex justify-between">
-                      <span>Paid Amount:</span>
+                      <span>{FR_LABELS.paidAmount}:</span>
                       <span className="font-medium text-green-600">{displayPaidAmount} MAD</span>
                     </div>
                     <div className="flex justify-between">
-                      <span>Remaining:</span>
+                      <span>{FR_LABELS.remaining}:</span>
                       <span className="font-medium text-orange-600">{displayRemaining} MAD</span>
                     </div>
                   </div>
@@ -200,7 +221,7 @@ export default function PaymentManagement({ booking }: PaymentManagementProps) {
                           <SelectItem value="full">
                             <div className="flex items-center gap-2">
                               <CreditCard className="w-4 h-4" />
-                              Full Payment ({booking.totalAmount} MAD)
+                              Paiement Complet ({booking.totalAmount} MAD)
                             </div>
                           </SelectItem>
                         )}
@@ -208,7 +229,7 @@ export default function PaymentManagement({ booking }: PaymentManagementProps) {
                           <SelectItem value="deposit">
                             <div className="flex items-center gap-2">
                               <Calculator className="w-4 h-4" />
-                              Deposit Payment
+                              Paiement d'Acompte
                             </div>
                           </SelectItem>
                         )}
@@ -216,7 +237,7 @@ export default function PaymentManagement({ booking }: PaymentManagementProps) {
                           <SelectItem value="balance">
                             <div className="flex items-center gap-2">
                               <Banknote className="w-4 h-4" />
-                              Balance Payment ({remainingAmount} MAD)
+                              Paiement du Solde ({remainingAmount} MAD)
                             </div>
                           </SelectItem>
                         )}
@@ -226,7 +247,7 @@ export default function PaymentManagement({ booking }: PaymentManagementProps) {
 
                   {(paymentType === 'deposit' || paymentType === 'balance') && (
                     <div>
-                      <Label htmlFor="amount">Amount (MAD)</Label>
+                      <Label htmlFor="amount">Montant (MAD)</Label>
                       <Input
                         id="amount"
                         type="number"
@@ -234,11 +255,11 @@ export default function PaymentManagement({ booking }: PaymentManagementProps) {
                         max={paymentType === 'deposit' ? booking.totalAmount : remainingAmount}
                         value={paymentAmount}
                         onChange={(e) => setPaymentAmount(parseInt(e.target.value) || 0)}
-                        placeholder={`Enter amount`}
+                        placeholder={`Saisir le montant`}
                       />
                       {paymentType === 'deposit' && (
                         <p className="text-xs text-gray-500 mt-1">
-                          Recommended: {Math.round(Number(booking.totalAmount) * 0.3)} MAD (30%)
+                          Recommandé: {Math.round(Number(booking.totalAmount) * 0.3)} MAD (30%)
                         </p>
                       )}
                     </div>
@@ -251,14 +272,14 @@ export default function PaymentManagement({ booking }: PaymentManagementProps) {
                     onClick={() => setIsOpen(false)}
                     className="flex-1"
                   >
-                    Cancel
+                    {FR_LABELS.cancel}
                   </Button>
                   <Button
                     onClick={handlePaymentUpdate}
                     disabled={updatePaymentMutation.isPending || (paymentType !== 'full' && paymentAmount <= 0)}
                     className="flex-1 bg-moroccan-red hover:bg-red-600"
                   >
-                    {updatePaymentMutation.isPending ? "Updating..." : "Update Payment"}
+                    {updatePaymentMutation.isPending ? "Mise à jour..." : FR_LABELS.updatePayment}
                   </Button>
                 </div>
               </div>
@@ -272,11 +293,11 @@ export default function PaymentManagement({ booking }: PaymentManagementProps) {
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div className="space-y-2">
             <div className="flex justify-between">
-              <span className="text-gray-600">Total Amount:</span>
+              <span className="text-gray-600">{FR_LABELS.totalAmount}:</span>
               <span className="font-medium">{booking.totalAmount} MAD</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600">Payment Method:</span>
+              <span className="text-gray-600">{FR_LABELS.paymentMethod}:</span>
               <span className="font-medium capitalize">
                 {booking.paymentMethod?.replace('_', ' ') || 'Cash'}
               </span>
@@ -285,11 +306,11 @@ export default function PaymentManagement({ booking }: PaymentManagementProps) {
           
           <div className="space-y-2">
             <div className="flex justify-between">
-              <span className="text-gray-600">Paid Amount:</span>
+              <span className="text-gray-600">{FR_LABELS.paidAmount}:</span>
               <span className="font-medium text-green-600">{displayPaidAmount} MAD</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-600">Remaining:</span>
+              <span className="text-gray-600">{FR_LABELS.remaining}:</span>
               <span className="font-medium text-orange-600">{displayRemaining} MAD</span>
             </div>
           </div>
@@ -298,7 +319,7 @@ export default function PaymentManagement({ booking }: PaymentManagementProps) {
         {/* Payment Progress Bar */}
         <div className="space-y-2">
           <div className="flex justify-between text-xs text-gray-600">
-            <span>Payment Progress</span>
+            <span>{FR_LABELS.paymentProgress}</span>
             <span>{displayProgress}%</span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2">
@@ -314,15 +335,15 @@ export default function PaymentManagement({ booking }: PaymentManagementProps) {
           <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
             <div className="flex items-center gap-2 mb-2">
               <Calculator className="w-4 h-4 text-blue-600" />
-              <span className="text-sm font-medium text-blue-800">Deposit Information</span>
+              <span className="text-sm font-medium text-blue-800">Informations d'Acompte</span>
             </div>
             <div className="text-xs text-blue-700 space-y-1">
               <div className="flex justify-between">
-                <span>Deposit Amount:</span>
+                <span>Montant d'Acompte:</span>
                 <span className="font-medium">{booking.depositAmount} MAD</span>
               </div>
               <div className="flex justify-between">
-                <span>Balance Due:</span>
+                <span>Solde Dû:</span>
                 <span className="font-medium">{Number(booking.totalAmount) - Number(booking.depositAmount)} MAD</span>
               </div>
             </div>
