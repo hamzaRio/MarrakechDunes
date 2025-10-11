@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, Users, TrendingUp, Activity, Crown, MessageCircle, LogOut, BarChart3, Monitor, Server, Download, FileText, Mail, Target, Settings } from "lucide-react";
+import { Calendar, Users, TrendingUp, Crown, MessageCircle, LogOut, Download, FileText, Mail, Settings } from "lucide-react";
 import AdminRoute from "@/components/admin-route";
 import { useAuth } from "@/hooks/use-auth";
 import { useLanguage } from "@/hooks/use-language";
@@ -36,7 +36,7 @@ interface BookingWithActivity extends BookingType {
 
 function AdminDashboardContent() {
   const { user } = useAuth();
-  const { t } = useLanguage();
+  // const { t } = useLanguage();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   
@@ -65,7 +65,7 @@ function AdminDashboardContent() {
     try {
       await apiFetch(`/admin/bookings/${bookingId}/status`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        // headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status }),
         credentials: 'include'
       });
@@ -133,7 +133,7 @@ Notes: ${booking.notes || 'None'}`);
     const sources = ensureArray(activity.imageUrls);
     const legacyPhotos = ensureArray((activity as any).photos);
     if (sources.length === 0 && legacyPhotos.length > 0) {
-      sources.push(...legacyPhotos);
+      sources.push(...(legacyPhotos as string[]));
     }
     const legacyImage = (activity as any).image;
     if (sources.length === 0 && typeof legacyImage === 'string' && legacyImage) {

@@ -1,4 +1,4 @@
-import React from 'react';
+// Mobile activity card component
 import { Link } from 'wouter';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';

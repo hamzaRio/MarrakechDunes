@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'wouter';
 import { useLanguage } from '@/hooks/use-language';
 import { useAuth } from '@/hooks/use-auth';
@@ -9,10 +9,10 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 export default function MobileNavigation() {
   const [isOpen, setIsOpen] = useState(false);
   const { t } = useLanguage();
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
 
   const handleLogout = async () => {
-    await logout();
+    // Logout functionality will be handled by the parent component
     setIsOpen(false);
   };
 

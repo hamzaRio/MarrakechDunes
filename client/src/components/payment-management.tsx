@@ -74,7 +74,7 @@ export default function PaymentManagement({ booking }: PaymentManagementProps) {
     switch (paymentType) {
       case 'full':
         newPaymentStatus = 'fully_paid';
-        newPaidAmount = booking.totalAmount;
+        newPaidAmount = Number(booking.totalAmount);
         break;
       case 'deposit':
         newPaymentStatus = 'deposit_paid';
@@ -90,7 +90,7 @@ export default function PaymentManagement({ booking }: PaymentManagementProps) {
     }
 
     updatePaymentMutation.mutate({
-      bookingId: booking.id,
+      bookingId: booking.id || booking._id || '',
       paymentStatus: newPaymentStatus,
       paidAmount: newPaidAmount,
       paymentMethod: paymentType === 'deposit' ? 'cash_deposit' : 'cash',
@@ -125,14 +125,14 @@ export default function PaymentManagement({ booking }: PaymentManagementProps) {
   };
 
   const currentPaid = booking.paidAmount || 0;
-  const remainingAmount = booking.totalAmount - currentPaid;
+  const remainingAmount = Number(booking.totalAmount) - currentPaid;
   const isFullyPaid = booking.paymentStatus === 'fully_paid';
   const isDepositPaid = booking.paymentStatus === 'deposit_paid';
   
   // Fix display logic for fully paid bookings
   const displayPaidAmount = isFullyPaid ? booking.totalAmount : currentPaid;
   const displayRemaining = isFullyPaid ? 0 : remainingAmount;
-  const displayProgress = isFullyPaid ? 100 : Math.round((currentPaid / booking.totalAmount) * 100);
+  const displayProgress = isFullyPaid ? 100 : Math.round((currentPaid / Number(booking.totalAmount)) * 100);
 
   return (
     <Card className="w-full">

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,7 +31,7 @@ export default function OfflineBooking({ activity, onBookingCreated }: OfflineBo
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [savedBookings, setSavedBookings] = useState<OfflineBookingData[]>([]);
   const { toast } = useToast();
-  const { t } = useLanguage();
+  // const { t } = useLanguage();
 
   const [formData, setFormData] = useState<OfflineBookingData>({
     customerName: '',
