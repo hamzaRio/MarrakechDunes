@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -163,8 +163,11 @@ export default function PaymentManagement({ booking }: PaymentManagementProps) {
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
                   <Banknote className="w-5 h-5" />
-                  Update Payment Status
+                  Mettre à Jour le Statut de Paiement
                 </DialogTitle>
+                <DialogDescription>
+                  Modifiez le statut de paiement et le montant payé pour cette réservation.
+                </DialogDescription>
               </DialogHeader>
               
               <div className="space-y-4">
@@ -187,10 +190,10 @@ export default function PaymentManagement({ booking }: PaymentManagementProps) {
 
                 <div className="space-y-3">
                   <div>
-                    <Label htmlFor="paymentType">Payment Type</Label>
+                    <Label htmlFor="paymentType">Type de Paiement</Label>
                     <Select value={paymentType} onValueChange={(value: 'full' | 'deposit' | 'balance') => setPaymentType(value)}>
-                      <SelectTrigger>
-                        <SelectValue />
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Sélectionner le type de paiement" />
                       </SelectTrigger>
                       <SelectContent>
                         {!isFullyPaid && (

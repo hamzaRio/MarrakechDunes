@@ -12,7 +12,7 @@ import { getActivityFallbackImage } from "@/lib/image-utils";
 import { ensureArray, getAssetUrl } from "@/lib/utils";
 import PaymentManagement from "@/components/payment-management";
 import { WhatsAppNotificationPanel } from "@/components/whatsapp-notification-panel";
-import ActivityManagementModal from "@/components/activity-management-modal";
+import SimpleActivityForm from "@/components/simple-activity-form";
 // Removed duplicate cash analytics dashboard import
 import CashBookingReminders from "@/components/cash-booking-reminders";
 import EmailModal from "@/components/EmailModal";
@@ -388,7 +388,7 @@ Average per booking: ${activityBookings.length ? Math.round(totalRevenue / activ
                     <FileText className="h-4 w-4 mr-2" />
                     📄 Exporter PDF
                   </Button>
-                  <ActivityManagementModal mode="create" />
+                  <SimpleActivityForm mode="create" />
                 </div>
               </div>
 
@@ -537,7 +537,7 @@ Average per booking: ${activityBookings.length ? Math.round(totalRevenue / activ
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle>Activity Management & Pricing</CardTitle>
-                  <ActivityManagementModal mode="create" />
+                  <SimpleActivityForm mode="create" />
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-6">
@@ -666,6 +666,106 @@ Average per booking: ${activityBookings.length ? Math.round(totalRevenue / activ
                     } : undefined}
                     customerPhone={bookings.length > 0 ? bookings[0].customerPhone : undefined}
                   />
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="reports" className="space-y-4">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold text-moroccan-blue flex items-center gap-2">
+                  📊 Rapports et Analyses
+                </h2>
+                <div className="flex gap-2">
+                  <Button 
+                    onClick={handleExportBookings} 
+                    variant="outline" 
+                    size="sm"
+                    className="border-green-200 text-green-700 hover:bg-green-50"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    📊 Exporter CSV
+                  </Button>
+                  <Button 
+                    onClick={handleExportBookingsPDF} 
+                    variant="outline" 
+                    size="sm"
+                    className="border-blue-200 text-blue-700 hover:bg-blue-50"
+                  >
+                    <FileText className="h-4 w-4 mr-2" />
+                    📄 Exporter PDF
+                  </Button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-200">
+                  <CardHeader>
+                    <CardTitle className="text-blue-700 flex items-center gap-2">
+                      📈 Revenus Totaux
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-bold text-blue-900">
+                      {totalRevenue.toLocaleString()} MAD
+                    </div>
+                    <p className="text-sm text-blue-600 mt-1">Chiffre d'affaires total</p>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-200">
+                  <CardHeader>
+                    <CardTitle className="text-green-700 flex items-center gap-2">
+                      ✅ Réservations Confirmées
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-bold text-green-900">
+                      {confirmedBookings}
+                    </div>
+                    <p className="text-sm text-green-600 mt-1">Clients satisfaits</p>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-2 border-orange-200">
+                  <CardHeader>
+                    <CardTitle className="text-orange-700 flex items-center gap-2">
+                      ⏳ En Attente
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-3xl font-bold text-orange-900">
+                      {pendingBookings}
+                    </div>
+                    <p className="text-sm text-orange-600 mt-1">En cours de traitement</p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <Card className="bg-white border-2 border-gray-200">
+                <CardHeader>
+                  <CardTitle className="text-moroccan-blue flex items-center gap-2">
+                    📊 Activités Populaires
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {activities.slice(0, 5).map((activity) => (
+                      <div key={activity.id} className="flex items-center justify-between p-3 border rounded-lg">
+                        <div>
+                          <h4 className="font-medium">{activity.name}</h4>
+                          <p className="text-sm text-gray-600">{activity.location}</p>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-bold text-moroccan-blue">
+                            {Number(activity.price).toLocaleString()} MAD
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {activity.category}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>
