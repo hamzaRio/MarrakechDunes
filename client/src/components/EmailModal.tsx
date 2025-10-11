@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Mail, Send, Loader2 } from 'lucide-react';
-import { apiFetch } from '@/lib/api';
+import { apiFetch } from '@/lib/api-utils';
 
 interface EmailModalProps {
   customerEmail?: string;

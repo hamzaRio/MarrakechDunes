@@ -1,5 +1,5 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
-import { api, baseURL } from "./api";
+import apiClient from "./api";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
@@ -43,29 +43,19 @@ export async function apiRequest(
   url: string,
   options?: { method?: string; body?: string; headers?: Record<string, string> }
 ): Promise<Response> {
-  // Always route through configured API base URL
-  let fullUrl: string;
-  if (url.startsWith('http')) {
-    fullUrl = url;
-  } else if (url.startsWith('/api')) {
-    // baseURL already includes /api suffix; remove leading /api from path to avoid duplication
-    fullUrl = `${baseURL}${url.replace(/^\/api/, '')}`;
-  } else {
-    fullUrl = `${baseURL}${url.startsWith('/') ? '' : '/'}${url}`;
-  }
+  // Use the centralized API client
   const method = options?.method || 'GET';
   const body = options?.body;
   const headers = options?.headers || (body ? { "Content-Type": "application/json" } : {});
   
-  const res = await fetch(fullUrl, {
-    method,
+  const response = await apiClient.request({
+    url,
+    method: method as any,
     headers,
-    body,
-    credentials: "include",
+    data: body,
   });
 
-  await throwIfResNotOk(res);
-  return res;
+  return response as any;
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
@@ -78,7 +68,7 @@ export const getQueryFn: <T>(options: {
     
     try {
       // Use the unified API client instead of fetch to prevent duplication
-      const response = await api.get(path);
+      const response = await apiClient.get(path);
       const data = response.data as any;
       if (path === "/activities" && data && typeof data === "object" && "activities" in data) {
         return data.activities;

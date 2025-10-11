@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { apiFetch } from '@/lib/api';
+import apiClient from '@/lib/api';
 
 interface SecurityContext {
   isSecureConnection: boolean;
@@ -105,15 +105,13 @@ export function SecurityProvider({ children }: { children: ReactNode }) {
       if (!lastSent || (now - parseInt(lastSent)) > 300000) { // 5 minutes throttle
         localStorage.setItem(throttleKey, now.toString());
         
-        apiFetch('/security-events', {
-          method: 'POST',
-          data: {
-            event,
-            details,
-            timestamp: new Date().toISOString(),
-            userAgent: navigator.userAgent,
-            url: window.location.href
-          }
+        apiClient.post('/security-events', {
+          event,
+          details,
+          timestamp: new Date().toISOString(),
+          userAgent: navigator.userAgent,
+          url: window.location.href,
+          securityLevel: securityLevel
         }).catch(console.error);
       }
     }

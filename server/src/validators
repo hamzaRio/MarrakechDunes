@@ -1,0 +1,112 @@
+import { z } from 'zod';
+
+/**
+ * Common Zod schemas for MarrakechDunes API validation
+ */
+
+/**
+ * Email notification payload schema
+ */
+export const emailNotificationSchema = z.object({
+  to: z.string().email('Adresse email invalide'),
+  subject: z.string().min(1, 'Le sujet est requis').max(200, 'Le sujet est trop long'),
+  message: z.string().min(1, 'Le message est requis').max(2000, 'Le message est trop long')
+});
+
+/**
+ * External activities search parameters schema
+ */
+export const externalSearchParamsSchema = z.object({
+  query: z.string().optional(),
+  city: z.string().optional(),
+  category: z.string().optional(),
+  minRating: z.coerce.number().min(0).max(5).default(0)
+});
+
+/**
+ * Booking confirmation email schema
+ */
+export const bookingConfirmationSchema = z.object({
+  customerEmail: z.string().email('Email client invalide'),
+  customerName: z.string().min(1, 'Nom client requis').max(100, 'Nom trop long'),
+  activityName: z.string().min(1, 'Nom activité requis').max(200, 'Nom activité trop long'),
+  bookingDate: z.string().min(1, 'Date de réservation requise'),
+  totalAmount: z.number().positive('Montant doit être positif')
+});
+
+/**
+ * Activity creation schema
+ */
+export const activitySchema = z.object({
+  name: z.string().min(1, 'Nom requis').max(200, 'Nom trop long'),
+  description: z.string().min(1, 'Description requise').max(2000, 'Description trop longue'),
+  price: z.number().positive('Prix doit être positif'),
+  category: z.string().min(1, 'Catégorie requise'),
+  location: z.string().optional(),
+  duration: z.string().optional(),
+  images: z.array(z.string()).optional()
+});
+
+/**
+ * Booking creation schema
+ */
+export const bookingSchema = z.object({
+  customerName: z.string().min(1, 'Nom client requis'),
+  customerPhone: z.string().min(1, 'Téléphone requis'),
+  customerEmail: z.string().email('Email invalide'),
+  activityId: z.string().min(1, 'ID activité requis'),
+  numberOfPeople: z.number().int().positive('Nombre de personnes invalide'),
+  preferredDate: z.string().min(1, 'Date préférée requise'),
+  totalAmount: z.number().positive('Montant total invalide'),
+  paymentMethod: z.enum(['cash', 'deposit', 'full']).default('cash'),
+  notes: z.string().optional()
+});
+
+/**
+ * User authentication schema
+ */
+export const loginSchema = z.object({
+  username: z.string().min(1, 'Nom d\'utilisateur requis'),
+  password: z.string().min(1, 'Mot de passe requis')
+});
+
+/**
+ * API response schemas
+ */
+export const apiResponseSchema = z.object({
+  success: z.boolean(),
+  message: z.string().optional(),
+  data: z.any().optional(),
+  error: z.string().optional(),
+  details: z.any().optional()
+});
+
+/**
+ * Pagination schema
+ */
+export const paginationSchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  sortBy: z.string().optional(),
+  sortOrder: z.enum(['asc', 'desc']).default('desc')
+});
+
+/**
+ * Date range schema
+ */
+export const dateRangeSchema = z.object({
+  startDate: z.string().optional(),
+  endDate: z.string().optional()
+});
+
+/**
+ * Search filters schema
+ */
+export const searchFiltersSchema = z.object({
+  query: z.string().optional(),
+  category: z.string().optional(),
+  city: z.string().optional(),
+  minPrice: z.coerce.number().min(0).optional(),
+  maxPrice: z.coerce.number().min(0).optional(),
+  minRating: z.coerce.number().min(0).max(5).optional()
+});

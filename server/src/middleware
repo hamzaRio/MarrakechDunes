@@ -1,0 +1,28 @@
+import cors from 'cors';
+
+/**
+ * CORS configuration for MarrakechDunes
+ * Allows specific origins for production and development
+ */
+export const corsOptions = {
+  origin: [
+    'https://marrakech-dunes.vercel.app',
+    'https://marrakech-dunes-h1gis5kih-hamzarios-projects.vercel.app',
+    /^https:\/\/.*\.vercel\.app$/,
+    'http://localhost:5173',
+    'http://localhost:3000'
+  ],
+  credentials: true,
+  optionsSuccessStatus: 200,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: [
+    'Origin',
+    'X-Requested-With',
+    'Content-Type',
+    'Accept',
+    'Authorization',
+    'x-csrf-token'
+  ]
+};
+
+export default cors(corsOptions);

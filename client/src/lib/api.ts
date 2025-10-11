@@ -1,111 +1,114 @@
 import axios from 'axios';
 
-// Get API URL from environment
-const API_URL = import.meta.env.VITE_API_URL as string | undefined;
+/**
+ * Centralized API client for MarrakechDunes
+ * Single axios instance with proper configuration
+ */
+const apiClient = axios.create({
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8080',
+  withCredentials: true,
+  timeout: 30000,
+  headers: {
+    'Content-Type': 'application/json',
+  }
+});
 
-// Validate and clean API URL
-function getApiBaseUrl(): string {
-  if (!API_URL) {
-    if (import.meta.env.MODE === "production") {
-      throw new Error("VITE_API_URL is not defined in production build");
+/**
+ * Request interceptor for logging and CSRF token handling
+ */
+apiClient.interceptors.request.use(
+  (config) => {
+    // Add CSRF token to headers if available
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    if (csrfToken) {
+      config.headers['x-csrf-token'] = csrfToken;
     }
-    console.warn("VITE_API_URL missing, defaulting to http://localhost:10000/api");
-    return "http://localhost:10000/api";
-  }
-
-  // Remove trailing slash if present
-  let cleanUrl = API_URL.replace(/\/$/, '');
-  
-  // Ensure URL ends with /api
-  if (!cleanUrl.endsWith('/api')) {
-    cleanUrl = `${cleanUrl}/api`;
-  }
-
-  return cleanUrl;
-}
-
-export const baseURL = getApiBaseUrl();
-
-const CSRF_COOKIE = "marrakech.csrf";
-const CSRF_HEADER = "X-CSRF-Token";
-
-export const api = axios.create({ baseURL, withCredentials: true });
-api.defaults.xsrfCookieName = CSRF_COOKIE;
-api.defaults.xsrfHeaderName = CSRF_HEADER;
-
-// test helper
-export function __testApiBase() {
-  const testUrl = `${baseURL}/activities`;
-  console.log(`[API Test] api.get("/activities") resolves to: ${testUrl}`);
-  return testUrl;
-}
-
-export async function apiFetch<T = any>(
-  path: string,
-  opts?: { method?: 'GET'|'POST'|'PUT'|'PATCH'|'DELETE'; data?: any; params?: any }
-): Promise<T> {
-  try {
-    const method = (opts?.method || 'GET').toLowerCase() as any;
-    const res = await api.request<T>({ url: path, method, data: opts?.data, params: opts?.params });
-    return res.data;
-  } catch (error) {
-    console.error(`API Error (${path}):`, error);
-    // Show user-friendly error message
-    const errorMessage = document.createElement('div');
-    errorMessage.className = 'api-error-toast';
-    errorMessage.textContent = 'Server error – please try again later';
-    errorMessage.style.cssText = `
-      position: fixed;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      background-color: #f44336;
-      color: white;
-      padding: 16px 24px;
-      border-radius: 4px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
-      z-index: 9999;
-    `;
-    document.body.appendChild(errorMessage);
     
-    // Remove after 5 seconds
-    setTimeout(() => {
-      if (errorMessage.parentNode) {
-        errorMessage.parentNode.removeChild(errorMessage);
-      }
-    }, 5000);
-    
-    throw error; // Re-throw to allow component-specific error handling
+    console.log(`[API] ${config.method?.toUpperCase()} ${config.url}`);
+    return config;
+  },
+  (error) => {
+    console.error('[API] Request error:', error);
+    return Promise.reject(error);
   }
-}
+);
 
-export async function sessionInit() {
-  try {
-    const { data } = await api.get<{ csrfToken?: string }>('/session/init');
-    if (data?.csrfToken) {
-      api.defaults.headers.common[CSRF_HEADER] = data.csrfToken;
+/**
+ * Response interceptor for error handling
+ */
+apiClient.interceptors.response.use(
+  (response) => {
+    console.log(`[API] ${response.status} ${response.config.url}`);
+    return response;
+  },
+  (error) => {
+    console.error('[API] Response error:', error.response?.status, error.response?.data);
+    
+    // Handle specific error cases
+    if (error.response?.status === 403) {
+      console.error('[API] 403 Forbidden - Check authentication and CSRF token');
+    } else if (error.response?.status === 401) {
+      console.error('[API] 401 Unauthorized - Session expired');
+    } else if (error.code === 'ECONNABORTED') {
+      console.error('[API] Request timeout');
     }
-  } catch (error) {
-    console.warn('[API] Failed to initialize session', error);
+    
+    return Promise.reject(error);
   }
-}
-export async function logout() {
-  try {
-    await api.post('/auth/logout');
-  } catch (e) {
-    console.error('Logout server error:', e);
-    // Continue with client-side logout even if server request fails
-  }
+);
+
+export default apiClient;
+
+// Legacy exports for backward compatibility
+export const api = apiClient;
+export const baseURL = apiClient.defaults.baseURL || '';
+
+/**
+ * Legacy apiFetch function
+ * @param url - API endpoint URL
+ * @param options - Request options
+ * @returns Promise<Response>
+ */
+export async function apiFetch(url: string, options?: {
+  method?: string;
+  body?: string;
+  headers?: Record<string, string>;
+}): Promise<Response> {
+  const method = options?.method || 'GET';
+  const body = options?.body;
+  const headers = options?.headers || (body ? { "Content-Type": "application/json" } : {});
   
-  // Enhanced session cleanup - always run regardless of server response
-  localStorage.clear();
-  sessionStorage.clear();
-  
-  // Clear all cookies by setting them to expire
-  document.cookie.split(";").forEach(function(c) { 
-    document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+  const response = await apiClient.request({
+    url,
+    method: method as any,
+    headers,
+    data: body,
   });
-  
-  // Force redirect to homepage after logout
-  window.location.href = '/';
+
+  return response as any;
+}
+
+/**
+ * Legacy logout function
+ * @returns Promise<void>
+ */
+export async function logout(): Promise<void> {
+  try {
+    await apiClient.post('/auth/logout');
+  } catch (error) {
+    console.error('Logout error:', error);
+    // Continue with logout even if API call fails
+  }
+}
+
+/**
+ * Legacy sessionInit function
+ * @returns Promise<void>
+ */
+export async function sessionInit(): Promise<void> {
+  try {
+    await apiClient.get('/session/init');
+  } catch (error) {
+    console.error('Session init error:', error);
+  }
 }

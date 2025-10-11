@@ -189,6 +189,44 @@ MarrakechDunes is a comprehensive tourism platform that combines modern web tech
 - **Photo Sharing**: Upload tour photos
 - **Native Performance**: App-like speed and responsiveness
 
+## 🧠 Admin Intelligence (Morocco)
+
+### **Morocco Competitor Search**
+The admin dashboard includes a sophisticated **Morocco-only competitor search** system that helps tour operators make data-driven pricing decisions:
+
+#### **How It Works:**
+1. **Search Parameters**: Admins can search by activity name, Moroccan city, and category
+2. **External Data Sources**: Integrates with GetYourGuide and Viator APIs for real competitor data
+3. **Mock Data Fallback**: High-quality mock data when external APIs are unavailable
+4. **Morocco Filter**: Only shows activities from Moroccan cities (Marrakech, Casablanca, Fès, Rabat, Tanger, Essaouira, Ouarzazate, Agafay, Ouzoud, Chefchaouen, etc.)
+
+#### **Admin Workflow:**
+1. **Add New Activity**: Click "Ajouter Activité" in admin dashboard
+2. **Search Competitors**: Click "🔎 Recherche Concurrence Maroc"
+3. **Review Results**: See competitor activities with prices, ratings, and details
+4. **Apply Data**: Use "Utiliser Prix" to auto-fill form fields or "Ajouter Activité" to import competitor data
+5. **Set Competitive Pricing**: Make informed pricing decisions based on market data
+
+#### **Gmail App Password Setup:**
+To enable email notifications, you need a Gmail App Password:
+
+1. **Enable 2-Factor Authentication** on your Gmail account
+2. **Go to Google Account Settings** → Security → 2-Step Verification
+3. **Generate App Password** for "Mail" application
+4. **Use the 16-character password** (no spaces) as `EMAIL_PASS` in your environment variables
+
+```env
+EMAIL_USER=timedizzy45@gmail.com
+EMAIL_PASS=jikq dthw xoxm butb  # Your Gmail App Password
+EMAIL_FROM="Marrakech Dunes <timedizzy45@gmail.com>"
+```
+
+#### **Business Benefits:**
+- **Competitive Pricing**: Set prices based on real market data
+- **Market Intelligence**: Understand competitor offerings and pricing
+- **Strategic Decisions**: Identify gaps in the market for new activities
+- **Revenue Optimization**: Price activities to maximize bookings and profit
+
 ## 🚀 Advanced Features
 
 ### 🔄 Booking Status Workflow

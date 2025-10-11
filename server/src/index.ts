@@ -436,6 +436,14 @@ app.use((req, res, next) => {
 
   // Mount session router BEFORE other routes
   app.use("/api/session", sessionRouter);
+  
+  // Mount new routes with proper security order
+  const notificationsRouter = (await import('./routes/notifications.js')).default;
+  const externalActivitiesRouter = (await import('./routes/externalActivities.js')).default;
+  
+  app.use("/api/notifications", notificationsRouter);
+  app.use("/api/external-activities", externalActivitiesRouter);
+  
   const server = await registerRoutes(app);
 
   // Health check endpoints
