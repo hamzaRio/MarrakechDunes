@@ -6,12 +6,25 @@ export interface CacheConfig {
   adminData: number;
   marketIntelligence: number;
   userSessions: number;
+  pricing: number;
+  recommendations: number;
+  analytics: number;
+}
+
+export interface CacheStats {
+  hits: number;
+  misses: number;
+  sets: number;
+  deletes: number;
+  errors: number;
 }
 
 export class CacheService {
   private client: RedisClientType | null = null;
   private isConnected = false;
   private config: CacheConfig;
+  private memoryCache: Map<string, { data: any; expires: number }> = new Map();
+  private stats: CacheStats = { hits: 0, misses: 0, sets: 0, deletes: 0, errors: 0 };
 
   constructor() {
     this.config = {
@@ -19,8 +32,16 @@ export class CacheService {
       bookings: 300,    // 5 minutes
       adminData: 1800,  // 30 minutes
       marketIntelligence: 7200, // 2 hours
-      userSessions: 86400 // 24 hours
+      userSessions: 86400, // 24 hours
+      pricing: 1800, // 30 minutes
+      recommendations: 3600, // 1 hour
+      analytics: 600 // 10 minutes
     };
+    
+    // Clean up expired memory cache entries every 5 minutes
+    setInterval(() => {
+      this.cleanupMemoryCache();
+    }, 5 * 60 * 1000);
   }
 
   async connect(): Promise<void> {
@@ -64,36 +85,60 @@ export class CacheService {
     return `marrakechdunes:${type}:${identifier}`;
   }
 
+  // Multi-layer cache: Memory -> Redis -> Database
   async get<T>(type: string, identifier: string): Promise<T | null> {
-    if (!this.isConnected || !this.client) {
-      return null;
+    const key = this.getKey(type, identifier);
+    
+    // L1: Memory cache (fastest)
+    const memoryData = this.getFromMemoryCache<T>(key);
+    if (memoryData) {
+      this.stats.hits++;
+      return memoryData;
     }
 
-    try {
-      const key = this.getKey(type, identifier);
-      const data = await this.client.get(key);
-      return data ? JSON.parse(data) : null;
-    } catch (error) {
-      console.warn('Cache get error:', error);
-      return null;
+    // L2: Redis cache (fast)
+    if (this.isConnected && this.client) {
+      try {
+        const data = await this.client.get(key);
+        if (data) {
+          const parsed = JSON.parse(data);
+          // Store in memory cache for faster future access
+          this.setInMemoryCache(key, parsed, this.config[type as keyof CacheConfig] || 3600);
+          this.stats.hits++;
+          return parsed;
+        }
+      } catch (error) {
+        console.warn('Redis cache get error:', error);
+        this.stats.errors++;
+      }
     }
+
+    this.stats.misses++;
+    return null;
   }
 
   async set(type: string, identifier: string, data: any, ttl?: number): Promise<boolean> {
-    if (!this.isConnected || !this.client) {
-      return false;
+    const key = this.getKey(type, identifier);
+    const ttlSeconds = ttl || this.config[type as keyof CacheConfig] || 3600;
+    
+    // L1: Store in memory cache
+    this.setInMemoryCache(key, data, ttlSeconds);
+    
+    // L2: Store in Redis cache
+    if (this.isConnected && this.client) {
+      try {
+        await this.client.setEx(key, ttlSeconds, JSON.stringify(data));
+        this.stats.sets++;
+        return true;
+      } catch (error) {
+        console.warn('Redis cache set error:', error);
+        this.stats.errors++;
+        return false;
+      }
     }
-
-    try {
-      const key = this.getKey(type, identifier);
-      const ttlSeconds = ttl || this.config[type as keyof CacheConfig] || 3600;
-      
-      await this.client.setEx(key, ttlSeconds, JSON.stringify(data));
-      return true;
-    } catch (error) {
-      console.warn('Cache set error:', error);
-      return false;
-    }
+    
+    this.stats.sets++;
+    return true; // Memory cache always works
   }
 
   async del(type: string, identifier: string): Promise<boolean> {
@@ -185,11 +230,115 @@ export class CacheService {
     return this.invalidatePattern('bookings:*');
   }
 
+  // Memory cache helpers
+  private getFromMemoryCache<T>(key: string): T | null {
+    const entry = this.memoryCache.get(key);
+    if (entry && entry.expires > Date.now()) {
+      return entry.data;
+    }
+    if (entry) {
+      this.memoryCache.delete(key); // Remove expired entry
+    }
+    return null;
+  }
+
+  private setInMemoryCache(key: string, data: any, ttlSeconds: number): void {
+    const expires = Date.now() + (ttlSeconds * 1000);
+    this.memoryCache.set(key, { data, expires });
+  }
+
+  private cleanupMemoryCache(): void {
+    const now = Date.now();
+    for (const [key, entry] of this.memoryCache.entries()) {
+      if (entry.expires <= now) {
+        this.memoryCache.delete(key);
+      }
+    }
+  }
+
+  // Advanced cache methods
+  async getStats(): Promise<CacheStats> {
+    return { ...this.stats };
+  }
+
+  async clearStats(): Promise<void> {
+    this.stats = { hits: 0, misses: 0, sets: 0, deletes: 0, errors: 0 };
+  }
+
+  async getMemoryCacheSize(): Promise<number> {
+    return this.memoryCache.size;
+  }
+
+  async clearMemoryCache(): Promise<void> {
+    this.memoryCache.clear();
+  }
+
+  // Batch operations for better performance
+  async mget<T>(keys: Array<{ type: string; identifier: string }>): Promise<Array<T | null>> {
+    const results: Array<T | null> = [];
+    
+    for (const { type, identifier } of keys) {
+      const data = await this.get<T>(type, identifier);
+      results.push(data);
+    }
+    
+    return results;
+  }
+
+  async mset(items: Array<{ type: string; identifier: string; data: any; ttl?: number }>): Promise<boolean> {
+    const promises = items.map(({ type, identifier, data, ttl }) => 
+      this.set(type, identifier, data, ttl)
+    );
+    
+    const results = await Promise.all(promises);
+    return results.every(result => result);
+  }
+
+  // Cache warming for critical data
+  async warmCache(): Promise<void> {
+    console.log('🔥 Warming cache with critical data...');
+    
+    // This would be called during startup to pre-load critical data
+    // Implementation depends on your specific needs
+  }
+
+  // Cache health check
+  async healthCheck(): Promise<{ status: 'healthy' | 'degraded' | 'unhealthy'; details: any }> {
+    const memorySize = this.memoryCache.size;
+    const stats = await this.getStats();
+    const hitRate = stats.hits / (stats.hits + stats.misses) || 0;
+    
+    let status: 'healthy' | 'degraded' | 'unhealthy' = 'healthy';
+    
+    if (!this.isConnected) {
+      status = 'degraded';
+    }
+    
+    if (hitRate < 0.5) {
+      status = 'degraded';
+    }
+    
+    if (stats.errors > stats.sets * 0.1) {
+      status = 'unhealthy';
+    }
+    
+    return {
+      status,
+      details: {
+        memorySize,
+        hitRate: Math.round(hitRate * 100),
+        stats,
+        redisConnected: this.isConnected
+      }
+    };
+  }
+
   async disconnect(): Promise<void> {
     if (this.client && this.isConnected) {
       await this.client.quit();
       this.isConnected = false;
     }
+    this.memoryCache.clear();
   }
 }
 
