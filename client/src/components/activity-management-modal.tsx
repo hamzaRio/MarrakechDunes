@@ -39,6 +39,7 @@ import { ObjectUploader } from "@/components/ObjectUploader";
 import GetYourGuidePriceFetcher from "@/components/getyourguide-price-fetcher";
 import GYGDirectRedirect from "@/components/admin/GYGDirectRedirect";
 import SimpleMarketIntelligence from "@/components/simple-market-intelligence";
+import MoroccoCompetitorSearch from "@/components/morocco-competitor-search";
 import type { ActivityType } from "marrakechdunes-shared/schema";
 import type { UploadResult } from "@uppy/core";
 
@@ -440,6 +441,36 @@ export default function ActivityManagementModal({
                       });
                     }}
                     currentPrice={parseInt(form.watch("price") || "0")}
+                  />
+                </div>
+
+                {/* Morocco Competitor Search */}
+                <div className="bg-gradient-to-r from-moroccan-blue/10 to-moroccan-red/10 p-4 rounded-lg border-2 border-moroccan-blue/20">
+                  <h4 className="font-semibold text-moroccan-blue mb-3 flex items-center gap-2">
+                    🇲🇦 Analyse Concurrence Maroc
+                  </h4>
+                  <p className="text-xs text-moroccan-blue mb-3">
+                    Recherchez des activités concurrentes dans différentes villes du Maroc pour obtenir des idées de prix et d'activités
+                  </p>
+                  <MoroccoCompetitorSearch
+                    onActivitySelect={(activity) => {
+                      form.setValue("name", activity.title);
+                      form.setValue("description", activity.description);
+                      form.setValue("price", activity.price.toString());
+                      form.setValue("getyourguidePrice", activity.price.toString());
+                      toast({
+                        title: "Activité Maroc Appliquée",
+                        description: `Données de concurrence appliquées pour: ${activity.title} à ${activity.city}`,
+                      });
+                    }}
+                    onPriceSelect={(price, activity) => {
+                      form.setValue("price", price.toString());
+                      form.setValue("getyourguidePrice", price.toString());
+                      toast({
+                        title: "Prix Concurrence Appliqué",
+                        description: `Prix de ${price} MAD appliqué basé sur ${activity.title} à ${activity.city}`,
+                      });
+                    }}
                   />
                 </div>
 

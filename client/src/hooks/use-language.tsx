@@ -21,21 +21,18 @@ const translations = {
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [language, setLanguage] = useState<Language>(() => {
-    try {
-      const stored = localStorage.getItem('marrakech-language') as Language | null;
-      return stored || 'fr';
-    } catch {
-      return 'fr';
-    }
+    // Force French for admin dashboard
+    return 'fr';
   });
 
   const changeLanguage = (lang: Language) => {
-    setLanguage(lang);
+    // Force French for admin dashboard
+    setLanguage('fr');
     try {
-      localStorage.setItem('marrakech-language', lang);
+      localStorage.setItem('marrakech-language', 'fr');
     } catch {}
     document.dir = 'ltr';
-    document.documentElement.lang = lang;
+    document.documentElement.lang = 'fr';
   };
 
   const t = <T = string>(key: string, options?: Record<string, unknown>): T => {

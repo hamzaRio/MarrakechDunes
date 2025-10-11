@@ -284,8 +284,8 @@ Average per booking: ${activityBookings.length ? Math.round(totalRevenue / activ
           <div className="mb-8">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-3xl font-bold text-moroccan-blue">{t('admin.dashboard')}</h1>
-                <p className="text-gray-600">{t('admin.welcome')} {user?.username}</p>
+                        <h1 className="text-3xl font-bold text-moroccan-blue">🏛️ Tableau de Bord Administrateur</h1>
+                        <p className="text-gray-600">Bienvenue, {user?.username} 👋</p>
               </div>
               <div className="flex gap-3">
                 {user?.role === 'superadmin' && (
@@ -308,72 +308,85 @@ Average per booking: ${activityBookings.length ? Math.round(totalRevenue / activ
             </div>
           </div>
 
-          {/* Stats Cards - Simplified */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <Card className="bg-white border-2 border-gray-200 shadow-lg">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-gray-700">{t('admin.totalRevenue')}</CardTitle>
-                <TrendingUp className="h-4 w-4 text-green-600" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-gray-900">
-                  {totalRevenue.toLocaleString()} MAD
-                </div>
-              </CardContent>
-            </Card>
+                  {/* Cartes de Statistiques - Simplifiées */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <Card className="bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-200 shadow-lg hover:shadow-xl transition-shadow">
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium text-green-700 flex items-center gap-2">
+                          💰 Revenus Totaux
+                        </CardTitle>
+                        <TrendingUp className="h-4 w-4 text-green-600" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold text-green-900">
+                          {totalRevenue.toLocaleString()} MAD
+                        </div>
+                        <p className="text-xs text-green-600 mt-1">Chiffre d'affaires</p>
+                      </CardContent>
+                    </Card>
 
-            <Card className="bg-white border-2 border-gray-200 shadow-lg">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-gray-700">{t('admin.pendingBookings')}</CardTitle>
-                <Calendar className="h-4 w-4 text-orange-600" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-gray-900">
-                  {pendingBookings}
-                </div>
-              </CardContent>
-            </Card>
+                    <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-2 border-orange-200 shadow-lg hover:shadow-xl transition-shadow">
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium text-orange-700 flex items-center gap-2">
+                          ⏳ Réservations en Attente
+                        </CardTitle>
+                        <Calendar className="h-4 w-4 text-orange-600" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold text-orange-900">
+                          {pendingBookings}
+                        </div>
+                        <p className="text-xs text-orange-600 mt-1">En cours de traitement</p>
+                      </CardContent>
+                    </Card>
 
-            <Card className="bg-white border-2 border-gray-200 shadow-lg">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium text-gray-700">{t('admin.confirmedBookings')}</CardTitle>
-                <Users className="h-4 w-4 text-blue-600" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-gray-900">
-                  {confirmedBookings}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+                    <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-200 shadow-lg hover:shadow-xl transition-shadow">
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium text-blue-700 flex items-center gap-2">
+                          ✅ Réservations Confirmées
+                        </CardTitle>
+                        <Users className="h-4 w-4 text-blue-600" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold text-blue-900">
+                          {confirmedBookings}
+                        </div>
+                        <p className="text-xs text-blue-600 mt-1">Clients satisfaits</p>
+                      </CardContent>
+                    </Card>
+                  </div>
 
           <Tabs defaultValue="bookings" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="bookings">{t('admin.bookings')}</TabsTrigger>
-              <TabsTrigger value="activities">Activités</TabsTrigger>
-              <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
-              <TabsTrigger value="reports">Rapports</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-4 bg-white border-2 border-gray-200">
+              <TabsTrigger value="bookings" className="data-[state=active]:bg-moroccan-blue data-[state=active]:text-white">📋 Réservations</TabsTrigger>
+              <TabsTrigger value="activities" className="data-[state=active]:bg-moroccan-blue data-[state=active]:text-white">🎯 Activités</TabsTrigger>
+              <TabsTrigger value="whatsapp" className="data-[state=active]:bg-moroccan-blue data-[state=active]:text-white">💬 WhatsApp</TabsTrigger>
+              <TabsTrigger value="reports" className="data-[state=active]:bg-moroccan-blue data-[state=active]:text-white">📊 Rapports</TabsTrigger>
             </TabsList>
 
             <TabsContent value="bookings" className="space-y-4">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold">Gestion des Réservations</h2>
+                <h2 className="text-xl font-semibold text-moroccan-blue flex items-center gap-2">
+                  📋 Gestion des Réservations
+                </h2>
                 <div className="flex gap-2">
                   <Button 
                     onClick={handleExportBookings} 
                     variant="outline" 
                     size="sm"
+                    className="border-green-200 text-green-700 hover:bg-green-50"
                   >
                     <Download className="h-4 w-4 mr-2" />
-                    Export CSV
+                    📊 Exporter CSV
                   </Button>
                   <Button 
                     onClick={handleExportBookingsPDF} 
                     variant="outline" 
                     size="sm"
+                    className="border-blue-200 text-blue-700 hover:bg-blue-50"
                   >
                     <FileText className="h-4 w-4 mr-2" />
-                    Export PDF
+                    📄 Exporter PDF
                   </Button>
                   <ActivityManagementModal mode="create" />
                 </div>
@@ -408,33 +421,49 @@ Average per booking: ${activityBookings.length ? Math.round(totalRevenue / activ
                           </div>
                         </div>
 
-                        {/* Booking Price Analysis */}
-                        <div className="bg-gray-50 p-4 rounded-lg">
-                          <h4 className="font-semibold text-moroccan-blue mb-3">Booking Price Analysis</h4>
-                          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
-                            <div className="bg-white p-3 rounded border">
-                              <div className="text-green-700 font-medium">Our Price</div>
-                              <div className="text-lg font-bold text-green-600">{booking.activity.price} MAD</div>
-                              <div className="text-xs text-gray-600">Per person</div>
-                            </div>
-                            <div className="bg-white p-3 rounded border">
-                              <div className="text-orange-700 font-medium">GetYourGuide</div>
-                              <div className="text-lg font-bold text-orange-600">{booking.activity.getyourguidePrice || booking.activity.price + 150} MAD</div>
-                              <div className="text-xs text-red-600">Competitor rate</div>
-                            </div>
-                            <div className="bg-white p-3 rounded border">
-                              <div className="text-blue-700 font-medium">Customer Saved</div>
-                              <div className="text-lg font-bold text-blue-600">
-                                {((booking.activity.getyourguidePrice || (Number(booking.activity.price) + 150)) - Number(booking.activity.price)) * booking.numberOfPeople} MAD
+                        {/* Analyse des Prix de Réservation */}
+                        <div className="bg-gradient-to-r from-blue-50 to-green-50 p-4 rounded-lg border border-blue-200">
+                          <h4 className="font-semibold text-moroccan-blue mb-3">📊 Analyse des Prix de Réservation</h4>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                            <div className="bg-white p-4 rounded-lg border-2 border-green-200 shadow-sm">
+                              <div className="text-green-700 font-medium flex items-center gap-2">
+                                <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                                Notre Prix
                               </div>
-                              <div className="text-xs text-green-600">Total savings</div>
-                            </div>
-                            <div className="bg-white p-3 rounded border">
-                              <div className="text-purple-700 font-medium">Booking Date</div>
-                              <div className="text-lg font-bold text-purple-600">
-                                {booking.preferredDate ? new Date(booking.preferredDate).toLocaleDateString() : 'Flexible'}
+                              <div className="text-xl font-bold text-green-600 mt-1">
+                                {Number(booking.activity.price).toLocaleString()} MAD
                               </div>
-                              <div className="text-xs text-gray-600">Any time</div>
+                              <div className="text-xs text-gray-600">Par personne</div>
+                            </div>
+                            <div className="bg-white p-4 rounded-lg border-2 border-orange-200 shadow-sm">
+                              <div className="text-orange-700 font-medium flex items-center gap-2">
+                                <span className="w-2 h-2 bg-orange-500 rounded-full"></span>
+                                GetYourGuide
+                              </div>
+                              <div className="text-xl font-bold text-orange-600 mt-1">
+                                {booking.activity.getyourguidePrice ? 
+                                  Number(booking.activity.getyourguidePrice).toLocaleString() : 
+                                  (Number(booking.activity.price) + 200).toLocaleString()
+                                } MAD
+                              </div>
+                              <div className="text-xs text-red-600">Prix concurrent</div>
+                            </div>
+                            <div className="bg-white p-4 rounded-lg border-2 border-blue-200 shadow-sm">
+                              <div className="text-blue-700 font-medium flex items-center gap-2">
+                                <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                                Économies Client
+                              </div>
+                              <div className="text-xl font-bold text-blue-600 mt-1">
+                                {(() => {
+                                  const ourPrice = Number(booking.activity.price);
+                                  const competitorPrice = booking.activity.getyourguidePrice ? 
+                                    Number(booking.activity.getyourguidePrice) : 
+                                    ourPrice + 200;
+                                  const savings = (competitorPrice - ourPrice) * booking.numberOfPeople;
+                                  return savings > 0 ? savings.toLocaleString() : '0';
+                                })()} MAD
+                              </div>
+                              <div className="text-xs text-green-600">Économies totales</div>
                             </div>
                           </div>
                         </div>
