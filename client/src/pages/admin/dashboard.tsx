@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar, Users, TrendingUp, Crown, MessageCircle, LogOut, Download, FileText, Mail, Settings } from "lucide-react";
 import AdminRoute from "@/components/admin-route";
 import { useAuth } from "@/hooks/use-auth";
-import { useLanguage } from "@/hooks/use-language";
+// import { useLanguage } from "@/hooks/use-language";
 import { Link } from "wouter";
 import { getActivityFallbackImage } from "@/lib/image-utils";
 import { ensureArray, getAssetUrl } from "@/lib/utils";
@@ -66,7 +66,7 @@ function AdminDashboardContent() {
       await apiFetch(`/admin/bookings/${bookingId}/status`, {
         method: 'PATCH',
         // headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status }),
+        data: { status },
         credentials: 'include'
       });
       // Refresh bookings data using React Query

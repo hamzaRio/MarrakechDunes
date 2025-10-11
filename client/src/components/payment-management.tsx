@@ -238,7 +238,7 @@ export default function PaymentManagement({ booking }: PaymentManagementProps) {
                       />
                       {paymentType === 'deposit' && (
                         <p className="text-xs text-gray-500 mt-1">
-                          Recommended: {Math.round(booking.totalAmount * 0.3)} MAD (30%)
+                          Recommended: {Math.round(Number(booking.totalAmount) * 0.3)} MAD (30%)
                         </p>
                       )}
                     </div>
@@ -323,7 +323,7 @@ export default function PaymentManagement({ booking }: PaymentManagementProps) {
               </div>
               <div className="flex justify-between">
                 <span>Balance Due:</span>
-                <span className="font-medium">{booking.totalAmount - booking.depositAmount} MAD</span>
+                <span className="font-medium">{Number(booking.totalAmount) - Number(booking.depositAmount)} MAD</span>
               </div>
             </div>
           </div>

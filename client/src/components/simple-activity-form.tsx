@@ -33,11 +33,11 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { getAssetUrl } from "@/lib/utils";
-import { Plus, Settings, Trash2, Power, PowerOff, Upload } from "lucide-react";
+import { Plus, Settings, Trash2, Upload } from "lucide-react";
 import { ObjectUploader } from "@/components/ObjectUploader";
 import MoroccoCompetitorSearch from "@/components/morocco-competitor-search";
 import type { ActivityType } from "marrakechdunes-shared/schema";
-import type { UploadResult } from "@uppy/core";
+// import type { UploadResult } from "@uppy/core";
 
 const createActivityFormSchema = (t: (key: string) => string) => z.object({
   name: z.string().min(2, "Le nom de l'activité est requis"),
@@ -64,12 +64,12 @@ interface SimpleActivityFormProps {
 export default function SimpleActivityForm({ mode, activity, trigger }: SimpleActivityFormProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [urls, setUrls] = useState<string[]>([]);
-  const { t } = useLanguage();
+  // const { t } = useLanguage();
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
   const form = useForm<ActivityFormData>({
-    resolver: zodResolver(createActivityFormSchema(t)),
+    resolver: zodResolver(createActivityFormSchema(() => "")),
     defaultValues: {
       name: activity?.name || "",
       description: activity?.description || "",
@@ -379,7 +379,7 @@ export default function SimpleActivityForm({ mode, activity, trigger }: SimpleAc
                   description: `Données appliquées: ${activity.title}`,
                 });
               }}
-              onPriceSelect={(price, activity) => {
+              onPriceSelect={(price, _activity) => {
                 form.setValue("price", price.toString());
                 form.setValue("getyourguidePrice", price.toString());
                 toast({
@@ -393,7 +393,7 @@ export default function SimpleActivityForm({ mode, activity, trigger }: SimpleAc
           <FormField
             control={form.control}
             name="imageUrls"
-            render={({ field }) => (
+            render={({ field: _field }) => (
               <FormItem>
                 <FormLabel>Images de l'Activité</FormLabel>
                 <FormControl>
@@ -413,7 +413,7 @@ export default function SimpleActivityForm({ mode, activity, trigger }: SimpleAc
                       }}
                       onComplete={(result) => {
                         if (result.successful && result.successful.length > 0) {
-                          result.successful.forEach((file) => handleUploadComplete(file.uploadURL));
+                          result.successful.forEach((file) => handleUploadComplete(file.uploadURL || ""));
                           toast({
                             title: "Image Téléchargée",
                             description: "Image de l'activité téléchargée avec succès.",
