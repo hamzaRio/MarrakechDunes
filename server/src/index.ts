@@ -440,9 +440,11 @@ app.use((req, res, next) => {
   // Mount new routes with proper security order
   const notificationsRouter = (await import('./routes/notifications.js')).default;
   const externalActivitiesRouter = (await import('./routes/externalActivities.js')).default;
+  const bookingsRouter = (await import('./routes/bookings.js')).default;
   
   app.use("/api/notifications", notificationsRouter);
   app.use("/api/external-activities", externalActivitiesRouter);
+  app.use('/api/bookings', bookingsRouter);
   
   const server = await registerRoutes(app);
 

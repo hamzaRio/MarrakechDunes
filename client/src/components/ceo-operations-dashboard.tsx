@@ -66,7 +66,7 @@ export default function CEOOperationsDashboard() {
   // Export handlers
   const handleExportBookingsPDF = async () => {
     try {
-      const apiBaseUrl = import.meta.env.VITE_API_URL || 'https://marrakechdunes-sppy.onrender.com/api';
+      const apiBaseUrl = import.meta.env.VITE_API_URL || '/api';
       const response = await fetch(`${apiBaseUrl}/admin/export/bookings/pdf`, {
         method: 'GET',
         credentials: 'include', // Include session cookies
@@ -105,7 +105,7 @@ export default function CEOOperationsDashboard() {
 
   const handleExportOperationsPDF = async () => {
     try {
-      const apiBaseUrl = import.meta.env.VITE_API_URL || 'https://marrakechdunes-sppy.onrender.com/api';
+      const apiBaseUrl = import.meta.env.VITE_API_URL || '/api';
       const response = await fetch(`${apiBaseUrl}/admin/export/operations-report/pdf`, {
         method: 'GET',
         credentials: 'include', // Include session cookies

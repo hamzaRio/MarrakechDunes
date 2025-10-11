@@ -82,7 +82,7 @@ export default function AdminManagement() {
   // Export functions
   const handleExportBookings = async () => {
     try {
-      const apiBaseUrl = import.meta.env.VITE_API_URL || 'https://marrakechdunes-sppy.onrender.com/api';
+      const apiBaseUrl = import.meta.env.VITE_API_URL || '/api';
       const response = await fetch(`${apiBaseUrl}/admin/export/bookings`);
       
       if (!response.ok) {
@@ -115,7 +115,7 @@ export default function AdminManagement() {
 
   const handleExportAuditLogs = async () => {
     try {
-      const apiBaseUrl = import.meta.env.VITE_API_URL || 'https://marrakechdunes-sppy.onrender.com/api';
+      const apiBaseUrl = import.meta.env.VITE_API_URL || '/api';
       const response = await fetch(`${apiBaseUrl}/admin/export/audit-logs`);
       
       if (!response.ok) {

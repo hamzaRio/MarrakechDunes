@@ -166,7 +166,7 @@ Notes: ${booking.notes || 'None'}`);
   // Export bookings handler
   const handleExportBookings = async () => {
     try {
-      const apiBaseUrl = import.meta.env.VITE_API_URL || 'https://marrakechdunes-sppy.onrender.com/api';
+      const apiBaseUrl = import.meta.env.VITE_API_URL || '/api';
       const response = await fetch(`${apiBaseUrl}/admin/export/bookings`, {
         method: 'GET',
         credentials: 'include',
@@ -206,7 +206,7 @@ Notes: ${booking.notes || 'None'}`);
   // Export bookings PDF handler
   const handleExportBookingsPDF = async () => {
     try {
-      const apiBaseUrl = import.meta.env.VITE_API_URL || 'https://marrakechdunes-sppy.onrender.com/api';
+      const apiBaseUrl = import.meta.env.VITE_API_URL || '/api';
       const response = await fetch(`${apiBaseUrl}/admin/export/bookings/pdf`, {
         method: 'GET',
         credentials: 'include',
