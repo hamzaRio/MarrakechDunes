@@ -6,15 +6,12 @@ let base = (import.meta.env.VITE_API_URL || "").trim();
 // normalize trailing slashes
 base = base.replace(/\/+$/, "");
 
-// strip a single trailing '/api' if present, so baseURL is the origin only
-const origin = base.replace(/\/api$/i, "");
-
-if (origin !== base) {
-  console.warn("[API] Stripped trailing '/api' from VITE_API_URL:", base, "→", origin);
-}
+// If VITE_API_URL ends with /api, keep it as the baseURL
+// If it doesn't end with /api, use it as is
+const apiBaseURL = base;
 
 const axios = Axios.create({
-  baseURL: origin, // origin only
+  baseURL: apiBaseURL, // Use the full URL including /api if present
   withCredentials: true, // keep cookies for cross-site
 });
 

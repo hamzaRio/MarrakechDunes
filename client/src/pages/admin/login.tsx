@@ -38,14 +38,14 @@ export default function AdminLogin() {
 
 // Always initialize CSRF and pass header explicitly
 const initSession = async (): Promise<string> => {
-  const { data } = await api.get<{ csrfToken: string }>("/api/session/init", { withCredentials: true });
+  const { data } = await api.get<{ csrfToken: string }>("/session/init", { withCredentials: true });
   return data?.csrfToken ?? "";
 };
 
 const mutation = useMutation({
   mutationFn: async (data: LoginFormData) => {
     const csrf = await initSession();
-    const res = await api.post('/api/auth/login', data, {
+    const res = await api.post('/auth/login', data, {
       withCredentials: true,
       headers: { 'X-CSRF-Token': csrf },
     });

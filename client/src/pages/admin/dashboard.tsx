@@ -166,7 +166,7 @@ Notes: ${booking.notes || 'None'}`);
   // Export bookings handler
   const handleExportBookings = async () => {
     try {
-      const response = await api.get('/api/admin/export/bookings', {
+      const response = await api.get('/admin/export/bookings', {
         responseType: 'blob',
       });
       
@@ -201,7 +201,7 @@ Notes: ${booking.notes || 'None'}`);
   // Export bookings PDF handler
   const handleExportBookingsPDF = async () => {
     try {
-      const response = await api.get('/api/admin/export/bookings/pdf', {
+      const response = await api.get('/admin/export/bookings/pdf', {
         responseType: 'blob',
       });
       
