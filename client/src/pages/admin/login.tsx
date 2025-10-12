@@ -45,7 +45,7 @@ const initSession = async (): Promise<string> => {
 const mutation = useMutation({
   mutationFn: async (data: LoginFormData) => {
     const csrf = await initSession();
-    const res = await api.post('/auth/login', data, {
+    const res = await api.post('/api/auth/login', data, {
       withCredentials: true,
       headers: { 'X-CSRF-Token': csrf },
     });
