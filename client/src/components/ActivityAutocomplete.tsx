@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import axios from '@/lib/api';
-import { toast } from 'sonner';
 
 type ExternalActivity = {
   title: string;
@@ -8,130 +8,74 @@ type ExternalActivity = {
   priceMAD: number;
   durationText: string;
   rating?: number;
+  reviewsCount?: number;
   provider: string;
   providerUrl?: string;
 };
 
 type Props = {
-  value: string;
-  onChange: (value: string) => void;
-  onSelectActivity: (activity: ExternalActivity) => void;
-  placeholder?: string;
+  city?: string;
+  onPick: (a: ExternalActivity) => void;
 };
 
-export default function ActivityAutocomplete({ value, onChange, onSelectActivity, placeholder }: Props) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [results, setResults] = useState<ExternalActivity[]>([]);
-  const [loading, setLoading] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+export default function ActivityAutocomplete({ city, onPick }: Props) {
+  const [text, setText] = useState('');
+  const [debouncedText, setDebouncedText] = useState('');
   
-  // Debounced search
+  // Manual debounce implementation
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (value.length >= 3) {
-        searchActivities(value);
-      } else {
-        setResults([]);
-        setIsOpen(false);
-      }
-    }, 500);
+      setDebouncedText(text);
+    }, 350);
     
     return () => clearTimeout(timer);
-  }, [value]);
+  }, [text]);
   
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClick = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
-  }, []);
-  
-  const searchActivities = async (query: string) => {
-    setLoading(true);
-    try {
-      let mapped: ExternalActivity[] = [];
-      
-      // Try GetYourGuide first
-      try {
-        const r = await axios.get('/gyg/search', { 
-          params: { q: `${query} maroc` } 
-        });
-        mapped = (r.data?.items ?? []).map((x: any) => ({
-          title: x.title,
-          city: x.city ?? '',
-          priceMAD: x.priceMAD ?? x.price ?? 0,
-          durationText: x.durationText ?? x.duration ?? '',
-          rating: x.rating,
-          provider: 'GetYourGuide',
-          providerUrl: x.url,
-        }));
-      } catch {
-        // Fallback to mock service
-        const r2 = await axios.get('/api/external-activities', { 
-          params: { query } 
-        });
-        mapped = r2.data;
-      }
-      
-      setResults(mapped);
-      setIsOpen(mapped.length > 0);
-    } catch (error) {
-      console.error('Search error:', error);
-      toast.error('Erreur de recherche');
-    } finally {
-      setLoading(false);
-    }
-  };
-  
-  const handleSelect = (activity: ExternalActivity) => {
-    onChange(activity.title);
-    onSelectActivity(activity);
-    setIsOpen(false);
-    toast.success('Activité sélectionnée');
-  };
-  
+  const enabled = debouncedText.trim().length >= 2;
+
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ['competitors', debouncedText, city],
+    queryFn: async () => {
+      const r = await axios.get('/api/competitors/suggest', { params: { query: debouncedText, city } });
+      return r.data.items as ExternalActivity[];
+    },
+    enabled
+  });
+
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div className="relative">
+      <label className="block text-sm font-medium mb-1">Nom de l'Activité (recherche Maroc)</label>
       <input
-        type="text"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder || "Rechercher une activité au Maroc..."}
-        className="w-full rounded-md border border-gray-300 p-2 focus:ring-2 focus:ring-blue-500"
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        placeholder="ex. désert, montgolfière, souks…"
+        className="w-full rounded-md border p-2"
       />
-      
-      {loading && (
-        <div className="absolute right-3 top-3">
-          <div className="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full" />
-        </div>
-      )}
-      
-      {isOpen && results.length > 0 && (
-        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-96 overflow-y-auto">
-          {results.map((activity, idx) => (
-            <div
-              key={`${activity.provider}-${idx}`}
-              onClick={() => handleSelect(activity)}
-              className="p-3 hover:bg-blue-50 cursor-pointer border-b last:border-b-0 transition-colors"
+      <p className="mt-1 text-xs text-muted-foreground">
+        {!enabled ? 'Tapez au moins 2 lettres…'
+          : isLoading ? 'Recherche des activités similaires…'
+          : isError ? 'Erreur de recherche.'
+          : (data?.length ?? 0) === 0 ? 'Aucune activité similaire trouvée.'
+          : `${data?.length ?? 0} activités trouvées au Maroc.`}
+      </p>
+
+      {enabled && (data?.length ?? 0) > 0 && (
+        <div className="absolute z-20 mt-2 w-full max-h-72 overflow-auto rounded-lg border bg-white shadow-lg">
+          {data!.map((a) => (
+            <button
+              key={`${a.provider}-${a.title}-${a.city}`}
+              type="button"
+              onClick={() => onPick(a)}
+              className="w-full text-left px-3 py-2 hover:bg-gray-50"
             >
-              <div className="font-medium text-gray-900">{activity.title}</div>
-              <div className="text-sm text-gray-600 mt-1">
-                📍 {activity.city} • ⏱️ {activity.durationText}
-                {activity.rating && ` • ⭐ ${activity.rating}/5`}
+              <div className="flex justify-between">
+                <span className="font-medium">{a.title}</span>
+                <span className="text-sm">{a.priceMAD} MAD</span>
               </div>
-              <div className="flex items-center justify-between mt-2">
-                <span className="text-lg font-bold text-green-600">
-                  {activity.priceMAD} MAD
-                </span>
-                <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                  {activity.provider}
-                </span>
+              <div className="text-xs text-gray-500">
+                {a.city} • {a.durationText} • ⭐ {a.rating ?? '—'} ({a.provider})
               </div>
-            </div>
+            </button>
           ))}
         </div>
       )}

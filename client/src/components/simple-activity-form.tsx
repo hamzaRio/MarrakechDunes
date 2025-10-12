@@ -36,6 +36,7 @@ import { getAssetUrl } from "@/lib/utils";
 import { Plus, Settings, Trash2, Upload } from "lucide-react";
 import { ObjectUploader } from "@/components/ObjectUploader";
 import MoroccoCompetitorSearch from "@/components/morocco-competitor-search";
+import ActivityAutocomplete from "@/components/ActivityAutocomplete";
 import type { ActivityType } from "marrakechdunes-shared/schema";
 // import type { UploadResult } from "@uppy/core";
 
@@ -256,6 +257,16 @@ export default function SimpleActivityForm({ mode, activity, trigger }: SimpleAc
     return (
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+          <ActivityAutocomplete
+            city={form.watch('location')}
+            onPick={(activity) => {
+              form.setValue('name', activity.title, { shouldDirty: true });
+              form.setValue('location', activity.city, { shouldDirty: true });
+              form.setValue('price', activity.priceMAD.toString(), { shouldDirty: true });
+              form.setValue('duration', activity.durationText, { shouldDirty: true });
+            }}
+          />
+          
           <FormField
             control={form.control}
             name="name"
