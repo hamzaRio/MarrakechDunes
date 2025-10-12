@@ -26,7 +26,9 @@ function setCached(key: string, data: any) {
 
 const MOROCCO_CITIES = [
   'marrakech','casablanca','fès','fes','rabat','tanger','essaouira',
-  'agafay','ouarzazate','ouzoud','chefchaouen','agadir','merzouga'
+  'agafay','ouarzazate','ouzoud','chefchaouen','agadir','merzouga',
+  'meknès','oujda','kénitra','tétouan','safi','mohammedia','khouribga',
+  'beni mellal','el jadida','taza','nador','settat','larache','ksar el kebir'
 ];
 
 function inMoroccoCity(city?: string) {
@@ -95,11 +97,35 @@ export async function searchExternalActivities(query: string, city?: string): Pr
   // Fallback mock (Morocco curated)
   if (items.length === 0) {
     const MOCK: ExternalActivity[] = [
-      { title:'Marrakech City Tour', city:'Marrakech', priceMAD:180, durationText:'4 heures', rating:4.5, provider:'Mock' },
-      { title:'Agafay Desert Day Trip', city:'Marrakech', priceMAD:520, durationText:'8 heures', rating:4.8, provider:'Mock' },
-      { title:'Ouzoud Waterfalls Tour', city:'Ouzoud', priceMAD:450, durationText:'10 heures', rating:4.6, provider:'Mock' },
-      { title:'Essaouira Day Trip', city:'Essaouira', priceMAD:200, durationText:'9 heures', rating:4.7, provider:'Mock' },
-      { title:'Chefchaouen Day Trip', city:'Chefchaouen', priceMAD:400, durationText:'12 heures', rating:4.8, provider:'Mock' }
+      // Marrakech Activities
+      { title:'Marrakech City Tour', city:'Marrakech', priceMAD:180, durationText:'4 heures', rating:4.5, reviewsCount:120, provider:'Mock' },
+      { title:'Agafay Desert Day Trip', city:'Marrakech', priceMAD:520, durationText:'8 heures', rating:4.8, reviewsCount:89, provider:'Mock' },
+      { title:'Hot Air Balloon Ride', city:'Marrakech', priceMAD:650, durationText:'3 heures', rating:4.9, reviewsCount:156, provider:'Mock' },
+      { title:'Atlas Mountains Trek', city:'Marrakech', priceMAD:380, durationText:'6 heures', rating:4.7, reviewsCount:203, provider:'Mock' },
+      { title:'Souk Shopping Tour', city:'Marrakech', priceMAD:120, durationText:'3 heures', rating:4.3, reviewsCount:67, provider:'Mock' },
+      
+      // Desert & Adventure
+      { title:'Merzouga Desert Safari', city:'Merzouga', priceMAD:800, durationText:'2 jours', rating:4.9, reviewsCount:312, provider:'Mock' },
+      { title:'Zagora Desert Tour', city:'Zagora', priceMAD:450, durationText:'1 jour', rating:4.6, reviewsCount:145, provider:'Mock' },
+      { title:'Camel Trekking', city:'Merzouga', priceMAD:350, durationText:'4 heures', rating:4.7, reviewsCount:98, provider:'Mock' },
+      
+      // Coastal Cities
+      { title:'Essaouira Day Trip', city:'Essaouira', priceMAD:200, durationText:'9 heures', rating:4.7, reviewsCount:178, provider:'Mock' },
+      { title:'Agadir Beach Tour', city:'Agadir', priceMAD:180, durationText:'6 heures', rating:4.4, reviewsCount:134, provider:'Mock' },
+      { title:'Casablanca City Tour', city:'Casablanca', priceMAD:150, durationText:'4 heures', rating:4.2, reviewsCount:89, provider:'Mock' },
+      
+      // Northern Cities
+      { title:'Chefchaouen Day Trip', city:'Chefchaouen', priceMAD:400, durationText:'12 heures', rating:4.8, reviewsCount:267, provider:'Mock' },
+      { title:'Fes Cultural Tour', city:'Fes', priceMAD:220, durationText:'6 heures', rating:4.6, reviewsCount:156, provider:'Mock' },
+      { title:'Rabat Capital Tour', city:'Rabat', priceMAD:160, durationText:'4 heures', rating:4.3, reviewsCount:78, provider:'Mock' },
+      
+      // Waterfalls & Nature
+      { title:'Ouzoud Waterfalls Tour', city:'Ouzoud', priceMAD:450, durationText:'10 heures', rating:4.6, reviewsCount:189, provider:'Mock' },
+      { title:'Ourika Valley Day Trip', city:'Ourika', priceMAD:280, durationText:'8 heures', rating:4.5, reviewsCount:123, provider:'Mock' },
+      
+      // Cultural & Historical
+      { title:'Ait Ben Haddou Tour', city:'Ouarzazate', priceMAD:320, durationText:'10 heures', rating:4.7, reviewsCount:145, provider:'Mock' },
+      { title:'Volubilis Roman Ruins', city:'Meknes', priceMAD:200, durationText:'6 heures', rating:4.4, reviewsCount:67, provider:'Mock' }
     ];
     const qn = removeAccents(q).toLowerCase();
     const filtered = MOCK.filter(x => {
