@@ -16,7 +16,7 @@ import SimpleActivityForm from "@/components/simple-activity-form";
 // Removed duplicate cash analytics dashboard import
 import CashBookingReminders from "@/components/cash-booking-reminders";
 import EmailModal from "@/components/EmailModal";
-import { apiFetch, logout } from "@/lib/api";
+import { apiFetch, logout, api } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import SEOHead from "@/components/seo-head";
 import PerformanceMonitor from "@/components/analytics/performance-monitor";
@@ -166,20 +166,15 @@ Notes: ${booking.notes || 'None'}`);
   // Export bookings handler
   const handleExportBookings = async () => {
     try {
-      const apiBaseUrl = import.meta.env.VITE_API_URL || '/api';
-      const response = await fetch(`${apiBaseUrl}/admin/export/bookings`, {
-        method: 'GET',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+      const response = await api.get('/api/admin/export/bookings', {
+        responseType: 'blob',
       });
       
-      if (!response.ok) {
+      if (response.status !== 200) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
-      const blob = await response.blob();
+      const blob = response.data;
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -206,20 +201,15 @@ Notes: ${booking.notes || 'None'}`);
   // Export bookings PDF handler
   const handleExportBookingsPDF = async () => {
     try {
-      const apiBaseUrl = import.meta.env.VITE_API_URL || '/api';
-      const response = await fetch(`${apiBaseUrl}/admin/export/bookings/pdf`, {
-        method: 'GET',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+      const response = await api.get('/api/admin/export/bookings/pdf', {
+        responseType: 'blob',
       });
       
-      if (!response.ok) {
+      if (response.status !== 200) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
-      const blob = await response.blob();
+      const blob = response.data;
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
