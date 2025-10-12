@@ -2,7 +2,10 @@ import nodemailer from 'nodemailer';
 
 /**
  * Email service for MarrakechDunes
- * Uses Gmail SMTP with app password authentication
+ * Uses SMTP configuration (canonical) with fallback to legacy EMAIL_* vars
+ * 
+ * MIGRATION NOTE: This service now uses SMTP_* variables as canonical.
+ * Legacy EMAIL_* variables are supported for backward compatibility.
  */
 class EmailService {
   private transporter: nodemailer.Transporter | null = null;
@@ -12,17 +15,28 @@ class EmailService {
   }
 
   /**
-   * Initialize Nodemailer transporter with Gmail SMTP
+   * Initialize Nodemailer transporter with SMTP configuration
+   * Supports both SMTP_* (canonical) and EMAIL_* (legacy) variables
    */
   private initializeTransporter() {
     try {
-      this.transporter = nodemailer.createTransport({
-        service: 'gmail',
+      // Use SMTP_* variables as canonical, fallback to EMAIL_* for backward compatibility
+      const smtpConfig = {
+        host: process.env.SMTP_HOST || 'smtp.gmail.com',
+        port: parseInt(process.env.SMTP_PORT || process.env.EMAIL_PORT || '587'),
+        secure: (process.env.SMTP_PORT || process.env.EMAIL_PORT) === '465',
         auth: {
-          user: process.env.EMAIL_USER || 'timedizzy45@gmail.com',
-          pass: process.env.EMAIL_PASS
+          user: process.env.SMTP_USER || process.env.EMAIL_USER || 'timedizzy45@gmail.com',
+          pass: process.env.SMTP_PASS || process.env.EMAIL_PASS
         }
-      });
+      };
+
+      // Warn if using legacy EMAIL_* variables
+      if (process.env.EMAIL_USER && !process.env.SMTP_USER) {
+        console.warn('[EMAIL] Using legacy EMAIL_* variables. Consider migrating to SMTP_* variables.');
+      }
+
+      this.transporter = nodemailer.createTransport(smtpConfig);
 
       console.log('[EMAIL] Transporter initialized successfully');
     } catch (error) {
@@ -46,7 +60,7 @@ class EmailService {
 
     try {
       const mailOptions = {
-        from: process.env.EMAIL_FROM || '"Marrakech Dunes" <timedizzy45@gmail.com>',
+        from: process.env.SMTP_FROM || process.env.EMAIL_FROM || '"Marrakech Dunes" <timedizzy45@gmail.com>',
         to,
         subject,
         text: message,

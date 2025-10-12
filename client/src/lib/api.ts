@@ -1,6 +1,14 @@
 import Axios from 'axios';
+
+// VITE_API_URL should NOT end with /api to avoid /api/api duplication
+// Client code automatically prefixes /api to all requests
+const apiBaseURL = import.meta.env.VITE_API_URL || '/api';
+if (apiBaseURL.endsWith('/api')) {
+  console.warn('⚠️ VITE_API_URL ends with /api - this may cause /api/api duplication!');
+}
+
 const axios = Axios.create({
-  baseURL: import.meta.env.VITE_API_URL, // e.g. https://<render>.onrender.com
+  baseURL: apiBaseURL, // e.g. https://<render>.onrender.com (NO trailing /api)
   withCredentials: true,
 });
 

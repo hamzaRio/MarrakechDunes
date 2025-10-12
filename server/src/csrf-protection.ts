@@ -80,7 +80,8 @@ export class CSRFProtection {
       '/api/auth/logout',
       '/api/session/init',
       '/api/bookings',
-      '/api/reviews'
+      '/api/reviews',
+      '/api/notifications' // Email notifications - external service integration
     ];
 
     if (skipPaths.some(path => req.path === path || req.path.startsWith(path))) {
