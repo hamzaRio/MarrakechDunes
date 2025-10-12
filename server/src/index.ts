@@ -329,13 +329,6 @@ app.use(cookieParser());
 // Session middleware
 app.use(session(sessionSecurity));
 
-// CSRF session init route (handled by custom CSRF middleware)
-app.get('/api/session/init', (req: Request, res: Response) => {
-  const token = res.locals.csrfToken || '';
-  res.setHeader('X-Session-Init', 'new-handler');
-  res.status(200).json({ csrfToken: token });
-});
-
 // Enhanced security middleware
 app.use(securityRequestLogger);
 app.use(requestSizeLimit);
@@ -344,6 +337,13 @@ app.use(uploadSecurityHeaders);
 // CSRF protection with custom implementation
 app.use(generateCSRFToken);
 app.use(verifyCSRFToken);
+
+// CSRF session init route (AFTER CSRF middleware so token is available)
+app.get('/api/session/init', (req: Request, res: Response) => {
+  const token = res.locals.csrfToken || '';
+  res.setHeader('X-Session-Init', 'new-handler');
+  res.status(200).json({ csrfToken: token });
+});
 
 
 
