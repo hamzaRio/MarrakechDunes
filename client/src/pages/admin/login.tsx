@@ -38,7 +38,7 @@ export default function AdminLogin() {
 
 // Always initialize CSRF and pass header explicitly
 const initSession = async (): Promise<string> => {
-  const { data } = await api.get<{ csrfToken: string }>("/session/init", { withCredentials: true });
+  const { data } = await api.get<{ csrfToken: string }>("/api/session/init", { withCredentials: true });
   return data?.csrfToken ?? "";
 };
 
