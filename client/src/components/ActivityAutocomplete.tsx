@@ -36,7 +36,7 @@ export default function ActivityAutocomplete({ city, onPick }: Props) {
   const { data, isLoading, isError } = useQuery({
     queryKey: ['competitors', debouncedText, city],
     queryFn: async () => {
-      const r = await axios.get('/api/competitors/suggest', { params: { query: debouncedText, city } });
+      const r = await axios.get('/competitors/suggest', { params: { query: debouncedText, city } });
       return r.data.items as ExternalActivity[];
     },
     enabled
