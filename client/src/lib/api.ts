@@ -29,7 +29,7 @@ export const baseURL = axios.defaults.baseURL || '';
  */
 export async function sessionInit(): Promise<void> {
   try {
-    await axios.get('/api/session/init');
+    await axios.get('/session/init');
   } catch (error) {
     console.error('Session init error:', error);
   }
