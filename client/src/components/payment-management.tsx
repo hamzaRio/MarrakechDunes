@@ -43,6 +43,15 @@ const FR_LABELS = {
   save: 'Enregistrer',
 };
 
+// Fix: Payment type options for dropdown
+const PAYMENT_TYPE_OPTIONS = [
+  { value: 'CASH', label: 'Espèces' },
+  { value: 'DEPOSIT', label: 'Acompte' },
+  { value: 'TRANSFER', label: 'Virement' },
+  { value: 'CARD', label: 'Carte' },
+  { value: 'OTHER', label: 'Autre' }
+];
+
 interface PaymentManagementProps {
   booking: BookingWithActivity;
 }
@@ -53,6 +62,7 @@ export default function PaymentManagement({ booking }: PaymentManagementProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState<number>(0);
   const [paymentType, setPaymentType] = useState<'full' | 'deposit' | 'balance'>('full');
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(booking.paymentMethod || 'CASH');
 
   const updatePaymentMutation = useMutation({
     mutationFn: async (data: {
@@ -114,7 +124,7 @@ export default function PaymentManagement({ booking }: PaymentManagementProps) {
       bookingId: booking.id || booking._id || '',
       paymentStatus: newPaymentStatus,
       paidAmount: newPaidAmount,
-      paymentMethod: paymentType === 'deposit' ? 'cash_deposit' : 'cash',
+      paymentMethod: selectedPaymentMethod,
       depositAmount,
     });
   };
@@ -145,15 +155,27 @@ export default function PaymentManagement({ booking }: PaymentManagementProps) {
     }
   };
 
+  // Fix: Correct payment status calculation based on actual payment data
   const currentPaid = booking.paidAmount || 0;
-  const remainingAmount = Number(booking.totalAmount) - currentPaid;
-  const isFullyPaid = booking.paymentStatus === 'fully_paid';
-  const isDepositPaid = booking.paymentStatus === 'deposit_paid';
+  const totalAmount = Number(booking.totalAmount);
+  const remainingAmount = totalAmount - currentPaid;
+  
+  // Correct payment status logic
+  const getCorrectPaymentStatus = () => {
+    if (currentPaid <= 0) return 'unpaid';
+    if (currentPaid < totalAmount) return 'deposit_paid';
+    if (currentPaid >= totalAmount) return 'fully_paid';
+    return 'pending';
+  };
+  
+  const correctPaymentStatus = getCorrectPaymentStatus();
+  const isFullyPaid = correctPaymentStatus === 'fully_paid';
+  const isDepositPaid = correctPaymentStatus === 'deposit_paid';
   
   // Fix display logic for fully paid bookings
-  const displayPaidAmount = isFullyPaid ? booking.totalAmount : currentPaid;
-  const displayRemaining = isFullyPaid ? 0 : remainingAmount;
-  const displayProgress = isFullyPaid ? 100 : Math.round((currentPaid / Number(booking.totalAmount)) * 100);
+  const displayPaidAmount = currentPaid;
+  const displayRemaining = Math.max(0, remainingAmount);
+  const displayProgress = totalAmount > 0 ? Math.round((currentPaid / totalAmount) * 100) : 0;
 
   return (
     <Card className="w-full">
@@ -168,9 +190,9 @@ export default function PaymentManagement({ booking }: PaymentManagementProps) {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium">{FR_LABELS.status}:</span>
-            <Badge className={`${getPaymentStatusColor(booking.paymentStatus)} flex items-center gap-1`}>
-              {getPaymentStatusIcon(booking.paymentStatus)}
-              {booking.paymentStatus?.replace('_', ' ').toUpperCase()}
+            <Badge className={`${getPaymentStatusColor(correctPaymentStatus)} flex items-center gap-1`}>
+              {getPaymentStatusIcon(correctPaymentStatus)}
+              {correctPaymentStatus.replace('_', ' ').toUpperCase()}
             </Badge>
           </div>
           <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -241,6 +263,23 @@ export default function PaymentManagement({ booking }: PaymentManagementProps) {
                             </div>
                           </SelectItem>
                         )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  {/* Fix: Add payment method dropdown */}
+                  <div>
+                    <Label htmlFor="paymentMethod">Méthode de Paiement</Label>
+                    <Select value={selectedPaymentMethod} onValueChange={setSelectedPaymentMethod}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Sélectionner la méthode de paiement" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PAYMENT_TYPE_OPTIONS.map(option => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>

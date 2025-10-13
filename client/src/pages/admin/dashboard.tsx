@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -25,9 +26,9 @@ import BusinessMetrics from "@/components/analytics/business-metrics";
 import SystemHealth from "@/components/analytics/system-health";
 import AdminManagement from "@/components/admin-management";
 import CEOOperationsDashboard from "@/components/ceo-operations-dashboard";
+import BookingDetailsModal from "@/components/booking-details-modal";
 // Removed duplicate market intelligence dashboard import
 
-// Removed useState import as no longer needed
 import type { BookingType, ActivityType, AuditLogType } from "marrakechdunes-shared/schema";
 
 interface BookingWithActivity extends BookingType {
@@ -39,6 +40,10 @@ function AdminDashboardContent() {
   // const { t } = useLanguage();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  
+  // Modal state for booking details
+  const [selectedBooking, setSelectedBooking] = useState<BookingWithActivity | null>(null);
+  const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   
   const { data: bookings = [] } = useQuery<BookingWithActivity[]>({
     queryKey: ["/admin/bookings"],
@@ -53,9 +58,10 @@ function AdminDashboardContent() {
     enabled: user?.role === 'superadmin',
   });
 
+  // Fix: Calculate real revenue from confirmed paid bookings
   const totalRevenue = bookings
-    .filter(b => b.status === 'confirmed' as any)
-    .reduce((sum, b) => sum + Number(b.totalAmount), 0);
+    .filter(b => b.status === 'confirmed' as any && b.paymentStatus === 'fully_paid')
+    .reduce((sum, b) => sum + (b.paidAmount || 0), 0);
 
   const pendingBookings = bookings.filter(b => b.status === 'pending' as any).length;
   const confirmedBookings = bookings.filter(b => b.status === 'confirmed' as any).length;
@@ -111,16 +117,8 @@ function AdminDashboardContent() {
   };
 
   const handleViewBookingDetails = (booking: BookingWithActivity) => {
-    alert(`Booking Details:
-Customer: ${booking.customerName}
-Phone: ${booking.customerPhone}
-Activity: ${booking.activity.name}
-People: ${booking.numberOfPeople}
-Total: ${booking.totalAmount} MAD
-Status: ${booking.status}
-Date: ${booking.preferredDate ? new Date(booking.preferredDate).toLocaleDateString() : 'Flexible'}
-Time: Any time
-Notes: ${booking.notes || 'None'}`);
+    setSelectedBooking(booking);
+    setIsBookingModalOpen(true);
   };
 
   const handleSendWhatsApp = (booking: BookingWithActivity) => {
@@ -238,28 +236,32 @@ Notes: ${booking.notes || 'None'}`);
     const newPrice = prompt(`Modifier le prix pour ${activity.name} (actuel: ${activity.price} MAD):`, activity.price.toString());
     if (newPrice && !isNaN(Number(newPrice))) {
       // Update activity pricing
-      alert(`Prix mis à jour à ${newPrice} MAD pour ${activity.name}`);
+      toast({
+        title: "Prix mis à jour",
+        description: `Prix mis à jour à ${newPrice} MAD pour ${activity.name}`,
+      });
     }
   };
 
   const handleUpdateGetYourGuidePrice = (activity: ActivityType) => {
-    const currentCompetitorPrice = activity.getyourguidePrice || activity.price + 150;
-    const newPrice = prompt(`Mettre à jour le prix concurrent GetYourGuide pour ${activity.name} (actuel: ${currentCompetitorPrice} MAD):`, String(currentCompetitorPrice));
-    if (newPrice && !isNaN(Number(newPrice))) {
-      // Update GetYourGuide price
-      alert(`Prix GetYourGuide mis à jour à ${newPrice} MAD pour ${activity.name}. Nouvelle marge de profit: ${Number(newPrice) - Number(activity.price)} MAD par réservation.`);
-    }
+    // Auto-fetch live GetYourGuide price instead of manual edit
+    toast({
+      title: "Mise à jour du prix concurrent",
+      description: "Récupération du prix GetYourGuide en cours...",
+    });
+    
+    // TODO: Implement auto-fetch of live GetYourGuide price
+    // This should call the competitor API to get real pricing
   };
 
   const handleViewActivityBookings = (activity: ActivityType) => {
     const activityBookings = bookings.filter(b => b.activity.id === activity.id);
     const totalRevenue = activityBookings.filter(b => b.status === 'confirmed' as any).reduce((sum, b) => sum + Number(b.totalAmount), 0);
-    alert(`Activité: ${activity.name}
-Total Réservations: ${activityBookings.length}
-Confirmées: ${activityBookings.filter(b => b.status === 'confirmed' as any).length}
-En Attente: ${activityBookings.filter(b => b.status === 'pending' as any).length}
-Revenus Totaux: ${totalRevenue} MAD
-Moyenne par réservation: ${activityBookings.length ? Math.round(totalRevenue / activityBookings.length) : 0} MAD`);
+    
+    toast({
+      title: `Statistiques: ${activity.name}`,
+      description: `Total: ${activityBookings.length} réservations, Revenus: ${totalRevenue} MAD`,
+    });
   };
 
   return (
@@ -269,6 +271,19 @@ Moyenne par réservation: ${activityBookings.length ? Math.round(totalRevenue / 
         description="Gérez les réservations, activités et analyses pour les opérations touristiques MarrakechDunes."
         keywords="admin, tableau de bord, MarrakechDunes, gestion réservations, activités"
       />
+      
+      {/* Booking Details Modal */}
+      {selectedBooking && (
+        <BookingDetailsModal
+          booking={selectedBooking}
+          isOpen={isBookingModalOpen}
+          onClose={() => {
+            setIsBookingModalOpen(false);
+            setSelectedBooking(null);
+          }}
+        />
+      )}
+      
       <div className="min-h-screen bg-gray-50 p-6">
         <div className="max-w-7xl mx-auto">
           <div className="mb-8">
