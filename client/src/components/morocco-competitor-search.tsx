@@ -65,22 +65,22 @@ export default function MoroccoCompetitorSearch({ onActivitySelect, onPriceSelec
       const query = `${searchQuery} ${selectedCity} ${selectedType} maroc`.trim();
       console.log(`[MOROCCO] Recherche d'activités au Maroc: ${query}`);
       
-      const response = await apiFetch(`/gyg/search?q=${encodeURIComponent(query)}`);
+      const response = await apiFetch(`/competitors/suggest?query=${encodeURIComponent(query)}&city=${selectedCity}`);
       
-      if (Array.isArray(response)) {
-        const moroccoActivities: MoroccoActivity[] = response.map((item: any) => ({
+      if (response && response.items && Array.isArray(response.items)) {
+        const moroccoActivities: MoroccoActivity[] = response.items.map((item: any) => ({
           id: item.id || Math.random().toString(),
           title: item.title || 'Activité sans nom',
-          city: extractCityFromTitle(item.title) || selectedCity || 'Marrakech',
-          price: Number(item.gygPrice) || Number(item.suggestedPrice) || 0,
-          currency: item.currency || 'MAD',
+          city: item.city || selectedCity || 'Marrakech',
+          price: Number(item.priceMAD) || 0,
+          currency: 'MAD',
           rating: Number(item.rating) || 4.0,
-          reviewCount: Number(item.reviewCount) || 0,
-          duration: item.duration || 'Non spécifié',
-          source: 'GetYourGuide',
-          link: item.link || '#',
-          description: item.description || 'Aucune description disponible',
-          imageUrl: item.imageUrl
+          reviewCount: Number(item.reviewsCount) || 0,
+          duration: item.durationText || 'Non spécifié',
+          source: item.provider || 'Mock',
+          link: '#',
+          description: item.title || 'Aucune description disponible',
+          imageUrl: ''
         }));
         
         setActivities(moroccoActivities);
