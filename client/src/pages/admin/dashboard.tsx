@@ -271,6 +271,7 @@ function AdminDashboardContent() {
         description="Gérez les réservations, activités et analyses pour les opérations touristiques MarrakechDunes."
         keywords="admin, tableau de bord, MarrakechDunes, gestion réservations, activités"
       />
+      {/* Force redeploy - v1.1.0 */}
       
       {/* Booking Details Modal */}
       {selectedBooking && (
