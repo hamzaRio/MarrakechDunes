@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import axios from '@/lib/api';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 type ExternalActivity = {
   title: string;
@@ -21,6 +22,7 @@ type Props = {
 export default function ActivityAutocomplete({ city, onPick }: Props) {
   const [text, setText] = useState('');
   const [debouncedText, setDebouncedText] = useState('');
+  const [provider, setProvider] = useState<'all'|'gyg'|'rezdy'>('all');
   
   // Manual debounce implementation
   useEffect(() => {
@@ -34,9 +36,11 @@ export default function ActivityAutocomplete({ city, onPick }: Props) {
   const enabled = debouncedText.trim().length >= 2;
 
   const { data, isLoading, isError } = useQuery({
-    queryKey: ['competitors', debouncedText, city],
+    queryKey: ['competitors', debouncedText, city, provider],
     queryFn: async () => {
-      const r = await axios.get('/competitors/suggest', { params: { query: debouncedText, city } });
+      const r = await axios.get('/competitors/suggest', { 
+        params: { query: debouncedText, city, provider } 
+      });
       return r.data.items as ExternalActivity[];
     },
     enabled
@@ -45,12 +49,24 @@ export default function ActivityAutocomplete({ city, onPick }: Props) {
   return (
     <div className="relative">
       <label className="block text-sm font-medium mb-1">Nom de l'Activité (recherche Maroc)</label>
-      <input
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        placeholder="ex. désert, montgolfière, souks…"
-        className="w-full rounded-md border p-2"
-      />
+      <div className="flex gap-2 mb-2">
+        <input
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder="ex. désert, montgolfière, souks…"
+          className="flex-1 rounded-md border p-2"
+        />
+        <Select value={provider} onValueChange={(value: 'all'|'gyg'|'rezdy') => setProvider(value)}>
+          <SelectTrigger className="w-32">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tous</SelectItem>
+            <SelectItem value="gyg">GetYourGuide</SelectItem>
+            <SelectItem value="rezdy">Rezdy</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
       <p className="mt-1 text-xs text-muted-foreground">
         {!enabled ? 'Tapez au moins 2 lettres…'
           : isLoading ? 'Recherche des activités similaires…'
@@ -73,7 +89,10 @@ export default function ActivityAutocomplete({ city, onPick }: Props) {
                 <span className="text-sm">{a.priceMAD} MAD</span>
               </div>
               <div className="text-xs text-gray-500">
-                {a.city} • {a.durationText} • ⭐ {a.rating ?? '—'} ({a.provider})
+                {a.city} • {a.durationText} • ⭐ {a.rating ?? '—'} 
+                <span className="ml-1 px-1 py-0.5 bg-blue-100 text-blue-800 text-xs rounded">
+                  {a.provider === 'GetYourGuide' ? '(GYG)' : a.provider === 'Rezdy' ? '(Rezdy)' : `(${a.provider})`}
+                </span>
               </div>
             </button>
           ))}
