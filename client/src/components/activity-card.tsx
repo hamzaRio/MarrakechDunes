@@ -14,7 +14,7 @@ import ActivityPreview from "./activity-preview";
 
 import { getActivityFallbackImage, handleImageError, getActivityImages } from "@/lib/image-utils";
 
-import { ensureArray } from "@/lib/utils";
+import { ensureArray } from "@/lib/ensureArray";
 
 import type { ActivityType } from "marrakechdunes-shared/schema";
 

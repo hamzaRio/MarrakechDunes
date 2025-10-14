@@ -11,6 +11,4 @@ export function getAssetUrl(path: string): string {
   return assetUrl(path);
 }
 
-export function ensureArray<T>(value: T[] | null | undefined): T[] {
-  return Array.isArray(value) ? value : [];
-}
+// ensureArray function moved to ensureArray.ts to avoid duplication

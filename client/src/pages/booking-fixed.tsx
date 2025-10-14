@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { ActivityType } from "marrakechdunes-shared/schema";
 import { apiRequest } from "@/lib/queryClient";
-import { ensureArray } from "@/lib/utils";
+import { ensureArray } from "@/lib/ensureArray";
 import { useToast } from "@/hooks/use-toast";
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";

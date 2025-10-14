@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Search, MapPin, Star, ExternalLink, TrendingUp, Users, Clock, DollarSign } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { apiFetch } from '@/lib/api-utils';
+import { apiFetch } from '@/lib/api';
 
 interface MoroccoActivity {
   id: string;

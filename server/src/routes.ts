@@ -92,10 +92,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Note: CORS is already configured in server/index.ts before routes are registered
   // This ensures CORS headers are set before session middleware
 
-  // Health check endpoint for deployment monitoring - always OK
-  app.get('/api/health', (_req: Request, res: Response) => {
-    res.status(200).json({ status: 'ok' });
-  });
+  // Health check endpoint moved to server/index.ts to avoid duplication
 
   // Session middleware is already configured in server/index.ts
   

@@ -7,7 +7,7 @@ import { getActivityFallbackImage, handleImageError, getActivityImages } from "@
 import { useLanguage } from '@/hooks/use-language';
 import ActivityRating from './activity-rating';
 
-import { ensureArray } from '@/lib/utils';
+import { ensureArray } from '@/lib/ensureArray';
 import type { ActivityType } from 'marrakechdunes-shared/schema';
 
 interface ActivityPreviewProps {
