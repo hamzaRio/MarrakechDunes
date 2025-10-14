@@ -141,26 +141,39 @@ function AdminDashboardContent() {
     return primary ? getAssetUrl(primary) : getActivityFallbackImage(activity.name);
   };
 
-  // Logout handler
+  // Logout handler - FIXED to prevent redirect loop
   const handleLogout = async () => {
     if (confirm('Êtes-vous sûr de vouloir vous déconnecter?')) {
       try {
+        // Clear any cached auth data
+        localStorage.removeItem('auth-token');
+        sessionStorage.clear();
+        
+        // Call logout API
         await logout();
+        
+        // Show success message
         toast({
           title: "Déconnecté",
           description: "Vous avez été déconnecté avec succès.",
         });
-        // Redirect to home page after logout
-        window.location.href = '/';
+        
+        // Force immediate redirect without any auth checks
+        setTimeout(() => {
+          window.location.replace('/');
+        }, 100);
+        
       } catch (error) {
         console.error('Logout error:', error);
-        toast({
-          title: "Erreur de déconnexion",
-          description: "Il y a eu un problème lors de la déconnexion, mais vous serez redirigé.",
-          variant: "destructive",
-        });
+        
+        // Clear local storage anyway
+        localStorage.removeItem('auth-token');
+        sessionStorage.clear();
+        
         // Force redirect even on error
-        window.location.href = '/';
+        setTimeout(() => {
+          window.location.replace('/');
+        }, 100);
       }
     }
   };
@@ -275,7 +288,7 @@ function AdminDashboardContent() {
         description="Gérez les réservations, activités et analyses pour les opérations touristiques MarrakechDunes."
         keywords="admin, tableau de bord, MarrakechDunes, gestion réservations, activités"
       />
-      {/* Force redeploy - v1.1.0 */}
+      {/* Force redeploy - v1.2.0 - Fixed logout redirect loop */}
       
       {/* Booking Details Modal */}
       {selectedBooking && (

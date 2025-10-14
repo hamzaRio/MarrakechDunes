@@ -36,15 +36,27 @@ export async function sessionInit(): Promise<void> {
 }
 
 /**
- * Legacy logout function
+ * Legacy logout function - FIXED to prevent redirect loop
  * @returns Promise<void>
  */
 export async function logout(): Promise<void> {
   try {
+    // Clear any cached credentials
+    axios.defaults.headers.common['Authorization'] = '';
+    
+    // Call logout API
     await axios.post('/auth/logout');
+    
+    // Clear any stored tokens
+    localStorage.removeItem('auth-token');
+    sessionStorage.clear();
+    
   } catch (error) {
     console.error('Logout error:', error);
     // Continue with logout even if API call fails
+    // Clear local storage anyway
+    localStorage.removeItem('auth-token');
+    sessionStorage.clear();
   }
 }
 
