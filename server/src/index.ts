@@ -204,6 +204,7 @@ app.set("trust proxy", 1);
 // CORS configuration - must be defined BEFORE all other middleware
 const allowedOrigins = process.env.CLIENT_URL?.split(",") || [
   "http://localhost:5173",
+  "http://localhost:5174",
   "https://marrakech-dunes.vercel.app"
 ];
 

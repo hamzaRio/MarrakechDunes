@@ -140,9 +140,14 @@ async function getGYGResults(q: string, city?: string): Promise<ExternalActivity
     return [];
   }
 
-  const r = await axios.get(`${base}/search/products`, {
+  // Try different endpoint format
+  const r = await axios.get(`${base}/products`, {
     auth: { username: user, password: pass },
-    params: { q, country: 'MA', limit: 10 }
+    params: { 
+      search: q,
+      country: 'MA', 
+      limit: 10
+    }
   });
 
   const list = (r.data?.items ?? r.data ?? []).slice(0, 10);
