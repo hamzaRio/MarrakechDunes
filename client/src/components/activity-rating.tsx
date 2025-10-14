@@ -45,14 +45,16 @@ export default function ActivityRating({
   }
 
   const renderStars = (rating: number) => {
-    const fullStars = Math.floor(rating);
-    const hasHalfStar = rating % 1 >= 0.5;
-    const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
+    // Ensure rating is a valid number between 0 and 5
+    const safeRating = Math.max(0, Math.min(5, Number(rating) || 0));
+    const fullStars = Math.floor(safeRating);
+    const hasHalfStar = safeRating % 1 >= 0.5;
+    const emptyStars = Math.max(0, 5 - fullStars - (hasHalfStar ? 1 : 0));
 
     return (
       <div className="flex items-center">
         {/* Full stars */}
-        {Array(fullStars).fill(null).map((_, i) => (
+        {Array(Math.max(0, fullStars)).fill(null).map((_, i) => (
           <Star key={`full-${i}`} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
         ))}
         
@@ -67,7 +69,7 @@ export default function ActivityRating({
         )}
         
         {/* Empty stars */}
-        {Array(emptyStars).fill(null).map((_, i) => (
+        {Array(Math.max(0, emptyStars)).fill(null).map((_, i) => (
           <Star key={`empty-${i}`} className="w-4 h-4 text-gray-300" />
         ))}
       </div>
@@ -76,13 +78,13 @@ export default function ActivityRating({
 
   return (
     <div className={`flex items-center space-x-2 ${className}`}>
-      {renderStars(rating.averageRating)}
+      {renderStars(rating?.averageRating || 0)}
       <span className="text-sm font-medium text-gray-700">
-        {rating.averageRating.toFixed(1)}
+        {(rating?.averageRating || 0).toFixed(1)}
       </span>
       {showReviewCount && (
         <Badge variant="secondary" className="text-xs">
-          {rating.totalReviews} {rating.totalReviews === 1 ? 'review' : 'reviews'}
+          {rating?.totalReviews || 0} {(rating?.totalReviews || 0) === 1 ? 'review' : 'reviews'}
         </Badge>
       )}
     </div>
