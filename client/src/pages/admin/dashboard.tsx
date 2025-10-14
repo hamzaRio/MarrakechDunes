@@ -36,10 +36,28 @@ interface BookingWithActivity extends BookingType {
 }
 
 function AdminDashboardContent() {
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   // const { t } = useLanguage();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  
+  // Redirect to login if not authenticated
+  if (!authLoading && !user) {
+    window.location.href = '/admin/login';
+    return null;
+  }
+  
+  // Show loading while checking authentication
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-moroccan-blue mx-auto mb-4"></div>
+          <p className="text-moroccan-blue">Vérification de l'authentification...</p>
+        </div>
+      </div>
+    );
+  }
   
   // Modal state for booking details
   const [selectedBooking, setSelectedBooking] = useState<BookingWithActivity | null>(null);
@@ -47,10 +65,12 @@ function AdminDashboardContent() {
   
   const { data: bookings = [] } = useQuery<BookingWithActivity[]>({
     queryKey: ["/admin/bookings"],
+    enabled: !!user, // Only fetch if user is authenticated
   });
 
   const { data: activities = [] } = useQuery<ActivityType[]>({
     queryKey: ["/activities"],
+    enabled: !!user, // Only fetch if user is authenticated
   });
 
   const { data: auditLogs = [] } = useQuery<AuditLogType[]>({
@@ -288,7 +308,7 @@ function AdminDashboardContent() {
         description="Gérez les réservations, activités et analyses pour les opérations touristiques MarrakechDunes."
         keywords="admin, tableau de bord, MarrakechDunes, gestion réservations, activités"
       />
-      {/* Force redeploy - v1.2.0 - Fixed logout redirect loop */}
+      {/* Force redeploy - v1.3.0 - Fixed auth loop and API calls after logout */}
       
       {/* Booking Details Modal */}
       {selectedBooking && (
