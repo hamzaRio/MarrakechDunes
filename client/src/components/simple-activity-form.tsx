@@ -217,16 +217,21 @@ export default function SimpleActivityForm({ mode, activity, trigger }: SimpleAc
     }
   };
 
-  const handleSelectGetYourGuideActivity = (activity: any) => {
+  const handleSelectGetYourGuideActivity = (activity: any, suggestedPrice?: number) => {
+    const finalPrice = suggestedPrice || activity.priceMAD;
+    
     form.setValue('name', activity.title);
     form.setValue('description', activity.title); // Use title as description
-    form.setValue('price', activity.priceMAD.toString());
+    form.setValue('price', finalPrice.toString());
     form.setValue('location', activity.city);
     form.setValue('duration', activity.durationText);
     
+    // Set GetYourGuide price for reference
+    form.setValue('getyourguidePrice', activity.priceMAD.toString());
+    
     toast({
       title: "Activité sélectionnée",
-      description: `${activity.title} de GetYourGuide appliquée`,
+      description: `${activity.title} - Prix concurrentiel: ${finalPrice} MAD (GetYourGuide: ${activity.priceMAD} MAD)`,
     });
     
     setSearchResults([]);
@@ -366,7 +371,7 @@ export default function SimpleActivityForm({ mode, activity, trigger }: SimpleAc
               name="price"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Prix (MAD) *</FormLabel>
+                  <FormLabel>Votre Prix (MAD) *</FormLabel>
                   <FormControl>
                     <Input type="number" placeholder="500" {...field} />
                   </FormControl>
@@ -432,58 +437,142 @@ export default function SimpleActivityForm({ mode, activity, trigger }: SimpleAc
             />
           </div>
 
-          {/* GetYourGuide Direct Search */}
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border-2 border-blue-200">
-            <h4 className="font-semibold text-blue-800 mb-3 flex items-center gap-2">
-              🔍 Recherche GetYourGuide Directe
-            </h4>
-            <p className="text-xs text-blue-600 mb-3">
-              Recherchez directement sur GetYourGuide pour trouver des activités similaires
+          {/* Competitive Pricing Assistant - GetYourGuide Live Search */}
+          <div className="bg-gradient-to-r from-orange-50 to-red-50 p-6 rounded-lg border-2 border-orange-200 shadow-lg">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center">
+                <span className="text-white font-bold text-sm">🔍</span>
+              </div>
+              <h4 className="font-bold text-orange-800 text-lg">Competitive Pricing Assistant</h4>
+            </div>
+            <p className="text-sm text-orange-700 mb-4">
+              Recherchez sur GetYourGuide pour obtenir les prix réels et fixer vos prix concurrentiels
             </p>
-            <div className="space-y-3">
+            
+            <div className="space-y-4">
+              {/* Search Bar */}
               <div className="flex gap-2">
-                <Input
-                  placeholder="Rechercher une activité sur GetYourGuide..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="flex-1"
-                />
+                <div className="flex-1 relative">
+                  <Input
+                    placeholder="Tapez le nom de votre activité (ex: visite Marrakech, désert Agafay...)"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pr-10"
+                  />
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                    {isSearching ? (
+                      <div className="animate-spin w-4 h-4 border-2 border-orange-500 border-t-transparent rounded-full"></div>
+                    ) : (
+                      <span className="text-orange-500">🔍</span>
+                    )}
+                  </div>
+                </div>
                 <Button 
                   onClick={handleGetYourGuideSearch}
                   disabled={isSearching || !searchQuery.trim()}
-                  className="bg-blue-600 hover:bg-blue-700"
+                  className="bg-orange-600 hover:bg-orange-700 text-white px-6"
                 >
-                  {isSearching ? "Recherche..." : "Rechercher"}
+                  {isSearching ? "Recherche..." : "Search"}
                 </Button>
               </div>
               
+              {/* Live GetYourGuide Results */}
               {searchResults.length > 0 && (
-                <div className="max-h-60 overflow-y-auto border rounded-lg bg-white">
-                  {searchResults.map((activity, index) => (
-                    <div 
-                      key={index}
-                      className="p-3 border-b hover:bg-gray-50 cursor-pointer"
-                      onClick={() => handleSelectGetYourGuideActivity(activity)}
-                    >
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <h5 className="font-medium text-gray-900">{activity.title}</h5>
-                          <p className="text-sm text-gray-600">{activity.city} • {activity.durationText}</p>
-                          {activity.rating && (
-                            <p className="text-xs text-gray-500">⭐ {activity.rating} ({activity.reviewsCount} avis)</p>
-                          )}
+                <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
+                  <div className="p-3 bg-gray-50 border-b border-gray-200">
+                    <h5 className="font-semibold text-gray-800">Live GetYourGuide Partner API results:</h5>
+                  </div>
+                  <div className="max-h-80 overflow-y-auto">
+                    {searchResults.map((activity, index) => {
+                      const gygPrice = activity.priceMAD;
+                      const suggestedPrice = Math.round(gygPrice * 0.9); // 10% discount for competitive pricing
+                      const savings = gygPrice - suggestedPrice;
+                      
+                      return (
+                        <div key={index} className="p-4 border-b border-gray-100 hover:bg-gray-50">
+                          <div className="flex justify-between items-start mb-3">
+                            <div className="flex-1">
+                              <h6 className="font-semibold text-gray-900 text-base mb-1">{activity.title}</h6>
+                              <p className="text-sm text-gray-600 mb-2">{activity.city} • {activity.durationText}</p>
+                              {activity.rating && (
+                                <p className="text-xs text-gray-500">⭐ {activity.rating} ({activity.reviewsCount} avis)</p>
+                              )}
+                            </div>
+                          </div>
+                          
+                          {/* Pricing Information */}
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-4">
+                              <div className="text-center">
+                                <p className="text-xs text-gray-500 mb-1">GYG:</p>
+                                <p className="text-lg font-bold text-red-600">{gygPrice} MAD</p>
+                              </div>
+                              <div className="text-center">
+                                <p className="text-xs text-gray-500 mb-1">Suggested:</p>
+                                <p className="text-lg font-bold text-green-600">{suggestedPrice} MAD</p>
+                              </div>
+                              <div className="text-center">
+                                <p className="text-xs text-gray-500 mb-1">You save:</p>
+                                <p className="text-sm font-semibold text-blue-600">{savings} MAD</p>
+                              </div>
+                            </div>
+                            
+                            <div className="flex gap-2">
+                              <Button
+                                size="sm"
+                                onClick={() => handleSelectGetYourGuideActivity(activity, suggestedPrice)}
+                                className="bg-green-600 hover:bg-green-700 text-white"
+                              >
+                                Use Suggested
+                              </Button>
+                              {activity.providerUrl && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => window.open(activity.providerUrl, '_blank')}
+                                  className="border-gray-300 hover:bg-gray-50"
+                                >
+                                  🔗
+                                </Button>
+                              )}
+                            </div>
+                          </div>
                         </div>
-                        <div className="text-right">
-                          <p className="font-bold text-green-600">{activity.priceMAD} MAD</p>
-                          <p className="text-xs text-gray-500">{activity.provider}</p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+              
+              {/* No Results Message */}
+              {searchQuery.trim() && searchResults.length === 0 && !isSearching && (
+                <div className="text-center py-8 text-gray-500">
+                  <p className="text-sm">Aucune activité trouvée sur GetYourGuide pour "{searchQuery}"</p>
+                  <p className="text-xs mt-1">Essayez avec d'autres mots-clés</p>
                 </div>
               )}
             </div>
           </div>
+
+          <FormField
+            control={form.control}
+            name="getyourguidePrice"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Prix GetYourGuide (MAD) - Référence</FormLabel>
+                <FormControl>
+                  <Input 
+                    type="number" 
+                    placeholder="Prix concurrent GetYourGuide" 
+                    {...field}
+                    disabled
+                    className="bg-gray-100"
+                  />
+                </FormControl>
+                <p className="text-xs text-gray-500">Prix de référence GetYourGuide (lecture seule)</p>
+              </FormItem>
+            )}
+          />
 
           <FormField
             control={form.control}
