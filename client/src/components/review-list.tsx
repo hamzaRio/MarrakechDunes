@@ -110,16 +110,16 @@ export default function ReviewList({ activityId, showActivityName = false, limit
                       )}
                     </div>
                     <div className="flex items-center space-x-4">
-                      {renderStars(review.rating)}
+                      {renderStars(review.rating || 0)}
                       <div className="flex items-center text-sm text-gray-500">
                         <Calendar className="w-4 h-4 mr-1" />
-                        {formatDate(review.createdAt.toString())}
+                        {formatDate(review.createdAt?.toString() || new Date().toISOString())}
                       </div>
                     </div>
                   </div>
                   {showActivityName && review.activity && (
                     <Badge variant="outline" className="text-moroccan-blue border-moroccan-blue">
-                      {review.activity.name}
+                      {review.activity.name || 'Unknown Activity'}
                     </Badge>
                   )}
                 </div>

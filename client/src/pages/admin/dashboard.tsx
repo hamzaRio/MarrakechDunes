@@ -143,20 +143,24 @@ function AdminDashboardContent() {
 
   // Logout handler
   const handleLogout = async () => {
-    if (confirm('Are you sure you want to logout?')) {
+    if (confirm('Êtes-vous sûr de vouloir vous déconnecter?')) {
       try {
         await logout();
         toast({
-          title: "Logged Out",
-          description: "You have been successfully logged out.",
+          title: "Déconnecté",
+          description: "Vous avez été déconnecté avec succès.",
         });
+        // Redirect to home page after logout
+        window.location.href = '/';
       } catch (error) {
         console.error('Logout error:', error);
         toast({
-          title: "Logout Error",
-          description: "There was an issue logging out, but you will be redirected.",
+          title: "Erreur de déconnexion",
+          description: "Il y a eu un problème lors de la déconnexion, mais vous serez redirigé.",
           variant: "destructive",
         });
+        // Force redirect even on error
+        window.location.href = '/';
       }
     }
   };

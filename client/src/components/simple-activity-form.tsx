@@ -4,6 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLanguage } from "@/hooks/use-language";
+import { api } from "@/lib/api";
 import {
   Dialog,
   DialogContent,
@@ -68,6 +69,11 @@ export default function SimpleActivityForm({ mode, activity, trigger }: SimpleAc
   // const { t } = useLanguage();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  
+  // GetYourGuide search state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
 
   const form = useForm<ActivityFormData>({
     resolver: zodResolver(createActivityFormSchema(() => "")),
@@ -171,6 +177,61 @@ export default function SimpleActivityForm({ mode, activity, trigger }: SimpleAc
       });
     },
   });
+
+  // GetYourGuide search functions
+  const handleGetYourGuideSearch = async () => {
+    if (!searchQuery.trim()) return;
+    
+    setIsSearching(true);
+    try {
+      const response = await api.get('/competitors/suggest', {
+        params: { 
+          query: searchQuery,
+          city: form.watch('location') || 'Marrakech'
+        }
+      });
+      
+      if (response.data?.items) {
+        setSearchResults(response.data.items);
+        toast({
+          title: "Recherche terminée",
+          description: `${response.data.items.length} activités trouvées sur GetYourGuide`,
+        });
+      } else {
+        setSearchResults([]);
+        toast({
+          title: "Aucun résultat",
+          description: "Aucune activité trouvée sur GetYourGuide",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('GetYourGuide search error:', error);
+      toast({
+        title: "Erreur de recherche",
+        description: "Impossible de rechercher sur GetYourGuide",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleSelectGetYourGuideActivity = (activity: any) => {
+    form.setValue('name', activity.title);
+    form.setValue('description', activity.title); // Use title as description
+    form.setValue('price', activity.priceMAD.toString());
+    form.setValue('location', activity.city);
+    form.setValue('duration', activity.durationText);
+    
+    toast({
+      title: "Activité sélectionnée",
+      description: `${activity.title} de GetYourGuide appliquée`,
+    });
+    
+    setSearchResults([]);
+    setSearchQuery('');
+  };
 
   const handleSubmit = (data: ActivityFormData) => {
     if (mode === "create") {
@@ -371,34 +432,57 @@ export default function SimpleActivityForm({ mode, activity, trigger }: SimpleAc
             />
           </div>
 
-          {/* Morocco Competitor Search */}
-          <div className="bg-gradient-to-r from-moroccan-blue/10 to-moroccan-red/10 p-4 rounded-lg border-2 border-moroccan-blue/20">
-            <h4 className="font-semibold text-moroccan-blue mb-3 flex items-center gap-2">
-              🇲🇦 Recherche Concurrence Maroc
+          {/* GetYourGuide Direct Search */}
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border-2 border-blue-200">
+            <h4 className="font-semibold text-blue-800 mb-3 flex items-center gap-2">
+              🔍 Recherche GetYourGuide Directe
             </h4>
-            <p className="text-xs text-moroccan-blue mb-3">
-              Recherchez des activités similaires au Maroc pour comparer les prix
+            <p className="text-xs text-blue-600 mb-3">
+              Recherchez directement sur GetYourGuide pour trouver des activités similaires
             </p>
-            <MoroccoCompetitorSearch
-              onActivitySelect={(activity) => {
-                form.setValue("name", activity.title);
-                form.setValue("description", activity.description);
-                form.setValue("price", activity.price.toString());
-                form.setValue("getyourguidePrice", activity.price.toString());
-                toast({
-                  title: "Activité Appliquée",
-                  description: `Données appliquées: ${activity.title}`,
-                });
-              }}
-              onPriceSelect={(price, _activity) => {
-                form.setValue("price", price.toString());
-                form.setValue("getyourguidePrice", price.toString());
-                toast({
-                  title: "Prix Appliqué",
-                  description: `Prix de ${price} MAD appliqué`,
-                });
-              }}
-            />
+            <div className="space-y-3">
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Rechercher une activité sur GetYourGuide..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="flex-1"
+                />
+                <Button 
+                  onClick={handleGetYourGuideSearch}
+                  disabled={isSearching || !searchQuery.trim()}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  {isSearching ? "Recherche..." : "Rechercher"}
+                </Button>
+              </div>
+              
+              {searchResults.length > 0 && (
+                <div className="max-h-60 overflow-y-auto border rounded-lg bg-white">
+                  {searchResults.map((activity, index) => (
+                    <div 
+                      key={index}
+                      className="p-3 border-b hover:bg-gray-50 cursor-pointer"
+                      onClick={() => handleSelectGetYourGuideActivity(activity)}
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <h5 className="font-medium text-gray-900">{activity.title}</h5>
+                          <p className="text-sm text-gray-600">{activity.city} • {activity.durationText}</p>
+                          {activity.rating && (
+                            <p className="text-xs text-gray-500">⭐ {activity.rating} ({activity.reviewsCount} avis)</p>
+                          )}
+                        </div>
+                        <div className="text-right">
+                          <p className="font-bold text-green-600">{activity.priceMAD} MAD</p>
+                          <p className="text-xs text-gray-500">{activity.provider}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           <FormField
