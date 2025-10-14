@@ -27,13 +27,16 @@ export default function ReviewList({ activityId, showActivityName = false, limit
   const displayedReviews = limit ? reviews.slice(0, limit) : reviews;
 
   const renderStars = (rating: number) => {
+    // Ensure rating is a valid number between 0 and 5
+    const safeRating = Math.max(0, Math.min(5, Number(rating) || 0));
+    
     return (
       <div className="flex items-center space-x-1">
         {[1, 2, 3, 4, 5].map((star) => (
           <Star
             key={star}
             className={`w-4 h-4 ${
-              star <= rating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"
+              star <= safeRating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"
             }`}
           />
         ))}

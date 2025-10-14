@@ -1,6 +1,7 @@
 import axios from 'axios';
 import removeAccents from 'remove-accents';
 import { searchRezdy } from './providers/rezdy.js';
+import { ENV } from '../config/env.js';
 
 // Simple cache implementation
 const cache = new Map<string, { data: any; expires: number }>();
@@ -122,12 +123,20 @@ export async function searchExternalActivities(
 }
 
 async function getGYGResults(q: string, city?: string): Promise<ExternalActivity[]> {
-  const base = process.env.GYG_SUPPLIER_BASE;
-  const user = process.env.GYG_SUPPLIER_USER;
-  const pass = process.env.GYG_SUPPLIER_PASS;
-  const live = process.env.GYG_ENABLE_LIVE_SEARCH === 'true';
+  const base = ENV.GYG_SUPPLIER_BASE;
+  const user = ENV.GYG_SUPPLIER_USER;
+  const pass = ENV.GYG_SUPPLIER_PASS;
+  const live = ENV.GYG_ENABLE_LIVE_SEARCH === 'true';
+
+  console.log('[GYG] API Config:', { 
+    hasBase: !!base, 
+    hasUser: !!user, 
+    hasPass: !!pass, 
+    liveEnabled: live 
+  });
 
   if (!base || !user || !pass || !live) {
+    console.log('[GYG] Skipping live search - missing credentials or disabled');
     return [];
   }
 
