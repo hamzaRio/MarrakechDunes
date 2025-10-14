@@ -20,7 +20,7 @@ if (!process.env.SESSION_SECRET) {
 // Rate limiting for authentication attempts
 export const authRateLimit = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: process.env.NODE_ENV === 'production' ? 10 : 20, // Stricter for auth
+  max: process.env.NODE_ENV === 'production' ? 30 : 50, // More reasonable for auth
   message: {
     error: 'Too many requests, try again later.',
     retryAfter: '15 minutes'

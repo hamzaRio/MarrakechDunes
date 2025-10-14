@@ -195,7 +195,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }  }));
 
-  app.post("/api/auth/login", strictLimiter, authRateLimit, asyncHandler(async (req: Request, res: Response) => {
+  app.post("/api/auth/login", authRateLimit, asyncHandler(async (req: Request, res: Response) => {
     const { username, password } = req.body;
     
     if (!username || !password) {

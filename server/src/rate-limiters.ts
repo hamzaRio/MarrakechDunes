@@ -23,8 +23,8 @@ export const globalLimiter = rateLimit({
 
 // Stricter rate limiter for auth and admin routes (environment-aware)
 export const strictLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes (changed to match global)
-  max: process.env.NODE_ENV === 'production' ? 10 : 20, // Stricter for auth routes
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: process.env.NODE_ENV === 'production' ? 50 : 100, // More reasonable limits for auth routes
   message: 'Too many requests, try again later.',
   standardHeaders: true,
   legacyHeaders: false,
