@@ -120,7 +120,7 @@ export class ServiceWorkerManager {
 
   public async getServiceWorkerRegistration(): Promise<ServiceWorkerRegistration | null> {
     if ('serviceWorker' in navigator) {
-      return await navigator.serviceWorker.getRegistration();
+      return await navigator.serviceWorker.getRegistration() || null;
     }
     return null;
   }

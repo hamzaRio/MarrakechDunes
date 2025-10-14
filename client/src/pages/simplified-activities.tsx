@@ -19,7 +19,10 @@ export default function SimplifiedActivities() {
   // Fetch activities
   const { data: activities, isLoading, error } = useQuery<ActivityType[]>({
     queryKey: ["/activities"],
-    queryFn: () => apiFetch("/activities"),
+    queryFn: async () => {
+      const response = await apiFetch("/activities");
+      return await response.json();
+    },
   });
 
   // Filter and sort activities

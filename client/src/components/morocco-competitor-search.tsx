@@ -66,9 +66,10 @@ export default function MoroccoCompetitorSearch({ onActivitySelect, onPriceSelec
       console.log(`[MOROCCO] Recherche d'activités au Maroc: ${query}`);
       
       const response = await apiFetch(`/competitors/suggest?query=${encodeURIComponent(query)}&city=${selectedCity}`);
+      const responseData = await response.json();
       
-      if (response && response.items && Array.isArray(response.items)) {
-        const moroccoActivities: MoroccoActivity[] = response.items.map((item: any) => ({
+      if (responseData && responseData.items && Array.isArray(responseData.items)) {
+        const moroccoActivities: MoroccoActivity[] = responseData.items.map((item: any) => ({
           id: item.id || Math.random().toString(),
           title: item.title || 'Activité sans nom',
           city: item.city || selectedCity || 'Marrakech',

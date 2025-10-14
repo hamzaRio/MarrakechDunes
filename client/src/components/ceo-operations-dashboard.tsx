@@ -60,7 +60,10 @@ export default function CEOOperationsDashboard() {
   // Fetch operations data
   const { data: operationsData, isLoading } = useQuery<OperationsData>({
     queryKey: ["/admin/operations-report"],
-    queryFn: () => apiFetch("/admin/operations-report"),
+    queryFn: async () => {
+      const response = await apiFetch("/admin/operations-report");
+      return await response.json();
+    },
   });
 
   // Export handlers
@@ -178,9 +181,9 @@ export default function CEOOperationsDashboard() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{operationsData?.summary.totalRevenue || 0} MAD</div>
+            <div className="text-2xl font-bold">{(operationsData as any)?.summary?.totalRevenue || 0} MAD</div>
             <p className="text-xs text-muted-foreground">
-              Average: {operationsData?.summary.averageBookingValue.toFixed(2) || 0} MAD per booking
+              Average: {(operationsData as any)?.summary?.averageBookingValue?.toFixed(2) || 0} MAD per booking
             </p>
           </CardContent>
         </Card>
@@ -191,9 +194,9 @@ export default function CEOOperationsDashboard() {
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{operationsData?.summary.totalBookings || 0}</div>
+            <div className="text-2xl font-bold">{(operationsData as any)?.summary?.totalBookings || 0}</div>
             <p className="text-xs text-muted-foreground">
-              Across {operationsData?.summary.totalActivities || 0} activities
+              Across {(operationsData as any)?.summary?.totalActivities || 0} activities
             </p>
           </CardContent>
         </Card>
@@ -204,7 +207,7 @@ export default function CEOOperationsDashboard() {
             <Star className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{operationsData?.summary.averageRating.toFixed(1) || 0}/5</div>
+            <div className="text-2xl font-bold">{(operationsData as any)?.summary?.averageRating?.toFixed(1) || 0}/5</div>
             <p className="text-xs text-muted-foreground">
               Based on customer reviews
             </p>
@@ -217,7 +220,7 @@ export default function CEOOperationsDashboard() {
             <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{operationsData?.summary.totalActivities || 0}</div>
+            <div className="text-2xl font-bold">{(operationsData as any)?.summary?.totalActivities || 0}</div>
             <p className="text-xs text-muted-foreground">
               Available for booking
             </p>
@@ -240,7 +243,7 @@ export default function CEOOperationsDashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {operationsData?.activityPerformance.map((activity, index) => (
+                {((operationsData as any)?.activityPerformance || []).map((activity: any, index: number) => (
                   <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
                     <div className="flex items-center space-x-3">
                       <div className="w-8 h-8 bg-moroccan-blue text-white rounded-full flex items-center justify-center text-sm font-bold">
@@ -274,7 +277,7 @@ export default function CEOOperationsDashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {operationsData?.monthlyTrends.slice(-6).map((month, index) => (
+                {((operationsData as any)?.monthlyTrends || []).slice(-6).map((month: any, index: number) => (
                   <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
                     <div>
                       <p className="font-medium">{month.month}</p>

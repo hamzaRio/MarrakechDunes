@@ -236,7 +236,7 @@ function BookingCard({ booking }: { booking: BookingType }) {
       <CardContent className="p-6">
         <div className="flex justify-between items-start mb-4">
           <div>
-            <h3 className="font-semibold text-lg">{booking.activity?.name || 'Unknown Activity'}</h3>
+            <h3 className="font-semibold text-lg">{(booking as any).activity?.name || 'Unknown Activity'}</h3>
             <p className="text-gray-600">Booking #{booking._id.slice(-8)}</p>
           </div>
           <Badge 

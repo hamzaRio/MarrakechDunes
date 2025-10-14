@@ -45,7 +45,7 @@ export default function EnhancedCashPayment({
   const [selectedOption, setSelectedOption] = useState<string>("full");
   const [isConfirming, setIsConfirming] = useState(false);
   
-  const totalAmount = activity.price * numberOfPeople;
+  const totalAmount = Number(activity.price) * numberOfPeople;
   const depositAmount = Math.round(totalAmount * 0.3); // 30% deposit
   const remainingAmount = totalAmount - depositAmount;
   const earlyBirdDiscount = Math.round(totalAmount * 0.1); // 10% early bird

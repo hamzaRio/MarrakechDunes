@@ -58,11 +58,11 @@ export default function EnhancedWhatsAppReminders({ bookings }: EnhancedWhatsApp
     }) => {
       const response = await apiFetch(`/admin/bookings/${bookingId}/reminder`, {
         method: 'POST',
-        data: { 
+        body: JSON.stringify({ 
           reminderType, 
           paymentReminder: true,
           customMessage: customMessage || undefined
-        }
+        })
       });
       return response;
     },
@@ -213,7 +213,7 @@ Questions? Just reply! 😊`
               rows={3}
             />
             <p className="text-xs text-gray-500">
-              Use {`{customerName}`, `{activityName}`, `{totalAmount}`, `{remainingAmount}`, `{bookingDate}`} as placeholders
+              Use {[`{customerName}`, `{activityName}`, `{totalAmount}`, `{remainingAmount}`, `{bookingDate}`].join(', ')} as placeholders
             </p>
           </div>
 
@@ -262,7 +262,7 @@ Questions? Just reply! 😊`
                       </div>
                       <div className="text-xs text-gray-500">
                         {booking.paymentStatus === 'unpaid' ? 'Full payment due' : 
-                         `${booking.totalAmount - (booking.paidAmount || 0)} MAD balance`}
+                          `${Number(booking.totalAmount) - (Number(booking.paidAmount) || 0)} MAD balance`}
                       </div>
                     </div>
                   </div>

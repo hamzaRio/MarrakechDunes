@@ -126,7 +126,10 @@ export default function SmartNotifications() {
   // Get pending notifications
   const { data: notifications = [], refetch } = useQuery({
     queryKey: ['notifications'],
-    queryFn: () => apiFetch<SmartNotification[]>('/admin/notifications')
+    queryFn: async () => {
+      const response = await apiFetch('/admin/notifications');
+      return await response.json();
+    }
   });
 
   // Get bookings for notification targeting
@@ -144,7 +147,7 @@ export default function SmartNotifications() {
     }) => {
       return apiFetch('/admin/notifications/send', {
         method: 'POST',
-        data
+        body: JSON.stringify(data)
       });
     },
     onSuccess: () => {
@@ -160,7 +163,7 @@ export default function SmartNotifications() {
       const now = new Date();
       
       // Check for 24h reminders
-      const bookings24h = bookings.filter((booking: any) => {
+      const bookings24h = (bookings as any[]).filter((booking: any) => {
         const bookingDate = new Date(booking.preferredDate);
         const timeDiff = bookingDate.getTime() - now.getTime();
         return timeDiff > 0 && timeDiff <= 24 * 60 * 60 * 1000;
@@ -175,7 +178,7 @@ export default function SmartNotifications() {
       }
 
       // Check for 2h reminders
-      const bookings2h = bookings.filter((booking: any) => {
+      const bookings2h = (bookings as any[]).filter((booking: any) => {
         const bookingDate = new Date(booking.preferredDate);
         const timeDiff = bookingDate.getTime() - now.getTime();
         return timeDiff > 0 && timeDiff <= 2 * 60 * 60 * 1000;
@@ -271,7 +274,7 @@ export default function SmartNotifications() {
               Select Bookings
             </label>
             <div className="max-h-40 overflow-y-auto border border-gray-300 rounded-lg p-3">
-              {bookings.map((booking: any) => (
+              {(bookings as any[]).map((booking: any) => (
                 <label key={booking._id} className="flex items-center gap-2 p-2 hover:bg-gray-50">
                   <input
                     type="checkbox"
@@ -321,7 +324,7 @@ export default function SmartNotifications() {
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Notifications</h3>
         
         <div className="space-y-3">
-          {notifications.map((notification) => (
+          {(notifications as any[]).map((notification: any) => (
             <div key={notification.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
               <div className="flex items-center gap-3">
                 {getNotificationIcon(notification.type)}

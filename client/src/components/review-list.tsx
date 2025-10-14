@@ -18,7 +18,8 @@ export default function ReviewList({ activityId, showActivityName = false, limit
     queryKey: activityId ? ["/reviews", { activityId }] : ["/reviews"],
     queryFn: async () => {
       const url = activityId ? `/reviews?activityId=${activityId}` : "/reviews";
-      return await apiFetch(url);
+      const response = await apiFetch(url);
+      return await response.json();
     },
   });
 

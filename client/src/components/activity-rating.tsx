@@ -22,7 +22,8 @@ export default function ActivityRating({
   const { data: rating, isLoading } = useQuery<RatingData>({
     queryKey: [`/activities/${activityId}/rating`],
     queryFn: async () => {
-      return await apiFetch(`/activities/${activityId}/rating`);
+      const response = await apiFetch(`/activities/${activityId}/rating`);
+      return await response.json();
     },
   });
 
@@ -35,7 +36,7 @@ export default function ActivityRating({
     );
   }
 
-  if (!rating || rating.totalReviews === 0) {
+  if (!rating || (rating as any).totalReviews === 0) {
     return (
       <div className={`flex items-center space-x-1 text-gray-500 ${className}`}>
         <Star className="w-4 h-4" />
@@ -78,13 +79,13 @@ export default function ActivityRating({
 
   return (
     <div className={`flex items-center space-x-2 ${className}`}>
-      {renderStars(rating?.averageRating || 0)}
+      {renderStars((rating as any)?.averageRating || 0)}
       <span className="text-sm font-medium text-gray-700">
-        {(rating?.averageRating || 0).toFixed(1)}
+        {((rating as any)?.averageRating || 0).toFixed(1)}
       </span>
       {showReviewCount && (
         <Badge variant="secondary" className="text-xs">
-          {rating?.totalReviews || 0} {(rating?.totalReviews || 0) === 1 ? 'review' : 'reviews'}
+          {(rating as any)?.totalReviews || 0} {((rating as any)?.totalReviews || 0) === 1 ? 'review' : 'reviews'}
         </Badge>
       )}
     </div>

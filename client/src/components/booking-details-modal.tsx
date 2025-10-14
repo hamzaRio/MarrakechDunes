@@ -13,7 +13,8 @@ import {
   DollarSign, 
   CheckCircle,
   AlertCircle,
-  Clock as ClockIcon
+  Clock as ClockIcon,
+  Mail
 } from "lucide-react";
 import type { BookingWithActivity } from "marrakechdunes-shared/schema";
 

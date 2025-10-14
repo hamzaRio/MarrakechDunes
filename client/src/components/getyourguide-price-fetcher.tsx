@@ -36,7 +36,7 @@ export default function GetYourGuidePriceFetcher({
   onTitleSelect,
   currentPrice = 0 
 }: GetYourGuidePriceFetcherProps) {
-  const [foundActivity, setFoundActivity] = useState<GetYourGuideActivity | null>(null);
+  const [foundActivity, setFoundActivity] = useState<any | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [pricingSuggestions, setPricingSuggestions] = useState<any>(null);
   const [showResults, setShowResults] = useState(false);

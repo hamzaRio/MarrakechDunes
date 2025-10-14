@@ -56,21 +56,27 @@ export default function ActivityRecommendations() {
   // Get activities and weather data
   const { data: activities = [] } = useQuery({
     queryKey: ['activities'],
-    queryFn: () => apiFetch('/activities')
+    queryFn: async () => {
+      const response = await apiFetch('/activities');
+      return await response.json();
+    }
   });
 
   const { data: weather } = useQuery({
     queryKey: ['weather'],
-    queryFn: () => apiFetch<WeatherData>('/weather'),
+    queryFn: async () => {
+      const response = await apiFetch('/weather');
+      return await response.json();
+    },
     refetchInterval: 30 * 60 * 1000 // 30 minutes
   });
 
   // Calculate recommendations based on profile
   useEffect(() => {
-    if (activities.length === 0) return;
+    if ((activities as any).length === 0) return;
 
     const calculateRecommendations = (): ActivityRecommendation[] => {
-      return activities.map((activity: any) => {
+      return (activities as any).map((activity: any) => {
         let score = 0;
         const reasons: string[] = [];
         let matchPercentage = 0;

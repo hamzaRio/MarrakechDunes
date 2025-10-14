@@ -1,6 +1,13 @@
 import { useState, useMemo, useId } from 'react';
 import axios from '@/lib/api';
-import { PaymentType } from '@/shared/types/finance';
+// import { PaymentType } from 'marrakechdunes-shared/types/finance';
+enum PaymentType {
+  CASH = 'CASH',
+  DEPOSIT = 'DEPOSIT',
+  TRANSFER = 'TRANSFER',
+  CARD = 'CARD',
+  OTHER = 'OTHER',
+}
 import { toast } from 'sonner';
 
 type Props = {
@@ -13,10 +20,6 @@ type Props = {
 
 const paymentOptions: { label: string; value: PaymentType }[] = [
   { label: 'Espèces (Cash)', value: PaymentType.CASH },
-  { label: 'Acompte (Dépôt)', value: PaymentType.DEPOSIT },
-  { label: 'Virement Bancaire', value: PaymentType.TRANSFER },
-  { label: 'Carte (à venir)', value: PaymentType.CARD },
-  { label: 'Autre', value: PaymentType.OTHER },
 ];
 
 export default function PaymentModal({

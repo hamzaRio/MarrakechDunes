@@ -191,10 +191,10 @@ export default function BookingFixed() {
         customerPhone: form.getValues('customerPhone'),
         customerEmail: form.getValues('customerEmail'),
         preferredDate: form.getValues('preferredDate'),
-        paymentType: data.paymentType || 'deposit',
-        totalAmount: currentActivity!.price * form.getValues('numberOfPeople'),
-        depositAmount: Math.round(currentActivity!.price * form.getValues('numberOfPeople') * 0.3),
-        remainingAmount: Math.round(currentActivity!.price * form.getValues('numberOfPeople') * 0.7)
+        paymentType: (data as any).paymentType || 'deposit',
+        totalAmount: Number(currentActivity!.price) * form.getValues('numberOfPeople'),
+        depositAmount: Math.round(Number(currentActivity!.price) * form.getValues('numberOfPeople') * 0.3),
+        remainingAmount: Math.round(Number(currentActivity!.price) * form.getValues('numberOfPeople') * 0.7)
       };
       
       localStorage.setItem('pendingBooking', JSON.stringify(bookingData));
@@ -223,9 +223,11 @@ export default function BookingFixed() {
     // Ensure preferredDate is properly formatted as string
     const formattedData = {
       ...data,
-      preferredDate: data.preferredDate instanceof Date 
-        ? data.preferredDate.toISOString().split('T')[0]
-        : data.preferredDate
+      preferredDate: typeof data.preferredDate === 'string' 
+        ? data.preferredDate
+        : (data.preferredDate as any) instanceof Date 
+        ? (data.preferredDate as Date).toISOString().split('T')[0]
+        : String(data.preferredDate)
     };
     setPendingBookingData(formattedData);
     setShowPaymentConfirmation(true);

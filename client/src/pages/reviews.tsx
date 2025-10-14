@@ -68,7 +68,7 @@ export default function Reviews() {
                   {activity.name}
                 </h3>
                 <ActivityRating 
-                  activityId={activity.id} 
+                  activityId={activity.id!} 
                   className="mb-3" 
                   showReviewCount={true}
                 />
@@ -132,7 +132,7 @@ export default function Reviews() {
                 
                 {selectedActivityForReview ? (
                   <ReviewForm
-                    activityId={selectedActivityForReview.id}
+                    activityId={selectedActivityForReview.id!}
                     activityName={selectedActivityForReview.name}
                     onSuccess={handleReviewSubmitted}
                   />

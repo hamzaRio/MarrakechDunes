@@ -17,7 +17,7 @@ export function useAuth() {
   const hasLocalStorageUser = localStorage.getItem('user');
   
   // If localStorage is cleared, we should not make API calls
-  const shouldCheckAuth = hasSessionCookie && hasLocalStorageUser;
+  const shouldCheckAuth = Boolean(hasSessionCookie && hasLocalStorageUser);
   
   const { data, isLoading, error, refetch } = useQuery<AuthUserResponse | null>({
     queryKey: ["/auth/user"],
@@ -39,7 +39,7 @@ export function useAuth() {
   });
 
   // Try to get user from localStorage as fallback if query fails
-  let user = data?.user ?? null;
+  let user = (data as any)?.user ?? null;
   if (!user && hasLocalStorageUser && !isLoading) {
     try {
       const localUser = JSON.parse(hasLocalStorageUser);

@@ -48,7 +48,7 @@ export default function SimplifiedBookingForm({
     mutationFn: async (bookingData: any) => {
       return apiFetch("/bookings", {
         method: "POST",
-        data: bookingData
+        body: JSON.stringify(bookingData)
       });
     },
     onSuccess: () => {

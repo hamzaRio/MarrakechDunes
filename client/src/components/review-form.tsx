@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { insertReviewSchema } from "marrakechdunes-shared/schema";
-import { apiRequest } from "@/lib/queryClient";
+import { apiFetch } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/hooks/use-language";
 import { Button } from "@/components/ui/button";
@@ -45,10 +45,11 @@ export default function ReviewForm({ activityId, activityName, bookingId, onSucc
 
   const createReviewMutation = useMutation({
     mutationFn: async (data: ReviewFormData) => {
-      return await apiFetch("/reviews", {
+      const response = await apiFetch("/reviews", {
         method: "POST",
-        data: data,
+        body: JSON.stringify(data),
       });
+      return await response.json();
     },
     onSuccess: () => {
       toast({

@@ -13,7 +13,7 @@ import { getActivityFallbackImage } from "@/lib/image-utils";
 import { ensureArray, getAssetUrl } from "@/lib/utils";
 import PaymentManagement from "@/components/payment-management";
 import { WhatsAppNotificationPanel } from "@/components/whatsapp-notification-panel";
-import SimpleActivityForm from "@/components/simple-activity-form";
+import SimpleActivityForm from "@/components/simple-activity-form-v2";
 // Removed duplicate cash analytics dashboard import
 import CashBookingReminders from "@/components/cash-booking-reminders";
 import EmailModal from "@/components/EmailModal";
@@ -92,8 +92,7 @@ function AdminDashboardContent() {
       await apiFetch(`/admin/bookings/${bookingId}/status`, {
         method: 'PATCH',
         // headers: { 'Content-Type': 'application/json' },
-        data: { status },
-        credentials: 'include'
+        body: JSON.stringify({ status })
       });
       // Refresh bookings data using React Query
       queryClient.invalidateQueries({ queryKey: ["/admin/bookings"] });
