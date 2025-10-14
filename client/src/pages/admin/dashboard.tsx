@@ -165,11 +165,7 @@ function AdminDashboardContent() {
   const handleLogout = async () => {
     if (confirm('Êtes-vous sûr de vouloir vous déconnecter?')) {
       try {
-        // Clear any cached auth data
-        localStorage.removeItem('auth-token');
-        sessionStorage.clear();
-        
-        // Call logout API
+        // Call logout API (this will clear all localStorage and cookies)
         await logout();
         
         // Show success message
@@ -185,10 +181,6 @@ function AdminDashboardContent() {
         
       } catch (error) {
         console.error('Logout error:', error);
-        
-        // Clear local storage anyway
-        localStorage.removeItem('auth-token');
-        sessionStorage.clear();
         
         // Force redirect even on error
         setTimeout(() => {

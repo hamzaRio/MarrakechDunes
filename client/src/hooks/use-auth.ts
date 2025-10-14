@@ -16,9 +16,12 @@ export function useAuth() {
   const hasSessionCookie = document.cookie.includes('marrakech.session');
   const hasLocalStorageUser = localStorage.getItem('user');
   
+  // If localStorage is cleared, we should not make API calls
+  const shouldCheckAuth = hasSessionCookie && hasLocalStorageUser;
+  
   const { data, isLoading, error, refetch } = useQuery<AuthUserResponse | null>({
     queryKey: ["/auth/user"],
-    enabled: hasSessionCookie || !!hasLocalStorageUser, // Enable if we have cookie or localStorage
+    enabled: shouldCheckAuth, // Only check if we have both cookie AND localStorage
     retry: (failureCount, error: any) => {
       // Don't retry on 401/403 errors
       if (error?.response?.status === 401 || error?.response?.status === 403) {
@@ -50,6 +53,7 @@ export function useAuth() {
   // Function to force clear auth state (useful for logout)
   const clearAuthState = () => {
     localStorage.removeItem('user');
+    localStorage.removeItem('auth-token');
     sessionStorage.clear();
     // Clear all cookies by setting them to expire
     document.cookie.split(";").forEach(function(c) { 

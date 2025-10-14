@@ -47,16 +47,28 @@ export async function logout(): Promise<void> {
     // Call logout API
     await axios.post('/auth/logout');
     
-    // Clear any stored tokens
+    // Clear ALL auth-related localStorage keys
     localStorage.removeItem('auth-token');
+    localStorage.removeItem('user'); // This is the key that useAuth checks!
     sessionStorage.clear();
+    
+    // Clear all cookies
+    document.cookie.split(";").forEach(function(c) { 
+      document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+    });
     
   } catch (error) {
     console.error('Logout error:', error);
     // Continue with logout even if API call fails
     // Clear local storage anyway
     localStorage.removeItem('auth-token');
+    localStorage.removeItem('user'); // This is the key that useAuth checks!
     sessionStorage.clear();
+    
+    // Clear all cookies
+    document.cookie.split(";").forEach(function(c) { 
+      document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+    });
   }
 }
 

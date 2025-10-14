@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auth Flow Test - MarrakechDunes</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; }
+        button { padding: 10px 15px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .log { background: #f8f9fa; padding: 10px; margin: 10px 0; border-radius: 3px; font-family: monospace; white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+    <h1>🔐 MarrakechDunes Authentication Flow Test</h1>
+    
+    <div class="test-section info">
+        <h3>📋 Test Instructions</h3>
+        <p>This test will verify the complete authentication flow:</p>
+        <ol>
+            <li>Check current authentication state</li>
+            <li>Test login functionality</li>
+            <li>Test logout functionality</li>
+            <li>Verify localStorage and cookie clearing</li>
+        </ol>
+    </div>
+
+    <div class="test-section">
+        <h3>🔍 Current Authentication State</h3>
+        <button onclick="checkAuthState()">Check Auth State</button>
+        <div id="authState" class="log"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>🔑 Test Login</h3>
+        <input type="text" id="username" placeholder="Username" value="ahmed" style="margin: 5px; padding: 5px;">
+        <input type="password" id="password" placeholder="Password" value="admin123" style="margin: 5px; padding: 5px;">
+        <button onclick="testLogin()">Test Login</button>
+        <div id="loginResult" class="log"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>🚪 Test Logout</h3>
+        <button onclick="testLogout()">Test Logout</button>
+        <div id="logoutResult" class="log"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>🧹 Clear All Data</h3>
+        <button onclick="clearAllData()">Clear All Auth Data</button>
+        <div id="clearResult" class="log"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'https://marrakechdunes-sppy.onrender.com/api';
+        
+        function log(elementId, message, isError = false) {
+            const element = document.getElementById(elementId);
+            const timestamp = new Date().toLocaleTimeString();
+            const className = isError ? 'error' : 'success';
+            element.innerHTML += `<div class="${className}">[${timestamp}] ${message}</div>`;
+        }
+
+        function checkAuthState() {
+            const element = document.getElementById('authState');
+            element.innerHTML = '';
+            
+            // Check localStorage
+            const user = localStorage.getItem('user');
+            const authToken = localStorage.getItem('auth-token');
+            const sessionStorage = Object.keys(window.sessionStorage).length;
+            
+            // Check cookies
+            const cookies = document.cookie;
+            const hasSessionCookie = cookies.includes('marrakech.session');
+            
+            log('authState', `localStorage.user: ${user ? 'EXISTS' : 'NOT FOUND'}`);
+            log('authState', `localStorage.auth-token: ${authToken ? 'EXISTS' : 'NOT FOUND'}`);
+            log('authState', `sessionStorage items: ${sessionStorage}`);
+            log('authState', `Cookies: ${cookies || 'NONE'}`);
+            log('authState', `Has session cookie: ${hasSessionCookie ? 'YES' : 'NO'}`);
+            
+            // Test API call
+            fetch(`${API_BASE}/auth/user`, {
+                credentials: 'include',
+                method: 'GET'
+            })
+            .then(response => {
+                log('authState', `API /auth/user response: ${response.status} ${response.statusText}`);
+                return response.json();
+            })
+            .then(data => {
+                log('authState', `API response data: ${JSON.stringify(data)}`);
+            })
+            .catch(error => {
+                log('authState', `API call failed: ${error.message}`, true);
+            });
+        }
+
+        async function testLogin() {
+            const element = document.getElementById('loginResult');
+            element.innerHTML = '';
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            if (!username || !password) {
+                log('loginResult', 'Username and password are required', true);
+                return;
+            }
+            
+            try {
+                // First, initialize session
+                log('loginResult', 'Initializing session...');
+                const sessionResponse = await fetch(`${API_BASE}/session/init`, {
+                    credentials: 'include',
+                    method: 'GET'
+                });
+                
+                if (!sessionResponse.ok) {
+                    throw new Error(`Session init failed: ${sessionResponse.status}`);
+                }
+                
+                const sessionData = await sessionResponse.json();
+                log('loginResult', `Session initialized. CSRF Token: ${sessionData.csrfToken ? 'RECEIVED' : 'NOT RECEIVED'}`);
+                
+                // Now attempt login
+                log('loginResult', 'Attempting login...');
+                const loginResponse = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': sessionData.csrfToken || ''
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({ username, password })
+                });
+                
+                const loginData = await loginResponse.json();
+                
+                if (loginResponse.ok) {
+                    log('loginResult', `Login successful! User: ${JSON.stringify(loginData.user)}`);
+                    
+                    // Store user data in localStorage (simulating the app behavior)
+                    localStorage.setItem('user', JSON.stringify(loginData.user));
+                    log('loginResult', 'User data stored in localStorage');
+                    
+                    // Check auth state after login
+                    setTimeout(() => {
+                        log('loginResult', 'Checking auth state after login...');
+                        checkAuthState();
+                    }, 1000);
+                } else {
+                    log('loginResult', `Login failed: ${loginData.error || 'Unknown error'}`, true);
+                }
+                
+            } catch (error) {
+                log('loginResult', `Login error: ${error.message}`, true);
+            }
+        }
+
+        async function testLogout() {
+            const element = document.getElementById('logoutResult');
+            element.innerHTML = '';
+            
+            try {
+                log('logoutResult', 'Attempting logout...');
+                
+                // Call logout API
+                const logoutResponse = await fetch(`${API_BASE}/auth/logout`, {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+                
+                if (logoutResponse.ok) {
+                    log('logoutResult', 'Logout API call successful');
+                } else {
+                    log('logoutResult', `Logout API call failed: ${logoutResponse.status}`, true);
+                }
+                
+                // Clear localStorage (simulating the app behavior)
+                localStorage.removeItem('auth-token');
+                localStorage.removeItem('user');
+                sessionStorage.clear();
+                log('logoutResult', 'localStorage and sessionStorage cleared');
+                
+                // Clear all cookies
+                document.cookie.split(";").forEach(function(c) { 
+                    document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+                });
+                log('logoutResult', 'All cookies cleared');
+                
+                // Check auth state after logout
+                setTimeout(() => {
+                    log('logoutResult', 'Checking auth state after logout...');
+                    checkAuthState();
+                }, 1000);
+                
+            } catch (error) {
+                log('logoutResult', `Logout error: ${error.message}`, true);
+            }
+        }
+
+        function clearAllData() {
+            const element = document.getElementById('clearResult');
+            element.innerHTML = '';
+            
+            // Clear all localStorage
+            localStorage.clear();
+            log('clearResult', 'localStorage cleared');
+            
+            // Clear all sessionStorage
+            sessionStorage.clear();
+            log('clearResult', 'sessionStorage cleared');
+            
+            // Clear all cookies
+            document.cookie.split(";").forEach(function(c) { 
+                document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+            });
+            log('clearResult', 'All cookies cleared');
+            
+            // Check auth state after clearing
+            setTimeout(() => {
+                log('clearResult', 'Checking auth state after clearing...');
+                checkAuthState();
+            }, 500);
+        }
+
+        // Auto-check auth state on page load
+        window.onload = function() {
+            log('authState', 'Page loaded - checking initial auth state...');
+            checkAuthState();
+        };
+    </script>
+</body>
+</html>
