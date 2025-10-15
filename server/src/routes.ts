@@ -6,6 +6,7 @@ import bcrypt from "bcrypt";
 import { storage } from "./storage.js";
 import gygRoutes from "./routes/getyourguide.js";
 import debugRoutes from "./routes/debug.js";
+import competitorsRoutes from "./routes/competitors.js";
 import { 
   insertBookingSchema, 
   insertReviewSchema,
@@ -139,6 +140,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // GetYourGuide API routes (public for admin reference)
   app.use('/api/gyg', gygRoutes);
+  
+  // Competitors API routes (for activity search)
+  app.use('/api/competitors', competitorsRoutes);
   
   // Market Intelligence routes
   const marketIntelligenceRoutes = (await import('./routes/market-intelligence.js')).default;

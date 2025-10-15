@@ -1,6 +1,7 @@
 import express from 'express';
 import { z } from 'zod';
 import { searchExternalActivities } from '../services/competitors.js';
+import { testGYGConnection } from '../services/gyg.js';
 
 const router = express.Router();
 
@@ -15,6 +16,20 @@ router.get('/suggest', async (req, res) => {
   const { query, city, provider, limit } = schema.parse(req.query);
   const items = await searchExternalActivities(query, city, provider, limit);
   res.json({ items }); // unified shape
+});
+
+// Debug route for GYG connection testing
+router.get('/debug/gyg', async (req, res) => {
+  try {
+    const result = await testGYGConnection();
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({
+      status: 'error',
+      code: 'INTERNAL_ERROR',
+      message: error.message || 'Unknown error occurred'
+    });
+  }
 });
 
 export default router;

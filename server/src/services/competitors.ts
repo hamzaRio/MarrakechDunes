@@ -1,6 +1,7 @@
 import axios from 'axios';
 import removeAccents from 'remove-accents';
 import { searchRezdy } from './providers/rezdy.js';
+import { searchGYG, GYGError } from './gyg.js';
 import { ENV } from '../config/env.js';
 
 // Simple cache implementation
@@ -92,10 +93,24 @@ export async function searchExternalActivities(
   // Get GYG results if requested
   if (provider === 'all' || provider === 'gyg') {
     try {
-      const gygResults = await getGYGResults(q, city);
-      items.push(...gygResults);
+      const gygResults = await searchGYG(query, city);
+      const normalizedResults = gygResults.map(item => ({
+        title: item.title,
+        city: item.city,
+        priceMAD: item.currency === 'MAD' ? item.price : item.price,
+        durationText: item.durationText,
+        rating: undefined,
+        reviewsCount: undefined,
+        provider: item.provider,
+        providerUrl: item.providerUrl
+      }));
+      items.push(...normalizedResults);
     } catch (error) {
-      console.warn('GYG search failed:', error);
+      if (error instanceof GYGError) {
+        console.warn(`[GYG] ${error.code}: ${error.message}`);
+      } else {
+        console.warn('[GYG] Search failed:', error.message);
+      }
     }
   }
 
@@ -122,62 +137,7 @@ export async function searchExternalActivities(
   return processedItems;
 }
 
-async function getGYGResults(q: string, city?: string): Promise<ExternalActivity[]> {
-  const base = ENV.GYG_SUPPLIER_BASE;
-  const user = ENV.GYG_SUPPLIER_USER;
-  const pass = ENV.GYG_SUPPLIER_PASS;
-  const live = ENV.GYG_ENABLE_LIVE_SEARCH === 'true';
-
-  console.log('[GYG] API Config:', { 
-    hasBase: !!base, 
-    hasUser: !!user, 
-    hasPass: !!pass, 
-    liveEnabled: live 
-  });
-
-  if (!base || !user || !pass || !live) {
-    console.log('[GYG] Skipping live search - missing credentials or disabled');
-    return [];
-  }
-
-  // Try different endpoint format
-  const r = await axios.get(`${base}/products`, {
-    auth: { username: user, password: pass },
-    params: { 
-      search: q,
-      country: 'MA', 
-      limit: 10
-    }
-  });
-
-  const list = (r.data?.items ?? r.data ?? []).slice(0, 10);
-  const results: ExternalActivity[] = [];
-
-  for (const x of list) {
-    const title = x.title || x.name;
-    const loc = x.city || x.location || '';
-    const price = x.price?.amount || x.price || 0;
-    const cur = x.price?.currency || 'MAD';
-    const priceMAD = cur === 'MAD' ? price : Math.round(price * 10); // naive fx fallback
-    const durationText = x.duration_text || x.duration || '';
-    const providerUrl = x.url || x.product_url;
-
-    if (city && !inMoroccoCity(loc)) continue;
-
-    results.push({
-      title,
-      city: loc || city || 'Maroc',
-      priceMAD: Math.max(0, priceMAD),
-      durationText: durationText || '—',
-      rating: x.rating || x.average_rating,
-      reviewsCount: x.reviews_count || x.num_reviews,
-      provider: 'GetYourGuide',
-      providerUrl
-    });
-  }
-
-  return results;
-}
+// GYG integration moved to dedicated gyg.ts service
 
 async function getRezdyResults(query: string, city?: string, limit: number = 20): Promise<ExternalActivity[]> {
   const rezdyItems = await searchRezdy({ query, city, limit });
