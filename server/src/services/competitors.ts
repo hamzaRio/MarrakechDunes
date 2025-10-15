@@ -98,10 +98,14 @@ export async function searchExternalActivities(
     if (shouldUseGYG) {
       try {
         const searchQuery = city ? `${query} ${city}`.trim() : query;
+        console.log(`[COMPETITORS] Calling GYG with query: "${searchQuery}", live: ${live}`);
         const gygResults = await fetchProducts(searchQuery);
+        
+        console.log(`[COMPETITORS] GYG returned ${gygResults.length} results`);
         
         if (gygResults.length === 0 && live) {
           // If live=true and GYG returns 0 items, return empty (no fallback)
+          console.log(`[COMPETITORS] Live mode with 0 results - returning empty array`);
           setCached(key, []);
           return [];
         }
@@ -117,6 +121,7 @@ export async function searchExternalActivities(
           providerUrl: item.providerUrl
         }));
         items.push(...normalizedResults);
+        console.log(`[COMPETITORS] Added ${normalizedResults.length} GYG results`);
       } catch (error) {
         if (error instanceof GYGError) {
           console.warn(`[GYG] ${error.code}: ${error.message}`);
@@ -126,12 +131,16 @@ export async function searchExternalActivities(
         
         // Only fall back to mock if not in live mode
         if (!live) {
+          console.log(`[COMPETITORS] Falling back to mock data (not in live mode)`);
           // Fall back to mock data
           const mockResults = getMockMoroccoActivities();
           items.push(...mockResults.slice(0, limit));
+        } else {
+          console.log(`[COMPETITORS] Live mode - no fallback, returning empty array`);
         }
       }
     } else {
+      console.log(`[COMPETITORS] GYG disabled - using mock data`);
       // Use mock data when GYG is disabled
       const mockResults = getMockMoroccoActivities();
       items.push(...mockResults.slice(0, limit));

@@ -330,7 +330,25 @@ app.use(urlencodedBodyParser);
 app.use((req, res, next) => {
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   res.setHeader('Accept-Charset', 'utf-8');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept, Accept-Charset');
   next();
+});
+
+// Global error handler to prevent 502 crashes
+app.use((err: any, req: any, res: any, next: any) => {
+  if (err?.name === 'ZodError') {
+    return res.status(400).json({ 
+      status: 'error', 
+      code: 'VALIDATION_FAILED', 
+      details: err.issues 
+    });
+  }
+  console.error('[UNCAUGHT ERROR]', err);
+  return res.status(500).json({ 
+    status: 'error', 
+    code: 'INTERNAL', 
+    message: 'Unexpected error' 
+  });
 });
 
 // Enable cookie parsing

@@ -14,7 +14,8 @@ export class GYGError extends Error {
   constructor(
     public code: string,
     message: string,
-    public statusCode?: number
+    public statusCode?: number,
+    public upstreamBody?: string
   ) {
     super(message);
     this.name = 'GYGError';
@@ -41,22 +42,30 @@ export async function fetchProducts(search: string): Promise<GYGProduct[]> {
     
     console.log(`[GYG] Searching: "${search}"`);
     
+    // Log the request details for debugging (without credentials)
+    console.log(`[GYG] Request URL: ${url}`);
+    console.log(`[GYG] Request params:`, {
+      q: search.trim()
+    });
+
     const response = await axios.get(url, {
       params: {
-        search: search.trim(),
-        currency: 'MAD',
-        content_language: 'fr-FR',
-        market: 'MA'
+        q: search.trim()
       },
       headers: {
         'Authorization': `Basic ${Buffer.from(`${user}:${pass}`).toString('base64')}`,
         'Accept': 'application/json',
         'User-Agent': 'MarrakechDunes/1.0',
-        'Accept-Charset': 'utf-8'
+        'Accept-Charset': 'utf-8',
+        'Accept-Language': 'fr-FR'
       },
       timeout: 6000,
       responseType: 'json',
-      responseEncoding: 'utf8'
+      responseEncoding: 'utf8',
+      decompress: true,
+      transitional: {
+        clarifyTimeoutError: true
+      }
     });
 
     const products = response.data?.products || response.data?.items || response.data || [];
@@ -80,19 +89,23 @@ export async function fetchProducts(search: string): Promise<GYGProduct[]> {
     if (error instanceof AxiosError) {
       const status = error.response?.status;
       const message = error.response?.data?.errorMessage || error.message;
+      const upstreamBody = JSON.stringify(error.response?.data || {}).substring(0, 200);
+      
+      console.error(`[GYG] API Error - Status: ${status}, Message: ${message}`);
+      console.error(`[GYG] Upstream Body: ${upstreamBody}`);
       
       if (status === 401) {
-        throw new GYGError('AUTH_FAILED', 'Invalid GYG credentials', 401);
+        throw new GYGError('AUTH_FAILED', 'Invalid GYG credentials', 401, upstreamBody);
       } else if (status === 400) {
-        throw new GYGError('BAD_REQUEST', 'Invalid request parameters', 400);
+        throw new GYGError('BAD_REQUEST', `Invalid request parameters: ${message}`, 400, upstreamBody);
       } else if (status === 403) {
-        throw new GYGError('FORBIDDEN', 'Access denied to GYG API', 403);
+        throw new GYGError('FORBIDDEN', 'Access denied to GYG API', 403, upstreamBody);
       } else if (status === 429) {
-        throw new GYGError('RATE_LIMITED', 'GYG API rate limit exceeded', 429);
+        throw new GYGError('RATE_LIMITED', 'GYG API rate limit exceeded', 429, upstreamBody);
       } else if (status && status >= 500) {
-        throw new GYGError('SERVER_ERROR', 'GYG API server error', status);
+        throw new GYGError('SERVER_ERROR', 'GYG API server error', status, upstreamBody);
       } else {
-        throw new GYGError('NETWORK_ERROR', `GYG API error: ${message}`, status);
+        throw new GYGError('NETWORK_ERROR', `GYG API error: ${message}`, status, upstreamBody);
       }
     }
     
