@@ -11,6 +11,10 @@ import { config as serverEnv } from './env.js';
 process.stdout.setEncoding("utf8");
 process.stderr.setEncoding("utf8");
 
+// Set UTF-8 environment variables
+process.env.LANG = 'en_US.UTF-8';
+process.env.LC_ALL = 'en_US.UTF-8';
+
 // Tour Business Logging Setup
 const logger = pino({
   level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
@@ -321,6 +325,13 @@ const urlencodedBodyParser = express.urlencoded({ extended: false });
 // Enable JSON & URL-encoded body parsing for all routes
 app.use(jsonBodyParser);
 app.use(urlencodedBodyParser);
+
+// Set UTF-8 headers for all JSON responses
+app.use((req, res, next) => {
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.setHeader('Accept-Charset', 'utf-8');
+  next();
+});
 
 // Enable cookie parsing
 app.use(cookieParser());

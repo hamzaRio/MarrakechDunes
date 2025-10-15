@@ -22,14 +22,18 @@ router.get('/suggest', async (req, res) => {
 // Debug route for GYG connection testing
 router.get('/debug/gyg', async (req, res) => {
   try {
-    const query = req.query.query as string || 'agafay marrakech';
+    const query = req.query.query as string || 'agafay';
+    const city = req.query.city as string || 'Marrakech';
+    const live = req.query.live === 'true';
+    
+    const searchQuery = city ? `${query} ${city}`.trim() : query;
     const result = await testGYGConnection();
     res.json(result);
   } catch (error) {
     res.status(500).json({
       status: 'error',
       code: 'INTERNAL_ERROR',
-      message: error.message || 'Unknown error occurred'
+      message: (error as Error).message || 'Unknown error occurred'
     });
   }
 });

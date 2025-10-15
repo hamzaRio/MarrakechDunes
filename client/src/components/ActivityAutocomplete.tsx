@@ -23,6 +23,7 @@ export default function ActivityAutocomplete({ city, onPick }: Props) {
   const [text, setText] = useState('');
   const [debouncedText, setDebouncedText] = useState('');
   const [provider, setProvider] = useState<'all'|'gyg'|'rezdy'>('all');
+  const [useLiveGYG, setUseLiveGYG] = useState(false);
   
   // Manual debounce implementation
   useEffect(() => {
@@ -36,11 +37,13 @@ export default function ActivityAutocomplete({ city, onPick }: Props) {
   const enabled = debouncedText.trim().length >= 2;
 
   const { data, isLoading, isError } = useQuery({
-    queryKey: ['competitors', debouncedText, city, provider],
+    queryKey: ['competitors', debouncedText, city, provider, useLiveGYG],
     queryFn: async () => {
-      const r = await axios.get('/competitors/suggest', { 
-        params: { query: debouncedText, city, provider } 
-      });
+      const params: any = { query: debouncedText, city, provider };
+      if (useLiveGYG) {
+        params.live = true;
+      }
+      const r = await axios.get('/competitors/suggest', { params });
       return r.data.items as ExternalActivity[];
     },
     enabled
@@ -66,6 +69,19 @@ export default function ActivityAutocomplete({ city, onPick }: Props) {
             <SelectItem value="rezdy">Rezdy</SelectItem>
           </SelectContent>
         </Select>
+      </div>
+      
+      {/* Live GYG Toggle */}
+      <div className="flex items-center gap-2 mb-2">
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={useLiveGYG}
+            onChange={(e) => setUseLiveGYG(e.target.checked)}
+            className="rounded"
+          />
+          <span>Utiliser GYG en direct</span>
+        </label>
       </div>
       <p className="mt-1 text-xs text-muted-foreground">
         {!enabled ? 'Tapez au moins 2 lettres…'

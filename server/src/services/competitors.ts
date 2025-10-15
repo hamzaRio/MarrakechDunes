@@ -113,7 +113,7 @@ export async function searchExternalActivities(
           durationText: item.durationText,
           rating: undefined,
           reviewsCount: undefined,
-          provider: item.provider,
+          provider: item.provider as 'GetYourGuide',
           providerUrl: item.providerUrl
         }));
         items.push(...normalizedResults);
@@ -121,7 +121,7 @@ export async function searchExternalActivities(
         if (error instanceof GYGError) {
           console.warn(`[GYG] ${error.code}: ${error.message}`);
         } else {
-          console.warn('[GYG] Search failed:', error.message);
+          console.warn('[GYG] Search failed:', (error as Error).message);
         }
         
         // Only fall back to mock if not in live mode

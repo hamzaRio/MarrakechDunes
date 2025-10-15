@@ -51,9 +51,12 @@ export async function fetchProducts(search: string): Promise<GYGProduct[]> {
       headers: {
         'Authorization': `Basic ${Buffer.from(`${user}:${pass}`).toString('base64')}`,
         'Accept': 'application/json',
-        'User-Agent': 'MarrakechDunes/1.0'
+        'User-Agent': 'MarrakechDunes/1.0',
+        'Accept-Charset': 'utf-8'
       },
-      timeout: 6000
+      timeout: 6000,
+      responseType: 'json',
+      responseEncoding: 'utf8'
     });
 
     const products = response.data?.products || response.data?.items || response.data || [];
@@ -86,14 +89,14 @@ export async function fetchProducts(search: string): Promise<GYGProduct[]> {
         throw new GYGError('FORBIDDEN', 'Access denied to GYG API', 403);
       } else if (status === 429) {
         throw new GYGError('RATE_LIMITED', 'GYG API rate limit exceeded', 429);
-      } else if (status >= 500) {
+      } else if (status && status >= 500) {
         throw new GYGError('SERVER_ERROR', 'GYG API server error', status);
       } else {
         throw new GYGError('NETWORK_ERROR', `GYG API error: ${message}`, status);
       }
     }
     
-    throw new GYGError('UNKNOWN_ERROR', `Unexpected error: ${error.message}`);
+    throw new GYGError('UNKNOWN_ERROR', `Unexpected error: ${(error as Error).message}`);
   }
 }
 
@@ -125,7 +128,7 @@ export async function testGYGConnection(): Promise<{ status: 'ok' | 'error'; cod
     return {
       status: 'error',
       code: 'UNKNOWN_ERROR',
-      message: error.message || 'Unknown error occurred'
+      message: (error as Error).message || 'Unknown error occurred'
     };
   }
 }
