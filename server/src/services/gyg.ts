@@ -21,38 +21,35 @@ export class GYGError extends Error {
   }
 }
 
-export async function searchGYG(query: string, city?: string): Promise<GYGProduct[]> {
-  const base = process.env.GYG_SUPPLIER_BASE;
+export async function fetchProducts(search: string): Promise<GYGProduct[]> {
+  const base = process.env.GYG_SUPPLIER_BASE || 'https://supplier-api.getyourguide.com/1';
   const user = process.env.GYG_SUPPLIER_USER;
   const pass = process.env.GYG_SUPPLIER_PASS;
-  const enabled = process.env.GYG_ENABLE_LIVE_SEARCH === 'true';
 
   // Validate configuration
-  if (!enabled || !base || !user || !pass) {
-    throw new GYGError('CONFIG_MISSING', 'GYG live search not enabled or credentials missing');
+  if (!user || !pass) {
+    throw new GYGError('CONFIG_MISSING', 'GYG credentials missing');
   }
 
   // Validate query
-  if (!query || query.trim().length < 2) {
+  if (!search || search.trim().length < 2) {
     throw new GYGError('INVALID_QUERY', 'Query must be at least 2 characters');
   }
 
   try {
-    const searchQuery = city ? `${query} ${city}`.trim() : query;
     const url = `${base}/products`;
     
-    console.log(`[GYG] Searching: "${searchQuery}"`);
+    console.log(`[GYG] Searching: "${search}"`);
     
     const response = await axios.get(url, {
       params: {
-        search: searchQuery,
-        limit: 10
-      },
-      auth: {
-        username: user,
-        password: pass
+        search: search.trim(),
+        currency: 'MAD',
+        content_language: 'fr-FR',
+        market: 'MA'
       },
       headers: {
+        'Authorization': `Basic ${Buffer.from(`${user}:${pass}`).toString('base64')}`,
         'Accept': 'application/json',
         'User-Agent': 'MarrakechDunes/1.0'
       },
@@ -68,7 +65,7 @@ export async function searchGYG(query: string, city?: string): Promise<GYGProduc
 
     return products.map((product: any) => ({
       title: product.title || product.name || 'Untitled Activity',
-      city: product.city || product.location?.city || city || 'Marrakech',
+      city: product.city || product.location?.city || product.location?.name || 'Marrakech',
       price: Number(product.price || product.fromPrice || 0),
       currency: product.currency || 'MAD',
       durationText: product.duration || product.durationText || 'N/A',
@@ -100,13 +97,21 @@ export async function searchGYG(query: string, city?: string): Promise<GYGProduc
   }
 }
 
-export async function testGYGConnection(): Promise<{ status: 'ok' | 'error'; code: string; message: string }> {
+// Legacy function for backward compatibility
+export async function searchGYG(query: string, city?: string): Promise<GYGProduct[]> {
+  const searchQuery = city ? `${query} ${city}`.trim() : query;
+  return fetchProducts(searchQuery);
+}
+
+export async function testGYGConnection(): Promise<{ status: 'ok' | 'error'; code: string; message: string; count?: number; sampleTitle?: string }> {
   try {
-    const results = await searchGYG('agafay');
+    const results = await fetchProducts('agafay marrakech');
     return {
       status: 'ok',
       code: 'SUCCESS',
-      message: `Found ${results.length} activities`
+      message: `Found ${results.length} activities`,
+      count: results.length,
+      sampleTitle: results[0]?.title || 'No activities found'
     };
   } catch (error) {
     if (error instanceof GYGError) {

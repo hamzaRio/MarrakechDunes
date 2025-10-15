@@ -1,7 +1,7 @@
 import axios from 'axios';
 import removeAccents from 'remove-accents';
 import { searchRezdy } from './providers/rezdy.js';
-import { searchGYG, GYGError } from './gyg.js';
+import { fetchProducts, GYGError } from './gyg.js';
 import { ENV } from '../config/env.js';
 
 // Simple cache implementation
@@ -81,7 +81,8 @@ export async function searchExternalActivities(
   query: string, 
   city?: string, 
   provider: 'all'|'gyg'|'rezdy' = 'all',
-  limit: number = 20
+  limit: number = 20,
+  live: boolean = false
 ): Promise<ExternalActivity[]> {
   const key = `${provider}:${query}:${city || ''}:${limit}`;
   const hit = getCached(key);
@@ -92,25 +93,48 @@ export async function searchExternalActivities(
 
   // Get GYG results if requested
   if (provider === 'all' || provider === 'gyg') {
-    try {
-      const gygResults = await searchGYG(query, city);
-      const normalizedResults = gygResults.map(item => ({
-        title: item.title,
-        city: item.city,
-        priceMAD: item.currency === 'MAD' ? item.price : item.price,
-        durationText: item.durationText,
-        rating: undefined,
-        reviewsCount: undefined,
-        provider: item.provider,
-        providerUrl: item.providerUrl
-      }));
-      items.push(...normalizedResults);
-    } catch (error) {
-      if (error instanceof GYGError) {
-        console.warn(`[GYG] ${error.code}: ${error.message}`);
-      } else {
-        console.warn('[GYG] Search failed:', error.message);
+    const shouldUseGYG = live || process.env.GYG_ENABLE_LIVE_SEARCH === 'true';
+    
+    if (shouldUseGYG) {
+      try {
+        const searchQuery = city ? `${query} ${city}`.trim() : query;
+        const gygResults = await fetchProducts(searchQuery);
+        
+        if (gygResults.length === 0 && live) {
+          // If live=true and GYG returns 0 items, return empty (no fallback)
+          setCached(key, []);
+          return [];
+        }
+        
+        const normalizedResults = gygResults.map(item => ({
+          title: item.title,
+          city: item.city,
+          priceMAD: item.currency === 'MAD' ? item.price : item.price,
+          durationText: item.durationText,
+          rating: undefined,
+          reviewsCount: undefined,
+          provider: item.provider,
+          providerUrl: item.providerUrl
+        }));
+        items.push(...normalizedResults);
+      } catch (error) {
+        if (error instanceof GYGError) {
+          console.warn(`[GYG] ${error.code}: ${error.message}`);
+        } else {
+          console.warn('[GYG] Search failed:', error.message);
+        }
+        
+        // Only fall back to mock if not in live mode
+        if (!live) {
+          // Fall back to mock data
+          const mockResults = getMockMoroccoActivities();
+          items.push(...mockResults.slice(0, limit));
+        }
       }
+    } else {
+      // Use mock data when GYG is disabled
+      const mockResults = getMockMoroccoActivities();
+      items.push(...mockResults.slice(0, limit));
     }
   }
 
@@ -164,6 +188,40 @@ async function getRezdyResults(query: string, city?: string, limit: number = 20)
   }
 
   return results;
+}
+
+function getMockMoroccoActivities(): ExternalActivity[] {
+  return [
+    // Marrakech Activities
+    { title:'Marrakech City Tour', city:'Marrakech', priceMAD:180, durationText:'4 heures', rating:4.5, reviewsCount:120, provider:'Mock' },
+    { title:'Agafay Desert Day Trip', city:'Marrakech', priceMAD:520, durationText:'8 heures', rating:4.8, reviewsCount:89, provider:'Mock' },
+    { title:'Hot Air Balloon Ride', city:'Marrakech', priceMAD:650, durationText:'3 heures', rating:4.9, reviewsCount:156, provider:'Mock' },
+    { title:'Atlas Mountains Trek', city:'Marrakech', priceMAD:380, durationText:'6 heures', rating:4.7, reviewsCount:203, provider:'Mock' },
+    { title:'Souk Shopping Tour', city:'Marrakech', priceMAD:120, durationText:'3 heures', rating:4.3, reviewsCount:67, provider:'Mock' },
+    
+    // Desert & Adventure
+    { title:'Merzouga Desert Safari', city:'Merzouga', priceMAD:800, durationText:'2 jours', rating:4.9, reviewsCount:312, provider:'Mock' },
+    { title:'Zagora Desert Tour', city:'Zagora', priceMAD:450, durationText:'1 jour', rating:4.6, reviewsCount:145, provider:'Mock' },
+    { title:'Camel Trekking', city:'Merzouga', priceMAD:350, durationText:'4 heures', rating:4.7, reviewsCount:98, provider:'Mock' },
+    
+    // Coastal Cities
+    { title:'Essaouira Day Trip', city:'Essaouira', priceMAD:200, durationText:'9 heures', rating:4.7, reviewsCount:178, provider:'Mock' },
+    { title:'Agadir Beach Tour', city:'Agadir', priceMAD:180, durationText:'6 heures', rating:4.4, reviewsCount:134, provider:'Mock' },
+    { title:'Casablanca City Tour', city:'Casablanca', priceMAD:150, durationText:'4 heures', rating:4.2, reviewsCount:89, provider:'Mock' },
+    
+    // Northern Cities
+    { title:'Chefchaouen Day Trip', city:'Chefchaouen', priceMAD:400, durationText:'12 heures', rating:4.8, reviewsCount:267, provider:'Mock' },
+    { title:'Fes Cultural Tour', city:'Fes', priceMAD:220, durationText:'6 heures', rating:4.6, reviewsCount:156, provider:'Mock' },
+    { title:'Rabat Capital Tour', city:'Rabat', priceMAD:160, durationText:'4 heures', rating:4.3, reviewsCount:78, provider:'Mock' },
+    
+    // Waterfalls & Nature
+    { title:'Ouzoud Waterfalls Tour', city:'Ouzoud', priceMAD:450, durationText:'10 heures', rating:4.6, reviewsCount:189, provider:'Mock' },
+    { title:'Ourika Valley Day Trip', city:'Ourika', priceMAD:280, durationText:'8 heures', rating:4.5, reviewsCount:123, provider:'Mock' },
+    
+    // Cultural & Historical
+    { title:'Ait Ben Haddou Tour', city:'Ouarzazate', priceMAD:320, durationText:'10 heures', rating:4.7, reviewsCount:145, provider:'Mock' },
+    { title:'Volubilis Roman Ruins', city:'Meknes', priceMAD:200, durationText:'6 heures', rating:4.4, reviewsCount:67, provider:'Mock' }
+  ];
 }
 
 function getMockResults(q: string, city?: string): ExternalActivity[] {
