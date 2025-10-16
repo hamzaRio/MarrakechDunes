@@ -45,12 +45,18 @@ export async function fetchProducts(search: string): Promise<GYGProduct[]> {
     // Log the request details for debugging (without credentials)
     console.log(`[GYG] Request URL: ${url}`);
     console.log(`[GYG] Request params:`, {
-      q: search.trim()
+      search: search.trim(),
+      currency: 'MAD',
+      content_language: 'fr-FR',
+      market: 'MA'
     });
 
     const response = await axios.get(url, {
       params: {
-        q: search.trim()
+        search: search.trim(),
+        currency: 'MAD',
+        content_language: 'fr-FR',
+        market: 'MA'
       },
       headers: {
         'Authorization': `Basic ${Buffer.from(`${user}:${pass}`).toString('base64')}`,
