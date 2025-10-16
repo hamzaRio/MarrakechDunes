@@ -45,7 +45,7 @@ export async function fetchProducts(search: string): Promise<GYGProduct[]> {
     // Log the request details for debugging (without credentials)
     console.log(`[GYG] Request URL: ${url}`);
     console.log(`[GYG] Request params:`, {
-      search: search.trim(),
+      q: search.trim(),
       currency: 'MAD',
       content_language: 'fr-FR',
       market: 'MA'
@@ -53,7 +53,7 @@ export async function fetchProducts(search: string): Promise<GYGProduct[]> {
 
     const response = await axios.get(url, {
       params: {
-        search: search.trim(),
+        q: search.trim(),
         currency: 'MAD',
         content_language: 'fr-FR',
         market: 'MA'

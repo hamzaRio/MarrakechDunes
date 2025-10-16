@@ -480,6 +480,20 @@ app.use((req, res, next) => {
   
   const server = await registerRoutes(app);
 
+  // Root health check endpoint
+  app.get('/', (req, res) => {
+    res.json({ 
+      status: 'ok',
+      service: 'MarrakechDunes API',
+      timestamp: new Date().toISOString(),
+      version: '1.0.0'
+    });
+  });
+
+  app.head('/', (req, res) => {
+    res.status(200).end();
+  });
+
   // Health check endpoints
   app.get('/api', (req, res) => {
     res.json({ 

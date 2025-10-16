@@ -84,12 +84,13 @@ export async function searchExternalActivities(
   limit: number = 20,
   live: boolean = false
 ): Promise<ExternalActivity[]> {
-  const key = `${provider}:${query}:${city || ''}:${limit}`;
+  const key = `${provider}:${query}:${city || ''}:${limit}:${live}`;
   const hit = getCached(key);
   if (hit) return hit;
 
   const items: ExternalActivity[] = [];
-  const q = [query, city, 'Morocco'].filter(Boolean).join(' ').trim();
+  let gygError: any = null;
+  let rezdyError: any = null;
 
   // Get GYG results if requested
   if (provider === 'all' || provider === 'gyg') {
@@ -123,6 +124,7 @@ export async function searchExternalActivities(
         items.push(...normalizedResults);
         console.log(`[COMPETITORS] Added ${normalizedResults.length} GYG results`);
       } catch (error) {
+        gygError = error;
         if (error instanceof GYGError) {
           console.warn(`[GYG] ${error.code}: ${error.message}`);
         } else {
@@ -132,7 +134,6 @@ export async function searchExternalActivities(
         // Only fall back to mock if not in live mode
         if (!live) {
           console.log(`[COMPETITORS] Falling back to mock data (not in live mode)`);
-          // Fall back to mock data
           const mockResults = getMockMoroccoActivities();
           items.push(...mockResults.slice(0, limit));
         } else {
@@ -141,7 +142,6 @@ export async function searchExternalActivities(
       }
     } else {
       console.log(`[COMPETITORS] GYG disabled - using mock data`);
-      // Use mock data when GYG is disabled
       const mockResults = getMockMoroccoActivities();
       items.push(...mockResults.slice(0, limit));
     }
@@ -153,14 +153,16 @@ export async function searchExternalActivities(
       const rezdyResults = await getRezdyResults(query, city, limit);
       items.push(...rezdyResults);
     } catch (error) {
+      rezdyError = error;
       console.warn('Rezdy search failed:', error);
     }
   }
 
-  // Fallback to mock if no results
-  if (items.length === 0) {
-    const mockResults = getMockResults(q, city);
-    items.push(...mockResults);
+  // Fallback to mock if no results AND not in live mode
+  if (items.length === 0 && !live) {
+    console.log(`[COMPETITORS] No results from any provider, using mock data`);
+    const mockResults = getMockResults(query, city);
+    items.push(...mockResults.slice(0, limit));
   }
 
   // Process and normalize results

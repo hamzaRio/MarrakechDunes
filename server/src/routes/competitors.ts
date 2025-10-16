@@ -10,38 +10,64 @@ function boolFromQuery(value: any): boolean {
   if (typeof value === 'boolean') return value;
   if (typeof value === 'string') {
     const normalized = value.toLowerCase().trim();
-    return normalized === 'true' || normalized === '1';
+    return normalized === 'true' || normalized === '1' || normalized === 'yes';
   }
   return Boolean(value);
 }
 
-// Helper function to sanitize string parameters
+// Helper function to sanitize string parameters - handles URL encoding and quotes
 function sanitizeString(value: any): string | undefined {
   if (!value) return undefined;
-  return String(value).replace(/["']/g, '').trim();
+  
+  // Decode URL encoding first
+  let decoded = String(value);
+  try {
+    decoded = decodeURIComponent(decoded);
+  } catch (e) {
+    // If decoding fails, use original value
+  }
+  
+  // Strip surrounding quotes and trim
+  const sanitized = decoded.replace(/^["']|["']$/g, '').trim();
+  
+  return sanitized || undefined;
+}
+
+// Helper function to normalize provider parameter
+function normalizeProvider(value: any): 'all' | 'gyg' | 'rezdy' {
+  if (!value) return 'all';
+  
+  const sanitized = sanitizeString(value)?.toLowerCase();
+  if (sanitized === 'gyg' || sanitized === 'getyourguide') return 'gyg';
+  if (sanitized === 'rezdy') return 'rezdy';
+  return 'all';
 }
 
 const schema = z.object({
   query: z.string().min(2).transform(val => sanitizeString(val) || val),
   city: z.string().optional().transform(val => sanitizeString(val)),
-  provider: z.enum(['all', 'gyg', 'rezdy']).optional().default('all'),
+  provider: z.string().optional().default('all').transform(normalizeProvider),
   limit: z.coerce.number().min(1).max(50).optional().default(20),
   live: z.any().optional().default(false).transform(boolFromQuery)
 });
 
 router.get('/suggest', async (req, res) => {
   try {
-    const { query, city, provider, limit, live } = schema.parse(req.query);
-    const items = await searchExternalActivities(query, city, provider, limit, live);
-    res.json({ items }); // unified shape
-  } catch (error) {
-    if (error instanceof z.ZodError) {
+    // Use safeParse to avoid throwing
+    const validationResult = schema.safeParse(req.query);
+    
+    if (!validationResult.success) {
       return res.status(400).json({
         status: 'error',
         code: 'VALIDATION_FAILED',
-        details: error.issues
+        details: validationResult.error.issues
       });
     }
+    
+    const { query, city, provider, limit, live } = validationResult.data;
+    const items = await searchExternalActivities(query, city, provider, limit, live);
+    res.json({ items }); // unified shape
+  } catch (error) {
     console.error('[SUGGEST ERROR]', error);
     res.status(500).json({
       status: 'error',
@@ -74,7 +100,10 @@ router.get('/debug/gyg', async (req, res) => {
         request: {
           url: `${process.env.GYG_SUPPLIER_BASE}/products`,
           params: {
-            q: searchQuery
+            q: searchQuery,
+            currency: 'MAD',
+            content_language: 'fr-FR',
+            market: 'MA'
           }
         }
       });
@@ -87,7 +116,10 @@ router.get('/debug/gyg', async (req, res) => {
         request: {
           url: `${process.env.GYG_SUPPLIER_BASE}/products`,
           params: {
-            q: searchQuery
+            q: searchQuery,
+            currency: 'MAD',
+            content_language: 'fr-FR',
+            market: 'MA'
           }
         }
       });
