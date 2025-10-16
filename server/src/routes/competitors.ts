@@ -5,6 +5,28 @@ import { testGYGConnection } from '../services/gyg.js';
 
 const router = express.Router();
 
+// Sanitize query parameters middleware
+router.use((req, res, next) => {
+  // Sanitize query parameters
+  if (req.query.query) {
+    req.query.query = sanitizeString(req.query.query);
+  }
+  
+  if (req.query.city) {
+    req.query.city = sanitizeString(req.query.city);
+  }
+  
+  if (req.query.provider) {
+    req.query.provider = normalizeProvider(req.query.provider);
+  }
+  
+  if (req.query.live !== undefined) {
+    req.query.live = boolFromQuery(req.query.live);
+  }
+  
+  next();
+});
+
 // Helper function to normalize boolean values from query params
 function boolFromQuery(value: any): boolean {
   if (typeof value === 'boolean') return value;
@@ -44,11 +66,11 @@ function normalizeProvider(value: any): 'all' | 'gyg' | 'rezdy' {
 }
 
 const schema = z.object({
-  query: z.string().min(2).transform(val => sanitizeString(val) || val),
-  city: z.string().optional().transform(val => sanitizeString(val)),
-  provider: z.string().optional().default('all').transform(normalizeProvider),
+  query: z.string().min(2),
+  city: z.string().optional(),
+  provider: z.enum(['all', 'gyg', 'rezdy']).default('all'),
   limit: z.coerce.number().min(1).max(50).optional().default(20),
-  live: z.any().optional().default(false).transform(boolFromQuery)
+  live: z.boolean().optional()
 });
 
 router.get('/suggest', async (req, res) => {
@@ -104,9 +126,25 @@ router.get('/debug/gyg', async (req, res) => {
     const live = boolFromQuery(req.query.live);
     
     const searchQuery = city ? `${query} ${city}`.trim() : query;
+    const baseURL = process.env.GYG_SUPPLIER_BASE || 'https://supplier-api.getyourguide.com/1';
     
     // Import the GYG service directly for more detailed debugging
     const { fetchProducts } = await import('../services/gyg.js');
+    
+    const requestDetails = {
+      url: `${baseURL}/products`,
+      params: {
+        q: searchQuery,
+        currency: 'MAD',
+        content_language: 'fr-FR',
+        market: 'MA'
+      },
+      headers: {
+        'Accept': 'application/json; charset=utf-8',
+        'Accept-Charset': 'utf-8',
+        'User-Agent': 'MarrakechDunes/1.0'
+      }
+    };
     
     try {
       const results = await fetchProducts(searchQuery);
@@ -116,38 +154,25 @@ router.get('/debug/gyg', async (req, res) => {
         upstreamStatus: 200,
         count: results.length,
         sampleTitle: results[0]?.title || 'No activities found',
-        request: {
-          url: `${process.env.GYG_SUPPLIER_BASE}/products`,
-          params: {
-            q: searchQuery,
-            currency: 'MAD',
-            content_language: 'fr-FR',
-            market: 'MA'
-          }
-        }
+        request: requestDetails,
+        timestamp: new Date().toISOString()
       });
     } catch (gygError: any) {
       res.json({
         status: 'error',
         code: gygError.code || 'GYG_ERROR',
         upstreamStatus: gygError.statusCode,
-        upstreamBody: gygError.message?.substring(0, 200) || 'No details',
-        request: {
-          url: `${process.env.GYG_SUPPLIER_BASE}/products`,
-          params: {
-            q: searchQuery,
-            currency: 'MAD',
-            content_language: 'fr-FR',
-            market: 'MA'
-          }
-        }
+        upstreamBody: gygError.upstreamBody?.substring(0, 200) || gygError.message?.substring(0, 200) || 'No details',
+        request: requestDetails,
+        timestamp: new Date().toISOString()
       });
     }
   } catch (error) {
     res.status(500).json({
       status: 'error',
       code: 'INTERNAL_ERROR',
-      message: (error as Error).message || 'Unknown error occurred'
+      message: (error as Error).message || 'Unknown error occurred',
+      timestamp: new Date().toISOString()
     });
   }
 });
