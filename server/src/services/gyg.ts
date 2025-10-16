@@ -55,22 +55,20 @@ export async function fetchProducts(search: string): Promise<GYGProduct[]> {
     
     console.log(`[GYG] Searching: "${search}"`);
     
-    // Log the request details for debugging (without credentials)
-    console.log(`[GYG] Request URL: ${url}`);
-    console.log(`[GYG] Request params:`, {
+    // Use minimal parameters to avoid 400 errors
+    const params = {
       q: search.trim(),
       currency: 'MAD',
-      content_language: 'fr-FR',
-      market: 'MA'
-    });
+      language: 'fr' // instead of content_language
+      // removed 'market' parameter
+    };
+    
+    // Log the request details for debugging (without credentials)
+    console.log(`[GYG] Request URL: ${url}`);
+    console.log(`[GYG] Request params:`, params);
 
     const response = await axios.get(url, {
-      params: {
-        q: search.trim(),
-        currency: 'MAD',
-        content_language: 'fr-FR',
-        market: 'MA'
-      },
+      params,
       headers: {
         'Authorization': `Basic ${Buffer.from(`${user}:${pass}`).toString('base64')}`,
         'Accept': 'application/json; charset=utf-8',
@@ -102,7 +100,10 @@ export async function fetchProducts(search: string): Promise<GYGProduct[]> {
       return [];
     }
 
-    return products.map((product: any) => ({
+    // Normalize strings to prevent garbled character detection
+    const norm = (s: string) => s.normalize('NFC');
+    
+    const items = products.map((product: any) => ({
       title: normalizeUTF8(product.title || product.name || 'Untitled Activity'),
       city: normalizeUTF8(product.city || product.location?.city || product.location?.name || 'Marrakech'),
       price: Number(product.price || product.fromPrice || 0),
@@ -110,6 +111,14 @@ export async function fetchProducts(search: string): Promise<GYGProduct[]> {
       durationText: normalizeUTF8(product.duration || product.durationText || 'N/A'),
       provider: 'GetYourGuide',
       providerUrl: product.url || product.shortUrl
+    }));
+    
+    // Apply additional normalization to prevent garbled character detection
+    return items.map(i => ({
+      ...i,
+      title: norm(i.title ?? ''),
+      city: norm(i.city ?? ''),
+      durationText: norm(i.durationText ?? '')
     }));
 
   } catch (error) {

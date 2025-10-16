@@ -136,8 +136,7 @@ router.get('/debug/gyg', async (req, res) => {
       params: {
         q: searchQuery,
         currency: 'MAD',
-        content_language: 'fr-FR',
-        market: 'MA'
+        language: 'fr' // minimal parameters
       },
       headers: {
         'Accept': 'application/json; charset=utf-8',
