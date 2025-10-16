@@ -7,13 +7,19 @@ import pino from 'pino';
 import { validateProductionEnvironment, getSecurityRecommendations } from './production-validator.js';
 import { config as serverEnv } from './env.js';
 
-// Fix UTF-8 console encoding for emojis
+// Fix UTF-8 console encoding for emojis and French characters
 process.stdout.setEncoding("utf8");
 process.stderr.setEncoding("utf8");
 
-// Set UTF-8 environment variables
+// Set UTF-8 environment variables for proper character handling
 process.env.LANG = 'en_US.UTF-8';
 process.env.LC_ALL = 'en_US.UTF-8';
+process.env.NODE_OPTIONS = '--max-old-space-size=4096';
+
+// Ensure proper UTF-8 handling in Node.js
+if (process.platform === 'win32') {
+  process.env.CHCP = '65001'; // UTF-8 code page on Windows
+}
 
 // Tour Business Logging Setup
 const logger = pino({
@@ -328,9 +334,19 @@ app.use(urlencodedBodyParser);
 
 // Set UTF-8 headers for all JSON responses
 app.use((req, res, next) => {
+  // Ensure proper UTF-8 encoding for all responses
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   res.setHeader('Accept-Charset', 'utf-8');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Accept, Accept-Charset');
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  
+  // Override res.json to ensure UTF-8 encoding
+  const originalJson = res.json;
+  res.json = function(obj) {
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    return originalJson.call(this, obj);
+  };
+  
   next();
 });
 
@@ -413,7 +429,7 @@ app.use((req, res, next) => {
       }
 
       if (logLine.length > 80) {
-        logLine = logLine.slice(0, 79) + "â€¦";
+        logLine = logLine.slice(0, 79) + "…";
       }
 
       log(logLine);

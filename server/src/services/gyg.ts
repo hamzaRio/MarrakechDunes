@@ -1,5 +1,18 @@
 import axios, { AxiosError } from 'axios';
 
+// UTF-8 normalization helper
+function normalizeUTF8(text: string): string {
+  if (!text) return text;
+  
+  // Normalize Unicode characters
+  return text.normalize('NFC')
+    .replace(/[\u2018\u2019]/g, "'") // Smart quotes
+    .replace(/[\u201C\u201D]/g, '"') // Smart double quotes
+    .replace(/[\u2013\u2014]/g, '-') // En/em dashes
+    .replace(/\u2026/g, '...') // Ellipsis
+    .trim();
+}
+
 export interface GYGProduct {
   title: string;
   city: string;
@@ -60,10 +73,11 @@ export async function fetchProducts(search: string): Promise<GYGProduct[]> {
       },
       headers: {
         'Authorization': `Basic ${Buffer.from(`${user}:${pass}`).toString('base64')}`,
-        'Accept': 'application/json',
-        'User-Agent': 'MarrakechDunes/1.0',
+        'Accept': 'application/json; charset=utf-8',
         'Accept-Charset': 'utf-8',
-        'Accept-Language': 'fr-FR'
+        'Accept-Language': 'fr-FR,fr;q=0.9,en;q=0.8',
+        'User-Agent': 'MarrakechDunes/1.0',
+        'Content-Type': 'application/json; charset=utf-8'
       },
       timeout: 6000,
       responseType: 'json',
@@ -71,7 +85,14 @@ export async function fetchProducts(search: string): Promise<GYGProduct[]> {
       decompress: true,
       transitional: {
         clarifyTimeoutError: true
-      }
+      },
+      // Ensure proper UTF-8 handling
+      transformResponse: [(data) => {
+        if (typeof data === 'string') {
+          return JSON.parse(data);
+        }
+        return data;
+      }]
     });
 
     const products = response.data?.products || response.data?.items || response.data || [];
@@ -82,11 +103,11 @@ export async function fetchProducts(search: string): Promise<GYGProduct[]> {
     }
 
     return products.map((product: any) => ({
-      title: product.title || product.name || 'Untitled Activity',
-      city: product.city || product.location?.city || product.location?.name || 'Marrakech',
+      title: normalizeUTF8(product.title || product.name || 'Untitled Activity'),
+      city: normalizeUTF8(product.city || product.location?.city || product.location?.name || 'Marrakech'),
       price: Number(product.price || product.fromPrice || 0),
       currency: product.currency || 'MAD',
-      durationText: product.duration || product.durationText || 'N/A',
+      durationText: normalizeUTF8(product.duration || product.durationText || 'N/A'),
       provider: 'GetYourGuide',
       providerUrl: product.url || product.shortUrl
     }));

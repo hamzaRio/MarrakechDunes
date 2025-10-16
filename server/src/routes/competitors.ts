@@ -77,6 +77,25 @@ router.get('/suggest', async (req, res) => {
   }
 });
 
+// UTF-8 test endpoint
+router.get('/debug/utf8', (req, res) => {
+  const testData = {
+    french: 'montgolfière',
+    arabic: 'مراكش',
+    emoji: '🎈',
+    special: 'café, naïve, résumé',
+    mixed: 'Montgolfière à Marrakech 🎈',
+    timestamp: new Date().toISOString()
+  };
+  
+  res.json({
+    status: 'ok',
+    encoding: 'utf-8',
+    test: testData,
+    message: 'UTF-8 encoding test successful'
+  });
+});
+
 // Debug route for GYG connection testing
 router.get('/debug/gyg', async (req, res) => {
   try {
