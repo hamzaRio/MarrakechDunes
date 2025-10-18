@@ -7,6 +7,10 @@ import { storage } from "./storage.js";
 import gygRoutes from "./routes/getyourguide.js";
 import debugRoutes from "./routes/debug.js";
 import competitorsRoutes from "./routes/competitors.js";
+import reschedulingRoutes from "./routes/rescheduling.js";
+import cancellationRoutes from "./routes/cancellation.js";
+import groupBookingRoutes from "./routes/group-bookings.js";
+import capacityRoutes from "./routes/capacity.js";
 import { 
   insertBookingSchema, 
   insertReviewSchema,
@@ -143,6 +147,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Competitors API routes (for activity search)
   app.use('/api/competitors', competitorsRoutes);
+  app.use('/api/rescheduling', reschedulingRoutes);
+  app.use('/api/cancellation', cancellationRoutes);
+  app.use('/api/group-bookings', groupBookingRoutes);
+  app.use('/api/capacity', capacityRoutes);
   
   // Market Intelligence routes
   const marketIntelligenceRoutes = (await import('./routes/market-intelligence.js')).default;

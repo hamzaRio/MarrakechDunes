@@ -1257,6 +1257,22 @@ class MongoStorage implements IStorage {
     const activity = await Activity.findByIdAndUpdate(id, { getyourguidePrice: price }, { new: true });
     return this.transformDocument(activity);
   }
+
+  async getBookingsByDate(date: Date): Promise<BookingType[]> {
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const bookings = await Booking.find({
+      preferredDate: {
+        $gte: startOfDay,
+        $lte: endOfDay
+      }
+    }).populate('activity');
+
+    return bookings.map(booking => this.transformDocument(booking));
+  }
 }
 
 export const storage = new MongoStorage();
