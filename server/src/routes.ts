@@ -255,7 +255,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           throw new AuthenticationError("Session creation failed");
         }
         
-        console.log('[AUTH] Session created successfully for user:', sessionUser.username);
+        console.log('[AUTH] Session created successfully for user:', sessionUser?.username || 'unknown');
         res.json({
           success: true,
           user: authReq.session.user,
