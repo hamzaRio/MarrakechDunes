@@ -88,19 +88,34 @@ export const enforceHTTPS = (req: Request, res: Response, next: NextFunction) =>
 
 // Admin route security middleware
 export const adminSecurityMiddleware = (req: Request, res: Response, next: NextFunction) => {
+  // Enhanced debugging for cross-site authentication issues
+  const debugInfo = {
+    hasSession: !!req.session,
+    hasUser: !!req.session?.user,
+    userRole: req.session?.user?.role,
+    sessionId: req.session?.id,
+    cookies: req.headers.cookie ? 'present' : 'missing',
+    origin: req.headers.origin,
+    userAgent: req.headers['user-agent']?.substring(0, 50)
+  };
+
   // Check for admin session
   if (!req.session?.user) {
+    console.warn('[AUTH] Admin access denied - no session user:', debugInfo);
     return res.status(401).json({
       error: 'Authentication Required',
-      message: 'Please log in to access admin features'
+      message: 'Please log in to access admin features',
+      debug: process.env.NODE_ENV === 'development' ? debugInfo : undefined
     });
   }
 
   // Verify admin role
   if (req.session.user.role !== 'admin' && req.session.user.role !== 'superadmin') {
+    console.warn('[AUTH] Admin access denied - insufficient role:', debugInfo);
     return res.status(403).json({
       error: 'Insufficient Privileges',
-      message: 'Admin access required for this operation'
+      message: 'Admin access required for this operation',
+      debug: process.env.NODE_ENV === 'development' ? debugInfo : undefined
     });
   }
 
@@ -109,22 +124,53 @@ export const adminSecurityMiddleware = (req: Request, res: Response, next: NextF
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('Expires', '0');
   
+  // Log successful admin access for debugging
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[AUTH] Admin access granted:', {
+      user: req.session.user.username || req.session.user.id,
+      role: req.session.user.role,
+      path: req.path
+    });
+  }
+  
   next();
 };
 
 // Superadmin-only middleware
 export const superadminSecurityMiddleware = (req: Request, res: Response, next: NextFunction) => {
+  const debugInfo = {
+    hasSession: !!req.session,
+    hasUser: !!req.session?.user,
+    userRole: req.session?.user?.role,
+    sessionId: req.session?.id,
+    cookies: req.headers.cookie ? 'present' : 'missing',
+    origin: req.headers.origin
+  };
+
   if (!req.session?.user) {
+    console.warn('[AUTH] Superadmin access denied - no session user:', debugInfo);
     return res.status(401).json({
       error: 'Authentication Required',
-      message: 'Please log in to access this feature'
+      message: 'Please log in to access this feature',
+      debug: process.env.NODE_ENV === 'development' ? debugInfo : undefined
     });
   }
 
   if (req.session.user.role !== 'superadmin') {
+    console.warn('[AUTH] Superadmin access denied - insufficient role:', debugInfo);
     return res.status(403).json({
       error: 'Superadmin Access Required',
-      message: 'Only superadmin can access this feature'
+      message: 'Only superadmin can access this feature',
+      debug: process.env.NODE_ENV === 'development' ? debugInfo : undefined
+    });
+  }
+
+  // Log successful superadmin access
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[AUTH] Superadmin access granted:', {
+      user: req.session.user.username || req.session.user.id,
+      role: req.session.user.role,
+      path: req.path
     });
   }
 
@@ -323,9 +369,14 @@ export const sessionSecurity = {
     sameSite: sessionCookieConfig.sameSite,
     secure: sessionCookieConfig.secure,
     httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000,
-    path: "/"
-  }
+    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    path: "/",
+    // Enhanced cross-site cookie support for Vercel ↔ Render
+    domain: undefined, // Let browser handle domain
+  },
+  // Enhanced session configuration for cross-site authentication
+  rolling: true, // Reset expiration on activity
+  proxy: true, // Trust proxy for secure cookies
 };
 
 // Session configuration is set up - no need to log details

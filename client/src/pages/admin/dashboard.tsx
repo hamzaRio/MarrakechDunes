@@ -64,19 +64,44 @@ function AdminDashboardContent() {
   const [selectedBooking, setSelectedBooking] = useState<BookingWithActivity | null>(null);
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   
-  const { data: bookings = [] } = useQuery<BookingWithActivity[]>({
+  const { data: bookings = [], error: bookingsError } = useQuery<BookingWithActivity[]>({
     queryKey: ["/admin/bookings"],
     enabled: !!user, // Only fetch if user is authenticated
+    retry: (failureCount, error: any) => {
+      // Don't retry on 401/403 errors
+      if (error?.response?.status === 401 || error?.response?.status === 403) {
+        console.warn('[DASHBOARD] Bookings fetch failed - authentication issue:', error?.response?.status);
+        return false;
+      }
+      return failureCount < 2; // Retry up to 2 times for other errors
+    },
+    staleTime: 30 * 1000, // 30 seconds
   });
 
-  const { data: activities = [] } = useQuery<ActivityType[]>({
+  const { data: activities = [], error: activitiesError } = useQuery<ActivityType[]>({
     queryKey: ["/activities"],
     enabled: !!user, // Only fetch if user is authenticated
+    retry: (failureCount, error: any) => {
+      if (error?.response?.status === 401 || error?.response?.status === 403) {
+        console.warn('[DASHBOARD] Activities fetch failed - authentication issue:', error?.response?.status);
+        return false;
+      }
+      return failureCount < 2;
+    },
+    staleTime: 30 * 1000,
   });
 
-  const { data: auditLogs = [] } = useQuery<AuditLogType[]>({
+  const { data: auditLogs = [], error: auditLogsError } = useQuery<AuditLogType[]>({
     queryKey: ["/admin/audit-logs"],
     enabled: user?.role === 'superadmin',
+    retry: (failureCount, error: any) => {
+      if (error?.response?.status === 401 || error?.response?.status === 403) {
+        console.warn('[DASHBOARD] Audit logs fetch failed - authentication issue:', error?.response?.status);
+        return false;
+      }
+      return failureCount < 2;
+    },
+    staleTime: 30 * 1000,
   });
 
   // Fix: Calculate real revenue from confirmed paid bookings
@@ -86,6 +111,13 @@ function AdminDashboardContent() {
 
   const pendingBookings = bookings.filter(b => b.status === 'pending' as any).length;
   const confirmedBookings = bookings.filter(b => b.status === 'confirmed' as any).length;
+
+  // Handle authentication errors
+  if (bookingsError?.response?.status === 401 || bookingsError?.response?.status === 403) {
+    console.error('[DASHBOARD] Authentication error detected, redirecting to login');
+    window.location.href = '/admin/login';
+    return null;
+  }
 
   // Admin booking management functions
   const handleBookingStatusUpdate = async (bookingId: string, status: string) => {

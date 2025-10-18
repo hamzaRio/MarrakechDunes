@@ -31,8 +31,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Upload } from "lucide-react";
+import { Plus, Upload, Search } from "lucide-react";
 import { ObjectUploader } from "@/components/ObjectUploader";
+import ActivityAutocomplete from "@/components/ActivityAutocomplete";
 import type { ActivityType } from "marrakechdunes-shared/schema";
 
 const activityFormSchema = z.object({
@@ -173,6 +174,33 @@ export default function SimpleActivityForm({
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            {/* Competitor Search Bar */}
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200">
+              <h4 className="text-sm font-semibold text-blue-900 mb-3 flex items-center">
+                <Search className="h-4 w-4 mr-2" />
+                🔍 Recherche Concurrence
+              </h4>
+              <p className="text-xs text-blue-700 mb-3">
+                Recherchez des activités similaires pour obtenir des idées de prix et de contenu
+              </p>
+              <ActivityAutocomplete
+                city="Marrakech"
+                onPick={(activity) => {
+                  form.setValue("name", activity.title);
+                  form.setValue("description", `Découvrez ${activity.title} - ${activity.durationText}`);
+                  form.setValue("price", activity.priceMAD.toString());
+                  form.setValue("location", activity.city);
+                  form.setValue("duration", activity.durationText);
+                  toast({
+                    title: "Activité Appliquée",
+                    description: `Données de concurrence appliquées: ${activity.title} (${activity.priceMAD} MAD)`,
+                  });
+                }}
+                value={form.watch("name") || ""}
+                onChange={(value) => form.setValue("name", value)}
+              />
+            </div>
+
             {/* Nom de l'Activité */}
             <FormField
               control={form.control}
