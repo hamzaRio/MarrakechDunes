@@ -42,8 +42,26 @@ function AdminDashboardContent() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   
-  // Redirect to login if not authenticated
+  // ENHANCED SECURITY: Multiple authentication checks - NO BYPASSING
   if (!authLoading && !user) {
+    console.warn('[SECURITY] Dashboard access denied - no user');
+    // Clear all authentication data
+    localStorage.removeItem('user');
+    localStorage.removeItem('auth-token');
+    sessionStorage.clear();
+    // Force redirect
+    window.location.href = '/admin/login';
+    return null;
+  }
+
+  // Additional role verification
+  if (!authLoading && user && user.role !== 'admin' && user.role !== 'superadmin') {
+    console.warn('[SECURITY] Dashboard access denied - invalid role:', user.role);
+    // Clear authentication data
+    localStorage.removeItem('user');
+    localStorage.removeItem('auth-token');
+    sessionStorage.clear();
+    // Force redirect
     window.location.href = '/admin/login';
     return null;
   }

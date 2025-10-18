@@ -13,10 +13,18 @@ export default function AdminRoute({ children, requireSuperAdmin = false }: Admi
   const { user, isLoading, isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
 
-  // SECURITY FIX: Immediate redirect if not authenticated
+  // ENHANCED SECURITY: Multiple layers of authentication checks
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      // Clear all authentication data immediately
+    // Layer 1: Check if authentication is loading
+    if (isLoading) {
+      return; // Wait for authentication to complete
+    }
+
+    // Layer 2: Check if user is authenticated
+    if (!isAuthenticated) {
+      console.warn('[SECURITY] Unauthenticated access attempt blocked');
+      
+      // Clear ALL authentication data immediately
       localStorage.removeItem('user');
       localStorage.removeItem('auth-token');
       localStorage.removeItem('admin_session');
@@ -27,17 +35,49 @@ export default function AdminRoute({ children, requireSuperAdmin = false }: Admi
         document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
       });
       
-      console.warn('[AUTH] Unauthenticated access blocked, redirecting to login');
+      // Clear axios headers
+      if (typeof window !== 'undefined' && (window as any).clearAuthData) {
+        (window as any).clearAuthData();
+      }
+      
       toast({
-        title: "Authentication Required",
-        description: "Please log in to access the admin area",
+        title: "🔒 Access Denied",
+        description: "Authentication required to access admin area",
         variant: "destructive",
       });
-      // Immediate redirect without delay
-      setLocation("/admin/login");
+      
+      // Force redirect to login
+      window.location.href = "/admin/login";
       return;
     }
-  }, [isAuthenticated, isLoading, toast, setLocation]);
+
+    // Layer 3: Verify user has valid role
+    if (!user || (user.role !== 'admin' && user.role !== 'superadmin')) {
+      console.warn('[SECURITY] Invalid role access attempt blocked:', user?.role);
+      
+      // Clear authentication data
+      localStorage.removeItem('user');
+      localStorage.removeItem('auth-token');
+      sessionStorage.clear();
+      
+      toast({
+        title: "🔒 Access Denied",
+        description: "Insufficient privileges to access admin area",
+        variant: "destructive",
+      });
+      
+      window.location.href = "/admin/login";
+      return;
+    }
+
+    // Layer 4: Log successful admin access
+    console.log('[SECURITY] Admin access granted:', {
+      user: user.username || user.id,
+      role: user.role,
+      timestamp: new Date().toISOString()
+    });
+
+  }, [isAuthenticated, isLoading, user, toast, setLocation]);
 
   // Check for superadmin requirement
   useEffect(() => {

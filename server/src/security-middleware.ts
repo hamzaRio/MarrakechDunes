@@ -41,19 +41,33 @@ export const authRateLimit = rateLimit({
   }
 });
 
-// Rate limiting for admin API endpoints
+// ENHANCED Rate limiting for admin API endpoints - NO BYPASSING
 export const adminApiRateLimit = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes (consistent with others)
-  max: process.env.NODE_ENV === 'production' ? 1000 : 2000, // Relaxed for admin operations
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: process.env.NODE_ENV === 'production' ? 500 : 1000, // Stricter limits for security
   message: {
-    error: 'Too many requests, try again later.',
-    retryAfter: '15 minutes'
+    error: 'Too many admin requests, try again later.',
+    retryAfter: '15 minutes',
+    code: 'RATE_LIMITED'
   },
   standardHeaders: true,
   legacyHeaders: false,
   skip: (req) => {
     // Skip rate limiting in development
     return process.env.NODE_ENV === 'development';
+  },
+  handler: (req, res) => {
+    console.warn('[SECURITY] Admin rate limit exceeded:', {
+      ip: req.ip,
+      userAgent: req.headers['user-agent'],
+      path: req.path,
+      timestamp: new Date().toISOString()
+    });
+    res.status(429).json({
+      error: 'Too many admin requests, try again later.',
+      retryAfter: Math.ceil(15 * 60 / 60), // minutes
+      code: 'RATE_LIMITED'
+    });
   }
 });
 
@@ -86,7 +100,7 @@ export const enforceHTTPS = (req: Request, res: Response, next: NextFunction) =>
   next();
 };
 
-// Admin route security middleware
+// ENHANCED Admin route security middleware - NO BYPASSING ALLOWED
 export const adminSecurityMiddleware = (req: Request, res: Response, next: NextFunction) => {
   // Enhanced debugging for cross-site authentication issues
   const debugInfo = {
@@ -96,33 +110,63 @@ export const adminSecurityMiddleware = (req: Request, res: Response, next: NextF
     sessionId: req.session?.id,
     cookies: req.headers.cookie ? 'present' : 'missing',
     origin: req.headers.origin,
-    userAgent: req.headers['user-agent']?.substring(0, 50)
+    userAgent: req.headers['user-agent']?.substring(0, 50),
+    ip: req.ip || req.connection.remoteAddress,
+    timestamp: new Date().toISOString()
   };
 
-  // Check for admin session
-  if (!req.session?.user) {
-    console.warn('[AUTH] Admin access denied - no session user:', debugInfo);
+  // SECURITY LAYER 1: Session validation
+  if (!req.session) {
+    console.warn('[SECURITY] Admin access denied - no session:', debugInfo);
+    return res.status(401).json({
+      error: 'Session Required',
+      message: 'Valid session required for admin access',
+      code: 'NO_SESSION'
+    });
+  }
+
+  // SECURITY LAYER 2: User validation
+  if (!req.session.user) {
+    console.warn('[SECURITY] Admin access denied - no user in session:', debugInfo);
     return res.status(401).json({
       error: 'Authentication Required',
-      message: 'Please log in to access admin features',
-      debug: process.env.NODE_ENV === 'development' ? debugInfo : undefined
+      message: 'User authentication required for admin access',
+      code: 'NO_USER'
     });
   }
 
-  // Verify admin role
+  // SECURITY LAYER 3: Role validation
   if (req.session.user.role !== 'admin' && req.session.user.role !== 'superadmin') {
-    console.warn('[AUTH] Admin access denied - insufficient role:', debugInfo);
+    console.warn('[SECURITY] Admin access denied - invalid role:', debugInfo);
     return res.status(403).json({
       error: 'Insufficient Privileges',
-      message: 'Admin access required for this operation',
-      debug: process.env.NODE_ENV === 'development' ? debugInfo : undefined
+      message: 'Admin role required for this operation',
+      code: 'INVALID_ROLE'
     });
   }
 
-  // Add security headers for admin routes
+  // SECURITY LAYER 4: Session age validation (prevent stale sessions)
+  const sessionAge = Date.now() - (req.session.cookie?.maxAge || 0);
+  if (sessionAge > 24 * 60 * 60 * 1000) { // 24 hours
+    console.warn('[SECURITY] Admin access denied - stale session:', debugInfo);
+    return res.status(401).json({
+      error: 'Session Expired',
+      message: 'Session has expired, please login again',
+      code: 'SESSION_EXPIRED'
+    });
+  }
+
+  // All security checks passed - proceed with request
+
+  // Enhanced security headers for admin routes - NO BYPASSING
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('Expires', '0');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   
   // Log successful admin access for debugging
   if (process.env.NODE_ENV === 'development') {
