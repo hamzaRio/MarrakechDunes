@@ -55,12 +55,10 @@ export async function fetchProducts(search: string): Promise<GYGProduct[]> {
     
     console.log(`[GYG] Searching: "${search}"`);
     
-    // Use minimal parameters to avoid 400 errors
+    // Use absolute minimal parameters to avoid 400 errors
     const params = {
-      q: search.trim(),
-      currency: 'MAD',
-      language: 'fr' // instead of content_language
-      // removed 'market' parameter
+      q: search.trim()
+      // Only use the search query - let GYG handle defaults
     };
     
     // Log the request details for debugging (without credentials)
