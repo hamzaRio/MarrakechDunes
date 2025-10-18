@@ -51,7 +51,7 @@ export async function fetchProducts(search: string): Promise<GYGProduct[]> {
   }
 
   try {
-    const url = `${base}/products`;
+    const url = `${base}/search`;
     
     console.log(`[GYG] Searching: "${search}"`);
     

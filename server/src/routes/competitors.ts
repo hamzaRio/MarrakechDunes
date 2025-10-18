@@ -132,7 +132,7 @@ router.get('/debug/gyg', async (req, res) => {
     const { fetchProducts } = await import('../services/gyg.js');
     
     const requestDetails = {
-      url: `${baseURL}/products`,
+      url: `${baseURL}/search`,
       params: {
         q: searchQuery
         // Only use the search query - let GYG handle defaults
