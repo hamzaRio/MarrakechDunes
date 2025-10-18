@@ -19,6 +19,31 @@ const axios = Axios.create({
   withCredentials: true, // keep cookies for cross-site
 });
 
+// Add response interceptor to handle authentication errors
+axios.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401 || error.response?.status === 403) {
+      console.warn('[API] Authentication error detected, clearing storage...');
+      // Clear all authentication data
+      localStorage.removeItem('auth-token');
+      localStorage.removeItem('user');
+      sessionStorage.clear();
+      
+      // Clear all cookies
+      document.cookie.split(";").forEach(function(c) { 
+        document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+      });
+      
+      // Redirect to login if not already there
+      if (!window.location.pathname.includes('/login')) {
+        window.location.href = '/admin/login';
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 // Legacy exports for backward compatibility
 export const api = axios;
 export const baseURL = axios.defaults.baseURL || '';
@@ -36,6 +61,32 @@ export async function sessionInit(): Promise<void> {
 }
 
 /**
+ * Clear all authentication data and storage
+ * @returns void
+ */
+export function clearAuthData(): void {
+  console.log('[API] Clearing all authentication data...');
+  
+  // Clear localStorage
+  localStorage.removeItem('auth-token');
+  localStorage.removeItem('user');
+  localStorage.clear();
+  
+  // Clear sessionStorage
+  sessionStorage.clear();
+  
+  // Clear all cookies
+  document.cookie.split(";").forEach(function(c) { 
+    document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+  });
+  
+  // Clear axios headers
+  axios.defaults.headers.common['Authorization'] = '';
+  
+  console.log('[API] All authentication data cleared');
+}
+
+/**
  * Legacy logout function - FIXED to prevent redirect loop
  * @returns Promise<void>
  */
@@ -47,28 +98,13 @@ export async function logout(): Promise<void> {
     // Call logout API
     await axios.post('/auth/logout');
     
-    // Clear ALL auth-related localStorage keys
-    localStorage.removeItem('auth-token');
-    localStorage.removeItem('user'); // This is the key that useAuth checks!
-    sessionStorage.clear();
-    
-    // Clear all cookies
-    document.cookie.split(";").forEach(function(c) { 
-      document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
-    });
+    // Clear all auth data
+    clearAuthData();
     
   } catch (error) {
     console.error('Logout error:', error);
     // Continue with logout even if API call fails
-    // Clear local storage anyway
-    localStorage.removeItem('auth-token');
-    localStorage.removeItem('user'); // This is the key that useAuth checks!
-    sessionStorage.clear();
-    
-    // Clear all cookies
-    document.cookie.split(";").forEach(function(c) { 
-      document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
-    });
+    clearAuthData();
   }
 }
 
@@ -97,6 +133,15 @@ export async function apiFetch(url: string, options?: {
   });
 
   return response as any;
+}
+
+// Make clearAuthData available globally for debugging
+if (typeof window !== 'undefined') {
+  (window as any).clearAuthData = clearAuthData;
+  (window as any).forceLogout = () => {
+    clearAuthData();
+    window.location.href = '/admin/login';
+  };
 }
 
 export default axios;

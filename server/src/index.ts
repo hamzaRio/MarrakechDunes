@@ -215,7 +215,8 @@ app.set("trust proxy", 1);
 const allowedOrigins = process.env.CLIENT_URL?.split(",") || [
   "http://localhost:5173",
   "http://localhost:5174",
-  "https://marrakech-dunes.vercel.app"
+  "https://marrakech-dunes.vercel.app",
+  "https://marrakech-dunes-*.vercel.app" // Allow all Vercel preview URLs
 ];
 
 const corsOptions: cors.CorsOptions = {
