@@ -12,12 +12,11 @@
 
 ## 🌟 Overview
 
-MarrakechDunes is a comprehensive tourism platform that combines modern web technologies with intelligent business features. Built for tour operators who want to compete effectively in the Marrakech tourism market, it offers automated competitor analysis, smart pricing, and comprehensive business management tools.
+MarrakechDunes is a comprehensive tourism platform that combines modern web technologies with smart business features. Built for tour operators who want to compete effectively in the Marrakech tourism market, it offers dynamic pricing, comprehensive business management tools, and advanced analytics.
 
 ### 🎯 Key Features
 
-- **🤖 AI-Powered Competitor Analysis** - Automatic GetYourGuide price fetching
-- **💰 Smart Pricing Engine** - Competitive pricing suggestions with dynamic pricing
+- **💰 Smart Pricing Engine** - Dynamic pricing with seasonal adjustments
 - **📊 Advanced Analytics** - Real-time business metrics and insights
 - **🔐 Role-Based Access Control** - Admin, Superadmin, and CEO dashboards
 - **📱 Mobile-First Design** - Responsive across all devices with PWA support
@@ -189,25 +188,9 @@ MarrakechDunes is a comprehensive tourism platform that combines modern web tech
 - **Photo Sharing**: Upload tour photos
 - **Native Performance**: App-like speed and responsiveness
 
-## 🧠 Admin Intelligence (Morocco)
+## 📧 Email Configuration
 
-### **Morocco Competitor Search**
-The admin dashboard includes a sophisticated **Morocco-only competitor search** system that helps tour operators make data-driven pricing decisions:
-
-#### **How It Works:**
-1. **Search Parameters**: Admins can search by activity name, Moroccan city, and category
-2. **External Data Sources**: Integrates with GetYourGuide and Viator APIs for real competitor data
-3. **Mock Data Fallback**: High-quality mock data when external APIs are unavailable
-4. **Morocco Filter**: Only shows activities from Moroccan cities (Marrakech, Casablanca, Fès, Rabat, Tanger, Essaouira, Ouarzazate, Agafay, Ouzoud, Chefchaouen, etc.)
-
-#### **Admin Workflow:**
-1. **Add New Activity**: Click "Ajouter Activité" in admin dashboard
-2. **Search Competitors**: Click "🔎 Recherche Concurrence Maroc"
-3. **Review Results**: See competitor activities with prices, ratings, and details
-4. **Apply Data**: Use "Utiliser Prix" to auto-fill form fields or "Ajouter Activité" to import competitor data
-5. **Set Competitive Pricing**: Make informed pricing decisions based on market data
-
-#### **Gmail App Password Setup:**
+### **Gmail App Password Setup:**
 To enable email notifications, you need a Gmail App Password:
 
 1. **Enable 2-Factor Authentication** on your Gmail account
@@ -216,16 +199,10 @@ To enable email notifications, you need a Gmail App Password:
 4. **Use the 16-character password** (no spaces) as `EMAIL_PASS` in your environment variables
 
 ```env
-EMAIL_USER=timedizzy45@gmail.com
-EMAIL_PASS=jikq dthw xoxm butb  # Your Gmail App Password
-EMAIL_FROM="Marrakech Dunes <timedizzy45@gmail.com>"
+EMAIL_USER=your-email@gmail.com
+EMAIL_PASS=your-app-password  # Your Gmail App Password
+EMAIL_FROM="Marrakech Dunes <your-email@gmail.com>"
 ```
-
-#### **Business Benefits:**
-- **Competitive Pricing**: Set prices based on real market data
-- **Market Intelligence**: Understand competitor offerings and pricing
-- **Strategic Decisions**: Identify gaps in the market for new activities
-- **Revenue Optimization**: Price activities to maximize bookings and profit
 
 ## 🚀 Advanced Features
 
@@ -373,24 +350,14 @@ EMAIL_FROM="Marrakech Dunes <timedizzy45@gmail.com>"
 - **One-Click Reports**: PDF exports for stakeholders
 - **Competitive Analysis**: Market positioning insights
 
-### 🤖 AI-Powered Features
-
-#### **GetYourGuide Integration**
-- **Automatic Price Fetching**: Real-time competitor analysis
-- **Smart Pricing Suggestions**: 
-  - Aggressive (15% below competitor)
-  - Competitive (5% below competitor)
-  - Premium (10% above competitor)
-- **Market Intelligence**: Ratings, reviews, and pricing trends
-
-#### **Smart Notifications**
+### 🔔 Smart Notifications
 - **24-Hour Reminders**: Automated booking confirmations
 - **2-Hour Alerts**: Last-minute reminders
 - **Weather-Based Notifications**: Activity-specific weather alerts
 - **Payment Reminders**: Automated follow-ups
 
-#### **Activity Recommendations**
-- **AI-Powered Suggestions**: Based on customer preferences
+### 🎯 Activity Recommendations
+- **Smart Suggestions**: Based on customer preferences
 - **Weather Compatibility**: Match activities to weather conditions
 - **Group Size Optimization**: Appropriate activity selection
 - **Budget-Aware Recommendations**: Price-conscious suggestions
@@ -722,14 +689,7 @@ GET /api/monitoring/performance # Performance metrics
 GET /api/monitoring/health   # System health metrics
 ```
 
-### **GetYourGuide Integration**
-```typescript
-GET /api/gyg/search         # Search GetYourGuide activities
-GET /api/gyg/activities     # Get all GYG activities
-POST /api/gyg/test          # Test GYG connection
-```
-
-### **Market Intelligence**
+### **Market Analysis**
 ```typescript
 GET /api/market/analysis    # Market analysis
 GET /api/market/competitors # Competitor analysis
