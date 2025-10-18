@@ -12,16 +12,10 @@ interface AuthUserResponse {
 }
 
 export function useAuth() {
-  // Check if we have a session cookie or localStorage user data
-  const hasSessionCookie = document.cookie.includes('marrakech.session');
-  const hasLocalStorageUser = localStorage.getItem('user');
-  
-  // If localStorage is cleared, we should not make API calls
-  const shouldCheckAuth = Boolean(hasSessionCookie && hasLocalStorageUser);
-  
+  // SECURITY FIX: Always check server authentication, never rely on localStorage alone
   const { data, isLoading, error, refetch } = useQuery<AuthUserResponse | null>({
     queryKey: ["/auth/user"],
-    enabled: shouldCheckAuth, // Only check if we have both cookie AND localStorage
+    enabled: true, // Always check server authentication
     retry: (failureCount, error: any) => {
       // Don't retry on 401/403 errors
       if (error?.response?.status === 401 || error?.response?.status === 403) {
@@ -29,25 +23,20 @@ export function useAuth() {
       }
       return failureCount < 1; // Only retry once for other errors
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes (formerly cacheTime)
-    refetchOnMount: true, // Allow refetch on mount for auth
-    refetchOnWindowFocus: false,
-    // Add error logging for debugging (production-safe)
-    // Note: onError is deprecated in React Query v5, using error handling in components instead
-    // Note: onSuccess is deprecated in React Query v5, using success handling in components instead
+    staleTime: 2 * 60 * 1000, // 2 minutes (reduced for security)
+    gcTime: 5 * 60 * 1000, // 5 minutes (reduced for security)
+    refetchOnMount: true, // Always refetch on mount for security
+    refetchOnWindowFocus: true, // Refetch on window focus for security
   });
 
-  // Try to get user from localStorage as fallback if query fails
-  let user = (data as any)?.user ?? null;
-  if (!user && hasLocalStorageUser && !isLoading) {
-    try {
-      const localUser = JSON.parse(hasLocalStorageUser);
-      user = localUser;
-    } catch (error) {
-      // Clear invalid localStorage data
-      localStorage.removeItem('user');
-    }
+  // SECURITY FIX: Only use server response, never localStorage fallback
+  const user = (data as any)?.user ?? null;
+  
+  // Clear localStorage if server says we're not authenticated
+  if (!isLoading && !user && localStorage.getItem('user')) {
+    console.warn('[AUTH] Server says not authenticated, clearing localStorage');
+    localStorage.removeItem('user');
+    localStorage.removeItem('auth-token');
   }
 
   // Function to force clear auth state (useful for logout)

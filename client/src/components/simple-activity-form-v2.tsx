@@ -158,7 +158,7 @@ export default function SimpleActivityForm({
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">
         <DialogHeader>
           <DialogTitle>
             {activity ? "Modifier l'Activité" : "Ajouter une Nouvelle Activité"}

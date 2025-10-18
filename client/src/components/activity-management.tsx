@@ -313,13 +313,13 @@ export default function ActivityManagement() {
             </Button>
           </DialogTrigger>
           <DialogContent 
-            className="max-w-2xl max-h-[90vh] overflow-y-auto bg-white text-gray-900"
+            className="max-w-2xl max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
             aria-describedby="activity-form-description"
           >
             <DialogHeader>
-              <DialogTitle className="text-gray-900">Create New Activity</DialogTitle>
+              <DialogTitle className="text-gray-900 dark:text-gray-100">Create New Activity</DialogTitle>
             </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4 text-gray-900">
+            <form onSubmit={handleSubmit} className="space-y-4 text-gray-900 dark:text-gray-100">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="name" className="text-gray-900 font-medium">Activity Name *</Label>

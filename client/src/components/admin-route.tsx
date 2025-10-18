@@ -13,21 +13,28 @@ export default function AdminRoute({ children, requireSuperAdmin = false }: Admi
   const { user, isLoading, isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
 
-  // Redirect to login if not authenticated with enhanced session checking
+  // SECURITY FIX: Immediate redirect if not authenticated
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      // Clear any stale session data
+      // Clear all authentication data immediately
+      localStorage.removeItem('user');
+      localStorage.removeItem('auth-token');
       localStorage.removeItem('admin_session');
       sessionStorage.clear();
       
+      // Clear all cookies
+      document.cookie.split(";").forEach(function(c) { 
+        document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+      });
+      
+      console.warn('[AUTH] Unauthenticated access blocked, redirecting to login');
       toast({
         title: "Authentication Required",
         description: "Please log in to access the admin area",
         variant: "destructive",
       });
-      setTimeout(() => {
-        setLocation("/admin/login");
-      }, 500);
+      // Immediate redirect without delay
+      setLocation("/admin/login");
       return;
     }
   }, [isAuthenticated, isLoading, toast, setLocation]);
