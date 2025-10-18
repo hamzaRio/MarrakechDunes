@@ -146,9 +146,10 @@ export const adminSecurityMiddleware = (req: Request, res: Response, next: NextF
   }
 
   // SECURITY LAYER 4: Session age validation (prevent stale sessions)
-  const sessionAge = Date.now() - (req.session.cookie?.maxAge || 0);
-  if (sessionAge > 24 * 60 * 60 * 1000) { // 24 hours
-    console.warn('[SECURITY] Admin access denied - stale session:', debugInfo);
+  // Check if session has remaining time (maxAge is remaining milliseconds)
+  const remainingTime = req.session.cookie?.maxAge || 0;
+  if (remainingTime <= 0) {
+    console.warn('[SECURITY] Admin access denied - session expired:', debugInfo);
     return res.status(401).json({
       error: 'Session Expired',
       message: 'Session has expired, please login again',
