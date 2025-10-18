@@ -191,7 +191,7 @@ export const BulkExportButton: React.FC<{
     return `${itemType}_${selectedItems.length}_items_${timestamp}`;
   };
 
-  const getFormats = () => {
+  const getFormats = (): Array<'csv' | 'json' | 'xml' | 'pdf'> => {
     switch (itemType) {
       case 'bookings':
         return ['csv', 'json', 'xml'];

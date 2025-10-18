@@ -30,7 +30,7 @@ export default function CashPaymentConfirmation({
   const [isConfirming, setIsConfirming] = useState(false);
   const [selectedPaymentOption, setSelectedPaymentOption] = useState<'full' | 'deposit'>('deposit');
   
-  const totalAmount = activity.price * numberOfPeople;
+  const totalAmount = Number(activity.price) * numberOfPeople;
   const depositAmount = Math.round(totalAmount * 0.3); // 30% deposit
   const remainingAmount = totalAmount - depositAmount;
 

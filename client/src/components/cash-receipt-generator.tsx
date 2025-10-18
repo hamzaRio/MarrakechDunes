@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { 
   Receipt, 
   Download, 
-  Print, 
+  // Print, // Not available in lucide-react 
   QrCode,
   MapPin,
   Phone,

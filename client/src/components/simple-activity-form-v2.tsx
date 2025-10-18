@@ -54,6 +54,7 @@ interface SimpleActivityFormProps {
   activity?: ActivityType;
   onSuccess?: () => void;
   trigger?: React.ReactNode;
+  mode?: 'create' | 'edit';
 }
 
 const categories = [
@@ -77,7 +78,8 @@ const difficulties = [
 export default function SimpleActivityForm({ 
   activity, 
   onSuccess, 
-  trigger 
+  trigger,
+  mode = 'create'
 }: SimpleActivityFormProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [images, setImages] = useState<string[]>(activity?.imageUrls || []);
@@ -325,7 +327,7 @@ export default function SimpleActivityForm({
               <FormLabel>Images de l'Activité</FormLabel>
               <ObjectUploader
                 onUpload={handleImageUpload}
-                existingUrls={images}
+                // existingUrls={images} // Not supported in current ObjectUploader
                 maxFiles={5}
                 acceptedFileTypes={["image/jpeg", "image/png", "image/webp"]}
               />

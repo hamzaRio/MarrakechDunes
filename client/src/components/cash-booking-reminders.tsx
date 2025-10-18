@@ -156,7 +156,7 @@ export default function CashBookingReminders({ bookings }: CashBookingRemindersP
                     </div>
                     <div className="text-xs text-gray-500">
                       {booking.paymentStatus === 'unpaid' ? 'Full payment due' : 
-                       `${booking.totalAmount - (booking.paidAmount || 0)} MAD balance`}
+                        `${Number(booking.totalAmount) - (Number(booking.paidAmount) || 0)} MAD balance`}
                     </div>
                   </div>
                 </div>

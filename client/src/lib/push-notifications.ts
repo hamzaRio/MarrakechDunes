@@ -128,17 +128,17 @@ export class PushNotificationService {
           badge: '/icon-192x192.png',
           tag: 'marrakechdunes-notification',
           requireInteraction: true,
-          actions: [
-            {
-              action: 'view',
-              title: 'View',
-              icon: '/icon-192x192.png',
-            },
-            {
-              action: 'dismiss',
-              title: 'Dismiss',
-            },
-          ],
+          // actions: [ // Not supported in all browsers
+          //   {
+          //     action: 'view',
+          //     title: 'View',
+          //     icon: '/icon-192x192.png',
+          //   },
+          //   {
+          //     action: 'dismiss',
+          //     title: 'Dismiss',
+          //   },
+          // ],
         });
       });
     }

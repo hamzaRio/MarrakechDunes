@@ -114,7 +114,7 @@ export default function BookingDetailsModal({ booking, isOpen, onClose }: Bookin
             <CardContent className="space-y-3">
               <div className="flex items-center gap-3">
                 <span className="font-medium">Activité:</span>
-                <span className="text-gray-700">{booking.activity.name}</span>
+                <span className="text-gray-700">{booking.activity?.name || 'N/A'}</span>
               </div>
               <div className="flex items-center gap-3">
                 <Users className="w-4 h-4 text-gray-500" />
@@ -135,7 +135,7 @@ export default function BookingDetailsModal({ booking, isOpen, onClose }: Bookin
                 <Clock className="w-4 h-4 text-gray-500" />
                 <span className="font-medium">Heure préférée:</span>
                 <span className="text-gray-700">
-                  {booking.preferredTime || 'Toute heure'}
+                  {booking.preferredDate ? new Date(booking.preferredDate).toLocaleTimeString() : 'Toute heure'}
                 </span>
               </div>
             </CardContent>

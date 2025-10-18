@@ -17,6 +17,7 @@ interface ObjectUploaderProps {
   onComplete?: (
     result: UploadResult<Record<string, unknown>, Record<string, unknown>>
   ) => void;
+  onUpload?: (urls: string[]) => void;
   buttonClassName?: string;
   children: ReactNode;
 }
@@ -30,6 +31,7 @@ export function ObjectUploader({
   maxFileSize = 10485760, // 10MB default
   onGetUploadParameters,
   onComplete,
+  onUpload,
   buttonClassName,
   children,
 }: ObjectUploaderProps) {
@@ -48,6 +50,10 @@ export function ObjectUploader({
       })
       .on("complete", (result) => {
         onComplete?.(result);
+        if (onUpload && result.successful) {
+          const urls = result.successful.map(file => file.uploadURL).filter((url): url is string => Boolean(url));
+          onUpload(urls);
+        }
         setShowModal(false);
       })
   );

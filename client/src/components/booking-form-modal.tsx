@@ -97,7 +97,7 @@ export default function BookingFormModal({
           ...data,
           preferredDate: data.preferredDate ? new Date(data.preferredDate) : undefined,
         }),
-        credentials: "include",
+        // credentials: "include", // Not supported in apiFetch
       });
 
       if (!response.ok) {

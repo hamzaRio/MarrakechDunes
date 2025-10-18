@@ -17,10 +17,13 @@ type ExternalActivity = {
 type Props = {
   city?: string;
   onPick: (a: ExternalActivity) => void;
+  value?: string;
+  onChange?: (value: string) => void;
+  onSelectActivity?: (activity: ExternalActivity) => void;
 };
 
-export default function ActivityAutocomplete({ city, onPick }: Props) {
-  const [text, setText] = useState('');
+export default function ActivityAutocomplete({ city, onPick, value, onChange, onSelectActivity }: Props) {
+  const [text, setText] = useState(value || '');
   const [debouncedText, setDebouncedText] = useState('');
   const [provider, setProvider] = useState<'all'|'gyg'|'rezdy'>('all');
   const [useLiveGYG, setUseLiveGYG] = useState(false);
@@ -53,12 +56,15 @@ export default function ActivityAutocomplete({ city, onPick }: Props) {
     <div className="relative">
       <label className="block text-sm font-medium mb-1">Nom de l'Activité (recherche Maroc)</label>
       <div className="flex gap-2 mb-2">
-        <input
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder="ex. désert, montgolfière, souks…"
-          className="flex-1 rounded-md border p-2"
-        />
+                <input
+                  value={text}
+                  onChange={(e) => {
+                    setText(e.target.value);
+                    onChange?.(e.target.value);
+                  }}
+                  placeholder="ex. désert, montgolfière, souks…"
+                  className="flex-1 rounded-md border p-2"
+                />
         <Select value={provider} onValueChange={(value: 'all'|'gyg'|'rezdy') => setProvider(value)}>
           <SelectTrigger className="w-32">
             <SelectValue />
@@ -97,7 +103,10 @@ export default function ActivityAutocomplete({ city, onPick }: Props) {
             <button
               key={`${a.provider}-${a.title}-${a.city}`}
               type="button"
-              onClick={() => onPick(a)}
+              onClick={() => {
+                onPick(a);
+                onSelectActivity?.(a);
+              }}
               className="w-full text-left px-3 py-2 hover:bg-gray-50"
             >
               <div className="flex justify-between">

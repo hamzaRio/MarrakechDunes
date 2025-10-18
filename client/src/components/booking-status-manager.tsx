@@ -136,7 +136,7 @@ export default function BookingStatusManager({
           
           <div className="space-y-2">
             <Label htmlFor="new-status">New Status</Label>
-            <Select value={newStatus} onValueChange={setNewStatus}>
+            <Select value={newStatus} onValueChange={(value) => setNewStatus(value as any)}>
               <SelectTrigger>
                 <SelectValue placeholder="Select new status" />
               </SelectTrigger>

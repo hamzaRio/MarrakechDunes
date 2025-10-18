@@ -81,17 +81,19 @@ export async function logout(): Promise<void> {
 export async function apiFetch(url: string, options?: {
   method?: string;
   body?: string;
+  data?: any;
   headers?: Record<string, string>;
 }): Promise<Response> {
   const method = options?.method || 'GET';
   const body = options?.body;
-  const headers = options?.headers || (body ? { "Content-Type": "application/json" } : {});
-  
+  const data = options?.data;
+  const headers = options?.headers || (body || data ? { "Content-Type": "application/json" } : {});
+
   const response = await axios.request({
     url,
     method: method as any,
     headers,
-    data: body,
+    data: data || body,
   });
 
   return response as any;

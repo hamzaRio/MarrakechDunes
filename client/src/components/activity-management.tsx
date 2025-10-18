@@ -59,20 +59,23 @@ export default function ActivityManagement() {
   const [formData, setFormData] = useState<ActivityFormData>({
     name: '',
     description: '',
-    price: 0,
+    price: '0',
     duration: '',
     location: '',
-    maxParticipants: 1,
+    maxParticipants: '1',
     imageUrls: [''],
     category: 'adventure',
     difficulty: 'easy',
-    getyourguidePrice: 0
+    getyourguidePrice: '0'
   });
 
   // Fetch activities
   const { data: activities, isLoading } = useQuery<ActivityType[]>({
     queryKey: ["/admin/activities/all"],
-    queryFn: () => apiFetch("/admin/activities/all"),
+    queryFn: async () => {
+      const response = await apiFetch("/admin/activities/all");
+      return response.json();
+    },
   });
 
   // Create activity mutation
@@ -181,14 +184,14 @@ export default function ActivityManagement() {
     setFormData({
       name: '',
       description: '',
-      price: 0,
+      price: '0',
       duration: '',
       location: '',
-      maxParticipants: 1,
+      maxParticipants: '1',
       imageUrls: [''],
       category: 'adventure',
       difficulty: 'easy',
-      getyourguidePrice: 0
+      getyourguidePrice: '0'
     });
   };
 
@@ -223,10 +226,20 @@ export default function ActivityManagement() {
     if (selectedActivity) {
       updateActivityMutation.mutate({
         id: selectedActivity._id,
-        data: apiData
+        data: {
+          ...apiData,
+          price: String(apiData.price),
+          maxParticipants: String(apiData.maxParticipants),
+          getyourguidePrice: String(apiData.getyourguidePrice || 0)
+        }
       });
     } else {
-      createActivityMutation.mutate(apiData);
+      createActivityMutation.mutate({
+        ...apiData,
+        price: String(apiData.price),
+        maxParticipants: String(apiData.maxParticipants),
+        getyourguidePrice: String(apiData.getyourguidePrice || 0)
+      });
     }
   };
 
@@ -357,7 +370,7 @@ export default function ActivityManagement() {
               <GetYourGuidePriceFetcher
                 activityName={formData.name}
                 onPriceSelect={handleGetYourGuidePriceSelect}
-                currentPrice={formData.getyourguidePrice}
+                currentPrice={Number(formData.getyourguidePrice) || 0}
               />
 
               <div>
@@ -398,7 +411,7 @@ export default function ActivityManagement() {
                     id="maxParticipants"
                     type="number"
                     value={formData.maxParticipants}
-                    onChange={(e) => setFormData({ ...formData, maxParticipants: parseInt(e.target.value) || 1 })}
+                    onChange={(e) => setFormData({ ...formData, maxParticipants: e.target.value })}
                     className="text-gray-900 bg-white border-gray-300"
                   />
                 </div>
@@ -441,7 +454,7 @@ export default function ActivityManagement() {
                   id="getyourguidePrice"
                   type="number"
                   value={formData.getyourguidePrice}
-                  onChange={(e) => setFormData({ ...formData, getyourguidePrice: parseInt(e.target.value) || 0 })}
+                  onChange={(e) => setFormData({ ...formData, getyourguidePrice: e.target.value })}
                   placeholder="Competitor price for comparison"
                   className="text-gray-900 bg-white border-gray-300"
                 />
@@ -667,7 +680,7 @@ export default function ActivityManagement() {
                   id="edit-price"
                   type="number"
                   value={formData.price}
-                  onChange={(e) => setFormData({ ...formData, price: parseInt(e.target.value) || 0 })}
+                  onChange={(e) => setFormData({ ...formData, price: e.target.value })}
                   required
                 />
               </div>
@@ -706,7 +719,7 @@ export default function ActivityManagement() {
                   id="edit-maxParticipants"
                   type="number"
                   value={formData.maxParticipants}
-                  onChange={(e) => setFormData({ ...formData, maxParticipants: parseInt(e.target.value) || 1 })}
+                  onChange={(e) => setFormData({ ...formData, maxParticipants: e.target.value })}
                 />
               </div>
             </div>
@@ -748,7 +761,7 @@ export default function ActivityManagement() {
                 id="edit-getyourguidePrice"
                 type="number"
                 value={formData.getyourguidePrice}
-                onChange={(e) => setFormData({ ...formData, getyourguidePrice: parseInt(e.target.value) || 0 })}
+                onChange={(e) => setFormData({ ...formData, getyourguidePrice: e.target.value })}
               />
             </div>
 
