@@ -5,27 +5,27 @@
 /* Enhanced dropdown and modal styles */
 @layer components {
   .dropdown-content {
-    @apply bg-white shadow-xl border-2 border-moroccan-blue/20 z-50;
+    @apply bg-background shadow-xl border-2 border-moroccan-blue/20 z-50;
   }
   
   .modal-backdrop {
-    @apply bg-white/95 backdrop-blur-sm;
+    @apply bg-background/95 backdrop-blur-sm;
   }
   
   .modal-content {
-    @apply bg-white shadow-2xl border-2 border-moroccan-blue/20 z-50;
+    @apply bg-background shadow-2xl border-2 border-moroccan-blue/20 z-50;
   }
   
   .select-trigger {
-    @apply bg-white border-2 border-gray-200 hover:border-moroccan-blue/50 focus:border-moroccan-blue;
+    @apply bg-background border-2 border-border hover:border-moroccan-blue/50 focus:border-moroccan-blue text-foreground;
   }
   
   .select-content {
-    @apply bg-white border-2 border-moroccan-blue/20 shadow-xl z-50;
+    @apply bg-background border-2 border-moroccan-blue/20 shadow-xl z-50;
   }
   
   .select-item {
-    @apply hover:bg-moroccan-blue/10 focus:bg-moroccan-blue/10;
+    @apply hover:bg-moroccan-blue/10 focus:bg-moroccan-blue/10 text-foreground;
   }
 }
 
