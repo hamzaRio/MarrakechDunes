@@ -19,25 +19,37 @@ const axios = Axios.create({
   withCredentials: true, // keep cookies for cross-site
 });
 
-// Add response interceptor to handle authentication errors
+// Add response interceptor to handle authentication errors - ONLY for admin routes
 axios.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401 || error.response?.status === 403) {
-      console.warn('[API] Authentication error detected, clearing storage...');
-      // Clear all authentication data
-      localStorage.removeItem('auth-token');
-      localStorage.removeItem('user');
-      sessionStorage.clear();
+      // Only redirect to admin login if we're on an admin route
+      const currentPath = window.location.pathname;
+      const isAdminRoute = currentPath.startsWith('/admin') || currentPath.startsWith('/admin/');
       
-      // Clear all cookies
-      document.cookie.split(";").forEach(function(c) { 
-        document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
-      });
-      
-      // Redirect to login if not already there
-      if (!window.location.pathname.includes('/login')) {
-        window.location.href = '/admin/login';
+      if (isAdminRoute) {
+        console.warn('[API] Authentication error detected on admin route, clearing storage...');
+        // Clear all authentication data
+        localStorage.removeItem('auth-token');
+        localStorage.removeItem('user');
+        sessionStorage.clear();
+        
+        // Clear all cookies
+        document.cookie.split(";").forEach(function(c) { 
+          document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+        });
+        
+        // Redirect to admin login only if we're on admin routes
+        if (!currentPath.includes('/login')) {
+          window.location.href = '/admin/login';
+        }
+      } else {
+        // For non-admin routes, just clear storage but don't redirect
+        console.warn('[API] Authentication error on non-admin route, clearing storage only...');
+        localStorage.removeItem('auth-token');
+        localStorage.removeItem('user');
+        sessionStorage.clear();
       }
     }
     return Promise.reject(error);

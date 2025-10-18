@@ -12,7 +12,11 @@ interface AuthUserResponse {
 }
 
 export function useAuth() {
-  // SECURITY FIX: Always check server authentication, never rely on localStorage alone
+  // Check if we're on an admin route to determine authentication strategy
+  const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
+  const isAdminRoute = currentPath.startsWith('/admin') || currentPath.startsWith('/admin/');
+  
+  // SECURITY FIX: Check server authentication, but be less aggressive on non-admin routes
   const { data, isLoading, error, refetch } = useQuery<AuthUserResponse | null>({
     queryKey: ["/auth/user"],
     enabled: true, // Always check server authentication
@@ -23,18 +27,18 @@ export function useAuth() {
       }
       return failureCount < 1; // Only retry once for other errors
     },
-    staleTime: 2 * 60 * 1000, // 2 minutes (reduced for security)
-    gcTime: 5 * 60 * 1000, // 5 minutes (reduced for security)
-    refetchOnMount: true, // Always refetch on mount for security
-    refetchOnWindowFocus: true, // Refetch on window focus for security
+    staleTime: isAdminRoute ? 2 * 60 * 1000 : 5 * 60 * 1000, // Longer cache for non-admin routes
+    gcTime: isAdminRoute ? 5 * 60 * 1000 : 10 * 60 * 1000, // Longer cache for non-admin routes
+    refetchOnMount: isAdminRoute, // Only refetch on mount for admin routes
+    refetchOnWindowFocus: isAdminRoute, // Only refetch on focus for admin routes
   });
 
   // SECURITY FIX: Only use server response, never localStorage fallback
   const user = (data as any)?.user ?? null;
   
-  // Clear localStorage if server says we're not authenticated
-  if (!isLoading && !user && localStorage.getItem('user')) {
-    console.warn('[AUTH] Server says not authenticated, clearing localStorage');
+  // Clear localStorage if server says we're not authenticated - but only on admin routes
+  if (!isLoading && !user && localStorage.getItem('user') && isAdminRoute) {
+    console.warn('[AUTH] Server says not authenticated on admin route, clearing localStorage');
     localStorage.removeItem('user');
     localStorage.removeItem('auth-token');
   }
