@@ -90,7 +90,12 @@ export default defineConfig(({ mode }) => {
     },
     define: {
       'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development'),
-      'import.meta.env.VITE_API_URL': JSON.stringify(env.VITE_API_URL || ''),
+      // Force production API URL for Vercel deployment
+      'import.meta.env.VITE_API_URL': JSON.stringify(
+        process.env.NODE_ENV === 'production' 
+          ? 'https://marrakechdunes-sppy.onrender.com/api'
+          : (env.VITE_API_URL || 'http://localhost:10000/api')
+      ),
       // VITE_ASSETS_BASE removed - static assets served from /images/
       'import.meta.env.MAP_PROVIDER': JSON.stringify(env.MAP_PROVIDER || ''),
       'import.meta.env.LEAFLET_ENABLED': JSON.stringify(env.LEAFLET_ENABLED || ''),
