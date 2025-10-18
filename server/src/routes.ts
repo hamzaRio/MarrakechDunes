@@ -191,12 +191,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/auth/user', asyncHandler(async (req: Request, res: Response) => {
     const authReq = req as AuthenticatedRequest;
     
+    // Debug session information
+    console.log('[AUTH] Checking user session:', {
+      hasSession: !!authReq.session,
+      hasUser: !!authReq.session?.user,
+      sessionId: authReq.session?.id,
+      cookies: req.headers.cookie ? 'present' : 'missing',
+      origin: req.headers.origin
+    });
+    
     if (authReq.session?.user) {
+      console.log('[AUTH] User authenticated:', authReq.session.user.username);
       res.json({
         success: true,
         user: authReq.session.user,
       });
     } else {
+      console.log('[AUTH] No user in session, returning 401');
       // Return 401 instead of throwing error for better frontend handling
       res.status(401).json({
         success: false,
@@ -237,9 +248,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       authReq.session.user = sessionUser;
 
-      res.json({
-        success: true,
-        user: authReq.session.user,
+      // Save the session to ensure it's persisted
+      authReq.session.save((err) => {
+        if (err) {
+          console.error('Session save error:', err);
+          throw new AuthenticationError("Session creation failed");
+        }
+        
+        console.log('[AUTH] Session created successfully for user:', sessionUser.username);
+        res.json({
+          success: true,
+          user: authReq.session.user,
+        });
       });      
     } catch (error) {
       if (error instanceof AuthenticationError) {
