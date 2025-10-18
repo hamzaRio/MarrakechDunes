@@ -134,8 +134,8 @@ router.get('/debug/gyg', async (req, res) => {
     const requestDetails = {
       url: `${baseURL}/search`,
       params: {
-        search: searchQuery,
-        currency: 'MAD'
+        q: searchQuery
+        // Only use search query - let GYG handle all defaults
       },
       headers: {
         'Accept': 'application/json; charset=utf-8',

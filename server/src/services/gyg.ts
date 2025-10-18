@@ -55,10 +55,10 @@ export async function fetchProducts(search: string): Promise<GYGProduct[]> {
     
     console.log(`[GYG] Searching: "${search}"`);
     
-    // Try different parameter combinations based on GYG API docs
+    // Use the most basic parameters that should work with GYG API
     const params = {
-      search: search.trim(),
-      currency: 'MAD'
+      q: search.trim()
+      // Only use search query - let GYG handle all defaults
     };
     
     // Log the request details for debugging (without credentials)
