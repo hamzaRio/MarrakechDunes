@@ -3321,6 +3321,93 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   }));
 
+  // ===== PUBLIC TEST ENDPOINTS (NO AUTH REQUIRED) =====
+  
+  // Simple bookings endpoint for testing (no auth required)
+  app.get("/api/bookings", asyncHandler(async (req: Request, res: Response) => {
+    try {
+      const bookings = await storage.getBookings();
+      res.json({
+        status: 'success',
+        count: bookings.length,
+        bookings: bookings.slice(0, 5) // Return only first 5 for testing
+      });
+    } catch (error) {
+      console.error('[TEST] Failed to get bookings:', error);
+      res.status(500).json({
+        status: 'error',
+        message: 'Failed to retrieve bookings',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  }));
+
+  // Test notification system without authentication
+  app.post("/api/test/notifications", asyncHandler(async (req: Request, res: Response) => {
+    const { testType } = req.body;
+    
+    console.log(`[TEST] Testing ${testType} notification system...`);
+    
+    try {
+      if (testType === 'email') {
+        // Test email service
+        const testData = {
+          customerName: 'Test Customer',
+          customerPhone: '+212600123456',
+          activityName: 'Test Activity',
+          numberOfPeople: 2,
+          preferredDate: new Date(),
+          totalAmount: 500,
+          bookingId: 'TEST-123'
+        };
+        
+        const emailSent = await emailService.sendBookingConfirmation(testData);
+        
+        res.json({
+          status: 'success',
+          message: 'Email test completed',
+          emailSent,
+          testData
+        });
+      } else if (testType === 'whatsapp') {
+        // Test WhatsApp service
+        const testData = {
+          customerName: 'Test Customer',
+          customerPhone: '+212600123456',
+          activityName: 'Test Activity',
+          numberOfPeople: 2,
+          preferredDate: new Date(),
+          totalAmount: 500,
+          paymentMethod: 'cash',
+          paymentStatus: 'unpaid',
+          status: 'PENDING',
+          notes: 'Test booking for notification verification',
+          bookingId: 'TEST-123'
+        };
+        
+        const whatsappResult = await whatsappService.sendBookingNotification(testData);
+        
+        res.json({
+          status: 'success',
+          message: 'WhatsApp test completed',
+          whatsappResult
+        });
+      } else {
+        res.status(400).json({
+          status: 'error',
+          message: 'Invalid testType. Use "email" or "whatsapp"'
+        });
+      }
+    } catch (error) {
+      console.error('[TEST] Notification test failed:', error);
+      res.status(500).json({
+        status: 'error',
+        message: 'Test failed',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  }));
+
   const httpServer = createServer(app);
   return httpServer;
 }
