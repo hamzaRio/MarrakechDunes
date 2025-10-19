@@ -5,6 +5,7 @@ import MemoryStore from 'memorystore';
 import session from 'express-session';
 import { Request, Response, NextFunction } from 'express';
 import { resolveDatabaseUrl, getRedactedDatabaseUrl } from './utils/database-url.js';
+import crypto from 'crypto';
 
 const isProduction = process.env.NODE_ENV === 'production';
 const sessionSecret = process.env.SESSION_SECRET || 'default-session-secret-for-development-only';
@@ -424,7 +425,7 @@ export const sessionSecurity = {
   proxy: true, // Trust proxy for secure cookies
   // Add session ID regeneration for security
   genid: () => {
-    return require('crypto').randomBytes(16).toString('hex');
+    return crypto.randomBytes(16).toString('hex');
   },
   // Add session touch to keep sessions alive
   touchAfter: 24 * 60 * 60, // 24 hours

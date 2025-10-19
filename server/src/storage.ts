@@ -501,7 +501,6 @@ class MongoStorage implements IStorage {
   }
 
   async createAdmin(adminData: { username: string; password: string; role: string }): Promise<any> {
-    const bcrypt = require('bcrypt');
     const hashedPassword = await bcrypt.hash(adminData.password, 10);
     
     const admin = new User({
