@@ -94,13 +94,11 @@ export async function searchExternalActivities(
 
   // Get GYG results if requested
   if (provider === 'all' || provider === 'gyg') {
-    const shouldUseGYG = live || process.env.GYG_ENABLE_LIVE_SEARCH === 'true';
-    
-    if (shouldUseGYG) {
-      try {
-        const searchQuery = city ? `${query} ${city}`.trim() : query;
-        console.log(`[COMPETITORS] Calling GYG with query: "${searchQuery}", live: ${live}`);
-        const gygResults = await fetchProducts(searchQuery);
+    // Always try GYG first (it will fall back to mock data if API fails)
+    try {
+      const searchQuery = city ? `${query} ${city}`.trim() : query;
+      console.log(`[COMPETITORS] Calling GYG with query: "${searchQuery}", live: ${live}`);
+      const gygResults = await fetchProducts(searchQuery);
         
         console.log(`[COMPETITORS] GYG returned ${gygResults.length} results`);
         
@@ -123,27 +121,22 @@ export async function searchExternalActivities(
         }));
         items.push(...normalizedResults);
         console.log(`[COMPETITORS] Added ${normalizedResults.length} GYG results`);
-      } catch (error) {
-        gygError = error;
-        if (error instanceof GYGError) {
-          console.warn(`[GYG] ${error.code}: ${error.message}`);
-        } else {
-          console.warn('[GYG] Search failed:', (error as Error).message);
-        }
-        
-        // Only fall back to mock if not in live mode
-        if (!live) {
-          console.log(`[COMPETITORS] Falling back to mock data (not in live mode)`);
-          const mockResults = getMockMoroccoActivities();
-          items.push(...mockResults.slice(0, limit));
-        } else {
-          console.log(`[COMPETITORS] Live mode - no fallback, returning empty array`);
-        }
+    } catch (error) {
+      gygError = error;
+      if (error instanceof GYGError) {
+        console.warn(`[GYG] ${error.code}: ${error.message}`);
+      } else {
+        console.warn('[GYG] Search failed:', (error as Error).message);
       }
-    } else {
-      console.log(`[COMPETITORS] GYG disabled - using mock data`);
-      const mockResults = getMockMoroccoActivities();
-      items.push(...mockResults.slice(0, limit));
+      
+      // Only fall back to mock if not in live mode
+      if (!live) {
+        console.log(`[COMPETITORS] Falling back to mock data (not in live mode)`);
+        const mockResults = getMockMoroccoActivities();
+        items.push(...mockResults.slice(0, limit));
+      } else {
+        console.log(`[COMPETITORS] Live mode - no fallback, returning empty array`);
+      }
     }
   }
 
