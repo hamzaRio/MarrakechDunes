@@ -19,31 +19,28 @@ export function useAuth() {
   // Enhanced authentication with better error handling
   const { data, isLoading, error, refetch } = useQuery<AuthUserResponse | null>({
     queryKey: ["/auth/user"],
-    enabled: true, // Always check server authentication
+    enabled: isAdminRoute, // Only check authentication on admin routes
     retry: (failureCount, error: any) => {
       // Don't retry on 401/403 errors
       if (error?.response?.status === 401 || error?.response?.status === 403) {
         console.log('[AUTH] Authentication failed, not retrying:', error.response?.status);
-        // Clear localStorage on auth failure
-        localStorage.removeItem('user');
-        localStorage.removeItem('auth-token');
         return false;
       }
       return failureCount < 1; // Only retry once for other errors
     },
-    staleTime: 1 * 60 * 1000, // 1 minute cache - shorter for better sync
-    gcTime: 2 * 60 * 1000, // 2 minutes garbage collection
-    refetchOnMount: true, // Always refetch on mount
-    refetchOnWindowFocus: true, // Always refetch on focus for better sync
-    refetchInterval: 5 * 60 * 1000, // Refetch every 5 minutes to keep session alive
+    staleTime: 2 * 60 * 1000, // 2 minutes cache - longer to prevent loops
+    gcTime: 5 * 60 * 1000, // 5 minutes garbage collection
+    refetchOnMount: isAdminRoute, // Only refetch on mount for admin routes
+    refetchOnWindowFocus: isAdminRoute, // Only refetch on focus for admin routes
+    refetchInterval: false, // Disable automatic refetch to prevent loops
   });
 
   // Enhanced user state management
   const user = (data as any)?.user ?? null;
   
-  // Clear localStorage if server says we're not authenticated
-  if (!isLoading && !user && localStorage.getItem('user')) {
-    console.warn('[AUTH] Server says not authenticated, clearing localStorage');
+  // Clear localStorage if server says we're not authenticated (only on admin routes)
+  if (!isLoading && !user && localStorage.getItem('user') && isAdminRoute) {
+    console.warn('[AUTH] Server says not authenticated on admin route, clearing localStorage');
     localStorage.removeItem('user');
     localStorage.removeItem('auth-token');
     sessionStorage.clear();

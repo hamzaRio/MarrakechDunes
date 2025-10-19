@@ -24,8 +24,10 @@ export default function Navbar() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   
-  // Only show admin elements if properly authenticated
-  const isAdminAuthenticated = isAuthenticated && user && (user.role === 'admin' || user.role === 'superadmin');
+  // Only show admin elements if properly authenticated and on admin routes
+  const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
+  const isAdminRoute = currentPath.startsWith('/admin') || currentPath.startsWith('/admin/');
+  const isAdminAuthenticated = isAdminRoute && isAuthenticated && user && (user.role === 'admin' || user.role === 'superadmin');
 
   const handleLogout = async () => {
     try {

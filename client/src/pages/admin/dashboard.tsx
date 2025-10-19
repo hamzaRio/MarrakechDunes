@@ -50,7 +50,7 @@ function AdminDashboardContent() {
     localStorage.removeItem('auth-token');
     sessionStorage.clear();
     // Force redirect
-    window.location.href = '/admin/login';
+    window.location.replace('/admin/login');
     return null;
   }
 
@@ -62,7 +62,7 @@ function AdminDashboardContent() {
     localStorage.removeItem('auth-token');
     sessionStorage.clear();
     // Force redirect
-    window.location.href = '/admin/login';
+    window.location.replace('/admin/login');
     return null;
   }
   

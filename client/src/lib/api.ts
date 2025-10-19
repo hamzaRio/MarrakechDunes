@@ -19,12 +19,11 @@ const axios = Axios.create({
   withCredentials: true, // keep cookies for cross-site
 });
 
-// Add response interceptor to handle authentication errors - ONLY for admin routes
+// Add response interceptor to handle authentication errors
 axios.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401 || error.response?.status === 403) {
-      // Only redirect to admin login if we're on an admin route
       const currentPath = window.location.pathname;
       const isAdminRoute = currentPath.startsWith('/admin') || currentPath.startsWith('/admin/');
       
@@ -35,29 +34,20 @@ axios.interceptors.response.use(
         error: error.response?.data
       });
       
-      if (isAdminRoute) {
-        console.warn('[API] Authentication error detected on admin route, clearing storage...');
-        // Clear all authentication data
-        localStorage.removeItem('auth-token');
-        localStorage.removeItem('user');
-        sessionStorage.clear();
-        
-        // Clear all cookies
-        document.cookie.split(";").forEach(function(c) { 
-          document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
-        });
-        
-        // Only redirect if not already on login page
-        if (!currentPath.includes('/login')) {
-          console.log('[API] Redirecting to login page...');
-          window.location.href = '/admin/login';
-        }
-      } else {
-        // For non-admin routes, just clear storage but don't redirect
-        console.warn('[API] Authentication error on non-admin route, clearing storage only...');
-        localStorage.removeItem('auth-token');
-        localStorage.removeItem('user');
-        sessionStorage.clear();
+      // Always clear authentication data on 401/403
+      localStorage.removeItem('auth-token');
+      localStorage.removeItem('user');
+      sessionStorage.clear();
+      
+      // Clear all cookies
+      document.cookie.split(";").forEach(function(c) { 
+        document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+      });
+      
+      // Only redirect to login if we're on an admin route and not already on login page
+      if (isAdminRoute && !currentPath.includes('/login')) {
+        console.log('[API] Redirecting to login page...');
+        window.location.href = '/admin/login';
       }
     }
     return Promise.reject(error);
