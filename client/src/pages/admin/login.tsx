@@ -13,6 +13,7 @@ import { api } from "@/lib/api";
 import { useLocation } from "wouter";
 import { useLanguage } from "@/hooks/use-language";
 import SEOHead, { seoConfigs } from "@/components/seo-head";
+import { Eye, EyeOff, AlertCircle, CheckCircle } from "lucide-react";
 
 const createLoginFormSchema = (t: (key: string) => string) => z.object({
   username: z.string().min(1, t('errors.usernameRequired')),
@@ -25,6 +26,8 @@ export default function AdminLogin() {
   const { toast } = useToast();
   const [, navigate] = useLocation();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const { t, language } = useLanguage();
   const seoConfig = seoConfigs.admin(language);
 
@@ -44,29 +47,51 @@ const initSession = async (): Promise<string> => {
 
 const mutation = useMutation({
   mutationFn: async (data: LoginFormData) => {
-    const csrf = await initSession();
-    const res = await api.post('/auth/login', data, {
-      withCredentials: true,
-      headers: { 'X-CSRF-Token': csrf },
-    });
-    return res.data;
+    setIsLoading(true);
+    setErrorMessage(null);
+    
+    try {
+      const csrf = await initSession();
+      const res = await api.post('/auth/login', data, {
+        withCredentials: true,
+        headers: { 'X-CSRF-Token': csrf },
+      });
+      return res.data;
+    } catch (error: any) {
+      console.error('Login API error:', error);
+      
+      // Enhanced error handling
+      if (error.response?.status === 401) {
+        throw new Error('Nom d\'utilisateur ou mot de passe incorrect');
+      } else if (error.response?.status === 403) {
+        throw new Error('Accès refusé - vérifiez vos permissions');
+      } else if (error.response?.status === 429) {
+        throw new Error('Trop de tentatives de connexion - veuillez attendre');
+      } else if (error.code === 'ERR_NETWORK') {
+        throw new Error('Erreur de connexion au serveur - vérifiez votre connexion');
+      } else {
+        throw new Error(error.response?.data?.message || 'Erreur de connexion inattendue');
+      }
+    } finally {
+      setIsLoading(false);
+    }
   },
   onSuccess: (response) => {
-    console.log('Login response:', response); // Debug log
+    console.log('Login response:', response);
     if (response?.success) {
       setErrorMessage(null);
       localStorage.setItem("user", JSON.stringify(response.user));
       toast({
-        title: t('success.title'),
-        description: t('admin.loginSuccess'),
+        title: "✅ Connexion réussie",
+        description: "Bienvenue dans l'administration MarrakechDunes",
       });
       // Force window location change to ensure proper navigation
       window.location.href = "/admin";
     } else {
-      const message = response?.message || t('errors.loginFailed');
+      const message = response?.message || 'Erreur de connexion';
       setErrorMessage(message);
       toast({
-        title: t('errors.loginFailed'),
+        title: "❌ Échec de la connexion",
         description: message,
         variant: "destructive",
       });
@@ -74,10 +99,10 @@ const mutation = useMutation({
   },
   onError: (error: any) => {
     console.error('Login error:', error);
-    const message = error?.message || t('errors.loginFailed');
+    const message = error?.message || 'Erreur de connexion inattendue';
     setErrorMessage(message);
     toast({
-      title: t('errors.loginFailed'),
+      title: "❌ Échec de la connexion",
       description: message,
       variant: "destructive",
     });
@@ -161,30 +186,57 @@ const mutation = useMutation({
                         {t('admin.password')}
                       </FormLabel>
                       <FormControl>
-                        <Input 
-                          {...field} 
-                          type="password"
-                          placeholder={t('admin.password')}
-                          className="h-12 border-2 border-gray-200 focus:border-moroccan-blue focus:ring-moroccan-blue/20 rounded-lg text-lg"
-                        />
+                        <div className="relative">
+                          <Input 
+                            {...field} 
+                            type={showPassword ? "text" : "password"}
+                            placeholder={t('admin.password')}
+                            className="h-12 border-2 border-gray-200 focus:border-moroccan-blue focus:ring-moroccan-blue/20 rounded-lg text-lg pr-12"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+                          >
+                            {showPassword ? (
+                              <EyeOff className="h-5 w-5" />
+                            ) : (
+                              <Eye className="h-5 w-5" />
+                            )}
+                          </button>
+                        </div>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
 
+                {/* Enhanced Error Display */}
+                {errorMessage && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start space-x-3">
+                    <AlertCircle className="h-5 w-5 text-red-500 mt-0.5 flex-shrink-0" />
+                    <div className="flex-1">
+                      <h4 className="text-red-800 font-semibold text-sm">Erreur d'authentification</h4>
+                      <p className="text-red-700 text-sm mt-1">{errorMessage}</p>
+                    </div>
+                  </div>
+                )}
+
                 <Button 
                   type="submit" 
-                  className="w-full h-12 bg-gradient-to-r from-moroccan-red to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold text-lg rounded-lg shadow-lg transform transition-all duration-200 hover:scale-105 disabled:hover:scale-100"
-                  disabled={mutation.isPending}
+                  className="w-full h-12 bg-gradient-to-r from-moroccan-red to-red-600 hover:from-red-600 hover:to-red-700 text-white font-semibold text-lg rounded-lg shadow-lg transform transition-all duration-200 hover:scale-105 disabled:hover:scale-100 disabled:opacity-50"
+                  disabled={mutation.isPending || isLoading}
                 >
-                  {mutation.isPending ? (
+                  {mutation.isPending || isLoading ? (
                     <div className="flex items-center space-x-2">
                       <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                      <span>{t('admin.signingIn')}</span>
+                      <span>Connexion en cours...</span>
                     </div>
                   ) : (
-                    t('admin.signIn')
+                    <div className="flex items-center space-x-2">
+                      <CheckCircle className="h-5 w-5" />
+                      <span>Se Connecter</span>
+                    </div>
                   )}
                 </Button>
               </form>
