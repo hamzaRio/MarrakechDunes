@@ -263,9 +263,9 @@ export default function SimpleActivityForm({
                           <SelectValue placeholder="Sélectionner" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent>
+                      <SelectContent className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">
                         {categories.map((category) => (
-                          <SelectItem key={category} value={category}>
+                          <SelectItem key={category} value={category} className="text-gray-900 dark:text-gray-100">
                             {category}
                           </SelectItem>
                         ))}
@@ -336,9 +336,9 @@ export default function SimpleActivityForm({
                           <SelectValue placeholder="Sélectionner" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent>
+                      <SelectContent className="bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100">
                         {difficulties.map((difficulty) => (
-                          <SelectItem key={difficulty} value={difficulty}>
+                          <SelectItem key={difficulty} value={difficulty} className="text-gray-900 dark:text-gray-100">
                             {difficulty}
                           </SelectItem>
                         ))}

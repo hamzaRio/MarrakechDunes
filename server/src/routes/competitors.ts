@@ -20,9 +20,9 @@ router.use((req, res, next) => {
     req.query.provider = normalizeProvider(req.query.provider);
   }
   
-          if (req.query.live !== undefined) {
-            req.query.live = boolFromQuery(req.query.live).toString();
-          }
+  if (req.query.live !== undefined) {
+    req.query.live = boolFromQuery(req.query.live).toString();
+  }
   
   next();
 });
