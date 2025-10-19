@@ -2,13 +2,13 @@ import { useState } from 'react';
 import { Link } from 'wouter';
 import { useLanguage } from '@/hooks/use-language';
 import { useAuth } from '@/hooks/use-auth';
-import { Menu, X, Home, Activity, MessageCircle, User, Settings, LogOut } from 'lucide-react';
+import { Menu, X, Home, Activity, MessageCircle, User, Settings, LogOut, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 
 export default function MobileNavigation() {
   const [isOpen, setIsOpen] = useState(false);
-  const { t } = useLanguage();
+  const { t, language, changeLanguage } = useLanguage();
   const { user } = useAuth();
 
   const handleLogout = async () => {
@@ -94,6 +94,34 @@ export default function MobileNavigation() {
                 </Link>
               ))}
             </nav>
+
+            {/* Language Switcher */}
+            <div className="p-4 border-t">
+              <div className="space-y-2">
+                <div className="flex items-center space-x-2 p-2">
+                  <Globe className="h-5 w-5" />
+                  <span className="text-sm font-medium">Language</span>
+                </div>
+                <div className="flex space-x-2">
+                  <Button
+                    variant={language === 'en' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => changeLanguage('en')}
+                    className="flex-1"
+                  >
+                    English
+                  </Button>
+                  <Button
+                    variant={language === 'fr' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => changeLanguage('fr')}
+                    className="flex-1"
+                  >
+                    Français
+                  </Button>
+                </div>
+              </div>
+            </div>
 
             {/* User Section */}
             <div className="p-4 border-t">

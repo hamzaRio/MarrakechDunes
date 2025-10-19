@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Mountain, Menu, MapPin, Phone, Globe, LogOut, User } from "lucide-react";
+import { Mountain, Menu, MapPin, Phone, Globe, LogOut, User, Languages } from "lucide-react";
 import { useLanguage } from "@/hooks/use-language";
 import { useAuth } from "@/hooks/use-auth";
 import { logout } from "@/lib/api";

@@ -21,18 +21,25 @@ const translations = {
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [language, setLanguage] = useState<Language>(() => {
-    // Force French for admin dashboard
+    // Check localStorage for saved language preference
+    try {
+      const saved = localStorage.getItem('marrakech-language');
+      if (saved === 'en' || saved === 'fr') {
+        return saved;
+      }
+    } catch {}
+    
+    // Default to French for Morocco-based business
     return 'fr';
   });
 
   const changeLanguage = (lang: Language) => {
-    // Force French for admin dashboard
-    setLanguage('fr');
+    setLanguage(lang);
     try {
-      localStorage.setItem('marrakech-language', 'fr');
+      localStorage.setItem('marrakech-language', lang);
     } catch {}
     document.dir = 'ltr';
-    document.documentElement.lang = 'fr';
+    document.documentElement.lang = lang;
   };
 
   const t = <T = string>(key: string, options?: Record<string, unknown>): T => {

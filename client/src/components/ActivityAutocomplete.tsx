@@ -59,11 +59,13 @@ export default function ActivityAutocomplete({ city, onPick, value, onChange, on
                 <input
                   value={text}
                   onChange={(e) => {
+                    console.log('[ACTIVITY_AUTOCOMPLETE] Input changed:', e.target.value);
                     setText(e.target.value);
                     onChange?.(e.target.value);
                   }}
                   placeholder="ex. désert, montgolfière, souks…"
-                  className="flex-1 rounded-md border p-2"
+                  className="flex-1 rounded-md border p-2 bg-white text-gray-900"
+                  disabled={false}
                 />
         <Select value={provider} onValueChange={(value: 'all'|'gyg'|'rezdy') => setProvider(value)}>
           <SelectTrigger className="w-32">

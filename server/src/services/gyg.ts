@@ -55,9 +55,10 @@ export async function fetchProducts(search: string): Promise<GYGProduct[]> {
     
     console.log(`[GYG] Searching: "${search}"`);
     
-    // Use absolutely minimal parameters - just the search term
+    // Use GetYourGuide API parameters - simplified approach
     const params = {
-      search: search.trim()
+      q: search.trim(),
+      limit: 20
     };
     
     // Log the request details for debugging (without credentials)
