@@ -278,10 +278,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log('[AUTH] Session created successfully for user:', sessionUser?.username || 'unknown');
         console.log('[AUTH] Session ID:', authReq.session.id);
         console.log('[AUTH] Session cookie:', authReq.session.cookie);
-
-      res.json({
-        success: true,
-        user: authReq.session.user,
+        
+        res.json({
+          success: true,
+          user: authReq.session.user,
         });
       });      
     } catch (error) {
