@@ -481,7 +481,24 @@ app.use((req, res, next) => {
     next();
   });
 
-  // Test notification endpoint (NO AUTH REQUIRED - must be before session middleware)
+
+  // Mount session router BEFORE other routes
+  app.use("/api/session", sessionRouter);
+  
+  // Mount new routes with proper security order
+  const notificationsRouter = (await import('./routes/notifications.js')).default;
+  const externalActivitiesRouter = (await import('./routes/externalActivities.js')).default;
+  const bookingsRouter = (await import('./routes/bookings.js')).default;
+  const competitorsRouter = (await import('./routes/competitors.js')).default;
+  
+  app.use("/api/notifications", notificationsRouter);
+  app.use("/api/external-activities", externalActivitiesRouter);
+  app.use('/api/bookings', bookingsRouter);
+  app.use('/api/competitors', competitorsRouter);
+  
+  const server = await registerRoutes(app);
+
+  // Test notification endpoint (NO AUTH REQUIRED - added after all routes)
   app.post("/api/test/notifications", async (req, res) => {
     const { testType = 'email' } = req.body;
     
@@ -555,22 +572,6 @@ app.use((req, res, next) => {
       });
     }
   });
-
-  // Mount session router BEFORE other routes
-  app.use("/api/session", sessionRouter);
-  
-  // Mount new routes with proper security order
-  const notificationsRouter = (await import('./routes/notifications.js')).default;
-  const externalActivitiesRouter = (await import('./routes/externalActivities.js')).default;
-  const bookingsRouter = (await import('./routes/bookings.js')).default;
-  const competitorsRouter = (await import('./routes/competitors.js')).default;
-  
-  app.use("/api/notifications", notificationsRouter);
-  app.use("/api/external-activities", externalActivitiesRouter);
-  app.use('/api/bookings', bookingsRouter);
-  app.use('/api/competitors', competitorsRouter);
-  
-  const server = await registerRoutes(app);
 
   // Root health check endpoint
   app.get('/', (_req, res) => {
