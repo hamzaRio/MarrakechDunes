@@ -426,6 +426,8 @@ export const sessionSecurity = {
   genid: () => {
     return require('crypto').randomBytes(16).toString('hex');
   },
+  // Add session touch to keep sessions alive
+  touchAfter: 24 * 60 * 60, // 24 hours
 };
 
 // Session configuration is set up - no need to log details

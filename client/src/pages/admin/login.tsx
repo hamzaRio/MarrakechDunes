@@ -80,13 +80,21 @@ const mutation = useMutation({
     console.log('Login response:', response);
     if (response?.success) {
       setErrorMessage(null);
+      
+      // Store user data
       localStorage.setItem("user", JSON.stringify(response.user));
+      
       toast({
         title: "✅ Connexion réussie",
         description: "Bienvenue dans l'administration MarrakechDunes",
       });
-      // Force window location change to ensure proper navigation
-      window.location.href = "/admin";
+      
+      // Wait a moment for the toast to show, then redirect
+      setTimeout(() => {
+        console.log('[LOGIN] Redirecting to admin dashboard...');
+        window.location.href = "/admin/dashboard";
+      }, 1000);
+      
     } else {
       const message = response?.message || 'Erreur de connexion';
       setErrorMessage(message);

@@ -16,31 +16,33 @@ export function useAuth() {
   const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
   const isAdminRoute = currentPath.startsWith('/admin') || currentPath.startsWith('/admin/');
   
-  // SECURITY FIX: Check server authentication, but be less aggressive on non-admin routes
+  // Enhanced authentication with better error handling
   const { data, isLoading, error, refetch } = useQuery<AuthUserResponse | null>({
     queryKey: ["/auth/user"],
     enabled: true, // Always check server authentication
     retry: (failureCount, error: any) => {
       // Don't retry on 401/403 errors
       if (error?.response?.status === 401 || error?.response?.status === 403) {
+        console.log('[AUTH] Authentication failed, not retrying:', error.response?.status);
         return false;
       }
       return failureCount < 1; // Only retry once for other errors
     },
-    staleTime: isAdminRoute ? 2 * 60 * 1000 : 5 * 60 * 1000, // Longer cache for non-admin routes
-    gcTime: isAdminRoute ? 5 * 60 * 1000 : 10 * 60 * 1000, // Longer cache for non-admin routes
-    refetchOnMount: isAdminRoute, // Only refetch on mount for admin routes
+    staleTime: 2 * 60 * 1000, // 2 minutes cache
+    gcTime: 5 * 60 * 1000, // 5 minutes garbage collection
+    refetchOnMount: true, // Always refetch on mount
     refetchOnWindowFocus: isAdminRoute, // Only refetch on focus for admin routes
   });
 
-  // SECURITY FIX: Only use server response, never localStorage fallback
+  // Enhanced user state management
   const user = (data as any)?.user ?? null;
   
-  // Clear localStorage if server says we're not authenticated - but only on admin routes
-  if (!isLoading && !user && localStorage.getItem('user') && isAdminRoute) {
-    console.warn('[AUTH] Server says not authenticated on admin route, clearing localStorage');
+  // Clear localStorage if server says we're not authenticated
+  if (!isLoading && !user && localStorage.getItem('user')) {
+    console.warn('[AUTH] Server says not authenticated, clearing localStorage');
     localStorage.removeItem('user');
     localStorage.removeItem('auth-token');
+    sessionStorage.clear();
   }
 
   // Function to force clear auth state (useful for logout)

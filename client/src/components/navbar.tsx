@@ -26,19 +26,53 @@ export default function Navbar() {
 
   const handleLogout = async () => {
     try {
+      console.log('[NAVBAR] Starting logout process...');
+      
+      // Call server logout
       await logout();
-      queryClient.invalidateQueries({ queryKey: ["/auth/user"] });
-      toast({
-        title: t('success.title'),
-        description: t('admin.logoutSuccess'),
+      
+      // Clear all client-side state
+      localStorage.removeItem('user');
+      localStorage.removeItem('auth-token');
+      sessionStorage.clear();
+      
+      // Clear all cookies
+      document.cookie.split(";").forEach(function(c) { 
+        document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
       });
+      
+      // Invalidate all queries
+      queryClient.invalidateQueries({ queryKey: ["/auth/user"] });
+      queryClient.clear();
+      
+      toast({
+        title: "✅ Déconnexion réussie",
+        description: "Vous avez été déconnecté avec succès",
+      });
+      
+      // Force page reload to ensure clean state
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 1000);
+      
     } catch (error) {
       console.error('Logout error:', error);
+      
+      // Even if server logout fails, clear client state
+      localStorage.removeItem('user');
+      localStorage.removeItem('auth-token');
+      sessionStorage.clear();
+      queryClient.clear();
+      
       toast({
-        title: "Error",
-        description: "Logout failed",
-        variant: "destructive",
+        title: "⚠️ Déconnexion",
+        description: "Déconnexion locale effectuée",
       });
+      
+      // Force page reload
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 1000);
     }
   };
 
@@ -51,7 +85,9 @@ export default function Navbar() {
   ];
 
   // Add admin dashboard link if user is authenticated and has admin role
-  if (user && (user.role === 'admin' || user.role === 'superadmin')) {
+  // Only show admin links if user is properly authenticated
+  const isAuthenticated = user && (user.role === 'admin' || user.role === 'superadmin');
+  if (isAuthenticated) {
     navItems.push({ href: "/admin/dashboard", label: t('nav.adminDashboard') });
   }
 
@@ -102,22 +138,22 @@ export default function Navbar() {
             </DropdownMenu>
             
             {/* User Menu for authenticated users */}
-            {user && (user.role === 'admin' || user.role === 'superadmin') && (
+            {isAuthenticated && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="flex items-center space-x-2">
+                  <Button variant="ghost" size="sm" className="flex items-center space-x-2 hover:bg-gray-100">
                     <User className="h-4 w-4" />
-                    <span className="text-sm">{displayName}</span>
+                    <span className="text-sm font-medium">{displayName}</span>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent>
+                <DropdownMenuContent align="end" className="w-56">
                   <DropdownMenuItem asChild>
-                    <Link href="/admin/dashboard" className="flex items-center">
+                    <Link href="/admin/dashboard" className="flex items-center w-full">
                       <User className="h-4 w-4 mr-2" />
                       {t('nav.adminDashboard')}
                     </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleLogout} className="flex items-center text-red-600">
+                  <DropdownMenuItem onClick={handleLogout} className="flex items-center text-red-600 hover:text-red-700 hover:bg-red-50">
                     <LogOut className="h-4 w-4 mr-2" />
                     {t('admin.logout')}
                   </DropdownMenuItem>

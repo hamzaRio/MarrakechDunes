@@ -12,8 +12,31 @@ export default function MobileNavigation() {
   const { user } = useAuth();
 
   const handleLogout = async () => {
-    // Logout functionality will be handled by the parent component
-    setIsOpen(false);
+    try {
+      console.log('[MOBILE] Starting logout process...');
+      
+      // Clear all client-side state
+      localStorage.removeItem('user');
+      localStorage.removeItem('auth-token');
+      sessionStorage.clear();
+      
+      // Clear all cookies
+      document.cookie.split(";").forEach(function(c) { 
+        document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+      });
+      
+      setIsOpen(false);
+      
+      // Force page reload to ensure clean state
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 500);
+      
+    } catch (error) {
+      console.error('Mobile logout error:', error);
+      setIsOpen(false);
+      window.location.href = '/';
+    }
   };
 
   const navigationItems = [
