@@ -38,6 +38,10 @@ export function useAuth() {
   // Enhanced user state management
   const user = (data as any)?.user ?? null;
   
+  // For admin routes, also check localStorage as fallback
+  const localUser = isAdminRoute && !user && !isLoading ? JSON.parse(localStorage.getItem('user') || 'null') : null;
+  const finalUser = user || localUser;
+  
   // Clear localStorage if server says we're not authenticated (only on admin routes)
   if (!isLoading && !user && localStorage.getItem('user') && isAdminRoute) {
     console.warn('[AUTH] Server says not authenticated on admin route, clearing localStorage');
@@ -60,9 +64,9 @@ export function useAuth() {
   };
 
   return {
-    user,
+    user: finalUser,
     isLoading,
-    isAuthenticated: !!user,
+    isAuthenticated: !!finalUser,
     error,
     refetch,
     clearAuthState,

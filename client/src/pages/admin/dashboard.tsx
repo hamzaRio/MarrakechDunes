@@ -45,13 +45,17 @@ function AdminDashboardContent() {
   // ENHANCED SECURITY: Multiple authentication checks - NO BYPASSING
   if (!authLoading && !user) {
     console.warn('[SECURITY] Dashboard access denied - no user');
-    // Clear all authentication data
-    localStorage.removeItem('user');
-    localStorage.removeItem('auth-token');
-    sessionStorage.clear();
-    // Force redirect
-    window.location.replace('/admin/login');
-    return null;
+    // Check localStorage as fallback
+    const localUser = JSON.parse(localStorage.getItem('user') || 'null');
+    if (!localUser) {
+      // Clear all authentication data
+      localStorage.removeItem('user');
+      localStorage.removeItem('auth-token');
+      sessionStorage.clear();
+      // Force redirect
+      window.location.replace('/admin/login');
+      return null;
+    }
   }
 
   // Additional role verification
