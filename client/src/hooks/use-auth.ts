@@ -24,14 +24,18 @@ export function useAuth() {
       // Don't retry on 401/403 errors
       if (error?.response?.status === 401 || error?.response?.status === 403) {
         console.log('[AUTH] Authentication failed, not retrying:', error.response?.status);
+        // Clear localStorage on auth failure
+        localStorage.removeItem('user');
+        localStorage.removeItem('auth-token');
         return false;
       }
       return failureCount < 1; // Only retry once for other errors
     },
-    staleTime: 2 * 60 * 1000, // 2 minutes cache
-    gcTime: 5 * 60 * 1000, // 5 minutes garbage collection
+    staleTime: 1 * 60 * 1000, // 1 minute cache - shorter for better sync
+    gcTime: 2 * 60 * 1000, // 2 minutes garbage collection
     refetchOnMount: true, // Always refetch on mount
-    refetchOnWindowFocus: isAdminRoute, // Only refetch on focus for admin routes
+    refetchOnWindowFocus: true, // Always refetch on focus for better sync
+    refetchInterval: 5 * 60 * 1000, // Refetch every 5 minutes to keep session alive
   });
 
   // Enhanced user state management

@@ -19,10 +19,13 @@ export default function Navbar() {
   const [location] = useLocation();
   const [isOpen, setIsOpen] = useState(false);
   const { language, changeLanguage, t } = useLanguage();
-  const { user } = useAuth();
+  const { user, isLoading: authLoading, isAuthenticated } = useAuth();
   const displayName = user?.username ?? t("admin.userPlaceholder");
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  
+  // Only show admin elements if properly authenticated
+  const isAdminAuthenticated = isAuthenticated && user && (user.role === 'admin' || user.role === 'superadmin');
 
   const handleLogout = async () => {
     try {
@@ -84,15 +87,13 @@ export default function Navbar() {
     { href: "/admin/login", label: t('nav.admin') },
   ];
 
-  // Add admin dashboard link if user is authenticated and has admin role
-  // Only show admin links if user is properly authenticated
-  const isAuthenticated = user && (user.role === 'admin' || user.role === 'superadmin');
-  if (isAuthenticated) {
+  // Add admin dashboard link if user is properly authenticated (not loading)
+  if (!authLoading && isAdminAuthenticated) {
     navItems.push({ href: "/admin/dashboard", label: t('nav.adminDashboard') });
   }
 
   return (
-    <nav className="bg-white shadow-lg sticky top-0 z-50">
+    <nav className="bg-white shadow-lg sticky top-0 z-50 border-b border-gray-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
@@ -138,24 +139,24 @@ export default function Navbar() {
             </DropdownMenu>
             
             {/* User Menu for authenticated users */}
-            {isAuthenticated && (
+            {!authLoading && isAdminAuthenticated && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="flex items-center space-x-2 hover:bg-gray-100">
-                    <User className="h-4 w-4" />
-                    <span className="text-sm font-medium">{displayName}</span>
+                  <Button variant="ghost" size="sm" className="flex items-center space-x-2 hover:bg-gray-100 transition-colors">
+                    <User className="h-4 w-4 text-gray-600" />
+                    <span className="text-sm font-medium text-gray-700">{displayName}</span>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuContent align="end" className="w-56 shadow-lg border border-gray-200">
                   <DropdownMenuItem asChild>
-                    <Link href="/admin/dashboard" className="flex items-center w-full">
-                      <User className="h-4 w-4 mr-2" />
-                      {t('nav.adminDashboard')}
+                    <Link href="/admin/dashboard" className="flex items-center w-full px-3 py-2 hover:bg-gray-50 transition-colors">
+                      <User className="h-4 w-4 mr-2 text-gray-600" />
+                      <span className="text-sm">{t('nav.adminDashboard')}</span>
                     </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleLogout} className="flex items-center text-red-600 hover:text-red-700 hover:bg-red-50">
+                  <DropdownMenuItem onClick={handleLogout} className="flex items-center text-red-600 hover:text-red-700 hover:bg-red-50 px-3 py-2 transition-colors">
                     <LogOut className="h-4 w-4 mr-2" />
-                    {t('admin.logout')}
+                    <span className="text-sm">{t('admin.logout')}</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
