@@ -197,7 +197,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       hasUser: !!authReq.session?.user,
       sessionId: authReq.session?.id,
       cookies: req.headers.cookie ? 'present' : 'missing',
-      origin: req.headers.origin
+      origin: req.headers.origin,
+      userAgent: req.headers['user-agent']?.substring(0, 50)
     });
     
     if (authReq.session?.user) {
@@ -208,12 +209,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } else {
       console.log('[AUTH] No user in session, returning 401');
+      console.log('[AUTH] Session details:', {
+        sessionExists: !!authReq.session,
+        sessionId: authReq.session?.id,
+        sessionUser: authReq.session?.user,
+        cookieHeader: req.headers.cookie
+      });
+      
       // Return 401 instead of throwing error for better frontend handling
       res.status(401).json({
         success: false,
-        error: 'Not authenticated'
+        error: 'Not authenticated',
+        message: 'No valid session found'
       });
-    }  }));
+    }
+  }));
 
   app.post("/api/auth/login", authRateLimit, asyncHandler(async (req: Request, res: Response) => {
     const { username, password } = req.body;
@@ -258,13 +268,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       authReq.session.save((err) => {
         if (err) {
           console.error('Session save error:', err);
-          throw new AuthenticationError("Session creation failed");
+          return res.status(500).json({
+            success: false,
+            error: 'Session creation failed',
+            message: 'Unable to create user session'
+          });
         }
         
         console.log('[AUTH] Session created successfully for user:', sessionUser?.username || 'unknown');
-        res.json({
-          success: true,
-          user: authReq.session.user,
+        console.log('[AUTH] Session ID:', authReq.session.id);
+        console.log('[AUTH] Session cookie:', authReq.session.cookie);
+
+      res.json({
+        success: true,
+        user: authReq.session.user,
         });
       });      
     } catch (error) {

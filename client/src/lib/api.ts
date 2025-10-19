@@ -28,6 +28,13 @@ axios.interceptors.response.use(
       const currentPath = window.location.pathname;
       const isAdminRoute = currentPath.startsWith('/admin') || currentPath.startsWith('/admin/');
       
+      console.warn('[API] Authentication error detected:', {
+        status: error.response?.status,
+        path: currentPath,
+        isAdminRoute,
+        error: error.response?.data
+      });
+      
       if (isAdminRoute) {
         console.warn('[API] Authentication error detected on admin route, clearing storage...');
         // Clear all authentication data
@@ -40,8 +47,9 @@ axios.interceptors.response.use(
           document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
         });
         
-        // Redirect to admin login only if we're on admin routes
+        // Only redirect if not already on login page
         if (!currentPath.includes('/login')) {
+          console.log('[API] Redirecting to login page...');
           window.location.href = '/admin/login';
         }
       } else {

@@ -422,6 +422,10 @@ export const sessionSecurity = {
   // Enhanced session configuration for cross-site authentication
   rolling: true, // Reset expiration on activity
   proxy: true, // Trust proxy for secure cookies
+  // Add session ID regeneration for security
+  genid: () => {
+    return require('crypto').randomBytes(16).toString('hex');
+  },
 };
 
 // Session configuration is set up - no need to log details
