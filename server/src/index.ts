@@ -481,6 +481,81 @@ app.use((req, res, next) => {
     next();
   });
 
+  // Test notification endpoint (NO AUTH REQUIRED - must be before session middleware)
+  app.post("/api/test/notifications", async (req, res) => {
+    const { testType = 'email' } = req.body;
+    
+    try {
+      if (testType === 'email') {
+        // Test email service
+        const testData = {
+          customerName: 'Test Customer',
+          customerPhone: '212600623630',
+          activityName: 'Test Activity - Hot Air Balloon',
+          numberOfPeople: 2,
+          preferredDate: new Date(),
+          totalAmount: 650,
+          bookingId: 'TEST-' + Date.now(),
+          paymentMethod: 'cash',
+          paymentStatus: 'unpaid',
+          status: 'pending'
+        };
+        
+        const emailService = (await import('./utils/emailService.js')).default;
+        const emailSent = await emailService.sendBookingConfirmation(
+          'test@example.com',
+          testData.customerName,
+          testData.activityName,
+          testData.preferredDate.toISOString(),
+          testData.totalAmount
+        );
+        
+        res.json({
+          status: 'success',
+          message: 'Email test completed',
+          emailSent,
+          testData
+        });
+      } else if (testType === 'whatsapp') {
+        // Test WhatsApp service
+        const testData = {
+          customerName: 'Test Customer',
+          customerPhone: '212600623630',
+          activityName: 'Test Activity - Desert Safari',
+          numberOfPeople: 2,
+          preferredDate: new Date(),
+          totalAmount: 800,
+          bookingId: 'TEST-' + Date.now(),
+          paymentMethod: 'cash',
+          paymentStatus: 'unpaid',
+          status: 'pending'
+        };
+        
+        const { whatsappService } = await import('./whatsapp-service.js');
+        const whatsappResult = await whatsappService.sendBookingNotification(testData);
+        
+        res.json({
+          status: 'success',
+          message: 'WhatsApp test completed',
+          whatsappResult,
+          testData
+        });
+      } else {
+        res.status(400).json({
+          status: 'error',
+          message: 'Invalid test type. Use "email" or "whatsapp"'
+        });
+      }
+    } catch (error) {
+      console.error('Test notification error:', error);
+      res.status(500).json({
+        status: 'error',
+        message: 'Test failed',
+        error: (error as Error).message
+      });
+    }
+  });
+
   // Mount session router BEFORE other routes
   app.use("/api/session", sessionRouter);
   
