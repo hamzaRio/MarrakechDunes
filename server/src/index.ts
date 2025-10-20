@@ -256,9 +256,31 @@ const corsOptions: cors.CorsOptions = {
     return callback(new Error("CORS not allowed for this origin: " + origin));
   },
   credentials: true,
+  methods: ["GET","POST","PUT","PATCH","DELETE","OPTIONS","HEAD"],
+  allowedHeaders: [
+    "Content-Type",
+    "Accept",
+    "Accept-Charset",
+    "X-CSRF-Token",
+    "X-Requested-With",
+    "Authorization"
+  ],
 };
 
 app.use(cors(corsOptions));
+
+// Explicitly handle CORS preflight for all routes
+app.options("*", cors(corsOptions));
+app.use((req, res, next) => {
+  if (req.method === 'OPTIONS') {
+    res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS,HEAD');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Accept, Accept-Charset, X-CSRF-Token, X-Requested-With, Authorization');
+    return res.sendStatus(204);
+  }
+  next();
+});
 
 // Security middleware with CORS-friendly configuration and map support
 app.use(helmet({
@@ -383,7 +405,16 @@ app.use(uploadSecurityHeaders);
 
 // CSRF protection with custom implementation
 app.use(generateCSRFToken);
-app.use(verifyCSRFToken);
+// Skip CSRF verification for safe methods and auth/session bootstrap routes
+app.use((req: Request, res: Response, next: NextFunction) => {
+  const isSafeMethod = req.method === 'GET' || req.method === 'HEAD' || req.method === 'OPTIONS';
+  const path = req.path;
+  const isAuthOrSession = path.startsWith('/api/auth/') || path.startsWith('/api/session/');
+  if (isSafeMethod || isAuthOrSession) {
+    return next();
+  }
+  return verifyCSRFToken(req, res, next);
+});
 
 // CSRF session init route (AFTER CSRF middleware so token is available)
 app.get('/api/session/init', (req: Request, res: Response) => {
