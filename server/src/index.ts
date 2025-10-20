@@ -679,6 +679,24 @@ app.use((req, res, next) => {
     res.json(healthData);
   });
 
+  // Handle static files that should be served by frontend (Vercel)
+  // These files should NOT require authentication and should redirect to frontend
+  app.get('/manifest.webmanifest', (req, res) => {
+    res.redirect(301, 'https://marrakech-dunes.vercel.app/manifest.webmanifest');
+  });
+
+  app.get('/favicon.ico', (req, res) => {
+    res.redirect(301, 'https://marrakech-dunes.vercel.app/favicon.ico');
+  });
+
+  app.get('/sw.js', (req, res) => {
+    res.redirect(301, 'https://marrakech-dunes.vercel.app/sw.js');
+  });
+
+  app.get('/workbox-*.js', (req, res) => {
+    res.redirect(301, `https://marrakech-dunes.vercel.app${req.path}`);
+  });
+
   // Handle favicon.ico requests to prevent 404 errors
   app.get('/api/favicon.ico', (req, res) => {
     res.status(204).end();
