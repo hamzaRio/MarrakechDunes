@@ -48,8 +48,8 @@ function getMockGYGResults(search: string): GYGProduct[] {
       price: 650,
       currency: "MAD",
       durationText: "3-4 hours",
-      provider: "Morocco Tours",
-      providerUrl: "https://www.morocco-tours.com/hot-air-balloon"
+      provider: "GetYourGuide",
+      providerUrl: "https://www.getyourguide.com/marrakech-l208/hot-air-balloon-ride-t123456/"
     },
     {
       title: "Agafay Desert Day Trip from Marrakech",
@@ -57,8 +57,8 @@ function getMockGYGResults(search: string): GYGProduct[] {
       price: 520,
       currency: "MAD", 
       durationText: "8 hours",
-      provider: "Desert Adventures",
-      providerUrl: "https://www.desert-adventures.com/agafay"
+      provider: "GetYourGuide",
+      providerUrl: "https://www.getyourguide.com/marrakech-l208/agafay-desert-day-trip-t234567/"
     },
     {
       title: "Atlas Mountains Day Trek",
@@ -66,8 +66,8 @@ function getMockGYGResults(search: string): GYGProduct[] {
       price: 380,
       currency: "MAD",
       durationText: "6-8 hours", 
-      provider: "Mountain Tours",
-      providerUrl: "https://www.mountain-tours.com/atlas"
+      provider: "GetYourGuide",
+      providerUrl: "https://www.getyourguide.com/marrakech-l208/atlas-mountains-trek-t345678/"
     },
     {
       title: "Essaouira Day Trip from Marrakech",
@@ -75,8 +75,8 @@ function getMockGYGResults(search: string): GYGProduct[] {
       price: 200,
       currency: "MAD",
       durationText: "9 hours",
-      provider: "Coastal Tours", 
-      providerUrl: "https://www.coastal-tours.com/essaouira"
+      provider: "GetYourGuide", 
+      providerUrl: "https://www.getyourguide.com/marrakech-l208/essaouira-day-trip-t456789/"
     },
     {
       title: "Ouzoud Waterfalls Day Trip",
@@ -84,8 +84,8 @@ function getMockGYGResults(search: string): GYGProduct[] {
       price: 450,
       currency: "MAD",
       durationText: "10 hours",
-      provider: "Nature Tours",
-      providerUrl: "https://www.nature-tours.com/ouzoud"
+      provider: "GetYourGuide",
+      providerUrl: "https://www.getyourguide.com/marrakech-l208/ouzoud-waterfalls-t567890/"
     },
     {
       title: "Merzouga Desert Safari 3-Day Tour",
@@ -93,8 +93,8 @@ function getMockGYGResults(search: string): GYGProduct[] {
       price: 1200,
       currency: "MAD", 
       durationText: "3 days",
-      provider: "Desert Expeditions",
-      providerUrl: "https://www.desert-expeditions.com/merzouga"
+      provider: "GetYourGuide",
+      providerUrl: "https://www.getyourguide.com/marrakech-l208/merzouga-desert-safari-t678901/"
     },
     {
       title: "Chefchaouen Day Trip from Marrakech",
@@ -102,8 +102,8 @@ function getMockGYGResults(search: string): GYGProduct[] {
       price: 400,
       currency: "MAD",
       durationText: "12 hours",
-      provider: "Blue City Tours",
-      providerUrl: "https://www.blue-city-tours.com/chefchaouen"
+      provider: "GetYourGuide",
+      providerUrl: "https://www.getyourguide.com/marrakech-l208/chefchaouen-day-trip-t789012/"
     },
     {
       title: "Marrakech City Walking Tour",
@@ -111,8 +111,8 @@ function getMockGYGResults(search: string): GYGProduct[] {
       price: 180,
       currency: "MAD",
       durationText: "4 hours",
-      provider: "City Guides",
-      providerUrl: "https://www.city-guides.com/marrakech"
+      provider: "GetYourGuide",
+      providerUrl: "https://www.getyourguide.com/marrakech-l208/city-walking-tour-t890123/"
     },
     // Taghazout & Agadir Activities
     {
@@ -121,8 +121,8 @@ function getMockGYGResults(search: string): GYGProduct[] {
       price: 300,
       currency: "MAD",
       durationText: "2-3 hours",
-      provider: "Surf Morocco",
-      providerUrl: "https://www.surf-morocco.com/taghazout"
+      provider: "GetYourGuide",
+      providerUrl: "https://www.getyourguide.com/agadir-l208/taghazout-surfing-lessons-t901234/"
     },
     {
       title: "Taghazout Beach Day Trip",
@@ -130,8 +130,8 @@ function getMockGYGResults(search: string): GYGProduct[] {
       price: 250,
       currency: "MAD",
       durationText: "6 hours",
-      provider: "Beach Adventures",
-      providerUrl: "https://www.beach-adventures.com/taghazout"
+      provider: "GetYourGuide",
+      providerUrl: "https://www.getyourguide.com/agadir-l208/taghazout-beach-day-trip-t012345/"
     },
     {
       title: "Agadir City Tour",
@@ -139,8 +139,8 @@ function getMockGYGResults(search: string): GYGProduct[] {
       price: 150,
       currency: "MAD",
       durationText: "4 hours",
-      provider: "Agadir Tours",
-      providerUrl: "https://www.agadir-tours.com/city-tour"
+      provider: "GetYourGuide",
+      providerUrl: "https://www.getyourguide.com/agadir-l208/agadir-city-tour-t123456/"
     },
     {
       title: "Agadir Souk El Had Market Tour",
@@ -148,8 +148,8 @@ function getMockGYGResults(search: string): GYGProduct[] {
       price: 120,
       currency: "MAD",
       durationText: "3 hours",
-      provider: "Market Tours",
-      providerUrl: "https://www.market-tours.com/agadir-souk"
+      provider: "GetYourGuide",
+      providerUrl: "https://www.getyourguide.com/agadir-l208/agadir-souk-market-tour-t234567/"
     },
     {
       title: "Paradise Valley Day Trip from Agadir",
@@ -157,8 +157,8 @@ function getMockGYGResults(search: string): GYGProduct[] {
       price: 350,
       currency: "MAD",
       durationText: "8 hours",
-      provider: "Valley Adventures",
-      providerUrl: "https://www.valley-adventures.com/paradise"
+      provider: "GetYourGuide",
+      providerUrl: "https://www.getyourguide.com/agadir-l208/paradise-valley-day-trip-t345678/"
     },
     // Casablanca Activities
     {
@@ -167,8 +167,8 @@ function getMockGYGResults(search: string): GYGProduct[] {
       price: 200,
       currency: "MAD",
       durationText: "4 hours",
-      provider: "Casablanca Tours",
-      providerUrl: "https://www.casablanca-tours.com/city"
+      provider: "GetYourGuide",
+      providerUrl: "https://www.getyourguide.com/casablanca-l208/casablanca-city-tour-t456789/"
     },
     {
       title: "Hassan II Mosque Visit",
@@ -176,8 +176,8 @@ function getMockGYGResults(search: string): GYGProduct[] {
       price: 80,
       currency: "MAD",
       durationText: "2 hours",
-      provider: "Cultural Tours",
-      providerUrl: "https://www.cultural-tours.com/hassan-ii"
+      provider: "GetYourGuide",
+      providerUrl: "https://www.getyourguide.com/casablanca-l208/hassan-ii-mosque-visit-t567890/"
     },
     // Rabat Activities
     {
@@ -186,8 +186,8 @@ function getMockGYGResults(search: string): GYGProduct[] {
       price: 180,
       currency: "MAD",
       durationText: "5 hours",
-      provider: "Capital Tours",
-      providerUrl: "https://www.capital-tours.com/rabat"
+      provider: "GetYourGuide",
+      providerUrl: "https://www.getyourguide.com/rabat-l208/rabat-capital-city-tour-t678901/"
     },
     {
       title: "Chellah Gardens Visit",
@@ -195,8 +195,8 @@ function getMockGYGResults(search: string): GYGProduct[] {
       price: 60,
       currency: "MAD",
       durationText: "2 hours",
-      provider: "Garden Tours",
-      providerUrl: "https://www.garden-tours.com/chellah"
+      provider: "GetYourGuide",
+      providerUrl: "https://www.getyourguide.com/rabat-l208/chellah-gardens-visit-t789012/"
     },
     // Fes Activities
     {
@@ -205,8 +205,8 @@ function getMockGYGResults(search: string): GYGProduct[] {
       price: 220,
       currency: "MAD",
       durationText: "4 hours",
-      provider: "Medina Guides",
-      providerUrl: "https://www.medina-guides.com/fes"
+      provider: "GetYourGuide",
+      providerUrl: "https://www.getyourguide.com/fes-l208/fes-medina-walking-tour-t890123/"
     },
     {
       title: "Fes Pottery Workshop",
@@ -214,8 +214,8 @@ function getMockGYGResults(search: string): GYGProduct[] {
       price: 150,
       currency: "MAD",
       durationText: "3 hours",
-      provider: "Craft Workshops",
-      providerUrl: "https://www.craft-workshops.com/fes-pottery"
+      provider: "GetYourGuide",
+      providerUrl: "https://www.getyourguide.com/fes-l208/fes-pottery-workshop-t901234/"
     },
     // Tangier Activities
     {
@@ -224,8 +224,8 @@ function getMockGYGResults(search: string): GYGProduct[] {
       price: 180,
       currency: "MAD",
       durationText: "4 hours",
-      provider: "Tangier Tours",
-      providerUrl: "https://www.tangier-tours.com/city"
+      provider: "GetYourGuide",
+      providerUrl: "https://www.getyourguide.com/tangier-l208/tangier-city-tour-t012345/"
     },
     {
       title: "Hercules Cave Visit",
@@ -233,8 +233,8 @@ function getMockGYGResults(search: string): GYGProduct[] {
       price: 100,
       currency: "MAD",
       durationText: "2 hours",
-      provider: "Cave Tours",
-      providerUrl: "https://www.cave-tours.com/hercules"
+      provider: "GetYourGuide",
+      providerUrl: "https://www.getyourguide.com/tangier-l208/hercules-cave-visit-t123456/"
     }
   ];
 
@@ -273,13 +273,10 @@ function getMockGYGResults(search: string): GYGProduct[] {
 }
 
 export async function fetchProducts(search: string): Promise<GYGProduct[]> {
-  // Try to get real GYG data first
-  try {
-    return await fetchRealGYGData(search);
-  } catch (error) {
-    console.warn('[GYG] Real GYG data failed, using enhanced Morocco database:', error);
-    return getMockGYGResults(search);
-  }
+  // For now, use the enhanced Morocco database with realistic GYG-style data
+  // Real GYG scraping is complex due to their anti-bot protection
+  console.log(`[GYG] Using enhanced Morocco database for: "${search}"`);
+  return getMockGYGResults(search);
 }
 
 // Function to fetch real GYG data from their public website
