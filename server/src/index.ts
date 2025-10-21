@@ -219,9 +219,18 @@ const allowedOrigins = process.env.CLIENT_URL?.split(",") || [
   "https://marrakech-dunes-*.vercel.app" // Allow all Vercel preview URLs
 ];
 
+console.log('🌍 CORS Configuration:');
+console.log('  CLIENT_URL:', process.env.CLIENT_URL);
+console.log('  Allowed origins:', allowedOrigins);
+
 const corsOptions: cors.CorsOptions = {
   origin: (origin, callback) => {
-    if (!origin) return callback(null, true); // SSR, Postman, mobile
+    console.log(`🔍 CORS Check - Origin: ${origin}`);
+    
+    if (!origin) {
+      console.log("✅ Allowing request without origin (SSR, Postman, mobile)");
+      return callback(null, true); // SSR, Postman, mobile
+    }
     
     // Check exact matches first
     if (allowedOrigins.includes(origin)) {
@@ -428,6 +437,15 @@ app.get('/api/session/init', (req: Request, res: Response) => {
 
 // Health endpoint - Render expects /api/health
 app.get("/api/health", (_req, res) => res.status(200).json({ status: "ok" }));
+
+// CORS test endpoint
+app.get("/api/cors-test", (req, res) => {
+  res.json({ 
+    status: "ok", 
+    origin: req.headers.origin,
+    timestamp: new Date().toISOString() 
+  });
+});
 
 
 // Static assets are now served by frontend (Vercel)
