@@ -20,9 +20,7 @@ router.use((req, res, next) => {
     req.query.provider = normalizeProvider(req.query.provider);
   }
   
-  if (req.query.live !== undefined) {
-    req.query.live = boolFromQuery(req.query.live).toString();
-  }
+  // Don't process live parameter in middleware - handle in route
   
   next();
 });
@@ -69,8 +67,7 @@ const schema = z.object({
   query: z.string().min(2),
   city: z.string().optional(),
   provider: z.enum(['all', 'gyg', 'rezdy']).default('all'),
-  limit: z.coerce.number().min(1).max(50).optional().default(20),
-  live: z.boolean().optional()
+  limit: z.coerce.number().min(1).max(50).optional().default(20)
 });
 
 router.get('/suggest', async (req, res) => {
@@ -86,7 +83,8 @@ router.get('/suggest', async (req, res) => {
       });
     }
     
-    const { query, city, provider, limit, live } = validationResult.data;
+    const { query, city, provider, limit } = validationResult.data;
+    const live = req.query.live === 'true' || req.query.live === '1' || req.query.live === 'yes';
     const items = await searchExternalActivities(query, city, provider, limit, live);
     res.json({ items }); // unified shape
   } catch (error) {

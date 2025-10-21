@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, Users, TrendingUp, Crown, MessageCircle, LogOut, Download, FileText, Mail, Settings } from "lucide-react";
+import { Calendar, Users, TrendingUp, Crown, MessageCircle, LogOut, Download, FileText, Mail, Settings, Home } from "lucide-react";
 import AdminRoute from "@/components/admin-route";
 import { useAuth } from "@/hooks/use-auth";
 // import { useLanguage } from "@/hooks/use-language";
@@ -377,6 +377,15 @@ function AdminDashboardContent() {
                         <p className="text-gray-600">Bienvenue, {user?.username} 👋</p>
               </div>
               <div className="flex gap-3">
+                <Link href="/">
+                  <Button 
+                    variant="outline" 
+                    className="border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-white"
+                  >
+                    <Home className="h-4 w-4 mr-2" />
+                    Retour à l'Accueil
+                  </Button>
+                </Link>
                 {user?.role === 'superadmin' && (
                   <Link href="/admin/ceo">
                     <Button className="bg-gradient-to-r from-yellow-400 to-yellow-600 hover:from-yellow-500 hover:to-yellow-700 text-black font-semibold">

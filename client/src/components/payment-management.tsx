@@ -43,13 +43,10 @@ const FR_LABELS = {
   save: 'Enregistrer',
 };
 
-// Fix: Payment type options for dropdown
+// Fix: Payment type options for dropdown - Cash only as requested
 const PAYMENT_TYPE_OPTIONS = [
   { value: 'CASH', label: 'Espèces' },
-  { value: 'DEPOSIT', label: 'Acompte' },
-  { value: 'TRANSFER', label: 'Virement' },
-  { value: 'CARD', label: 'Carte' },
-  { value: 'OTHER', label: 'Autre' }
+  { value: 'DEPOSIT', label: 'Acompte' }
 ];
 
 interface PaymentManagementProps {

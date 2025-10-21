@@ -80,6 +80,7 @@ export class CSRFProtection {
       '/api/auth/logout',
       '/api/session/init',
       '/api/bookings',
+      '/api/admin/bookings', // Allow admin booking operations
       '/api/reviews',
       '/api/notifications' // Email notifications - external service integration
     ];
