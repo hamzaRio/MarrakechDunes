@@ -34,6 +34,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Plus, Upload, Search } from "lucide-react";
 import { ObjectUploader } from "@/components/ObjectUploader";
 import ActivityAutocomplete from "@/components/ActivityAutocomplete";
+import GYGSearchBar from "@/components/GYGSearchBar";
 import type { ActivityType } from "marrakechdunes-shared/schema";
 
 const activityFormSchema = z.object({
@@ -200,6 +201,15 @@ export default function SimpleActivityForm({
                 onChange={(value) => form.setValue("name", value)}
               />
             </div>
+
+            {/* GYG Search Bar - Separate Reference Search */}
+            <GYGSearchBar
+              onActivitySelect={(activity) => {
+                // Only use GYG data for reference - don't auto-fill form
+                console.log('GYG Reference Activity:', activity);
+                // You can manually copy the price or name if needed
+              }}
+            />
 
             {/* Nom de l'Activité */}
             <FormField
