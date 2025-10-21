@@ -3,7 +3,7 @@ import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -103,7 +103,7 @@ function AdminDashboardContent() {
     staleTime: 30 * 1000, // 30 seconds
   });
 
-  const { data: activities = [], error: activitiesError } = useQuery<ActivityType[]>({
+  const { data: activities = [] } = useQuery<ActivityType[]>({
     queryKey: ["/activities"],
     enabled: !!user, // Only fetch if user is authenticated
     retry: (failureCount, error: any) => {
@@ -116,7 +116,7 @@ function AdminDashboardContent() {
     staleTime: 30 * 1000,
   });
 
-  const { data: auditLogs = [], error: auditLogsError } = useQuery<AuditLogType[]>({
+  const { data: auditLogs = [] } = useQuery<AuditLogType[]>({
     queryKey: ["/admin/audit-logs"],
     enabled: user?.role === 'superadmin',
     retry: (failureCount, error: any) => {
@@ -131,7 +131,7 @@ function AdminDashboardContent() {
 
   // Fix: Calculate real revenue from all confirmed bookings (regardless of payment status)
   const confirmedBookings = bookings.filter(b => b.status === 'confirmed' as any);
-  const totalRevenue = confirmedBookings.reduce((sum, b) => sum + (b.totalAmount || 0), 0);
+  const totalRevenue = confirmedBookings.reduce((sum, b) => sum + (Number(b.totalAmount) || 0), 0);
 
   // Debug logging for revenue calculation
   console.log('[REVENUE DEBUG]', {
@@ -149,7 +149,7 @@ function AdminDashboardContent() {
   const pendingBookings = bookings.filter(b => b.status === 'pending' as any).length;
 
   // Handle authentication errors
-  if (bookingsError?.response?.status === 401 || bookingsError?.response?.status === 403) {
+  if (bookingsError && 'response' in bookingsError && (bookingsError.response?.status === 401 || bookingsError.response?.status === 403)) {
     console.error('[DASHBOARD] Authentication error detected, redirecting to login');
     window.location.href = '/admin/login';
     return null;
@@ -366,7 +366,7 @@ function AdminDashboardContent() {
     }
   };
 
-  const handleUpdateGetYourGuidePrice = (activity: ActivityType) => {
+  const handleUpdateGetYourGuidePrice = (_activity: ActivityType) => {
     // Auto-fetch live GetYourGuide price instead of manual edit
     toast({
       title: "Mise à jour du prix concurrent",
@@ -487,7 +487,7 @@ function AdminDashboardContent() {
                       </CardHeader>
                       <CardContent>
                         <div className="text-2xl font-bold text-blue-900">
-                          {confirmedBookings}
+                          {confirmedBookings.toString()}
                         </div>
                         <p className="text-xs text-blue-600 mt-1">Clients satisfaits</p>
                       </CardContent>
@@ -858,7 +858,7 @@ function AdminDashboardContent() {
                   </CardHeader>
                   <CardContent>
                     <div className="text-3xl font-bold text-green-900">
-                      {confirmedBookings}
+                      {confirmedBookings.toString()}
                     </div>
                     <p className="text-sm text-green-600 mt-1">Clients satisfaits</p>
                   </CardContent>
