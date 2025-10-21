@@ -273,12 +273,15 @@ function getMockGYGResults(search: string): GYGProduct[] {
 }
 
 export async function fetchProducts(search: string): Promise<GYGProduct[]> {
-  // Try to get real GYG data first
+  // IMPORTANT: This function is ONLY for showing suggestions from GYG
+  // It does NOT add anything to the user's database
+  // GYG data is only used for competitive pricing reference
+  
   try {
-    console.log(`[GYG] Attempting real GYG search for: "${search}"`);
+    console.log(`[GYG] Attempting real GYG search for suggestions: "${search}"`);
     return await fetchRealGYGData(search);
   } catch (error) {
-    console.warn('[GYG] Real GYG data failed, using enhanced Morocco database:', (error as Error).message);
+    console.warn('[GYG] Real GYG data failed, using enhanced Morocco database for suggestions:', (error as Error).message);
     return getMockGYGResults(search);
   }
 }

@@ -45,10 +45,17 @@ export default function PaymentModal({
     setIsUpdating(true);
     try {
       console.log('Updating payment:', { bookingId, type, paidAmount });
-      await axios.post(`/api/bookings/${bookingId}/payment`, { type, paidAmount });
+      
+      // Use the correct admin endpoint with proper field names
+      const response = await axios.patch(`/api/admin/bookings/${bookingId}/payment`, {
+        paymentStatus: paidAmount >= totalAmount ? 'fully_paid' : paidAmount > 0 ? 'deposit_paid' : 'unpaid',
+        paidAmount: paidAmount,
+        paymentMethod: type === 'DEPOSIT' ? 'cash_deposit' : 'cash',
+        depositAmount: type === 'DEPOSIT' ? paidAmount : undefined
+      });
+      
       toast.success('Paiement mis à jour avec succès');
-      const { data } = await axios.get(`/api/bookings/${bookingId}`);
-      onUpdated(data.payment);
+      onUpdated(response.data);
       onClose();
     } catch (error) {
       console.error('Payment update error:', error);
