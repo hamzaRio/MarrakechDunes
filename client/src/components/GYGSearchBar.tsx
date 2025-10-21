@@ -36,7 +36,7 @@ export default function GYGSearchBar({ onActivitySelect }: GYGSearchBarProps) {
     queryFn: async () => {
       if (debouncedQuery.trim().length < 2) return [];
       
-      const response = await axios.get('/api/competitors/suggest', {
+      const response = await axios.get('/competitors/suggest', {
         params: {
           query: debouncedQuery,
           city: 'Morocco',

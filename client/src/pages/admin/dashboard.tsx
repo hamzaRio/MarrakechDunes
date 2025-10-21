@@ -126,10 +126,10 @@ function AdminDashboardContent() {
     staleTime: 30 * 1000,
   });
 
-  // Fix: Calculate real revenue from confirmed paid bookings
+  // Fix: Calculate real revenue from all confirmed bookings (regardless of payment status)
   const totalRevenue = bookings
-    .filter(b => b.status === 'confirmed' as any && b.paymentStatus === 'fully_paid')
-    .reduce((sum, b) => sum + (b.paidAmount || 0), 0);
+    .filter(b => b.status === 'confirmed' as any)
+    .reduce((sum, b) => sum + (b.totalAmount || 0), 0);
 
   const pendingBookings = bookings.filter(b => b.status === 'pending' as any).length;
   const confirmedBookings = bookings.filter(b => b.status === 'confirmed' as any).length;
