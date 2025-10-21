@@ -285,111 +285,134 @@ export async function fetchProducts(search: string): Promise<GYGProduct[]> {
 // Function to fetch real GYG data from their public website
 async function fetchRealGYGData(search: string): Promise<GYGProduct[]> {
   try {
-    // Try to get real GYG data by using their public search
-    const searchUrl = `https://www.getyourguide.com/s/Marrakech/`;
-    const encodedSearch = encodeURIComponent(search);
-    const fullUrl = `${searchUrl}?search=${encodedSearch}&language=fr`;
+    console.log(`[GYG] Attempting real GYG search for: "${search}"`);
     
-    console.log(`[GYG] Searching real GYG: ${fullUrl}`);
+    // Try multiple GYG search approaches
+    const searchUrls = [
+      `https://www.getyourguide.com/s/Marrakech/?search=${encodeURIComponent(search)}`,
+      `https://www.getyourguide.com/marrakech-l208/?search=${encodeURIComponent(search)}`,
+      `https://www.getyourguide.com/s/Morocco/?search=${encodeURIComponent(search)}`
+    ];
     
-    const response = await axios.get(fullUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-        'Accept-Language': 'fr-FR,fr;q=0.9,en;q=0.8',
-        'Accept-Encoding': 'gzip, deflate, br',
-        'DNT': '1',
-        'Connection': 'keep-alive',
-        'Upgrade-Insecure-Requests': '1',
-        'Sec-Fetch-Dest': 'document',
-        'Sec-Fetch-Mode': 'navigate',
-        'Sec-Fetch-Site': 'none',
-        'Cache-Control': 'max-age=0'
-      },
-      timeout: 15000,
-      maxRedirects: 5,
-      validateStatus: (status) => status < 400
-    });
-    
-    console.log(`[GYG] Response status: ${response.status}`);
-    console.log(`[GYG] Response length: ${response.data.length} characters`);
-    
-    // Parse HTML response to extract activity data
-    const html = response.data;
-    const activities: GYGProduct[] = [];
-    
-    // More robust regex patterns for GYG's current HTML structure
-    const activityRegex = /<div[^>]*class="[^"]*activity[^"]*"[^>]*>([\s\S]*?)<\/div>/gi;
-    const titleRegex = /<h[2-4][^>]*class="[^"]*title[^"]*"[^>]*>([^<]+)<\/h[2-4]>/gi;
-    const priceRegex = /<span[^>]*class="[^"]*price[^"]*"[^>]*>([^<]+)<\/span>/gi;
-    const linkRegex = /<a[^>]*href="([^"]*getyourguide\.com[^"]*)"[^>]*>/gi;
-    
-    // Try to find activities in the HTML
-    let activityMatch;
-    const foundActivities: string[] = [];
-    
-    while ((activityMatch = activityRegex.exec(html)) !== null) {
-      foundActivities.push(activityMatch[1]);
+    for (const searchUrl of searchUrls) {
+      try {
+        console.log(`[GYG] Trying URL: ${searchUrl}`);
+        
+        const response = await axios.get(searchUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+            'Accept-Language': 'fr-FR,fr;q=0.9,en;q=0.8',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'DNT': '1',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1',
+            'Sec-Fetch-Dest': 'document',
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': 'none',
+            'Cache-Control': 'max-age=0',
+            'Referer': 'https://www.getyourguide.com/'
+          },
+          timeout: 10000,
+          maxRedirects: 3,
+          validateStatus: (status) => status < 500
+        });
+        
+        console.log(`[GYG] Response status: ${response.status}, length: ${response.data.length}`);
+        
+        if (response.status === 200 && response.data.length > 1000) {
+          const activities = parseGYGResponse(response.data, search);
+          if (activities.length > 0) {
+            console.log(`[GYG] Successfully found ${activities.length} real GYG activities`);
+            return activities;
+          }
+        }
+      } catch (urlError) {
+        console.warn(`[GYG] URL ${searchUrl} failed:`, (urlError as Error).message);
+        continue;
+      }
     }
     
-    console.log(`[GYG] Found ${foundActivities.length} activity sections`);
+    throw new Error('All GYG search URLs failed');
     
-    // Extract titles, prices, and links
+  } catch (error) {
+    console.warn('[GYG] Real GYG search failed:', (error as Error).message);
+    throw error;
+  }
+}
+
+// Parse GYG HTML response
+function parseGYGResponse(html: string, search: string): GYGProduct[] {
+  const activities: GYGProduct[] = [];
+  
+  try {
+    // Look for JSON data in script tags (GYG often embeds data)
+    const jsonRegex = /window\.__INITIAL_STATE__\s*=\s*({.+?});/;
+    const jsonMatch = html.match(jsonRegex);
+    
+    if (jsonMatch) {
+      try {
+        const data = JSON.parse(jsonMatch[1]);
+        console.log('[GYG] Found embedded JSON data');
+        
+        // Extract activities from embedded data
+        const products = data?.products || data?.searchResults || data?.activities || [];
+        if (Array.isArray(products) && products.length > 0) {
+          for (const product of products.slice(0, 5)) {
+            activities.push({
+              title: normalizeUTF8(product.title || product.name || 'Activity'),
+              city: normalizeUTF8(product.city || product.location || 'Marrakech'),
+              price: Number(product.price || product.fromPrice || 0),
+              currency: 'MAD',
+              durationText: product.duration || 'N/A',
+              provider: 'GetYourGuide',
+              providerUrl: product.url || product.link || ''
+            });
+          }
+          return activities;
+        }
+      } catch (jsonError) {
+        console.warn('[GYG] JSON parsing failed:', (jsonError as Error).message);
+      }
+    }
+    
+    // Fallback: HTML parsing
+    const titleRegex = /<h[2-4][^>]*>([^<]+(?:balloon|desert|atlas|waterfall|city|tour|trip|safari|ride)[^<]*)<\/h[2-4]>/gi;
+    const priceRegex = /(?:€|MAD|\$)\s*(\d+)/gi;
+    const linkRegex = /href="([^"]*getyourguide\.com[^"]*)"[^>]*>/gi;
+    
     const titles: string[] = [];
     const prices: string[] = [];
     const links: string[] = [];
     
-    // Extract from all activity sections
-    foundActivities.forEach(section => {
-      let match;
-      
-      // Extract titles
-      while ((match = titleRegex.exec(section)) !== null) {
-        const title = match[1].trim().replace(/<[^>]*>/g, '');
-        if (title && title.length > 5) {
-          titles.push(title);
-        }
+    let match;
+    while ((match = titleRegex.exec(html)) !== null) {
+      const title = match[1].trim().replace(/<[^>]*>/g, '');
+      if (title && title.length > 5 && title.toLowerCase().includes(search.toLowerCase())) {
+        titles.push(title);
       }
-      
-      // Extract prices
-      while ((match = priceRegex.exec(section)) !== null) {
-        const price = match[1].trim().replace(/<[^>]*>/g, '');
-        if (price && price.includes('€') || price.includes('MAD') || price.includes('$')) {
-          prices.push(price);
-        }
-      }
-      
-      // Extract links
-      while ((match = linkRegex.exec(section)) !== null) {
-        const link = match[1];
-        if (link && link.includes('getyourguide.com')) {
-          links.push(link);
-        }
-      }
-    });
+    }
     
-    console.log(`[GYG] Extracted: ${titles.length} titles, ${prices.length} prices, ${links.length} links`);
+    while ((match = priceRegex.exec(html)) !== null) {
+      prices.push(match[1]);
+    }
     
-    // Combine the extracted data
+    while ((match = linkRegex.exec(html)) !== null) {
+      links.push(match[1]);
+    }
+    
+    console.log(`[GYG] HTML parsing found: ${titles.length} titles, ${prices.length} prices, ${links.length} links`);
+    
+    // Combine results
     for (let i = 0; i < Math.min(titles.length, 5); i++) {
       const title = titles[i];
-      const price = prices[i] || 'N/A';
+      const price = prices[i] || '0';
       const link = links[i] || '';
-      
-      // Extract price number
-      const priceMatch = price.match(/(\d+)/);
-      const priceNumber = priceMatch ? parseInt(priceMatch[1]) : 0;
-      
-      // Convert EUR to MAD (approximate)
-      let finalPrice = priceNumber;
-      if (price.includes('€')) {
-        finalPrice = Math.round(priceNumber * 11); // Approximate EUR to MAD conversion
-      }
       
       activities.push({
         title: normalizeUTF8(title),
         city: 'Marrakech',
-        price: finalPrice,
+        price: parseInt(price) || 0,
         currency: 'MAD',
         durationText: 'N/A',
         provider: 'GetYourGuide',
@@ -397,17 +420,11 @@ async function fetchRealGYGData(search: string): Promise<GYGProduct[]> {
       });
     }
     
-    if (activities.length > 0) {
-      console.log(`[GYG] Successfully found ${activities.length} real GYG activities`);
-      return activities;
-    }
-    
-    throw new Error('No activities found in GYG response');
-    
-  } catch (error) {
-    console.warn('[GYG] Real GYG search failed:', error);
-    throw error;
+  } catch (parseError) {
+    console.warn('[GYG] HTML parsing failed:', (parseError as Error).message);
   }
+  
+  return activities;
 }
 
 // Legacy function for backward compatibility
