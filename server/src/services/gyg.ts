@@ -55,8 +55,8 @@ async function fetchRealGYGData(search: string): Promise<GYGProduct[]> {
   try {
     console.log(`[GYG] Attempting real GYG search for: "${search}"`);
     
-    // Use GYG's public search API endpoint
-    const searchUrl = `https://www.getyourguide.com/s/Marrakech/`;
+    // Use GYG's public search API endpoint - search globally, not just Marrakech
+    const searchUrl = `https://www.getyourguide.com/s/`;
     const params = new URLSearchParams({
       'search': search,
       'language': 'fr',
@@ -65,25 +65,54 @@ async function fetchRealGYGData(search: string): Promise<GYGProduct[]> {
     
     console.log(`[GYG] Searching: ${searchUrl}?${params.toString()}`);
     
-    const response = await axios.get(`${searchUrl}?${params.toString()}`, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-        'Accept-Language': 'fr-FR,fr;q=0.9,en;q=0.8',
-        'Accept-Encoding': 'gzip, deflate, br',
-        'DNT': '1',
-        'Connection': 'keep-alive',
-        'Upgrade-Insecure-Requests': '1',
-        'Sec-Fetch-Dest': 'document',
-        'Sec-Fetch-Mode': 'navigate',
-        'Sec-Fetch-Site': 'none',
-        'Cache-Control': 'max-age=0',
-        'Referer': 'https://www.getyourguide.com/'
-      },
-      timeout: 15000,
-      maxRedirects: 5,
-      validateStatus: (status) => status < 400
-    });
+    // Try multiple search approaches
+    const searchAttempts = [
+      `${searchUrl}?${params.toString()}`,
+      `https://www.getyourguide.com/s/Morocco/?${params.toString()}`,
+      `https://www.getyourguide.com/s/Agadir/?${params.toString()}`,
+      `https://www.getyourguide.com/s/Taghazout/?${params.toString()}`
+    ];
+    
+    let response;
+    let lastError;
+    
+    for (const attemptUrl of searchAttempts) {
+      try {
+        console.log(`[GYG] Trying: ${attemptUrl}`);
+        response = await axios.get(attemptUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+            'Accept-Language': 'fr-FR,fr;q=0.9,en;q=0.8',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'DNT': '1',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1',
+            'Sec-Fetch-Dest': 'document',
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': 'none',
+            'Cache-Control': 'max-age=0',
+            'Referer': 'https://www.getyourguide.com/'
+          },
+          timeout: 15000,
+          maxRedirects: 5,
+          validateStatus: (status) => status < 400
+        });
+        
+        if (response.status === 200 && response.data.length > 1000) {
+          console.log(`[GYG] Success with: ${attemptUrl}`);
+          break; // Found a good response
+        }
+      } catch (error) {
+        lastError = error;
+        console.log(`[GYG] Failed with: ${attemptUrl} - ${(error as Error).message}`);
+        continue; // Try next URL
+      }
+    }
+    
+    if (!response) {
+      throw lastError || new Error('All search attempts failed');
+    }
     
     console.log(`[GYG] Response status: ${response.status}, length: ${response.data.length}`);
     
@@ -141,10 +170,10 @@ function parseGYGResponse(html: string, search: string): GYGProduct[] {
       }
     }
     
-    // Enhanced HTML parsing for GYG's current structure
-    const activityRegex = /<div[^>]*class="[^"]*activity[^"]*"[^>]*>([\s\S]*?)<\/div>/gi;
-    const titleRegex = /<h[2-4][^>]*class="[^"]*title[^"]*"[^>]*>([^<]+)<\/h[2-4]>/gi;
-    const priceRegex = /<span[^>]*class="[^"]*price[^"]*"[^>]*>([^<]+)<\/span>/gi;
+    // Enhanced HTML parsing for GYG's current structure - more flexible patterns
+    const activityRegex = /<div[^>]*class="[^"]*(?:activity|card|item|product)[^"]*"[^>]*>([\s\S]*?)<\/div>/gi;
+    const titleRegex = /<h[2-4][^>]*class="[^"]*(?:title|name|headline)[^"]*"[^>]*>([^<]+)<\/h[2-4]>/gi;
+    const priceRegex = /<span[^>]*class="[^"]*(?:price|cost|amount)[^"]*"[^>]*>([^<]+)<\/span>/gi;
     const linkRegex = /<a[^>]*href="([^"]*getyourguide\.com[^"]*)"[^>]*>/gi;
     
     // Try to find activities in the HTML
