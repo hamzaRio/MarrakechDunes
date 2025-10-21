@@ -3,6 +3,9 @@ import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar, Users, TrendingUp, Crown, MessageCircle, LogOut, Download, FileText, Mail, Settings, Home } from "lucide-react";
 import AdminRoute from "@/components/admin-route";
@@ -315,13 +318,39 @@ function AdminDashboardContent() {
   };
 
   // Admin activity management functions
+  const [editingActivity, setEditingActivity] = useState<ActivityType | null>(null);
+  const [newPrice, setNewPrice] = useState<string>('');
+
   const handleEditPricing = (activity: ActivityType) => {
-    const newPrice = prompt(`Modifier le prix pour ${activity.name} (actuel: ${activity.price} MAD):`, activity.price.toString());
-    if (newPrice && !isNaN(Number(newPrice))) {
-      // Update activity pricing
+    setEditingActivity(activity);
+    setNewPrice(activity.price.toString());
+  };
+
+  const handleSavePrice = async () => {
+    if (!editingActivity || !newPrice || isNaN(Number(newPrice))) return;
+    
+    try {
+      // Update activity pricing via API
+      await api.patch(`/activities/${editingActivity._id}`, {
+        price: Number(newPrice)
+      });
+      
       toast({
         title: "Prix mis à jour",
-        description: `Prix mis à jour à ${newPrice} MAD pour ${activity.name}`,
+        description: `Prix mis à jour à ${newPrice} MAD pour ${editingActivity.name}`,
+      });
+      
+      // Refresh activities data
+      queryClient.invalidateQueries({ queryKey: ["/activities"] });
+      
+      setEditingActivity(null);
+      setNewPrice('');
+    } catch (error) {
+      console.error('Error updating price:', error);
+      toast({
+        title: "Erreur de mise à jour",
+        description: "Impossible de mettre à jour le prix",
+        variant: "destructive",
       });
     }
   };
@@ -959,6 +988,38 @@ function AdminDashboardContent() {
           </Tabs>
         </div>
       </div>
+
+      {/* Price Editing Modal */}
+      <Dialog open={!!editingActivity} onOpenChange={() => setEditingActivity(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Modifier le prix</DialogTitle>
+            <DialogDescription>
+              Modifier le prix pour {editingActivity?.name}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="price">Nouveau prix (MAD)</Label>
+              <Input
+                id="price"
+                type="number"
+                value={newPrice}
+                onChange={(e) => setNewPrice(e.target.value)}
+                placeholder="Entrez le nouveau prix"
+              />
+            </div>
+            <div className="flex justify-end space-x-2">
+              <Button variant="outline" onClick={() => setEditingActivity(null)}>
+                Annuler
+              </Button>
+              <Button onClick={handleSavePrice}>
+                Sauvegarder
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
