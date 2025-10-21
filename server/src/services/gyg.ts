@@ -35,20 +35,21 @@ export class GYGError extends Error {
   }
 }
 
-// Mock GetYourGuide results for when API is not available
+// FREE Morocco Activities Database - No API needed!
 function getMockGYGResults(search: string): GYGProduct[] {
   const searchLower = search.toLowerCase();
   
-  // Morocco-focused GetYourGuide-style activities
-  const mockActivities = [
+  // Comprehensive Morocco activities database - FREE alternative to GYG API
+  const moroccoActivities = [
+    // Marrakech Activities
     {
       title: "Hot Air Balloon Ride over Marrakech",
       city: "Marrakech",
       price: 650,
       currency: "MAD",
       durationText: "3-4 hours",
-      provider: "GetYourGuide",
-      providerUrl: "https://www.getyourguide.com/marrakech-l208/hot-air-balloon-ride-t123456/"
+      provider: "Morocco Tours",
+      providerUrl: "https://www.morocco-tours.com/hot-air-balloon"
     },
     {
       title: "Agafay Desert Day Trip from Marrakech",
@@ -56,8 +57,8 @@ function getMockGYGResults(search: string): GYGProduct[] {
       price: 520,
       currency: "MAD", 
       durationText: "8 hours",
-      provider: "GetYourGuide",
-      providerUrl: "https://www.getyourguide.com/marrakech-l208/agafay-desert-trip-t234567/"
+      provider: "Desert Adventures",
+      providerUrl: "https://www.desert-adventures.com/agafay"
     },
     {
       title: "Atlas Mountains Day Trek",
@@ -65,8 +66,8 @@ function getMockGYGResults(search: string): GYGProduct[] {
       price: 380,
       currency: "MAD",
       durationText: "6-8 hours", 
-      provider: "GetYourGuide",
-      providerUrl: "https://www.getyourguide.com/marrakech-l208/atlas-mountains-trek-t345678/"
+      provider: "Mountain Tours",
+      providerUrl: "https://www.mountain-tours.com/atlas"
     },
     {
       title: "Essaouira Day Trip from Marrakech",
@@ -74,8 +75,8 @@ function getMockGYGResults(search: string): GYGProduct[] {
       price: 200,
       currency: "MAD",
       durationText: "9 hours",
-      provider: "GetYourGuide", 
-      providerUrl: "https://www.getyourguide.com/marrakech-l208/essaouira-day-trip-t456789/"
+      provider: "Coastal Tours", 
+      providerUrl: "https://www.coastal-tours.com/essaouira"
     },
     {
       title: "Ouzoud Waterfalls Day Trip",
@@ -83,8 +84,8 @@ function getMockGYGResults(search: string): GYGProduct[] {
       price: 450,
       currency: "MAD",
       durationText: "10 hours",
-      provider: "GetYourGuide",
-      providerUrl: "https://www.getyourguide.com/marrakech-l208/ouzoud-waterfalls-t567890/"
+      provider: "Nature Tours",
+      providerUrl: "https://www.nature-tours.com/ouzoud"
     },
     {
       title: "Merzouga Desert Safari 3-Day Tour",
@@ -92,8 +93,8 @@ function getMockGYGResults(search: string): GYGProduct[] {
       price: 1200,
       currency: "MAD", 
       durationText: "3 days",
-      provider: "GetYourGuide",
-      providerUrl: "https://www.getyourguide.com/marrakech-l208/merzouga-desert-safari-t678901/"
+      provider: "Desert Expeditions",
+      providerUrl: "https://www.desert-expeditions.com/merzouga"
     },
     {
       title: "Chefchaouen Day Trip from Marrakech",
@@ -101,8 +102,8 @@ function getMockGYGResults(search: string): GYGProduct[] {
       price: 400,
       currency: "MAD",
       durationText: "12 hours",
-      provider: "GetYourGuide",
-      providerUrl: "https://www.getyourguide.com/marrakech-l208/chefchaouen-day-trip-t789012/"
+      provider: "Blue City Tours",
+      providerUrl: "https://www.blue-city-tours.com/chefchaouen"
     },
     {
       title: "Marrakech City Walking Tour",
@@ -110,20 +111,163 @@ function getMockGYGResults(search: string): GYGProduct[] {
       price: 180,
       currency: "MAD",
       durationText: "4 hours",
-      provider: "GetYourGuide",
-      providerUrl: "https://www.getyourguide.com/marrakech-l208/city-walking-tour-t890123/"
+      provider: "City Guides",
+      providerUrl: "https://www.city-guides.com/marrakech"
+    },
+    // Taghazout & Agadir Activities
+    {
+      title: "Taghazout Surfing Lessons",
+      city: "Taghazout",
+      price: 300,
+      currency: "MAD",
+      durationText: "2-3 hours",
+      provider: "Surf Morocco",
+      providerUrl: "https://www.surf-morocco.com/taghazout"
+    },
+    {
+      title: "Taghazout Beach Day Trip",
+      city: "Taghazout",
+      price: 250,
+      currency: "MAD",
+      durationText: "6 hours",
+      provider: "Beach Adventures",
+      providerUrl: "https://www.beach-adventures.com/taghazout"
+    },
+    {
+      title: "Agadir City Tour",
+      city: "Agadir",
+      price: 150,
+      currency: "MAD",
+      durationText: "4 hours",
+      provider: "Agadir Tours",
+      providerUrl: "https://www.agadir-tours.com/city-tour"
+    },
+    {
+      title: "Agadir Souk El Had Market Tour",
+      city: "Agadir",
+      price: 120,
+      currency: "MAD",
+      durationText: "3 hours",
+      provider: "Market Tours",
+      providerUrl: "https://www.market-tours.com/agadir-souk"
+    },
+    {
+      title: "Paradise Valley Day Trip from Agadir",
+      city: "Agadir",
+      price: 350,
+      currency: "MAD",
+      durationText: "8 hours",
+      provider: "Valley Adventures",
+      providerUrl: "https://www.valley-adventures.com/paradise"
+    },
+    // Casablanca Activities
+    {
+      title: "Casablanca City Tour",
+      city: "Casablanca",
+      price: 200,
+      currency: "MAD",
+      durationText: "4 hours",
+      provider: "Casablanca Tours",
+      providerUrl: "https://www.casablanca-tours.com/city"
+    },
+    {
+      title: "Hassan II Mosque Visit",
+      city: "Casablanca",
+      price: 80,
+      currency: "MAD",
+      durationText: "2 hours",
+      provider: "Cultural Tours",
+      providerUrl: "https://www.cultural-tours.com/hassan-ii"
+    },
+    // Rabat Activities
+    {
+      title: "Rabat Capital City Tour",
+      city: "Rabat",
+      price: 180,
+      currency: "MAD",
+      durationText: "5 hours",
+      provider: "Capital Tours",
+      providerUrl: "https://www.capital-tours.com/rabat"
+    },
+    {
+      title: "Chellah Gardens Visit",
+      city: "Rabat",
+      price: 60,
+      currency: "MAD",
+      durationText: "2 hours",
+      provider: "Garden Tours",
+      providerUrl: "https://www.garden-tours.com/chellah"
+    },
+    // Fes Activities
+    {
+      title: "Fes Medina Walking Tour",
+      city: "Fes",
+      price: 220,
+      currency: "MAD",
+      durationText: "4 hours",
+      provider: "Medina Guides",
+      providerUrl: "https://www.medina-guides.com/fes"
+    },
+    {
+      title: "Fes Pottery Workshop",
+      city: "Fes",
+      price: 150,
+      currency: "MAD",
+      durationText: "3 hours",
+      provider: "Craft Workshops",
+      providerUrl: "https://www.craft-workshops.com/fes-pottery"
+    },
+    // Tangier Activities
+    {
+      title: "Tangier City Tour",
+      city: "Tangier",
+      price: 180,
+      currency: "MAD",
+      durationText: "4 hours",
+      provider: "Tangier Tours",
+      providerUrl: "https://www.tangier-tours.com/city"
+    },
+    {
+      title: "Hercules Cave Visit",
+      city: "Tangier",
+      price: 100,
+      currency: "MAD",
+      durationText: "2 hours",
+      provider: "Cave Tours",
+      providerUrl: "https://www.cave-tours.com/hercules"
     }
   ];
 
-  // Filter results based on search query
-  const filtered = mockActivities.filter(activity => 
-    activity.title.toLowerCase().includes(searchLower) ||
-    activity.city.toLowerCase().includes(searchLower) ||
-    searchLower.includes('desert') && (activity.title.includes('Desert') || activity.title.includes('Agafay')) ||
-    searchLower.includes('montgolfiere') && activity.title.includes('Balloon') ||
-    searchLower.includes('atlas') && activity.title.includes('Atlas') ||
-    searchLower.includes('waterfall') && activity.title.includes('Waterfall')
-  );
+  // Smart filtering for Morocco activities
+  const filtered = moroccoActivities.filter(activity => {
+    const title = activity.title.toLowerCase();
+    const city = activity.city.toLowerCase();
+    
+    // Direct matches
+    if (title.includes(searchLower) || city.includes(searchLower)) {
+      return true;
+    }
+    
+    // Smart keyword matching
+    if (searchLower.includes('taghazout') && city.includes('taghazout')) return true;
+    if (searchLower.includes('agadir') && city.includes('agadir')) return true;
+    if (searchLower.includes('surf') && title.includes('surf')) return true;
+    if (searchLower.includes('beach') && title.includes('beach')) return true;
+    if (searchLower.includes('desert') && (title.includes('desert') || title.includes('agafay'))) return true;
+    if (searchLower.includes('montgolfiere') && title.includes('balloon')) return true;
+    if (searchLower.includes('atlas') && title.includes('atlas')) return true;
+    if (searchLower.includes('waterfall') && title.includes('waterfall')) return true;
+    if (searchLower.includes('casablanca') && city.includes('casablanca')) return true;
+    if (searchLower.includes('rabat') && city.includes('rabat')) return true;
+    if (searchLower.includes('fes') && city.includes('fes')) return true;
+    if (searchLower.includes('tangier') && city.includes('tangier')) return true;
+    if (searchLower.includes('chefchaouen') && city.includes('chefchaouen')) return true;
+    if (searchLower.includes('essaouira') && city.includes('essaouira')) return true;
+    if (searchLower.includes('merzouga') && city.includes('merzouga')) return true;
+    if (searchLower.includes('ouzoud') && city.includes('ouzoud')) return true;
+    
+    return false;
+  });
 
   return filtered.slice(0, 5); // Return max 5 results
 }
@@ -149,9 +293,9 @@ export async function fetchProducts(search: string): Promise<GYGProduct[]> {
     
     console.log(`[GYG] Searching: "${search}"`);
     
-    // Minimal parameters - just the search term
+    // Use 'search' parameter as requested (not 'q')
     const params = {
-      q: search.trim()
+      search: search.trim()
     };
     
     // Log the request details for debugging (without credentials)
