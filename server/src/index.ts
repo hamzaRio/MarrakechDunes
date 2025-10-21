@@ -77,10 +77,12 @@ const criticalEnvVars = [
 
 // Only enforce critical env vars in production
 if (isProduction) {
-  for (const envVar of criticalEnvVars) {
-    if (!process.env[envVar]) {
-      throw new Error(`Missing critical env: ${envVar}`);
-    }
+  const missingVars = criticalEnvVars.filter(envVar => !process.env[envVar]);
+  if (missingVars.length > 0) {
+    console.error('❌ Missing critical environment variables:', missingVars);
+    console.error('❌ Server cannot start without these variables');
+    console.error('❌ Please check your Render environment variables');
+    process.exit(1);
   }
 } else {
   // For development, set defaults for missing variables
@@ -222,6 +224,17 @@ const allowedOrigins = process.env.CLIENT_URL?.split(",") || [
 console.log('🌍 CORS Configuration:');
 console.log('  CLIENT_URL:', process.env.CLIENT_URL);
 console.log('  Allowed origins:', allowedOrigins);
+
+// Production startup diagnostics
+if (isProduction) {
+  console.log('🚀 Production startup diagnostics:');
+  console.log('  NODE_ENV:', process.env.NODE_ENV);
+  console.log('  PORT:', process.env.PORT);
+  console.log('  DATABASE_URL:', process.env.DATABASE_URL ? '✅ SET' : '❌ MISSING');
+  console.log('  SESSION_SECRET:', process.env.SESSION_SECRET ? '✅ SET' : '❌ MISSING');
+  console.log('  JWT_SECRET:', process.env.JWT_SECRET ? '✅ SET' : '❌ MISSING');
+  console.log('  CLIENT_URL:', process.env.CLIENT_URL || '❌ MISSING');
+}
 
 const corsOptions: cors.CorsOptions = {
   origin: (origin, callback) => {
