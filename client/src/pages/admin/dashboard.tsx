@@ -130,12 +130,23 @@ function AdminDashboardContent() {
   });
 
   // Fix: Calculate real revenue from all confirmed bookings (regardless of payment status)
-  const totalRevenue = bookings
-    .filter(b => b.status === 'confirmed' as any)
-    .reduce((sum, b) => sum + (b.totalAmount || 0), 0);
+  const confirmedBookings = bookings.filter(b => b.status === 'confirmed' as any);
+  const totalRevenue = confirmedBookings.reduce((sum, b) => sum + (b.totalAmount || 0), 0);
+
+  // Debug logging for revenue calculation
+  console.log('[REVENUE DEBUG]', {
+    totalBookings: bookings.length,
+    confirmedBookings: confirmedBookings.length,
+    confirmedBookingsData: confirmedBookings.map(b => ({
+      id: b._id,
+      status: b.status,
+      totalAmount: b.totalAmount,
+      paidAmount: b.paidAmount
+    })),
+    calculatedRevenue: totalRevenue
+  });
 
   const pendingBookings = bookings.filter(b => b.status === 'pending' as any).length;
-  const confirmedBookings = bookings.filter(b => b.status === 'confirmed' as any).length;
 
   // Handle authentication errors
   if (bookingsError?.response?.status === 401 || bookingsError?.response?.status === 403) {
@@ -991,10 +1002,10 @@ function AdminDashboardContent() {
 
       {/* Price Editing Modal */}
       <Dialog open={!!editingActivity} onOpenChange={() => setEditingActivity(null)}>
-        <DialogContent>
+        <DialogContent aria-describedby="price-edit-description">
           <DialogHeader>
             <DialogTitle>Modifier le prix</DialogTitle>
-            <DialogDescription>
+            <DialogDescription id="price-edit-description">
               Modifier le prix pour {editingActivity?.name}
             </DialogDescription>
           </DialogHeader>

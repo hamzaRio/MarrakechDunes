@@ -66,9 +66,9 @@ export default function BookingDetailsModal({ booking, isOpen, onClose }: Bookin
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" aria-describedby="booking-details-description">
         <DialogHeader>
-          <DialogTitle className="text-xl font-bold text-gray-800">
+          <DialogTitle className="text-xl font-bold text-gray-800" id="booking-details-description">
             Détails de la Réservation
           </DialogTitle>
         </DialogHeader>
