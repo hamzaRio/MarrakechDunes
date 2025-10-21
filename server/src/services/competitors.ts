@@ -129,11 +129,23 @@ export async function searchExternalActivities(
         console.warn('[GYG] Search failed:', (error as Error).message);
       }
       
-      // Only fall back to mock if not in live mode
+      // Only fall back to sample data if not in live mode
       if (!live) {
-        console.log(`[COMPETITORS] Falling back to mock data (not in live mode)`);
-        const mockResults = getMockMoroccoActivities();
-        items.push(...mockResults.slice(0, limit));
+        console.log(`[COMPETITORS] Falling back to sample data (not in live mode)`);
+        // Import the sample data function from GYG service
+        const { fetchProducts } = await import('./gyg.js');
+        const sampleResults = await fetchProducts(query);
+        const normalizedSampleResults = sampleResults.map((item: any) => ({
+          title: item.title,
+          city: item.city,
+          priceMAD: item.price,
+          durationText: item.durationText,
+          rating: undefined,
+          reviewsCount: undefined,
+          provider: item.provider as 'GetYourGuide',
+          providerUrl: item.providerUrl
+        }));
+        items.push(...normalizedSampleResults.slice(0, limit));
       } else {
         console.log(`[COMPETITORS] Live mode - no fallback, returning empty array`);
       }
@@ -151,11 +163,22 @@ export async function searchExternalActivities(
     }
   }
 
-  // Fallback to mock if no results AND not in live mode
+  // Fallback to sample data if no results AND not in live mode
   if (items.length === 0 && !live) {
-    console.log(`[COMPETITORS] No results from any provider, using mock data`);
-    const mockResults = getMockResults(query, city);
-    items.push(...mockResults.slice(0, limit));
+    console.log(`[COMPETITORS] No results from any provider, using sample data`);
+    const { fetchProducts } = await import('./gyg.js');
+    const sampleResults = await fetchProducts(query);
+    const normalizedSampleResults = sampleResults.map((item: any) => ({
+      title: item.title,
+      city: item.city,
+      priceMAD: item.price,
+      durationText: item.durationText,
+      rating: undefined,
+      reviewsCount: undefined,
+      provider: item.provider as 'GetYourGuide',
+      providerUrl: item.providerUrl
+    }));
+    items.push(...normalizedSampleResults.slice(0, limit));
   }
 
   // Process and normalize results
