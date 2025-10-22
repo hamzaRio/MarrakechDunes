@@ -129,15 +129,16 @@ function AdminDashboardContent() {
     staleTime: 30 * 1000,
   });
 
-  // Fix: Calculate real revenue from all confirmed bookings (regardless of payment status)
-  const confirmedBookings = bookings.filter(b => b.status === 'confirmed' as any);
-  const totalRevenue = confirmedBookings.reduce((sum, b) => sum + (Number(b.totalAmount) || 0), 0);
+  // Fix: Calculate real revenue from all bookings (regardless of status)
+  // Include all bookings that have a totalAmount > 0
+  const revenueBookings = bookings.filter(b => Number(b.totalAmount) > 0);
+  const totalRevenue = revenueBookings.reduce((sum, b) => sum + (Number(b.totalAmount) || 0), 0);
 
   // Debug logging for revenue calculation
   console.log('[REVENUE DEBUG]', {
     totalBookings: bookings.length,
-    confirmedBookings: confirmedBookings.length,
-    confirmedBookingsData: confirmedBookings.map(b => ({
+    revenueBookings: revenueBookings.length,
+    allBookingsData: bookings.map(b => ({
       id: b._id,
       status: b.status,
       totalAmount: b.totalAmount,

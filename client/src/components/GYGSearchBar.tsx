@@ -36,14 +36,18 @@ export default function GYGSearchBar({ onActivitySelect }: GYGSearchBarProps) {
     queryFn: async () => {
       if (debouncedQuery.trim().length < 2) return [];
       
+      console.log('[GYG-SEARCH] Searching for:', debouncedQuery);
+      
       const response = await axios.get('/competitors/suggest', {
         params: {
           query: debouncedQuery,
           city: 'Morocco',
           provider: 'gyg',
-          live: true // Force real GYG data
+          live: false // Use reference data instead of live API
         }
       });
+      
+      console.log('[GYG-SEARCH] Response:', response.data);
       return response.data.items || [];
     },
     enabled: debouncedQuery.trim().length >= 2,
