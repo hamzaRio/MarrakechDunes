@@ -26,28 +26,35 @@ axios.interceptors.response.use(
     if (error.response?.status === 401 || error.response?.status === 403) {
       const currentPath = window.location.pathname;
       const isAdminRoute = currentPath.startsWith('/admin') || currentPath.startsWith('/admin/');
+      const isPublicRoute = currentPath === '/' || currentPath.startsWith('/activities') || currentPath.startsWith('/reviews');
       
       console.warn('[API] Authentication error detected:', {
         status: error.response?.status,
         path: currentPath,
         isAdminRoute,
+        isPublicRoute,
         error: error.response?.data
       });
       
-      // Always clear authentication data on 401/403
-      localStorage.removeItem('auth-token');
-      localStorage.removeItem('user');
-      sessionStorage.clear();
-      
-      // Clear all cookies
-      document.cookie.split(";").forEach(function(c) { 
-        document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
-      });
-      
-      // Only redirect to login if we're on an admin route and not already on login page
+      // Only clear auth data and redirect if we're on admin routes
       if (isAdminRoute && !currentPath.includes('/login')) {
+        console.log('[API] Admin route authentication error - clearing auth data');
+        
+        // Clear authentication data on admin routes only
+        localStorage.removeItem('auth-token');
+        localStorage.removeItem('user');
+        sessionStorage.clear();
+        
+        // Clear all cookies
+        document.cookie.split(";").forEach(function(c) { 
+          document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+        });
+        
         console.log('[API] Redirecting to login page...');
         window.location.href = '/admin/login';
+      } else if (isPublicRoute) {
+        console.log('[API] Public route - ignoring auth error');
+        // Don't clear auth data on public routes
       }
     }
     return Promise.reject(error);
