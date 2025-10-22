@@ -2,6 +2,7 @@ import axios from 'axios';
 import removeAccents from 'remove-accents';
 import { searchRezdy } from './providers/rezdy.js';
 import { fetchProducts, GYGError } from './gyg.js';
+import { GYGReferenceService } from './gyg-reference.js';
 import { ENV } from '../config/env.js';
 
 // Simple cache implementation
@@ -94,54 +95,47 @@ export async function searchExternalActivities(
 
   // Get GYG results if requested
   if (provider === 'all' || provider === 'gyg') {
-    // Always try GYG first (it will fall back to mock data if API fails)
+    // Use GYG Reference Service (no API required - just reference data)
     try {
       const searchQuery = city ? `${query} ${city}`.trim() : query;
-      console.log(`[COMPETITORS] Calling GYG with query: "${searchQuery}", live: ${live}`);
-      const gygResults = await fetchProducts(searchQuery);
+      console.log(`[COMPETITORS] Searching GYG references for: "${searchQuery}"`);
+      const gygResults = await GYGReferenceService.searchReferences(query, city);
         
-        console.log(`[COMPETITORS] GYG returned ${gygResults.length} results`);
-        
-        if (gygResults.length === 0 && live) {
-          // If live=true and GYG returns 0 items, return empty (no fallback)
-          console.log(`[COMPETITORS] Live mode with 0 results - returning empty array`);
-          setCached(key, []);
-          return [];
-        }
-        
-        const normalizedResults = gygResults.map(item => ({
-          title: item.title,
-          city: item.city,
-          priceMAD: item.currency === 'MAD' ? item.price : item.price,
-          durationText: item.durationText,
-          rating: undefined,
-          reviewsCount: undefined,
-          provider: item.provider as 'GetYourGuide',
-          providerUrl: item.providerUrl
-        }));
-        items.push(...normalizedResults);
-        console.log(`[COMPETITORS] Added ${normalizedResults.length} GYG results`);
-    } catch (error) {
-      gygError = error;
-      if (error instanceof GYGError) {
-        console.warn(`[GYG] ${error.code}: ${error.message}`);
-      } else {
-        console.warn('[GYG] Search failed:', (error as Error).message);
+      console.log(`[COMPETITORS] GYG Reference returned ${gygResults.length} results`);
+      
+      if (gygResults.length === 0 && live) {
+        // If live=true and no references found, return empty (no fallback)
+        console.log(`[COMPETITORS] Live mode with 0 results - returning empty array`);
+        setCached(key, []);
+        return [];
       }
+      
+      const normalizedResults = gygResults.map(item => ({
+        title: item.title,
+        city: item.city,
+        priceMAD: item.priceMAD,
+        durationText: item.durationText,
+        rating: item.rating,
+        reviewsCount: item.reviewsCount,
+        provider: item.provider as 'GetYourGuide',
+        providerUrl: item.providerUrl
+      }));
+      items.push(...normalizedResults);
+      console.log(`[COMPETITORS] Added ${normalizedResults.length} GYG reference results`);
+    } catch (error) {
+      console.warn('[GYG-REF] Reference search failed:', (error as Error).message);
       
       // Only fall back to sample data if not in live mode
       if (!live) {
         console.log(`[COMPETITORS] Falling back to sample data (not in live mode)`);
-        // Import the sample data function from GYG service
-        const { fetchProducts } = await import('./gyg.js');
-        const sampleResults = await fetchProducts(query);
+        const sampleResults = await GYGReferenceService.searchReferences(query, city);
         const normalizedSampleResults = sampleResults.map((item: any) => ({
           title: item.title,
           city: item.city,
-          priceMAD: item.price,
+          priceMAD: item.priceMAD,
           durationText: item.durationText,
-          rating: undefined,
-          reviewsCount: undefined,
+          rating: item.rating,
+          reviewsCount: item.reviewsCount,
           provider: item.provider as 'GetYourGuide',
           providerUrl: item.providerUrl
         }));
@@ -166,15 +160,14 @@ export async function searchExternalActivities(
   // Fallback to sample data if no results AND not in live mode
   if (items.length === 0 && !live) {
     console.log(`[COMPETITORS] No results from any provider, using sample data`);
-    const { fetchProducts } = await import('./gyg.js');
-    const sampleResults = await fetchProducts(query);
+    const sampleResults = await GYGReferenceService.searchReferences(query, city);
     const normalizedSampleResults = sampleResults.map((item: any) => ({
       title: item.title,
       city: item.city,
-      priceMAD: item.price,
+      priceMAD: item.priceMAD,
       durationText: item.durationText,
-      rating: undefined,
-      reviewsCount: undefined,
+      rating: item.rating,
+      reviewsCount: item.reviewsCount,
       provider: item.provider as 'GetYourGuide',
       providerUrl: item.providerUrl
     }));
