@@ -12,12 +12,14 @@ export default function GYGSearchBar({ onActivitySelect }: GYGSearchBarProps) {
   const handleGYGSearch = () => {
     const searchTerm = searchQuery.trim() || 'morocco activities';
     const gygUrl = `https://www.getyourguide.com/s/?q=${encodeURIComponent(searchTerm)}`;
+    console.log('[GYG] Opening GetYourGuide with search:', searchTerm);
     window.open(gygUrl, '_blank', 'noopener,noreferrer');
   };
 
   // Open GetYourGuide Morocco page
   const handleGYGMorocco = () => {
     const gygUrl = 'https://www.getyourguide.com/morocco/';
+    console.log('[GYG] Opening GetYourGuide Morocco page');
     window.open(gygUrl, '_blank', 'noopener,noreferrer');
   };
 
@@ -25,7 +27,7 @@ export default function GYGSearchBar({ onActivitySelect }: GYGSearchBarProps) {
     <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
       <div className="flex items-center gap-2 mb-3">
         <Globe className="w-5 h-5 text-blue-600" />
-        <h3 className="text-lg font-semibold text-blue-800">Référence GetYourGuide</h3>
+        <h3 className="text-lg font-semibold text-blue-800">Référence GetYourGuide v2.0</h3>
       </div>
       
       <p className="text-sm text-blue-700 mb-4">
