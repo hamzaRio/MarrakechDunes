@@ -35,7 +35,7 @@ export default function AddActivityModal(/* your props */) {
       let mapped: ExternalActivity[] | null = null;
       // Prefer existing backend if present
       try {
-        const r = await axios.get('/gyg/search', { params: { q: `${name} ${city} maroc` } });
+        const r = await axios.get('/market/search', { params: { provider: 'gyg', q: `${name} ${city} maroc` } });
         mapped = (r.data?.items ?? []).map((x: any) => ({
           title: x.title,
           city: x.city ?? city ?? '',

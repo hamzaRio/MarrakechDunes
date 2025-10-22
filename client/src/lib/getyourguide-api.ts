@@ -28,7 +28,7 @@ export interface GYGSearchResult {
 export const searchGetYourGuideActivities = async (query: string): Promise<GYGActivity[]> => {
   try {
     console.log('[GYG] Centralized search for:', query);
-    const response = await apiFetch(`/gyg/search?q=${encodeURIComponent(query)}`);
+    const response = await apiFetch(`/market/search?provider=gyg&q=${encodeURIComponent(query)}`);
     
     if (Array.isArray(response)) {
       console.log('[GYG] Found activities:', response.length);
