@@ -110,11 +110,14 @@ export const adminSecurityMiddleware = (req: Request, res: Response, next: NextF
     userRole: req.session?.user?.role,
     sessionId: req.session?.id,
     cookies: req.headers.cookie ? 'present' : 'missing',
+    cookieHeader: req.headers.cookie,
     origin: req.headers.origin,
     userAgent: req.headers['user-agent']?.substring(0, 50),
     ip: req.ip || req.connection.remoteAddress,
     timestamp: new Date().toISOString()
   };
+
+  console.log('[AUTH] Checking user session:', debugInfo);
 
   // SECURITY LAYER 1: Session validation
   if (!req.session) {
@@ -415,7 +418,7 @@ export const sessionSecurity = {
     sameSite: sessionCookieConfig.sameSite,
     secure: sessionCookieConfig.secure,
     httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days for better persistence
     path: "/",
     // Enhanced cross-site cookie support for Vercel ↔ Render
     domain: undefined, // Let browser handle domain
