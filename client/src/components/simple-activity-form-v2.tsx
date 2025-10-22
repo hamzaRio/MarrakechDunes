@@ -33,7 +33,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Upload, Search } from "lucide-react";
 import { ObjectUploader } from "@/components/ObjectUploader";
-import GYGSearchBar from "@/components/GYGSearchBar";
+import GYGReferenceTool from "@/components/GYGReferenceTool";
 import type { ActivityType } from "marrakechdunes-shared/schema";
 
 const activityFormSchema = z.object({
@@ -175,8 +175,8 @@ export default function SimpleActivityForm({
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
 
-            {/* GYG Search Bar - Separate Reference Search */}
-            <GYGSearchBar
+            {/* GYG Reference Tool - Direct Website Links */}
+            <GYGReferenceTool
               onActivitySelect={(activity) => {
                 // Only use GYG data for reference - don't auto-fill form
                 console.log('GYG Reference Activity:', activity);
