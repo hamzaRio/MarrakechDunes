@@ -1,6 +1,7 @@
 import express, { Request, Response } from 'express';
 import axios from 'axios';
 import { z } from 'zod';
+import { searchGYG } from '../providers/gyg.js';
 
 const router = express.Router();
 
@@ -58,6 +59,42 @@ const marketSearchSchema = z.object({
  * GET /api/market/search?q=desert+tour&location=Marrakech
  */
 router.get('/search', async (req: Request, res: Response) => {
+  const provider = typeof req.query.provider === 'string' ? req.query.provider.toLowerCase() : undefined;
+
+  if (provider === 'gyg') {
+    const query = typeof req.query.query === 'string' ? req.query.query : '';
+    const city = typeof req.query.city === 'string' ? req.query.city : undefined;
+    const page = typeof req.query.page === 'string' ? Number(req.query.page) :
+      (typeof req.query.page === 'number' ? req.query.page : undefined);
+    const perPage = typeof req.query.perPage === 'string' ? Number(req.query.perPage) :
+      (typeof req.query.perPage === 'number' ? req.query.perPage : undefined);
+
+    if (!query) {
+      return res.status(400).json({
+        error: 'query parameter is required when provider=gyg',
+      });
+    }
+
+    const searchInput = {
+      query,
+      city,
+      page: Number.isFinite(page) ? page : undefined,
+      perPage: Number.isFinite(perPage) ? perPage : undefined,
+    };
+
+    const dryRunResponse = await searchGYG(searchInput, { dryRun: true });
+    const liveSearchEnabled = process.env.GYG_ENABLE_LIVE_SEARCH === 'true';
+
+    return res.json({
+      provider: 'gyg',
+      liveSearchEnabled,
+      message: liveSearchEnabled
+        ? 'Live GetYourGuide search disabled during audit; returning dry-run request metadata.'
+        : 'GetYourGuide live search is disabled. Returning dry-run request metadata for admin tooling.',
+      ...dryRunResponse,
+    });
+  }
+
   try {
     const { q, location, category, maxPrice, minRating, provider } = marketSearchSchema.parse(req.query);
     
@@ -72,15 +109,40 @@ router.get('/search', async (req: Request, res: Response) => {
     }
     
     // Search multiple competitor sources
+    const normalizedQuery = {
+      ...req.query,
+      q: typeof req.query.q === 'string'
+        ? req.query.q
+        : (typeof req.query.query === 'string' ? req.query.query : ''),
+      location: typeof req.query.location === 'string' ? req.query.location : undefined,
+      category: typeof req.query.category === 'string' ? req.query.category : undefined,
+      maxPrice: typeof req.query.maxPrice === 'string'
+        ? Number(req.query.maxPrice)
+        : (typeof req.query.maxPrice === 'number' ? req.query.maxPrice : undefined),
+      minRating: typeof req.query.minRating === 'string'
+        ? Number(req.query.minRating)
+        : (typeof req.query.minRating === 'number' ? req.query.minRating : undefined),
+    };
+
+    if (typeof normalizedQuery.maxPrice === 'number' && Number.isNaN(normalizedQuery.maxPrice)) {
+      normalizedQuery.maxPrice = undefined;
+    }
+    if (typeof normalizedQuery.minRating === 'number' && Number.isNaN(normalizedQuery.minRating)) {
+      normalizedQuery.minRating = undefined;
+    }
+
+    const { q, location, category, maxPrice, minRating } = marketSearchSchema.parse(normalizedQuery);
+
+    console.log(`[Market Intelligence] Searching for: "${q}" in ${location}`);
+
     const [getyourguideResults, viatorResults, tripadvisorResults] = await Promise.allSettled([
       searchGetYourGuide(q, location),
       searchViator(q, location),
       searchTripAdvisor(q, location)
     ]);
-    
-    // Combine and deduplicate results
+
     const allActivities: CompetitorActivity[] = [];
-    
+
     if (getyourguideResults.status === 'fulfilled') {
       allActivities.push(...getyourguideResults.value);
     }
@@ -90,8 +152,7 @@ router.get('/search', async (req: Request, res: Response) => {
     if (tripadvisorResults.status === 'fulfilled') {
       allActivities.push(...tripadvisorResults.value);
     }
-    
-    // Filter and sort results
+
     const filteredActivities = allActivities
       .filter(activity => {
         if (maxPrice && activity.price > maxPrice) return false;
@@ -100,11 +161,10 @@ router.get('/search', async (req: Request, res: Response) => {
         return true;
       })
       .sort((a, b) => b.rating - a.rating)
-      .slice(0, 20); // Top 20 results
-    
-    // Generate market analysis
+      .slice(0, 20);
+
     const analysis = generateMarketAnalysis(filteredActivities);
-    
+
     const marketIntelligence: MarketIntelligence = {
       query: q,
       totalResults: filteredActivities.length,
@@ -117,16 +177,16 @@ router.get('/search', async (req: Request, res: Response) => {
         marketGaps: identifyMarketGaps(filteredActivities, q)
       }
     };
-    
+
     console.log(`[Market Intelligence] Found ${filteredActivities.length} activities for "${q}"`);
-    
+
     res.json(marketIntelligence);
-    
+
   } catch (error: any) {
     console.error('[Market Intelligence] Error:', error.message);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Market intelligence search failed',
-      details: error.message 
+      details: error.message
     });
   }
 });
