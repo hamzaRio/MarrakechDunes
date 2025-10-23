@@ -19,7 +19,7 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
 
   // Open GetYourGuide Morocco page
   const handleGYGMorocco = () => {
-    const gygUrl = 'https://www.getyourguide.com/morocco/';
+    const gygUrl = 'https://www.getyourguide.com/morocco-l191/';
     console.log('[GYG-REF] Opening GetYourGuide Morocco page');
     window.open(gygUrl, '_blank', 'noopener,noreferrer');
   };

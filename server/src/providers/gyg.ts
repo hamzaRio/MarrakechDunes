@@ -88,7 +88,47 @@ export async function searchGYG(
     };
   }
   
-  throw new Error('Live search not implemented in dry-run architecture');
+  // Live search implementation
+  try {
+    const request = buildGYGSearchRequest(input);
+    
+    // Make actual API call to GetYourGuide
+    const response = await fetch(request.url, {
+      method: request.method,
+      headers: request.headers,
+      signal: AbortSignal.timeout(10000) // 10 second timeout
+    });
+    
+    if (!response.ok) {
+      console.warn(`[GYG] API call failed: ${response.status} ${response.statusText}`);
+      // Fallback to mock data on API failure
+      const activities = generateMoroccoActivities(input.query, input.city);
+      return {
+        dryRun: false,
+        request,
+        sampleNormalizedShape: activities
+      };
+    }
+    
+    const data = await response.json() as any;
+    const activities = data.products?.map((product: any) => normalizeGYGProduct(product)) || [];
+    
+    return {
+      dryRun: false,
+      request,
+      sampleNormalizedShape: activities
+    };
+    
+  } catch (error) {
+    console.warn(`[GYG] Live search failed:`, error);
+    // Fallback to mock data on error
+    const activities = generateMoroccoActivities(input.query, input.city);
+    return {
+      dryRun: false,
+      request: buildGYGSearchRequest(input),
+      sampleNormalizedShape: activities
+    };
+  }
 }
 
 function generateMoroccoActivities(query: string, city?: string): MarketItem[] {

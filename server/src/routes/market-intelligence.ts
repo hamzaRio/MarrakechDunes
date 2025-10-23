@@ -46,7 +46,7 @@ interface MarketIntelligence {
 
 // Validation schemas
 const marketSearchSchema = z.object({
-  q: z.string().min(3, 'Query must be at least 3 characters'),
+  q: z.string().min(1, 'Query must be at least 1 character'),
   location: z.string().optional().default('Marrakech'),
   category: z.string().optional(),
   maxPrice: z.number().optional(),
@@ -62,7 +62,7 @@ router.get('/search', async (req: Request, res: Response) => {
   const provider = typeof req.query.provider === 'string' ? req.query.provider.toLowerCase() : undefined;
 
   if (provider === 'gyg') {
-    const query = typeof req.query.query === 'string' ? req.query.query : '';
+    const query = typeof req.query.q === 'string' ? req.query.q : '';
     const city = typeof req.query.city === 'string' ? req.query.city : undefined;
     const page = typeof req.query.page === 'string' ? Number(req.query.page) :
       (typeof req.query.page === 'number' ? req.query.page : undefined);
