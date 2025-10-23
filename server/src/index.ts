@@ -574,11 +574,13 @@ app.use((req, res, next) => {
   const externalActivitiesRouter = (await import('./routes/externalActivities.js')).default;
   const bookingsRouter = (await import('./routes/bookings.js')).default;
   const competitorsRouter = (await import('./routes/competitors.js')).default;
+  const marketIntelligenceRouter = (await import('./routes/market-intelligence.js')).default;
   
   app.use("/api/notifications", notificationsRouter);
   app.use("/api/external-activities", externalActivitiesRouter);
   app.use('/api/bookings', bookingsRouter);
   app.use('/api/competitors', competitorsRouter);
+  app.use('/api/market', marketIntelligenceRouter);
   
   const server = await registerRoutes(app);
 
