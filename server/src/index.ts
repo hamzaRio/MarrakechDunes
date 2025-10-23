@@ -250,7 +250,7 @@ const corsOptions: cors.CorsOptions = {
       return callback(null, true);
     }
     
-    // Automatically allow ALL Vercel preview URLs
+    // Automatically allow ALL Vercel preview URLs (with hyphen)
     if (origin && origin.match(/^https:\/\/marrakech-dunes-.*\.vercel\.app$/)) {
       console.log("? Allowing Vercel preview URL:", origin);
       return callback(null, true);
@@ -259,6 +259,12 @@ const corsOptions: cors.CorsOptions = {
     // Allow all marrakechdunes Vercel URLs (including preview URLs without hyphen)
     if (origin && origin.match(/^https:\/\/marrakechdunes-.*\.vercel\.app$/)) {
       console.log("? Allowing marrakechdunes Vercel URL:", origin);
+      return callback(null, true);
+    }
+    
+    // Allow all Vercel preview URLs with any subdomain pattern
+    if (origin && origin.match(/^https:\/\/.*\.vercel\.app$/)) {
+      console.log("? Allowing any Vercel preview URL:", origin);
       return callback(null, true);
     }
     
@@ -293,12 +299,28 @@ app.use(cors(corsOptions));
 
 // Explicitly handle CORS preflight for all routes
 app.options("*", cors(corsOptions));
+
+// Additional CORS middleware to ensure headers are set
 app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  
+  // Set CORS headers for all requests
+  if (origin) {
+    // Check if origin is allowed
+    const isAllowed = allowedOrigins.includes(origin) || 
+                     origin.match(/^https:\/\/marrakech-dunes-.*\.vercel\.app$/) ||
+                     origin.match(/^https:\/\/marrakechdunes-.*\.vercel\.app$/) ||
+                     origin.match(/^https:\/\/.*\.vercel\.app$/);
+    
+    if (isAllowed) {
+      res.header('Access-Control-Allow-Origin', origin);
+      res.header('Access-Control-Allow-Credentials', 'true');
+      res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS,HEAD');
+      res.header('Access-Control-Allow-Headers', 'Content-Type, Accept, Accept-Charset, X-CSRF-Token, X-Requested-With, Authorization');
+    }
+  }
+  
   if (req.method === 'OPTIONS') {
-    res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
-    res.header('Access-Control-Allow-Credentials', 'true');
-    res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS,HEAD');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Accept, Accept-Charset, X-CSRF-Token, X-Requested-With, Authorization');
     return res.sendStatus(204);
   }
   next();
