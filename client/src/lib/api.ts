@@ -26,18 +26,22 @@ axios.interceptors.response.use(
     if (error.response?.status === 401 || error.response?.status === 403) {
       const currentPath = window.location.pathname;
       const isAdminRoute = currentPath.startsWith('/admin') || currentPath.startsWith('/admin/');
+      const isLoginPage = currentPath === '/admin/login' || currentPath === '/admin/Login';
       const isPublicRoute = currentPath === '/' || currentPath.startsWith('/activities') || currentPath.startsWith('/reviews');
       
-      console.warn('[API] Authentication error detected:', {
-        status: error.response?.status,
-        path: currentPath,
-        isAdminRoute,
-        isPublicRoute,
-        error: error.response?.data
-      });
+      // Only log authentication errors if not on login page
+      if (!isLoginPage) {
+        console.warn('[API] Authentication error detected:', {
+          status: error.response?.status,
+          path: currentPath,
+          isAdminRoute,
+          isPublicRoute,
+          error: error.response?.data
+        });
+      }
       
-      // Only clear auth data and redirect if we're on admin routes
-      if (isAdminRoute && !currentPath.includes('/login')) {
+      // Only clear auth data and redirect if we're on admin routes (but not login page)
+      if (isAdminRoute && !isLoginPage) {
         console.log('[API] Admin route authentication error - clearing auth data');
         
         // Clear authentication data on admin routes only
@@ -55,6 +59,9 @@ axios.interceptors.response.use(
       } else if (isPublicRoute) {
         console.log('[API] Public route - ignoring auth error');
         // Don't clear auth data on public routes
+      } else if (isLoginPage) {
+        console.log('[API] Login page - ignoring auth error (expected)');
+        // Don't clear auth data or redirect on login page
       }
     }
     return Promise.reject(error);

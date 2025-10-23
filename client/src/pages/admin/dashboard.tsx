@@ -148,9 +148,10 @@ function AdminDashboardContent() {
   });
 
   const pendingBookings = bookings.filter(b => b.status === 'pending' as any).length;
+  const confirmedBookings = bookings.filter(b => b.status === 'confirmed' as any).length;
 
   // Handle authentication errors
-  if (bookingsError && 'response' in bookingsError && (bookingsError.response?.status === 401 || bookingsError.response?.status === 403)) {
+  if (bookingsError && 'response' in bookingsError && ((bookingsError.response as any)?.status === 401 || (bookingsError.response as any)?.status === 403)) {
     console.error('[DASHBOARD] Authentication error detected, redirecting to login');
     window.location.href = '/admin/login';
     return null;

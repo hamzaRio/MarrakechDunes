@@ -50,7 +50,8 @@ const marketSearchSchema = z.object({
   location: z.string().optional().default('Marrakech'),
   category: z.string().optional(),
   maxPrice: z.number().optional(),
-  minRating: z.number().optional().default(4.0)
+  minRating: z.number().optional().default(4.0),
+  provider: z.enum(['gyg', 'viator', 'tripadvisor', 'all']).optional()
 });
 
 /**
@@ -95,6 +96,19 @@ router.get('/search', async (req: Request, res: Response) => {
   }
 
   try {
+    const { q, location, category, maxPrice, minRating, provider } = marketSearchSchema.parse(req.query);
+    
+    console.log(`[Market Intelligence] Searching for: "${q}" in ${location}`);
+    
+    // Handle GYG provider specifically
+    if (provider === 'gyg') {
+      const { searchGYG } = await import('../providers/gyg.js');
+      const dryRun = process.env.GYG_ENABLE_LIVE_SEARCH !== 'true';
+      const result = await searchGYG({ query: q, city: location }, { dryRun });
+      return res.json(result);
+    }
+    
+    // Search multiple competitor sources
     const normalizedQuery = {
       ...req.query,
       q: typeof req.query.q === 'string'

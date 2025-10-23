@@ -1,4 +1,4 @@
-﻿import { fileURLToPath } from "url";
+import { fileURLToPath } from "url";
 import path from "path";
 import dotenvFlow from 'dotenv-flow';
 import * as Sentry from "@sentry/node";
@@ -47,14 +47,14 @@ try {
     silent: true // Don't error if .env files are missing in production
   });
 } catch (error) {
-  console.log('ðŸ“ Note: .env files not found (expected in production Docker deployment)');
+  console.log('📝 Note: .env files not found (expected in production Docker deployment)');
 }
 
 // Debug: Check if environment variables are loaded
-console.log('🔧 Environment loading check:');
-console.log('  DATABASE_URL:', process.env.DATABASE_URL ? '✅ LOADED' : 'âŒ NOT FOUND');
+console.log('?? Environment loading check:');
+console.log('  DATABASE_URL:', !!process.env.DATABASE_URL);
 console.log('  NODE_ENV:', process.env.NODE_ENV || 'not set');
-console.log('  SESSION_SECRET:', process.env.SESSION_SECRET ? '✅ LOADED' : 'âŒ NOT FOUND');
+console.log('  SESSION_SECRET:', !!process.env.SESSION_SECRET);
 
 // Environment variables should be loaded by dotenv-flow above
 
@@ -79,32 +79,32 @@ const criticalEnvVars = [
 if (isProduction) {
   const missingVars = criticalEnvVars.filter(envVar => !process.env[envVar]);
   if (missingVars.length > 0) {
-    console.error('❌ Missing critical environment variables:', missingVars);
-    console.error('❌ Server cannot start without these variables');
-    console.error('❌ Please check your Render environment variables');
+    console.error('? Missing critical environment variables:', missingVars);
+    console.error('? Server cannot start without these variables');
+    console.error('? Please check your Render environment variables');
     process.exit(1);
   }
 } else {
   // For development, set defaults for missing variables
   if (!process.env.DATABASE_URL) {
     process.env.DATABASE_URL = 'mongodb://localhost:27017/marrakechdunes';
-    console.warn('⚠️  Using default DATABASE_URL for development');
+    console.warn('??  Using default DATABASE_URL for development');
   }
   if (!process.env.JWT_SECRET) {
     process.env.JWT_SECRET = 'default-jwt-secret-for-development';
-    console.warn('⚠️  Using default JWT_SECRET for development');
+    console.warn('??  Using default JWT_SECRET for development');
   }
   if (!process.env.ADMIN_PASSWORD) {
     process.env.ADMIN_PASSWORD = 'admin123';
-    console.warn('⚠️  Using default ADMIN_PASSWORD for development');
+    console.warn('??  Using default ADMIN_PASSWORD for development');
   }
   if (!process.env.SUPERADMIN_PASSWORD) {
     process.env.SUPERADMIN_PASSWORD = 'superadmin123';
-    console.warn('⚠️  Using default SUPERADMIN_PASSWORD for development');
+    console.warn('??  Using default SUPERADMIN_PASSWORD for development');
   }
   if (!process.env.CLIENT_URL) {
     process.env.CLIENT_URL = 'http://localhost:5173,https://marrakech-dunes.vercel.app,https://marrakech-dunes-*.vercel.app';
-    console.warn('⚠️  Using default CLIENT_URL for development');
+    console.warn('??  Using default CLIENT_URL for development');
   }
 }
 
@@ -116,18 +116,18 @@ if (process.env.NODE_ENV === 'production' && process.env.SESSION_SECRET && proce
 // Production environment validation
 const envValidation = validateProductionEnvironment();
 if (!envValidation.isValid) {
-  console.error('âŒ Environment validation failed');
+  console.error('❌ Environment validation failed');
   if (process.env.NODE_ENV === 'production') {
     process.exit(1);
   } else {
-    console.log('âš ï¸ Continuing in development mode with warnings');
+    console.log('⚠️ Continuing in development mode with warnings');
   }
 }
 
 // Security recommendations
 if (process.env.NODE_ENV === 'production') {
-  console.log('ðŸ”’ Security recommendations:');
-  getSecurityRecommendations().forEach(rec => console.log(`  • ${rec}`));
+  console.log('🔒 Security recommendations:');
+  getSecurityRecommendations().forEach(rec => console.log(`  � ${rec}`));
 }
 
 // Now import modules that depend on environment variables
@@ -207,7 +207,7 @@ if (process.env.NODE_ENV === 'production' && process.env.SENTRY_DSN) {
   app.use(Sentry.Handlers.requestHandler());
   app.use(Sentry.Handlers.tracingHandler());
   
-  console.log('✅ Sentry error tracking initialized');
+  console.log('? Sentry error tracking initialized');
 }
 
 // Set trust proxy at the top before any middleware
@@ -221,27 +221,27 @@ const allowedOrigins = process.env.CLIENT_URL?.split(",") || [
   "https://marrakech-dunes-*.vercel.app" // Allow all Vercel preview URLs
 ];
 
-console.log('🌍 CORS Configuration:');
+console.log('?? CORS Configuration:');
 console.log('  CLIENT_URL:', process.env.CLIENT_URL);
 console.log('  Allowed origins:', allowedOrigins);
 
 // Production startup diagnostics
 if (isProduction) {
-  console.log('🚀 Production startup diagnostics:');
+  console.log('?? Production startup diagnostics:');
   console.log('  NODE_ENV:', process.env.NODE_ENV);
   console.log('  PORT:', process.env.PORT);
-  console.log('  DATABASE_URL:', process.env.DATABASE_URL ? '✅ SET' : '❌ MISSING');
-  console.log('  SESSION_SECRET:', process.env.SESSION_SECRET ? '✅ SET' : '❌ MISSING');
-  console.log('  JWT_SECRET:', process.env.JWT_SECRET ? '✅ SET' : '❌ MISSING');
-  console.log('  CLIENT_URL:', process.env.CLIENT_URL || '❌ MISSING');
+  console.log('  DATABASE_URL:', !!process.env.DATABASE_URL);
+  console.log('  SESSION_SECRET:', !!process.env.SESSION_SECRET);
+  console.log('  JWT_SECRET:', !!process.env.JWT_SECRET);
+  console.log('  CLIENT_URL:', process.env.CLIENT_URL || '? MISSING');
 }
 
 const corsOptions: cors.CorsOptions = {
   origin: (origin, callback) => {
-    console.log(`🔍 CORS Check - Origin: ${origin}`);
+    console.log(`?? CORS Check - Origin: ${origin}`);
     
     if (!origin) {
-      console.log("✅ Allowing request without origin (SSR, Postman, mobile)");
+      console.log("? Allowing request without origin (SSR, Postman, mobile)");
       return callback(null, true); // SSR, Postman, mobile
     }
     
@@ -250,15 +250,21 @@ const corsOptions: cors.CorsOptions = {
       return callback(null, true);
     }
     
-    // Automatically allow ALL Vercel preview URLs
+    // Automatically allow ALL Vercel preview URLs (with hyphen)
     if (origin && origin.match(/^https:\/\/marrakech-dunes-.*\.vercel\.app$/)) {
-      console.log("✅ Allowing Vercel preview URL:", origin);
+      console.log("? Allowing Vercel preview URL:", origin);
       return callback(null, true);
     }
     
     // Allow all marrakechdunes Vercel URLs (including preview URLs without hyphen)
     if (origin && origin.match(/^https:\/\/marrakechdunes-.*\.vercel\.app$/)) {
-      console.log("✅ Allowing marrakechdunes Vercel URL:", origin);
+      console.log("? Allowing marrakechdunes Vercel URL:", origin);
+      return callback(null, true);
+    }
+    
+    // Allow all Vercel preview URLs with any subdomain pattern
+    if (origin && origin.match(/^https:\/\/.*\.vercel\.app$/)) {
+      console.log("? Allowing any Vercel preview URL:", origin);
       return callback(null, true);
     }
     
@@ -268,13 +274,13 @@ const corsOptions: cors.CorsOptions = {
         const pattern = allowedOrigin.replace(/\*/g, '.*');
         const regex = new RegExp(`^${pattern}$`);
         if (origin && regex.test(origin)) {
-          console.log("✅ Allowing wildcard origin:", origin, "matches pattern:", allowedOrigin);
+          console.log("? Allowing wildcard origin:", origin, "matches pattern:", allowedOrigin);
           return callback(null, true);
         }
       }
     }
     
-    console.warn("âŒ Blocked CORS origin:", origin);
+    console.warn("❌ Blocked CORS origin:", origin);
     return callback(new Error("CORS not allowed for this origin: " + origin));
   },
   credentials: true,
@@ -293,12 +299,28 @@ app.use(cors(corsOptions));
 
 // Explicitly handle CORS preflight for all routes
 app.options("*", cors(corsOptions));
+
+// Additional CORS middleware to ensure headers are set
 app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  
+  // Set CORS headers for all requests
+  if (origin) {
+    // Check if origin is allowed
+    const isAllowed = allowedOrigins.includes(origin) || 
+                     origin.match(/^https:\/\/marrakech-dunes-.*\.vercel\.app$/) ||
+                     origin.match(/^https:\/\/marrakechdunes-.*\.vercel\.app$/) ||
+                     origin.match(/^https:\/\/.*\.vercel\.app$/);
+    
+    if (isAllowed) {
+      res.header('Access-Control-Allow-Origin', origin);
+      res.header('Access-Control-Allow-Credentials', 'true');
+      res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS,HEAD');
+      res.header('Access-Control-Allow-Headers', 'Content-Type, Accept, Accept-Charset, X-CSRF-Token, X-Requested-With, Authorization');
+    }
+  }
+  
   if (req.method === 'OPTIONS') {
-    res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
-    res.header('Access-Control-Allow-Credentials', 'true');
-    res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS,HEAD');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Accept, Accept-Charset, X-CSRF-Token, X-Requested-With, Authorization');
     return res.sendStatus(204);
   }
   next();
@@ -311,7 +333,7 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://maps.googleapis.com", "https://*.googleapis.com"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://maps.googleapis.com", "https://*.googleapis.com", "https://vercel.live"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://maps.googleapis.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
       imgSrc: [
@@ -492,7 +514,7 @@ app.use((req, res, next) => {
       }
 
       if (logLine.length > 80) {
-        logLine = logLine.slice(0, 79) + "…";
+        logLine = logLine.slice(0, 79) + "�";
       }
 
       log(logLine);
@@ -503,17 +525,17 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  // ✅ Connect to MongoDB before starting the server
+  // ? Connect to MongoDB before starting the server
   await connectToDatabase();
 
-  // ✅ Initialize cache service
+  // ? Initialize cache service
   const { cacheService } = await import('./services/cache-service.js');
   await cacheService.connect();
 
-  // ✅ Initialize error monitoring
+  // ? Initialize error monitoring
   const { errorMonitoring } = await import('./services/error-monitoring.js');
 
-  // ✅ Initialize logging service
+  // ? Initialize logging service
   const { loggingService } = await import('./services/logging-service.js');
 
   // Add performance monitoring middleware
@@ -771,15 +793,15 @@ app.use((req, res, next) => {
     console.log(`[server] listening on ${PORT}`);
     console.log(`[assets] Static assets served by frontend at /images/`);
     console.log(`[routers] /api/session mounted`);
-    log(`ðŸš€ Server started on port ${PORT} - Updated with PDF export fixes`);
-    log(`🌍 NODE_ENV: ${process.env.NODE_ENV || 'development'}`);
-    log(`🌍 Allowed CORS origins: ${allowedOrigins.join(', ')}`);
-    log(`ðŸ“ Assets: Served by frontend (Vercel) at /images/`);
-    log(`ðŸ”’ Rate limiting: ${isProduction ? '100' : '200'} req/15min (global, auth, admin, general)`);
-    log(`ðŸª Session cookies: secure=${isProduction}, sameSite=${isProduction ? 'none' : 'lax'}, httpOnly=true`);
-    log(`ðŸ“¡ Server URL: http://localhost:${PORT}`);
-    log(`ðŸ”§ Trust proxy: ${app.get('trust proxy')}`);
-    log(`ðŸ”‘ Session secret: ${process.env.SESSION_SECRET ? '✅ SET' : 'âŒ NOT SET'}`);
-    log(`🌍 CLIENT_URL: ${process.env.CLIENT_URL || 'not set'}`);
+    log(`🚀 Server started on port ${PORT} - Updated with PDF export fixes`);
+    log(`??� NODE_ENV: ${process.env.NODE_ENV || 'development'}`);
+    log(`??� Allowed CORS origins: ${allowedOrigins.join(', ')}`);
+    log(`📁 Assets: Served by frontend (Vercel) at /images/`);
+    log(`🔒 Rate limiting: ${isProduction ? '100' : '200'} req/15min (global, auth, admin, general)`);
+    log(`🍪 Session cookies: secure=${isProduction}, sameSite=${isProduction ? 'none' : 'lax'}, httpOnly=true`);
+    log(`📡 Server URL: http://localhost:${PORT}`);
+    log(`🔧 Trust proxy: ${app.get('trust proxy')}`);
+    log(`🔑 Session secret: ${process.env.SESSION_SECRET ? '? SET' : '❌ NOT SET'}`);
+    log(`??� CLIENT_URL: ${process.env.CLIENT_URL || 'not set'}`);
   });
 })();

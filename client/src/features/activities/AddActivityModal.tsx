@@ -2,6 +2,8 @@ import { useState } from 'react';
 import axios from '@/lib/api';
 import { toast } from 'sonner';
 import ActivityAutocomplete from '@/components/ActivityAutocomplete';
+import { buildGYGSearchUrl, buildGYGCountryUrl } from '@/lib/gyg-links';
+import { DialogTitle } from '@radix-ui/react-dialog';
 
 type ExternalActivity = {
   title: string;
@@ -35,7 +37,7 @@ export default function AddActivityModal(/* your props */) {
       let mapped: ExternalActivity[] | null = null;
       // Prefer existing backend if present
       try {
-        const r = await axios.get('/gyg/search', { params: { q: `${name} ${city} maroc` } });
+        const r = await axios.get('/market/search', { params: { provider: 'gyg', q: `${name} ${city} maroc` } });
         mapped = (r.data?.items ?? []).map((x: any) => ({
           title: x.title,
           city: x.city ?? city ?? '',
@@ -71,8 +73,20 @@ export default function AddActivityModal(/* your props */) {
     toast.success('Données de l\'activité appliquées');
   };
 
+  const handleOpenGYGSearch = () => {
+    const url = buildGYGSearchUrl({ q: name, city: city || 'marrakech' });
+    window.open(url, '_blank', 'noopener');
+  };
+
+  const handleOpenGYGCountry = () => {
+    const country = buildGYGCountryUrl('en-gb');
+    const fallback = buildGYGSearchUrl({ q: 'Morocco' });
+    window.open(country || fallback, '_blank', 'noopener');
+  };
+
   return (
     <div>
+      <DialogTitle className="sr-only">Ajouter une Activité</DialogTitle>
       {/* Activity Name Field with Autocomplete */}
       <div className="space-y-2">
         <label className="block text-sm font-medium">
@@ -87,6 +101,22 @@ export default function AddActivityModal(/* your props */) {
         <p className="text-xs text-gray-500">
           💡 Commencez à taper pour voir les activités similaires au Maroc
         </p>
+        
+        {/* GYG Action Buttons */}
+        <div className="flex gap-2 mt-2">
+          <button
+            onClick={handleOpenGYGSearch}
+            className="px-3 py-1 text-xs bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          >
+            🔍 Recherche GYG
+          </button>
+          <button
+            onClick={handleOpenGYGCountry}
+            className="px-3 py-1 text-xs bg-green-600 text-white rounded-md hover:bg-green-700"
+          >
+            🇲🇦 Maroc GYG
+          </button>
+        </div>
       </div>
 
       {/* Other form fields */}
