@@ -19,6 +19,7 @@ export interface GYGSearchRequest {
   headers: {
     Authorization: string;
     Accept: string;
+    'Content-Type'?: string;
   };
   notes: string[];
 }
@@ -29,6 +30,7 @@ export function buildGYGSearchRequest(input: { query: string; city?: string; pag
   const page = input.page || 1;
   const perPage = input.perPage || 10;
   
+  // Use the correct GetYourGuide Supplier API endpoint
   const url = `${baseUrl}/products?search=${encodeURIComponent(searchTerm)}&currency=MAD&content_language=fr-FR&market=MA&page=${page}&per_page=${perPage}`;
   
   const user = process.env.GYG_SUPPLIER_USER || '';
@@ -40,10 +42,11 @@ export function buildGYGSearchRequest(input: { query: string; city?: string; pag
     url,
     headers: {
       Authorization: `Basic ${auth}`,
-      Accept: 'application/json'
+      Accept: 'application/json',
+      'Content-Type': 'application/json'
     },
     notes: [
-      'Dry-run mode: no network request',
+      'Live GetYourGuide Supplier API call',
       'Search term normalized and encoded',
       'Morocco market and MAD currency',
       'French language content'
@@ -114,20 +117,28 @@ export async function searchGYG(
     console.log('[GYG] Live API response:', { 
       status: response.status, 
       hasProducts: !!data.products, 
-      productCount: data.products?.length || 0 
+      productCount: data.products?.length || 0,
+      responseKeys: Object.keys(data)
     });
     
-    // Handle different response formats from GetYourGuide API
+    // Handle GetYourGuide Supplier API response format
     let activities: MarketItem[] = [];
     
     if (data.products && Array.isArray(data.products)) {
+      // Standard GetYourGuide Supplier API response
       activities = data.products.map((product: any) => normalizeGYGProduct(product));
+      console.log(`[GYG] Found ${activities.length} products from live API`);
     } else if (data.data && Array.isArray(data.data)) {
+      // Alternative response format
       activities = data.data.map((product: any) => normalizeGYGProduct(product));
+      console.log(`[GYG] Found ${activities.length} products from alternative format`);
     } else if (data.results && Array.isArray(data.results)) {
+      // Another alternative format
       activities = data.results.map((product: any) => normalizeGYGProduct(product));
+      console.log(`[GYG] Found ${activities.length} products from results format`);
     } else {
       console.warn('[GYG] Unexpected API response format:', Object.keys(data));
+      console.log('[GYG] Full response sample:', JSON.stringify(data, null, 2).substring(0, 500));
       // Fallback to mock data if API format is unexpected
       activities = generateMoroccoActivities(input.query, input.city);
     }
