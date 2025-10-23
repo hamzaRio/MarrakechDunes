@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ExternalLink, Globe, Search } from 'lucide-react';
+import ActivityAutocomplete from './ActivityAutocomplete';
 
 interface GYGReferenceToolProps {
   onActivitySelect?: (activity: any) => void;
@@ -36,13 +37,17 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
 
       <div className="space-y-3">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-          <input
-            type="text"
+          <ActivityAutocomplete
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={setSearchQuery}
+            onSelectActivity={(activity) => {
+              console.log('[GYG-REF] Activity selected:', activity);
+              if (onActivitySelect) {
+                onActivitySelect(activity);
+              }
+            }}
             placeholder="Tapez votre recherche (ex: fes, desert, marrakech)..."
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            city="marrakech"
           />
         </div>
 
