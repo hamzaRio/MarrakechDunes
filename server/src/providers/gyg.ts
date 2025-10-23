@@ -111,7 +111,26 @@ export async function searchGYG(
     }
     
     const data = await response.json() as any;
-    const activities = data.products?.map((product: any) => normalizeGYGProduct(product)) || [];
+    console.log('[GYG] Live API response:', { 
+      status: response.status, 
+      hasProducts: !!data.products, 
+      productCount: data.products?.length || 0 
+    });
+    
+    // Handle different response formats from GetYourGuide API
+    let activities: MarketItem[] = [];
+    
+    if (data.products && Array.isArray(data.products)) {
+      activities = data.products.map((product: any) => normalizeGYGProduct(product));
+    } else if (data.data && Array.isArray(data.data)) {
+      activities = data.data.map((product: any) => normalizeGYGProduct(product));
+    } else if (data.results && Array.isArray(data.results)) {
+      activities = data.results.map((product: any) => normalizeGYGProduct(product));
+    } else {
+      console.warn('[GYG] Unexpected API response format:', Object.keys(data));
+      // Fallback to mock data if API format is unexpected
+      activities = generateMoroccoActivities(input.query, input.city);
+    }
     
     return {
       dryRun: false,

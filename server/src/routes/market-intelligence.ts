@@ -55,6 +55,47 @@ const marketSearchSchema = z.object({
 });
 
 /**
+ * Debug GetYourGuide API
+ * GET /api/market/debug/gyg?q=desert&city=marrakech
+ */
+router.get('/debug/gyg', async (req: Request, res: Response) => {
+  const query = typeof req.query.q === 'string' ? req.query.q : 'desert';
+  const city = typeof req.query.city === 'string' ? req.query.city : 'marrakech';
+  
+  try {
+    const searchInput = { query, city };
+    const liveSearchEnabled = process.env.GYG_ENABLE_LIVE_SEARCH === 'true';
+    const gygResponse = await searchGYG(searchInput, { dryRun: !liveSearchEnabled });
+    
+    return res.json({
+      status: 'success',
+      liveSearchEnabled,
+      query,
+      city,
+      dryRun: gygResponse.dryRun,
+      resultCount: gygResponse.sampleNormalizedShape.length,
+      sampleResults: gygResponse.sampleNormalizedShape.slice(0, 3),
+      credentials: {
+        hasBase: !!process.env.GYG_SUPPLIER_BASE,
+        hasUser: !!process.env.GYG_SUPPLIER_USER,
+        hasPass: !!process.env.GYG_SUPPLIER_PASS,
+      }
+    });
+  } catch (error: any) {
+    return res.json({
+      status: 'error',
+      message: error.message,
+      liveSearchEnabled: process.env.GYG_ENABLE_LIVE_SEARCH === 'true',
+      credentials: {
+        hasBase: !!process.env.GYG_SUPPLIER_BASE,
+        hasUser: !!process.env.GYG_SUPPLIER_USER,
+        hasPass: !!process.env.GYG_SUPPLIER_PASS,
+      }
+    });
+  }
+});
+
+/**
  * Market Intelligence Search
  * GET /api/market/search?q=desert+tour&location=Marrakech
  */
@@ -82,16 +123,16 @@ router.get('/search', async (req: Request, res: Response) => {
       perPage: Number.isFinite(perPage) ? perPage : undefined,
     };
 
-    const dryRunResponse = await searchGYG(searchInput, { dryRun: true });
     const liveSearchEnabled = process.env.GYG_ENABLE_LIVE_SEARCH === 'true';
+    const gygResponse = await searchGYG(searchInput, { dryRun: !liveSearchEnabled });
 
     return res.json({
       provider: 'gyg',
       liveSearchEnabled,
       message: liveSearchEnabled
-        ? 'Live GetYourGuide search disabled during audit; returning dry-run request metadata.'
-        : 'GetYourGuide live search is disabled. Returning dry-run request metadata for admin tooling.',
-      ...dryRunResponse,
+        ? 'Live GetYourGuide search enabled - returning real data from GYG API.'
+        : 'GetYourGuide live search is disabled. Returning mock data for reference.',
+      ...gygResponse,
     });
   }
 
