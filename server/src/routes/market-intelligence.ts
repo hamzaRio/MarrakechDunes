@@ -131,14 +131,14 @@ router.get('/search', async (req: Request, res: Response) => {
       normalizedQuery.minRating = undefined;
     }
 
-    const { q, location, category, maxPrice, minRating } = marketSearchSchema.parse(normalizedQuery);
+    const { q: searchQuery, location: searchLocation, category: searchCategory, maxPrice: searchMaxPrice, minRating: searchMinRating } = marketSearchSchema.parse(normalizedQuery);
 
-    console.log(`[Market Intelligence] Searching for: "${q}" in ${location}`);
+    console.log(`[Market Intelligence] Searching for: "${searchQuery}" in ${searchLocation}`);
 
     const [getyourguideResults, viatorResults, tripadvisorResults] = await Promise.allSettled([
-      searchGetYourGuide(q, location),
-      searchViator(q, location),
-      searchTripAdvisor(q, location)
+      searchGetYourGuide(searchQuery, searchLocation),
+      searchViator(searchQuery, searchLocation),
+      searchTripAdvisor(searchQuery, searchLocation)
     ]);
 
     const allActivities: CompetitorActivity[] = [];
@@ -155,9 +155,9 @@ router.get('/search', async (req: Request, res: Response) => {
 
     const filteredActivities = allActivities
       .filter(activity => {
-        if (maxPrice && activity.price > maxPrice) return false;
-        if (activity.rating < minRating) return false;
-        if (category && !activity.category.toLowerCase().includes(category.toLowerCase())) return false;
+        if (searchMaxPrice && activity.price > searchMaxPrice) return false;
+        if (activity.rating < searchMinRating) return false;
+        if (searchCategory && !activity.category.toLowerCase().includes(searchCategory.toLowerCase())) return false;
         return true;
       })
       .sort((a, b) => b.rating - a.rating)
@@ -166,7 +166,7 @@ router.get('/search', async (req: Request, res: Response) => {
     const analysis = generateMarketAnalysis(filteredActivities);
 
     const marketIntelligence: MarketIntelligence = {
-      query: q,
+      query: searchQuery,
       totalResults: filteredActivities.length,
       activities: filteredActivities,
       analysis,
@@ -174,11 +174,11 @@ router.get('/search', async (req: Request, res: Response) => {
         averagePrice: calculateAveragePrice(filteredActivities),
         priceRange: calculatePriceRange(filteredActivities),
         topCompetitors: getTopCompetitors(filteredActivities),
-        marketGaps: identifyMarketGaps(filteredActivities, q)
+        marketGaps: identifyMarketGaps(filteredActivities, searchQuery)
       }
     };
 
-    console.log(`[Market Intelligence] Found ${filteredActivities.length} activities for "${q}"`);
+    console.log(`[Market Intelligence] Found ${filteredActivities.length} activities for "${searchQuery}"`);
 
     res.json(marketIntelligence);
 
