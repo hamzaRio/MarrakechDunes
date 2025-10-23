@@ -15,11 +15,12 @@ export function useAuth() {
   // Check if we're on an admin route to determine authentication strategy
   const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
   const isAdminRoute = currentPath.startsWith('/admin') || currentPath.startsWith('/admin/');
+  const isLoginPage = currentPath === '/admin/login' || currentPath === '/admin/Login';
   
   // Enhanced authentication with better error handling
   const { data, isLoading, error, refetch } = useQuery<AuthUserResponse | null>({
     queryKey: ["/auth/user"],
-    enabled: isAdminRoute, // Only check authentication on admin routes
+    enabled: isAdminRoute && !isLoginPage, // Only check authentication on admin routes, not on login page
     retry: (failureCount, error: any) => {
       // Don't retry on 401/403 errors
       if (error?.response?.status === 401 || error?.response?.status === 403) {
@@ -30,8 +31,8 @@ export function useAuth() {
     },
     staleTime: 2 * 60 * 1000, // 2 minutes cache - longer to prevent loops
     gcTime: 5 * 60 * 1000, // 5 minutes garbage collection
-    refetchOnMount: isAdminRoute, // Only refetch on mount for admin routes
-    refetchOnWindowFocus: isAdminRoute, // Only refetch on focus for admin routes
+    refetchOnMount: isAdminRoute && !isLoginPage, // Only refetch on mount for admin routes, not login
+    refetchOnWindowFocus: isAdminRoute && !isLoginPage, // Only refetch on focus for admin routes, not login
     refetchInterval: false, // Disable automatic refetch to prevent loops
   });
 
