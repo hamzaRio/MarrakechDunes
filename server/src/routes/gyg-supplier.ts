@@ -74,4 +74,9 @@ router.post('/1/suppliers', (req, res) => {
   res.json({ ok: true });
 });
 
+// Health check endpoint (no auth required for basic connectivity test)
+router.get('/health', (req, res) => {
+  res.json({ ok: true });
+});
+
 export default router;

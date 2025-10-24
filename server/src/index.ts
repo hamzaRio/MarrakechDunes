@@ -449,12 +449,14 @@ app.use(uploadSecurityHeaders);
 
 // CSRF protection with custom implementation
 app.use(generateCSRFToken);
-// Skip CSRF verification for safe methods and auth/session bootstrap routes
+// Skip CSRF verification for safe methods, auth/session bootstrap routes, and GYG supplier API
 app.use((req: Request, res: Response, next: NextFunction) => {
   const isSafeMethod = req.method === 'GET' || req.method === 'HEAD' || req.method === 'OPTIONS';
   const path = req.path;
   const isAuthOrSession = path.startsWith('/api/auth/') || path.startsWith('/api/session/');
-  if (isSafeMethod || isAuthOrSession) {
+  const isGYGSupplier = path.startsWith('/gyg');
+  
+  if (isSafeMethod || isAuthOrSession || isGYGSupplier) {
     return next();
   }
   return verifyCSRFToken(req, res, next);
