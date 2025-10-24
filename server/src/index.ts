@@ -575,12 +575,14 @@ app.use((req, res, next) => {
   const bookingsRouter = (await import('./routes/bookings.js')).default;
   const competitorsRouter = (await import('./routes/competitors.js')).default;
   const marketIntelligenceRouter = (await import('./routes/market-intelligence.js')).default;
+  const gygSupplierRouter = (await import('./routes/gyg-supplier.js')).default;
   
   app.use("/api/notifications", notificationsRouter);
   app.use("/api/external-activities", externalActivitiesRouter);
   app.use('/api/bookings', bookingsRouter);
   app.use('/api/competitors', competitorsRouter);
   app.use('/api/market', marketIntelligenceRouter);
+  app.use('/gyg', gygSupplierRouter);
   
   const server = await registerRoutes(app);
 
