@@ -45,3 +45,7 @@ if (rawLeafletEnabled === 'true') {
 
 export const MAP_PROVIDER: MapProvider = mapProvider;
 export const IS_LEAFLET_ENABLED = MAP_PROVIDER === 'leaflet';
+
+// GetYourGuide Reference Configuration
+export const GYG_LANG = import.meta.env.VITE_GYG_LANG || 'fr-FR';
+export const GYG_CURRENCY = import.meta.env.VITE_GYG_CURRENCY || 'MAD';

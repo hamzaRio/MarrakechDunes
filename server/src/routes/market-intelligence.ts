@@ -123,15 +123,14 @@ router.get('/search', async (req: Request, res: Response) => {
       perPage: Number.isFinite(perPage) ? perPage : undefined,
     };
 
-    const liveSearchEnabled = process.env.GYG_ENABLE_LIVE_SEARCH === 'true';
-    const gygResponse = await searchGYG(searchInput, { dryRun: !liveSearchEnabled });
+    // Always use dry-run mode for reference-only functionality
+    // This ensures no live API calls to GetYourGuide
+    const gygResponse = await searchGYG(searchInput, { dryRun: true });
 
     return res.json({
       provider: 'gyg',
-      liveSearchEnabled,
-      message: liveSearchEnabled
-        ? 'Live GetYourGuide search enabled - returning real data from GYG API.'
-        : 'GetYourGuide live search is disabled. Returning mock data for reference.',
+      liveSearchEnabled: false,
+      message: 'GetYourGuide reference search - returning local suggestions only.',
       ...gygResponse,
     });
   }
