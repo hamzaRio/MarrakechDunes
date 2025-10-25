@@ -116,7 +116,7 @@ export class GYGFetcher {
 
       // If no results found, try JSON-LD structured data
       if (activities.length === 0) {
-        const jsonLdResults = this.parseJsonLdData($, query);
+        const jsonLdResults = this.parseJsonLdData($ as any, query);
         if (jsonLdResults.length > 0) {
           activities.push(...jsonLdResults);
         }
@@ -125,7 +125,7 @@ export class GYGFetcher {
       // If still no results, try alternative parsing
       if (activities.length === 0) {
         console.log(`[GYG Fetcher] No structured results found, trying alternative parsing for "${query}"`);
-        return this.parseAlternativeResults($, query);
+        return this.parseAlternativeResults($ as any, query);
       }
 
     } catch (error: any) {
@@ -138,7 +138,7 @@ export class GYGFetcher {
   /**
    * Extract activity data from a single element
    */
-  private static extractActivityFromElement($el: cheerio.Cheerio<any>, query: string, index: number): GYGActivity | null {
+  private static extractActivityFromElement($el: any, query: string, index: number): GYGActivity | null {
     try {
       // Extract title with multiple selectors
       const titleSelectors = [
