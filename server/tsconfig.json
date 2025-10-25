@@ -16,7 +16,8 @@
     "baseUrl": ".",
     "typeRoots": ["./types", "./node_modules/@types"],
     "declaration": false,
-    "declarationMap": false
+    "declarationMap": false,
+    "isolatedModules": true
   },
   "include": [
     "src"
