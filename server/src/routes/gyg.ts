@@ -1,62 +1,80 @@
 import { Router, Request, Response } from 'express';
 
-const router = Router();
+export const gyg = Router();
 
-// Basic Auth middleware
-function basicAuth(req: Request, res: Response, next: Function) {
-  const header = req.headers.authorization || '';
-  const expected =
-    'Basic ' +
-    Buffer.from(
-      `${process.env.GYG_SUPPLIER_USER}:${process.env.GYG_SUPPLIER_PASS}`
-    ).toString('base64');
+/**
+ * Public health endpoint (no auth required)
+ */
+gyg.get('/health', (_req: Request, res: Response) => {
+  res.json({ ok: true });
+});
 
-  if (header !== expected) {
-    res.status(401).json({ error: 'Unauthorized' });
-    return;
+/**
+ * Basic authentication middleware
+ */
+function requireBasicAuth(req: Request, res: Response, next: Function) {
+  const auth = req.headers.authorization || '';
+  if (!auth.startsWith('Basic ')) {
+    return res.status(401).set('WWW-Authenticate', 'Basic realm="GYG"').end();
+  }
+
+  const [user, pass] = Buffer.from(auth.slice(6), 'base64').toString('utf8').split(':');
+  if (
+    user !== process.env.GYG_SUPPLIER_USER ||
+    pass !== process.env.GYG_SUPPLIER_PASS
+  ) {
+    return res.status(401).set('WWW-Authenticate', 'Basic realm="GYG"').end();
   }
   next();
 }
 
-// no-auth health for the portal
-router.get('/health', (_req, res) => res.json({ ok: true }));
+/**
+ * GET /gyg/1/get-availabilities
+ * Must return an ARRAY of product availability objects.
+ */
+gyg.get('/1/get-availabilities', requireBasicAuth, (req: Request, res: Response) => {
+  const { product_id, from, to, currency } = req.query as Record<string, string>;
 
-// v=1 endpoints (Basic Auth)
-router.get('/1/get-availabilities', basicAuth, (req, res) => {
-  const { product_id, from, to } = req.query as Record<string, string>;
-  const currency = (req.query.currency as string) || 'MAD';
-  if (!product_id || !from || !to) {
-    return res.status(400).json({ 
-      error: 'Missing required query params: product_id, from, to',
-      received: { product_id, from, to, currency }
-    });
-  }
+  const response = [
+    {
+      product_id: product_id || 'desert-tour-marrakech-001',
+      currency: currency || 'MAD',
+      availabilities: [
+        {
+          start_time: '2025-10-26T09:00:00Z',
+          end_time: '2025-10-26T12:00:00Z',
+          total_available: 10,
+          price_per_person: 480,
+          categories: {
+            ADULT: { min: 1, max: 16 },
+            CHILD: { min: 0, max: 8 },
+          },
+        },
+        {
+          start_time: '2025-12-27T09:00:00Z',
+          end_time: '2025-12-27T12:00:00Z',
+          total_available: 10,
+          price_per_person: 480,
+          categories: {
+            ADULT: { min: 1, max: 16 },
+            CHILD: { min: 0, max: 8 },
+          },
+        },
+      ],
+    },
+  ];
 
-  // Return two example windows inside requested range
-  res.json({
-    productId: product_id,
-    currency,
-    availabilities: [
-      {
-        start_time: `${from}T09:00:00Z`,
-        end_time:   `${from}T12:00:00Z`,
-        total_available: 8,
-        price_per_person: 450,
-        categories: { ADULT: { min: 1, max: 16 }, CHILD: { min: 0, max: 8 } }
-      },
-      {
-        start_time: `${to}T09:00:00Z`,
-        end_time:   `${to}T12:00:00Z`,
-        total_available: 10,
-        price_per_person: 480,
-        categories: { ADULT: { min: 1, max: 16 }, CHILD: { min: 0, max: 8 } }
-      }
-    ]
-  });
+  console.log('[GYG-RESP] get-availabilities:', JSON.stringify(response).slice(0, 400));
+  res.json(response);
 });
 
-router.post('/1/notify-availability-update', basicAuth, (req, res) => {
+/**
+ * POST /gyg/1/notify-availability-update
+ * Responds with { ok: true }.
+ */
+gyg.post('/1/notify-availability-update', requireBasicAuth, (req: Request, res: Response) => {
+  console.log('[GYG-REQ] notify-availability-update payload:', req.body);
   res.json({ ok: true });
 });
 
-export default router;
+export default gyg;
