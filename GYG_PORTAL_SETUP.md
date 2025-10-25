@@ -154,8 +154,14 @@ curl -X GET "https://marrakechdunes-sppy.onrender.com/gyg/1/get-availabilities?p
 - ✅ **Endpoints implemented** and mounted
 - ✅ **Authentication working** with Basic Auth
 - ✅ **CSRF bypass** for supplier API endpoints
+- ✅ **Version alias support** for both `/gyg/1/*` and `/gyg/v1/*`
 - ✅ **Response format** matches GYG requirements
 - ✅ **Ready for portal testing**
+
+### **API Version Support:**
+- **Both `/gyg/1/*` and `/gyg/v1/*` are supported**
+- **The portal typically uses `/v1`** for GetYourGuide integration
+- **All endpoints work identically** regardless of version prefix
 
 ## 🚀 Next Steps
 

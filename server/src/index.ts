@@ -586,9 +586,10 @@ app.use((req, res, next) => {
   app.use('/api/competitors', competitorsRouter);
   app.use('/api/market', marketIntelligenceRouter);
   
-  // GYG supplier API with debug logging
+  // GYG supplier API with debug logging - support both /1 and /v1 versions
   app.use('/gyg', gygDebug);
-  app.use('/gyg', gygSupplierRouter);
+  app.use('/gyg/1', gygSupplierRouter);
+  app.use('/gyg/v1', gygSupplierRouter);
   
   const server = await registerRoutes(app);
 
