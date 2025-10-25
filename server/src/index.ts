@@ -577,19 +577,19 @@ app.use((req, res, next) => {
   const bookingsRouter = (await import('./routes/bookings.js')).default;
   const competitorsRouter = (await import('./routes/competitors.js')).default;
   const marketIntelligenceRouter = (await import('./routes/market-intelligence.js')).default;
-  const gygSupplierRouter = (await import('./routes/gyg-supplier.js')).default;
+  const gygRouter = (await import('./routes/gyg.js')).default;
   const { gygDebug } = await import('./routes/gyg-debug.js');
+  
+  // Mount GYG router BEFORE other routes to ensure it's not caught by catch-all handlers
+  app.use('/gyg', gygDebug);
+  app.use('/gyg', gygRouter);
+  console.log('[routers] /gyg router mounted');
   
   app.use("/api/notifications", notificationsRouter);
   app.use("/api/external-activities", externalActivitiesRouter);
   app.use('/api/bookings', bookingsRouter);
   app.use('/api/competitors', competitorsRouter);
   app.use('/api/market', marketIntelligenceRouter);
-  
-  // GYG supplier API with debug logging - support both /1 and /v1 versions
-  app.use('/gyg', gygDebug);
-  app.use('/gyg/1', gygSupplierRouter);
-  app.use('/gyg/v1', gygSupplierRouter);
   
   const server = await registerRoutes(app);
 
@@ -796,6 +796,7 @@ app.use((req, res, next) => {
   // Note: Frontend is served by Vercel, backend only serves API and static assets
   // Deployment trigger: Final production deployment with session routes fixed
   log("Backend configured for API and static assets only - frontend served by Vercel");
+  console.log('[express] Backend configured ...');
 
   // Start server
   const PORT = process.env.PORT || 10000;
