@@ -213,6 +213,10 @@ if (process.env.NODE_ENV === 'production' && process.env.SENTRY_DSN) {
 // Set trust proxy at the top before any middleware
 app.set("trust proxy", 1);
 
+// Root probes for GetYourGuide portal - must be first
+app.get("/", (_req, res) => res.json({ ok: true }));
+app.head("/", (_req, res) => res.status(200).end());
+
 // CORS configuration - must be defined BEFORE all other middleware
 const allowedOrigins = process.env.CLIENT_URL?.split(",") || [
   "http://localhost:5173",
@@ -399,6 +403,13 @@ const urlencodedBodyParser = express.urlencoded({ extended: false });
 app.use(jsonBodyParser);
 app.use(urlencodedBodyParser);
 
+// Mount GYG router immediately after JSON parsing, before any security middleware
+const gygRouter = (await import('./routes/gyg.js')).default;
+const { gygDebug } = await import('./routes/gyg-debug.js');
+app.use('/gyg', gygDebug);
+app.use('/gyg', gygRouter);
+console.log('[routers] /gyg router mounted');
+
 // Set UTF-8 headers for all JSON responses
 app.use((req, res, next) => {
   // Ensure proper UTF-8 encoding for all responses
@@ -577,14 +588,6 @@ app.use((req, res, next) => {
   const bookingsRouter = (await import('./routes/bookings.js')).default;
   const competitorsRouter = (await import('./routes/competitors.js')).default;
   const marketIntelligenceRouter = (await import('./routes/market-intelligence.js')).default;
-  const gygRouter = (await import('./routes/gyg.js')).default;
-  const { gygDebug } = await import('./routes/gyg-debug.js');
-  
-  // Mount GYG router BEFORE other routes to ensure it's not caught by catch-all handlers
-  app.use('/gyg', gygDebug);
-  app.use('/gyg', gygRouter);
-  console.log('[routers] /gyg router mounted');
-  
   app.use("/api/notifications", notificationsRouter);
   app.use("/api/external-activities", externalActivitiesRouter);
   app.use('/api/bookings', bookingsRouter);
