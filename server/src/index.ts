@@ -408,7 +408,8 @@ const gygRouter = (await import('./routes/gyg.js')).default;
 const { gygDebug } = await import('./routes/gyg-debug.js');
 app.use('/gyg', gygDebug);
 app.use('/gyg', gygRouter);
-console.log('[routers] /gyg router mounted');
+app.use('/gyg/', gygRouter); // Support trailing slash
+console.log('[routers] /gyg router mounted with trailing slash support');
 
 // Set UTF-8 headers for all JSON responses
 app.use((req, res, next) => {
