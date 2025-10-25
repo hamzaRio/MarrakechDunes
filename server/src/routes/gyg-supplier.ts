@@ -23,7 +23,10 @@ router.get('/1/get-availabilities', (req, res) => {
   const { product_id, from, to } = req.query as Record<string, string>;
   const currency = (req.query.currency as string) || 'MAD';
   if (!product_id || !from || !to) {
-    return res.status(400).json({ error: 'Missing product_id/from/to' });
+    return res.status(400).json({ 
+      error: 'Missing required query params: product_id, from, to',
+      received: { product_id, from, to, currency }
+    });
   }
 
   // Return two example windows inside requested range

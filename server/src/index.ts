@@ -578,12 +578,16 @@ app.use((req, res, next) => {
   const competitorsRouter = (await import('./routes/competitors.js')).default;
   const marketIntelligenceRouter = (await import('./routes/market-intelligence.js')).default;
   const gygSupplierRouter = (await import('./routes/gyg-supplier.js')).default;
+  const { gygDebug } = await import('./routes/gyg-debug.js');
   
   app.use("/api/notifications", notificationsRouter);
   app.use("/api/external-activities", externalActivitiesRouter);
   app.use('/api/bookings', bookingsRouter);
   app.use('/api/competitors', competitorsRouter);
   app.use('/api/market', marketIntelligenceRouter);
+  
+  // GYG supplier API with debug logging
+  app.use('/gyg', gygDebug);
   app.use('/gyg', gygSupplierRouter);
   
   const server = await registerRoutes(app);
@@ -663,13 +667,13 @@ app.use((req, res, next) => {
     }
   });
 
-  // Root health check endpoint
+  // Root probes for GetYourGuide portal
   app.get('/', (_req, res) => {
-    res
-      .type('application/json; charset=utf-8')
-      .send(JSON.stringify({ status: 'ok', service: 'MarrakechDunes API' }));
+    res.status(200).json({ ok: true });
   });
-  app.head('/', (_req, res) => res.status(200).end());
+  app.head('/', (_req, res) => {
+    res.status(200).end();
+  });
 
   // Health check endpoints
   app.get('/api', (req, res) => {
