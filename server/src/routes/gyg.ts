@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { randomUUID } from 'crypto';
+import { validateGYGQuery } from '../utils/gyg-validation.js';
 
 export const gyg = Router();
 
@@ -46,11 +47,11 @@ function requireBasicAuth(req: Request, res: Response, next: Function) {
  * GET /gyg/1/get-availabilities
  * Must return an ARRAY of product availability objects.
  */
-gyg.get('/1/get-availabilities', requireBasicAuth, (req: Request, res: Response) => {
+gyg.get('/1/get-availabilities', requireBasicAuth, validateGYGQuery, (req: Request, res: Response) => {
   const id = randomUUID();
   res.setHeader('X-Debug-Id', id);
   
-  const { product_id, from, to, currency } = req.query as Record<string, string>;
+  const { product_id, from, to, currency, unavailable_from, unavailable_to } = req.gygParams!;
 
   const response = [
     {
@@ -86,7 +87,14 @@ gyg.get('/1/get-availabilities', requireBasicAuth, (req: Request, res: Response)
     time: new Date().toISOString(),
     method: req.method,
     path: req.path,
-    query: req.query,
+    query: {
+      product_id,
+      from,
+      to,
+      currency,
+      unavailable_from: unavailable_from || null,
+      unavailable_to: unavailable_to || null
+    },
     hasBasicAuth: true,
     contentType: req.headers['content-type'] || null,
     contentLength: req.headers['content-length'] || null,
