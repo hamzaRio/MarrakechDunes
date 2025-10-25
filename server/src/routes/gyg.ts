@@ -1,11 +1,25 @@
 import { Router, Request, Response } from 'express';
+import { randomUUID } from 'crypto';
 
 export const gyg = Router();
 
 /**
  * Public health endpoint (no auth required)
  */
-gyg.get('/health', (_req: Request, res: Response) => {
+gyg.get('/health', (req: Request, res: Response) => {
+  const id = randomUUID();
+  res.setHeader('X-Debug-Id', id);
+  console.log('[GYG-REQ]', JSON.stringify({
+    id,
+    time: new Date().toISOString(),
+    method: req.method,
+    path: req.path,
+    query: req.query,
+    hasBasicAuth: false,
+    contentType: null,
+    contentLength: null,
+    durationMs: 0
+  }));
   res.json({ ok: true });
 });
 
@@ -33,6 +47,9 @@ function requireBasicAuth(req: Request, res: Response, next: Function) {
  * Must return an ARRAY of product availability objects.
  */
 gyg.get('/1/get-availabilities', requireBasicAuth, (req: Request, res: Response) => {
+  const id = randomUUID();
+  res.setHeader('X-Debug-Id', id);
+  
   const { product_id, from, to, currency } = req.query as Record<string, string>;
 
   const response = [
@@ -64,6 +81,18 @@ gyg.get('/1/get-availabilities', requireBasicAuth, (req: Request, res: Response)
     },
   ];
 
+  console.log('[GYG-REQ]', JSON.stringify({
+    id,
+    time: new Date().toISOString(),
+    method: req.method,
+    path: req.path,
+    query: req.query,
+    hasBasicAuth: true,
+    contentType: req.headers['content-type'] || null,
+    contentLength: req.headers['content-length'] || null,
+    durationMs: 0
+  }));
+  
   console.log('[GYG-RESP] get-availabilities:', JSON.stringify(response).slice(0, 400));
   res.json(response);
 });
@@ -73,6 +102,21 @@ gyg.get('/1/get-availabilities', requireBasicAuth, (req: Request, res: Response)
  * Responds with { ok: true }.
  */
 gyg.post('/1/notify-availability-update', requireBasicAuth, (req: Request, res: Response) => {
+  const id = randomUUID();
+  res.setHeader('X-Debug-Id', id);
+  
+  console.log('[GYG-REQ]', JSON.stringify({
+    id,
+    time: new Date().toISOString(),
+    method: req.method,
+    path: req.path,
+    query: req.query,
+    hasBasicAuth: true,
+    contentType: req.headers['content-type'] || null,
+    contentLength: req.headers['content-length'] || null,
+    durationMs: 0
+  }));
+  
   console.log('[GYG-REQ] notify-availability-update payload:', req.body);
   res.json({ ok: true });
 });
