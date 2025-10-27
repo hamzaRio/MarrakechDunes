@@ -416,7 +416,7 @@ try {
   console.log('[routers] /gyg router mounted with trailing slash support');
   
   // Debug: Print all mounted paths
-  const mountedPaths = app._router.stack.map(l => l.route && l.route.path).filter(Boolean);
+  const mountedPaths = app._router.stack.map((l: any) => l.route && l.route.path).filter(Boolean);
   console.log('[routers] Mounted paths:', mountedPaths);
   console.log('[routers] GYG paths should include: /gyg/1/health, /gyg/1/get-availabilities, /gyg/1/notify-availability-update');
 } catch (error) {
