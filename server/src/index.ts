@@ -406,11 +406,34 @@ app.use(urlencodedBodyParser);
 // Mount GYG router immediately after JSON parsing, before any security middleware
 try {
   console.log('[routers] Loading GYG router...');
-  const gygRouter = (await import('./routes/gyg.js')).default;
-  const { gygDebug } = await import('./routes/gyg-debug.js');
   
-  console.log('[routers] GYG router loaded successfully');
-  app.use('/gyg', gygDebug);
+  // Import GYG router with error handling
+  let gygRouter;
+  let gygDebug;
+  
+  try {
+    gygRouter = (await import('./routes/gyg.js')).default;
+    console.log('[routers] GYG router imported successfully');
+  } catch (importError) {
+    console.error('[routers] Failed to import GYG router:', importError);
+    throw importError;
+  }
+  
+  try {
+    const gygDebugModule = await import('./routes/gyg-debug.js');
+    gygDebug = gygDebugModule.gygDebug;
+    console.log('[routers] GYG debug router imported successfully');
+  } catch (debugError) {
+    console.warn('[routers] GYG debug router not available:', (debugError as Error).message);
+    gygDebug = null;
+  }
+  
+  // Mount routers
+  if (gygDebug) {
+    app.use('/gyg', gygDebug);
+    console.log('[routers] GYG debug router mounted');
+  }
+  
   app.use('/gyg', gygRouter);
   app.use('/gyg/', gygRouter); // Support trailing slash
   console.log('[routers] /gyg router mounted with trailing slash support');
@@ -419,9 +442,15 @@ try {
   const mountedPaths = app._router.stack.map((l: any) => l.route && l.route.path).filter(Boolean);
   console.log('[routers] Mounted paths:', mountedPaths);
   console.log('[routers] GYG paths should include: /gyg/1/health, /gyg/1/get-availabilities, /gyg/1/notify-availability-update');
+  
+  // Verify GYG routes are actually mounted
+  const gygRoutes = mountedPaths.filter((path: any) => path && path.includes('/gyg'));
+  console.log('[routers] Actual GYG routes mounted:', gygRoutes);
+  
 } catch (error) {
-  console.error('[routers] ERROR loading GYG router:', error);
+  console.error('[routers] CRITICAL ERROR loading GYG router:', error);
   console.error('[routers] GYG endpoints will not be available');
+  console.error('[routers] This will cause 404 errors for all /gyg/* requests');
 }
 
 // Set UTF-8 headers for all JSON responses
@@ -790,6 +819,17 @@ app.use((req, res, next) => {
     res.redirect(301, imagePath);
   });
 
+
+  // GYG 404 handler - specific for GYG routes
+  app.use('/gyg/*', (req, res) => {
+    console.error('[GYG-404] GYG route not found:', req.path);
+    res.status(404).json({ 
+      ok: false, 
+      error: 'GYG endpoint not found',
+      path: req.path,
+      message: 'This indicates the GYG router is not properly mounted'
+    });
+  });
 
   // API 404 handler for undefined routes
   app.use('/api/*', notFoundHandler);
