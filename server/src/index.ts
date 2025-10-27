@@ -404,12 +404,20 @@ app.use(jsonBodyParser);
 app.use(urlencodedBodyParser);
 
 // Mount GYG router immediately after JSON parsing, before any security middleware
-const gygRouter = (await import('./routes/gyg.js')).default;
-const { gygDebug } = await import('./routes/gyg-debug.js');
-app.use('/gyg', gygDebug);
-app.use('/gyg', gygRouter);
-app.use('/gyg/', gygRouter); // Support trailing slash
-console.log('[routers] /gyg router mounted with trailing slash support');
+try {
+  console.log('[routers] Loading GYG router...');
+  const gygRouter = (await import('./routes/gyg.js')).default;
+  const { gygDebug } = await import('./routes/gyg-debug.js');
+  
+  console.log('[routers] GYG router loaded successfully');
+  app.use('/gyg', gygDebug);
+  app.use('/gyg', gygRouter);
+  app.use('/gyg/', gygRouter); // Support trailing slash
+  console.log('[routers] /gyg router mounted with trailing slash support');
+} catch (error) {
+  console.error('[routers] ERROR loading GYG router:', error);
+  console.error('[routers] GYG endpoints will not be available');
+}
 
 // Set UTF-8 headers for all JSON responses
 app.use((req, res, next) => {
