@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import { randomUUID } from 'crypto';
 import { validateGYGQuery } from '../utils/gyg-validation.js';
 
-export const gyg = Router();
+const gyg = Router();
 
 // In-memory storage for availability data
 const availabilityStore: Map<string, any[]> = new Map();
