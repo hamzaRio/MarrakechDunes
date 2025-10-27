@@ -148,7 +148,7 @@ import {
   validateFileUpload 
 } from "./security-hardening.js";
 import { globalLimiter, strictLimiter } from "./rate-limiters.js";
-import { registerRoutes } from "./routes.js";
+// registerRoutes removed - routes are now mounted directly
 import { connectToDatabase } from "./db.js";
 import { notFoundHandler, globalErrorHandler } from "./error-handler.js";
 import { sessionSecurity } from "./security-middleware.js";
@@ -608,7 +608,8 @@ app.use((req, res, next) => {
   app.use('/api/competitors', competitorsRouter);
   app.use('/api/market', marketIntelligenceRouter);
   
-  const server = await registerRoutes(app);
+  // Routes are now mounted directly above, no need for registerRoutes
+  const server = app;
 
   // Test notification endpoint (NO AUTH REQUIRED - added after all routes)
   app.post("/api/test/notifications", async (req, res) => {

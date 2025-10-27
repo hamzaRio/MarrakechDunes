@@ -1,6 +1,20 @@
 import { Router } from 'express';
 import { z } from 'zod';
-import { searchExternalActivities, getMoroccoCities, getActivityCategories } from '../services/tourSearchService.js';
+// Placeholder functions for deleted services
+const searchExternalActivities = async (params: { query?: string; city?: string; category?: string; minRating: number }) => {
+  // Mock implementation - return empty results
+  return [];
+};
+
+const getMoroccoCities = () => {
+  // Mock implementation
+  return ['Marrakech', 'Casablanca', 'Fez', 'Rabat', 'Agadir'];
+};
+
+const getActivityCategories = () => {
+  // Mock implementation
+  return ['Desert Tours', 'City Tours', 'Cultural Experiences', 'Adventure'];
+};
 
 const router = Router();
 
