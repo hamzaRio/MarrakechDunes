@@ -33,6 +33,16 @@ console.log("[Env] Loaded server variables OK:", {
   CLIENT_URL: config.clientUrl,
 });
 
+// GYG Environment Variables Check
+console.log("[Env] GYG Environment Variables:", {
+  GYG_SUPPLIER_USER: process.env.GYG_SUPPLIER_USER ? `${process.env.GYG_SUPPLIER_USER.substring(0, 3)}...` : 'NOT SET',
+  GYG_SUPPLIER_PASS: process.env.GYG_SUPPLIER_PASS ? `${process.env.GYG_SUPPLIER_PASS.substring(0, 3)}...` : 'NOT SET',
+  GYG_DEBUG: process.env.GYG_DEBUG || 'NOT SET',
+  GYG_DEFAULT_VACANCY: process.env.GYG_DEFAULT_VACANCY || 'NOT SET',
+  GYG_ENABLE_LIVE_SEARCH: process.env.GYG_ENABLE_LIVE_SEARCH || 'NOT SET',
+  GYG_SUPPLIER_BASE: process.env.GYG_SUPPLIER_BASE || 'NOT SET'
+});
+
 // Simple self-check to ensure VITE_* variables are not required on backend
 export function __envSelfTest__() {
   const ignored = ["VITE_API_URL", "VITE_MAP_PROVIDER", "VITE_LEAFLET_ENABLED"];
