@@ -1,13 +1,37 @@
 import Axios from 'axios';
 
-// Normalize VITE_API_URL to prevent /api/api duplication
-let base = (import.meta.env.VITE_API_URL || "").trim();
+// Resolve API base so the app works with or without VITE_API_URL
+function resolveApiBase(): string {
+  // 1) Use explicit env if provided (Vercel/Render/client .env)
+  const explicit = (import.meta.env.VITE_API_URL || '').trim().replace(/\/+$/, '');
+  if (explicit) return explicit;
 
-// normalize trailing slashes
-base = base.replace(/\/+$/, "");
+  // 2) Optional global override (allows HTML injection without rebuild)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const injected = (typeof window !== 'undefined' && (window as any).__API_URL__) || '';
+  if (typeof injected === 'string' && injected.trim()) return injected.trim().replace(/\/+$/, '');
 
+  // 3) Heuristic fallbacks
+  // - On Vercel preview/prod, default to Render API domain you've been using
+  // - Locally, default to same-origin (dev proxy) or 10000 if running standalone
+  if (typeof window !== 'undefined') {
+    const host = window.location.hostname;
+    if (host.endsWith('.vercel.app')) {
+      return 'https://marrakechdunes-sppy.onrender.com';
+    }
+    // Same-origin fallback (vite dev proxy handles /api → server)
+    if (host === 'localhost' || host === '127.0.0.1') {
+      return window.location.origin; // e.g., http://localhost:5173
+    }
+    return window.location.origin;
+  }
+
+  // 4) Final fallback for non-browser contexts
+  return 'http://localhost:10000';
+}
+
+let apiBaseURL = resolveApiBase();
 // Always ensure baseURL ends with /api for consistency
-let apiBaseURL = base;
 if (!apiBaseURL.endsWith('/api')) {
   apiBaseURL = apiBaseURL + '/api';
 }

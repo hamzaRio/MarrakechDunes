@@ -102,13 +102,8 @@ export default defineConfig(({ mode }) => {
     },
     define: {
       'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development'),
-      // Force production API URL for Vercel deployment
-      'import.meta.env.VITE_API_URL': JSON.stringify(
-        process.env.NODE_ENV === 'production' 
-          ? 'https://marrakechdunes-sppy.onrender.com/api'
-          : (env.VITE_API_URL || 'http://localhost:10000/api')
-      ),
-      // VITE_ASSETS_BASE removed - static assets served from /images/
+      // Respect environment-provided API URL from Vercel/Render/local .env
+      'import.meta.env.VITE_API_URL': JSON.stringify(env.VITE_API_URL || ''),
       'import.meta.env.MAP_PROVIDER': JSON.stringify(env.MAP_PROVIDER || ''),
       'import.meta.env.LEAFLET_ENABLED': JSON.stringify(env.LEAFLET_ENABLED || ''),
       'import.meta.env.VITE_MAP_PROVIDER': JSON.stringify(env.VITE_MAP_PROVIDER || env.MAP_PROVIDER || ''),
