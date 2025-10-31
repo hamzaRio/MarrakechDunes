@@ -25,12 +25,24 @@ export default function ActivityDetail() {
       if (!activityId) throw new Error("Activity ID is required");
       const response = await apiFetch(`/activities/${activityId}`);
       if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error("Activity not found");
+        }
         throw new Error(`Failed to fetch activity: ${response.statusText}`);
       }
-      return await response.json();
+      const data = await response.json();
+      if (!data || !data._id) {
+        throw new Error("Activity not found");
+      }
+      return data;
     },
     enabled: !!activityId,
-    retry: 2,
+    retry: (failureCount, error) => {
+      // Don't retry if activity not found (404) or after 2 attempts
+      if (failureCount >= 2) return false;
+      if (error instanceof Error && error.message.includes("not found")) return false;
+      return true;
+    },
   });
 
   const images = ensureArray(activity?.imageUrls || []);
