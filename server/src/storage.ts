@@ -446,49 +446,82 @@ class MongoStorage implements IStorage {
       'all',
       async () => {
         const bookings = await Booking.find().populate('activityId').sort({ createdAt: -1 });
+        console.log('[STORAGE] Fetched', bookings.length, 'bookings from database');
         
         // Process bookings and manually fetch activities if populate failed
         const processedBookings = await Promise.all(
           bookings.map(async (booking) => {
             const bookingObj = this.transformDocument(booking);
+            const bookingId = bookingObj.id || bookingObj._id;
+            
+            // Check if activityId exists and what type it is
+            if (!bookingObj.activityId) {
+              console.warn('[STORAGE] Booking has no activityId:', bookingId);
+              return bookingObj;
+            }
             
             // If activity was populated successfully
-            if (bookingObj.activityId && typeof bookingObj.activityId === 'object') {
+            if (typeof bookingObj.activityId === 'object') {
               bookingObj.activity = this.transformDocument(bookingObj.activityId);
               if (bookingObj.activity && bookingObj.activity._id) {
                 bookingObj.activityId = bookingObj.activity._id;
               }
+              console.log('[STORAGE] Activity populated for booking:', bookingId, 'activity:', bookingObj.activity?.name);
             } 
             // If activityId is a string (populate failed), try to fetch it manually
-            else if (bookingObj.activityId && typeof bookingObj.activityId === 'string') {
+            else if (typeof bookingObj.activityId === 'string') {
               const activityId = bookingObj.activityId;
-              console.log('[STORAGE] Activity not populated, attempting manual fetch for:', activityId);
+              console.log('[STORAGE] Activity not populated, attempting manual fetch for booking:', bookingId, 'activityId:', activityId);
               
               try {
-                const activity = await this.getActivity(activityId);
+                // Try multiple approaches to find the activity
+                let activity = await this.getActivity(activityId);
+                
+                // If getActivity failed, try findById directly
+                if (!activity) {
+                  console.log('[STORAGE] getActivity failed, trying direct findById:', activityId);
+                  try {
+                    const activityDoc = await Activity.findById(activityId);
+                    if (activityDoc) {
+                      activity = this.transformDocument(activityDoc);
+                      console.log('[STORAGE] Found activity via direct findById:', activity?.name || 'unknown');
+                    }
+                  } catch (findError) {
+                    console.error('[STORAGE] Direct findById also failed:', findError);
+                  }
+                }
+                
                 if (activity) {
                   bookingObj.activity = activity;
                   bookingObj.activityId = activity._id || activityId;
-                  console.log('[STORAGE] Successfully fetched activity manually:', activity.name);
+                  console.log('[STORAGE] ✅ Successfully fetched activity manually for booking:', bookingId, 'activity:', activity.name);
                 } else {
-                  console.warn('[STORAGE] Activity not found for booking:', activityId);
-                  // Activity doesn't exist - booking will be included but without activity data
+                  console.error('[STORAGE] ❌ Activity not found in database for booking:', bookingId, 'activityId:', activityId);
+                  // List all activities to help debug
+                  const allActivities = await Activity.find({}).select('_id name').limit(10);
+                  console.log('[STORAGE] Available activities:', allActivities.map(a => ({ id: a._id.toString(), name: a.name })));
                 }
               } catch (error) {
-                console.error('[STORAGE] Error fetching activity manually:', activityId, error);
-                // Activity fetch failed - booking will be included but without activity data
+                console.error('[STORAGE] ❌ Error fetching activity manually for booking:', bookingId, 'activityId:', activityId, error);
               }
-            } else {
-              console.warn('[STORAGE] Booking has no activityId:', bookingObj.id || bookingObj._id);
             }
             
             return bookingObj;
           })
         );
         
+        // Log summary
+        const withActivity = processedBookings.filter(b => b.activity).length;
+        const withoutActivity = processedBookings.filter(b => !b.activity).length;
+        console.log('[STORAGE] Bookings summary:', {
+          total: processedBookings.length,
+          withActivity,
+          withoutActivity
+        });
+        
         return processedBookings;
       },
-      300 // 5 minutes cache
+      60 // Reduced cache to 1 minute for now to help with debugging
     );
   }
 

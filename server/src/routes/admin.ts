@@ -9,6 +9,13 @@ const router = Router();
  */
 router.get('/bookings', async (req: Request, res: Response) => {
   try {
+    // Clear cache if requested (for debugging/fixing issues)
+    if (req.query.clearCache === 'true') {
+      const { cacheService } = await import('../services/cache-service.js');
+      await cacheService.invalidateBookings();
+      console.log('[ADMIN] Bookings cache cleared');
+    }
+    
     const bookings = await storage.getBookings();
     return res.status(200).json(bookings);
   } catch (error) {
