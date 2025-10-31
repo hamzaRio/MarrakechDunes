@@ -16,13 +16,28 @@ export default function SimplifiedActivities() {
   const [sortBy, setSortBy] = useState("name");
   const [filterBy, setFilterBy] = useState("all");
 
-  // Fetch activities
+  // Fetch activities with improved error handling
   const { data: activities, isLoading, error } = useQuery<ActivityType[]>({
     queryKey: ["/activities"],
     queryFn: async () => {
-      const response = await apiFetch("/activities");
-      return await response.json();
+      try {
+        const response = await apiFetch("/activities");
+        if (!response.ok) {
+          throw new Error(`Failed to fetch activities: ${response.statusText}`);
+        }
+        const data = await response.json();
+        return Array.isArray(data) ? data : [];
+      } catch (err) {
+        console.error('[ACTIVITIES] Error fetching activities:', err);
+        throw err;
+      }
     },
+    retry: (failureCount, error) => {
+      // Retry up to 2 times for network errors
+      if (failureCount >= 2) return false;
+      return error instanceof Error && !error.message.includes('404');
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes cache
   });
 
   // Filter and sort activities
@@ -116,6 +131,12 @@ export default function SimplifiedActivities() {
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-10"
+                    aria-label="Search activities"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                      }
+                    }}
                   />
                 </div>
               </div>

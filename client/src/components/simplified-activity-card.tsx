@@ -42,7 +42,8 @@ export default function SimplifiedActivityCard({ activity }: SimplifiedActivityC
       <div className="relative h-48 overflow-hidden">
         <img
           src={getAssetUrl(primaryImage)}
-          alt={activity.name}
+          alt={activity.name || 'Activity image'}
+          aria-label={`${activity.name} - Activity image`}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           onError={(e) => {
             const target = e.target as HTMLImageElement;

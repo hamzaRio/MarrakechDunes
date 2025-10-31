@@ -36,11 +36,22 @@ export function useAuth() {
     refetchInterval: false, // Disable automatic refetch to prevent loops
   });
 
-  // Enhanced user state management
-  const user = (data as any)?.user ?? null;
+  // Enhanced user state management with proper typing
+  const user = (data && 'user' in data && data.user) ? data.user : null;
   
   // For admin routes, also check localStorage as fallback
-  const localUser = isAdminRoute && !user && !isLoading ? JSON.parse(localStorage.getItem('user') || 'null') : null;
+  let localUser: SessionUser | null = null;
+  if (isAdminRoute && !user && !isLoading) {
+    try {
+      const stored = localStorage.getItem('user');
+      if (stored) {
+        localUser = JSON.parse(stored) as SessionUser;
+      }
+    } catch (error) {
+      console.warn('[AUTH] Failed to parse stored user:', error);
+      localStorage.removeItem('user');
+    }
+  }
   const finalUser = user || localUser;
   
   // Clear localStorage if server says we're not authenticated (only on admin routes)

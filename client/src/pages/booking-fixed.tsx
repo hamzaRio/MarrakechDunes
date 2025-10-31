@@ -148,7 +148,7 @@ export default function BookingFixed() {
 
   const { fields, replace } = useFieldArray({
     control: form.control,
-    name: "participantNames" as any,
+    name: "participantNames",
   });
 
   // Get watched activity first

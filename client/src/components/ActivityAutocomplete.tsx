@@ -4,15 +4,26 @@ import { api } from '@/lib/api';
 
 const MIN = 2;
 
-export default function ActivityAutocomplete({
-  value, onChange, onSelectActivity, city = 'marrakech', placeholder = 'Tapez pour rechercher...'
-}: {
+interface GYGActivityItem {
+  title: string;
+  city: string;
+  priceMAD?: number;
+  rating?: number;
+  durationText?: string;
+  url?: string;
+}
+
+interface ActivityAutocompleteProps {
   value: string;
   city?: string;
   placeholder?: string;
   onChange: (v: string) => void;
-  onSelectActivity: (item: any) => void;
-}) {
+  onSelectActivity: (item: GYGActivityItem) => void;
+}
+
+export default function ActivityAutocomplete({
+  value, onChange, onSelectActivity, city = 'marrakech', placeholder = 'Tapez pour rechercher...'
+}: ActivityAutocompleteProps) {
   const q = (value || '').trim();
 
   const { data, isFetching } = useQuery({
@@ -22,9 +33,16 @@ export default function ActivityAutocomplete({
     queryFn: async () => {
       const res = await api.get('/market/search', { params: { provider: 'gyg', q, city } });
       const items = res.data?.sampleNormalizedShape ?? [];
-      return items.map((p: any) => ({
-        title: p.title,
-        city: p.city,
+      return items.map((p: {
+        title?: string;
+        city?: string;
+        price_from?: number;
+        rating?: number;
+        duration_text?: string;
+        url?: string;
+      }): GYGActivityItem => ({
+        title: p.title || '',
+        city: p.city || city,
         priceMAD: p.price_from,
         rating: p.rating,
         durationText: p.duration_text,

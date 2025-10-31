@@ -101,7 +101,14 @@ function App() {
   useEffect(() => {
     const gaId = import.meta.env.VITE_GA_MEASUREMENT_ID;
     if (gaId && import.meta.env.PROD) {
-      ReactGA.send({ hitType: "pageview", page: window.location.pathname });
+      try {
+        ReactGA.send({ hitType: "pageview", page: window.location.pathname });
+      } catch (error) {
+        // Silently fail GA tracking to prevent breaking the app
+        if (import.meta.env.DEV) {
+          console.warn('[GA] Failed to track pageview:', error);
+        }
+      }
     }
   }, [window.location.pathname]);
 

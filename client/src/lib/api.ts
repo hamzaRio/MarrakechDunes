@@ -36,7 +36,10 @@ if (!apiBaseURL.endsWith('/api')) {
   apiBaseURL = apiBaseURL + '/api';
 }
 
-console.log('[API] Final baseURL:', apiBaseURL);
+// Only log in development to reduce console noise in production
+if (import.meta.env.DEV) {
+  console.log('[API] Final baseURL:', apiBaseURL);
+}
 
 const axios = Axios.create({
   baseURL: apiBaseURL, // Always includes /api

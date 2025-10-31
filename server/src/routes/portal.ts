@@ -18,7 +18,10 @@ router.post('/request-otp', async (req: Request, res: Response) => {
     }
     
     // TODO: Implement OTP generation and SMS sending logic
-    console.log('[PORTAL] OTP requested for phone:', phone);
+    // For now, log in development only
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[PORTAL] OTP requested for phone:', phone);
+    }
     
     // For now, return success (OTP would be sent via SMS)
     return res.status(200).json({

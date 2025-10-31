@@ -159,7 +159,8 @@ export default function ActivityCard({ activity, showDescription = false }: Acti
               <img
                 key={`${activity._id || activity.id || 'activity'}-image-${index}`}
                 src={image}
-                alt={`${activity.name} image ${index + 1}`}
+                alt={`${activity.name} - Image ${index + 1}`}
+                aria-label={`${activity.name} - Gallery image ${index + 1}`}
                 className="h-16 w-16 object-cover rounded-md border border-white/40 shadow-sm"
                 loading="lazy"
                 onError={(e) => handleImageError(e, fallbackImage)}

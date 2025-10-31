@@ -371,9 +371,11 @@ router.post('/bookings/:id/reminder', async (req: Request, res: Response) => {
       });
     }
     // TODO: Implement reminder sending logic (WhatsApp, email, etc.)
+    // For now, return success (implementation pending)
     return res.status(200).json({
       status: 'success',
-      message: 'Reminder sent successfully'
+      message: 'Reminder sent successfully',
+      bookingId: booking._id || booking.id
     });
   } catch (error) {
     console.error('[ADMIN] Error sending reminder:', error);
