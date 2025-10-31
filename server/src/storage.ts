@@ -531,7 +531,15 @@ class MongoStorage implements IStorage {
         
         // Check if activityId exists and what type it is
         if (!bookingObj.activityId) {
-          console.warn('[STORAGE] Booking has no activityId:', bookingId);
+          // This happens when:
+          // 1. activityId is null/undefined in database (shouldn't happen due to schema required:true)
+          // 2. The referenced activity was deleted (populate returns null)
+          // 3. The activityId was corrupted
+          // Only log in development to reduce noise in production
+          if (process.env.NODE_ENV === 'development') {
+            console.warn('[STORAGE] Booking has no activityId:', bookingId);
+            console.warn('[STORAGE] This usually means the referenced activity was deleted');
+          }
           return bookingObj;
         }
         
