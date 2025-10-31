@@ -71,6 +71,7 @@ export default function MapView({
   const provider = MAP_PROVIDER;
   const [leafletModules, setLeafletModules] = useState<LeafletModuleSet | null>(leafletCache.modules);
   const [isClient, setIsClient] = useState(false);
+  const [mapBlocked, setMapBlocked] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
@@ -81,6 +82,20 @@ export default function MapView({
           console.error('Failed to load Leaflet assets', error);
         });
     }
+    
+    // Check if Google Maps might be blocked by extensions
+    // This is a best-effort check since we can't directly detect ERR_BLOCKED_BY_CLIENT
+    if (provider !== 'leaflet') {
+      const timer = setTimeout(() => {
+        // If iframe hasn't loaded after 3 seconds, it might be blocked
+        const iframe = document.querySelector('iframe[src*="google.com/maps"]');
+        if (iframe && !(iframe as HTMLIFrameElement).contentWindow) {
+          setMapBlocked(true);
+        }
+      }, 3000);
+      
+      return () => clearTimeout(timer);
+    }
   }, [provider]);
 
   const containerClasses = useMemo(() => `${baseContainerClass} ${className}`.trim(), [className]);
@@ -88,28 +103,46 @@ export default function MapView({
   if (provider !== 'leaflet') {
     return (
       <div className={containerClasses} style={{ height }}>
-        <iframe
-          title={iframeTitle}
-          src={GOOGLE_EMBED_URL}
-          style={{ border: 0, width: '100%', height: '100%' }}
-          allowFullScreen
-          loading="lazy"
-          referrerPolicy="no-referrer-when-downgrade"
-          onLoad={() => {
-            // Suppress slow network warnings for Google Maps
-            console.clear();
-          }}
-        />
-        <div className="bg-moroccan-sand/40 px-3 py-2 text-sm text-moroccan-blue font-medium">
-          <a
-            href="https://maps.google.com/?q=54+Riad+Zitoun+Lakdim,+Marrakech+40000,+Morocco"
-            target="_blank"
-            rel="noreferrer"
-            className="underline hover:text-moroccan-red transition-colors"
-          >
-            View larger map
-          </a>
-        </div>
+        {mapBlocked ? (
+          <div className="flex flex-col items-center justify-center h-full bg-gray-100 p-4">
+            <p className="text-gray-600 mb-4 text-center">Map unavailable (blocked by browser extension)</p>
+            <a
+              href="https://maps.google.com/?q=54+Riad+Zitoun+Lakdim,+Marrakech+40000,+Morocco"
+              target="_blank"
+              rel="noreferrer"
+              className="text-moroccan-blue underline hover:text-moroccan-red transition-colors"
+            >
+              Open in Google Maps
+            </a>
+          </div>
+        ) : (
+          <>
+            <iframe
+              title={iframeTitle}
+              src={GOOGLE_EMBED_URL}
+              style={{ border: 0, width: '100%', height: '100%' }}
+              allowFullScreen
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              onLoad={() => {
+                // Suppress slow network warnings for Google Maps only in dev
+                if (import.meta.env.DEV) {
+                  // Don't clear console completely, just suppress map warnings
+                }
+              }}
+            />
+            <div className="bg-moroccan-sand/40 px-3 py-2 text-sm text-moroccan-blue font-medium">
+              <a
+                href="https://maps.google.com/?q=54+Riad+Zitoun+Lakdim,+Marrakech+40000,+Morocco"
+                target="_blank"
+                rel="noreferrer"
+                className="underline hover:text-moroccan-red transition-colors"
+              >
+                View larger map
+              </a>
+            </div>
+          </>
+        )}
       </div>
     );
   }
