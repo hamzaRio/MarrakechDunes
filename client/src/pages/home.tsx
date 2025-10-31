@@ -11,9 +11,6 @@ import { Star, Award, MapPin, Calendar } from "lucide-react";
 import { useLanguage } from "@/hooks/use-language";
 import { asset } from "@/lib/env";
 import { useLocation } from "wouter";
-import { useQuery } from "@tanstack/react-query";
-import { apiFetch } from "@/lib/api";
-import type { ActivityType } from "marrakechdunes-shared/schema";
 // Single hero background image - force refresh
 const heroBackgroundImage = asset("riad-kheirredine_1756041288677.jpg");
 
@@ -21,57 +18,17 @@ export default function Home() {
   const { t, language } = useLanguage();
   const [, setLocation] = useLocation();
   
-  // Fetch activities to get their IDs for navigation
-  const { data: activities = [] } = useQuery<ActivityType[]>({
-    queryKey: ["/activities"],
-    queryFn: async () => {
-      try {
-        const response = await apiFetch("/activities");
-        if (!response.ok) return [];
-        const data = await response.json();
-        return Array.isArray(data) ? data : [];
-      } catch {
-        return [];
-      }
-    },
-    staleTime: 10 * 60 * 1000, // 10 minutes cache
-  });
-  
-  // Helper to find activity by name keyword
-  const findActivityByName = (keywords: string[]): ActivityType | null => {
-    const lowerKeywords = keywords.map(k => k.toLowerCase());
-    return activities.find(activity => {
-      const name = (activity.name || '').toLowerCase();
-      return lowerKeywords.some(keyword => name.includes(keyword));
-    }) || null;
-  };
-  
-  // Navigation handlers
+  // Navigation handlers with specific activity IDs
   const handleHotAirBalloonClick = () => {
-    const activity = findActivityByName(['balloon', 'montgolfière', 'hot air', 'montgolfiere']);
-    if (activity) {
-      setLocation(`/booking?activity=${activity._id || activity.id}`);
-    } else {
-      setLocation('/activities-simple');
-    }
+    setLocation('/booking?activity=69048fcd2a1dd2c4b8a7c5cf');
   };
   
   const handleAgafayClick = () => {
-    const activity = findActivityByName(['agafay', 'desert']);
-    if (activity) {
-      setLocation(`/activity/${activity._id || activity.id}`);
-    } else {
-      setLocation('/activities-simple');
-    }
+    setLocation('/booking?activity=69048fcd2a1dd2c4b8a7c5d1');
   };
   
   const handleEssaouiraClick = () => {
-    const activity = findActivityByName(['essaouira', 'essaouira']);
-    if (activity) {
-      setLocation(`/booking?activity=${activity._id || activity.id}`);
-    } else {
-      setLocation('/activities-simple');
-    }
+    setLocation('/booking?activity=69048fcd2a1dd2c4b8a7c5d3');
   };
   const seoConfig = seoConfigs.home(language);
 
@@ -138,7 +95,7 @@ export default function Home() {
                 <Button 
                   size="lg"
                   className="bg-moroccan-red hover:bg-red-600 text-white px-8 py-3"
-                  onClick={() => window.location.href = '/activities-simple'}
+                  onClick={() => setLocation('/activities')}
                 >
                   Explore Activities
                 </Button>
@@ -489,7 +446,7 @@ export default function Home() {
               <Button
                 size="lg"
                 className="bg-moroccan-blue hover:bg-moroccan-blue/90 text-white px-8 py-3"
-                onClick={() => window.location.href = '/activities-simple'}
+                onClick={() => setLocation('/activities')}
               >
                 {t('home.viewAllActivities')}
               </Button>

@@ -86,7 +86,7 @@ export default function ActivityDetail() {
         <div className="container mx-auto px-4">
           <Button
             variant="ghost"
-            onClick={() => setLocation("/activities-simple")}
+            onClick={() => setLocation("/activities")}
             className="mb-4 text-white hover:bg-white/20"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
@@ -191,6 +191,15 @@ export default function ActivityDetail() {
                   <div className="text-sm text-gray-600">per person</div>
                 </div>
 
+                <Button
+                  className="w-full bg-moroccan-red hover:bg-red-600 text-white font-bold py-4 text-lg transition-all duration-300 transform hover:scale-105 mb-4"
+                  size="lg"
+                  onClick={() => setLocation(`/booking?activity=${activity._id || activity.id}`)}
+                >
+                  <Calendar className="h-5 w-5 mr-2 inline" />
+                  Book Now
+                </Button>
+                
                 <SimplifiedBookingForm
                   activityId={activity._id || activity.id || ''}
                   activityName={activity.name}
