@@ -52,9 +52,9 @@ try {
 
 // Debug: Check if environment variables are loaded
 console.log('?? Environment loading check:');
-console.log('  DATABASE_URL:', !!process.env.DATABASE_URL);
+console.log('  DATABASE_URL:', process.env.DATABASE_URL ? 'SET' : 'NOT SET');
 console.log('  NODE_ENV:', process.env.NODE_ENV || 'not set');
-console.log('  SESSION_SECRET:', !!process.env.SESSION_SECRET);
+console.log('  SESSION_SECRET:', process.env.SESSION_SECRET ? 'SET' : 'NOT SET');
 
 // Environment variables should be loaded by dotenv-flow above
 
@@ -234,9 +234,9 @@ if (isProduction) {
   console.log('?? Production startup diagnostics:');
   console.log('  NODE_ENV:', process.env.NODE_ENV);
   console.log('  PORT:', process.env.PORT);
-  console.log('  DATABASE_URL:', !!process.env.DATABASE_URL);
-  console.log('  SESSION_SECRET:', !!process.env.SESSION_SECRET);
-  console.log('  JWT_SECRET:', !!process.env.JWT_SECRET);
+  console.log('  DATABASE_URL:', process.env.DATABASE_URL ? 'SET' : 'NOT SET');
+  console.log('  SESSION_SECRET:', process.env.SESSION_SECRET ? 'SET' : 'NOT SET');
+  console.log('  JWT_SECRET:', process.env.JWT_SECRET ? 'SET' : 'NOT SET');
   console.log('  CLIENT_URL:', process.env.CLIENT_URL || '? MISSING');
 }
 
@@ -403,26 +403,7 @@ const urlencodedBodyParser = express.urlencoded({ extended: false });
 app.use(jsonBodyParser);
 app.use(urlencodedBodyParser);
 
-// Mount GYG router immediately after JSON parsing, before any security middleware
-try {
-  console.log('[routers] Loading GYG router...');
-  const gygRouter = (await import('./routes/gyg.js')).default;
-  const { gygDebug } = await import('./routes/gyg-debug.js');
-  
-  console.log('[routers] GYG router loaded successfully');
-  app.use('/gyg', gygDebug);
-  app.use('/gyg', gygRouter);
-  app.use('/gyg/', gygRouter); // Support trailing slash
-  console.log('[routers] /gyg router mounted with trailing slash support');
-  
-  // Debug: Print all mounted paths
-  const mountedPaths = app._router.stack.map((l: any) => l.route && l.route.path).filter(Boolean);
-  console.log('[routers] Mounted paths:', mountedPaths);
-  console.log('[routers] GYG paths should include: /gyg/1/health, /gyg/1/get-availabilities, /gyg/1/notify-availability-update');
-} catch (error) {
-  console.error('[routers] ERROR loading GYG router:', error);
-  console.error('[routers] GYG endpoints will not be available');
-}
+// GYG router removed - not needed
 
 // Set UTF-8 headers for all JSON responses
 app.use((req, res, next) => {
@@ -474,14 +455,13 @@ app.use(uploadSecurityHeaders);
 
 // CSRF protection with custom implementation
 app.use(generateCSRFToken);
-// Skip CSRF verification for safe methods, auth/session bootstrap routes, and GYG supplier API
+// Skip CSRF verification for safe methods and auth/session bootstrap routes
 app.use((req: Request, res: Response, next: NextFunction) => {
   const isSafeMethod = req.method === 'GET' || req.method === 'HEAD' || req.method === 'OPTIONS';
   const path = req.path;
   const isAuthOrSession = path.startsWith('/api/auth/') || path.startsWith('/api/session/');
-  const isGYGSupplier = path.startsWith('/gyg');
   
-  if (isSafeMethod || isAuthOrSession || isGYGSupplier) {
+  if (isSafeMethod || isAuthOrSession) {
     return next();
   }
   return verifyCSRFToken(req, res, next);
@@ -617,14 +597,14 @@ app.use((req, res, next) => {
   const activitiesRouter = (await import('./routes/activities.js')).default;
   const reviewsRouter = (await import('./routes/reviews.js')).default;
   const notificationsRouter = (await import('./routes/notifications.js')).default;
-  const externalActivitiesRouter = (await import('./routes/externalActivities.js')).default;
+  // Removed externalActivitiesRouter - not needed
   const bookingsRouter = (await import('./routes/bookings.js')).default;
   const competitorsRouter = (await import('./routes/competitors.js')).default;
   const marketIntelligenceRouter = (await import('./routes/market-intelligence.js')).default;
   app.use("/api/activities", activitiesRouter);
   app.use("/api/reviews", reviewsRouter);
   app.use("/api/notifications", notificationsRouter);
-  app.use("/api/external-activities", externalActivitiesRouter);
+  // Removed external-activities route - not needed
   app.use('/api/bookings', bookingsRouter);
   app.use('/api/competitors', competitorsRouter);
   app.use('/api/market', marketIntelligenceRouter);

@@ -33,7 +33,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Upload, Search } from "lucide-react";
 import { ObjectUploader } from "@/components/ObjectUploader";
-import GYGReferenceTool from "@/components/GYGReferenceTool";
+// Removed GYGReferenceTool - not needed for simple form
 import type { ActivityType } from "marrakechdunes-shared/schema";
 
 const activityFormSchema = z.object({
@@ -174,15 +174,6 @@ export default function SimpleActivityForm({
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-
-            {/* GYG Reference Tool - Direct Website Links */}
-            <GYGReferenceTool
-              onActivitySelect={(activity) => {
-                // Only use GYG data for reference - don't auto-fill form
-                console.log('GYG Reference Activity:', activity);
-                // You can manually copy the price or name if needed
-              }}
-            />
 
             {/* Nom de l'Activité */}
             <FormField

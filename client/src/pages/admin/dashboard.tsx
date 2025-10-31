@@ -18,7 +18,7 @@ import { getAssetUrl } from "@/lib/utils";
 import PaymentManagement from "@/components/payment-management";
 import { WhatsAppNotificationPanel } from "@/components/whatsapp-notification-panel";
 import SimpleActivityForm from "@/components/simple-activity-form-v2";
-import GYGActivitySearch from "@/components/gyg-activity-search";
+// Removed GYGActivitySearch - not needed
 // Removed BookingTest - was only for testing
 // Removed duplicate cash analytics dashboard import
 import CashBookingReminders from "@/components/cash-booking-reminders";
@@ -540,10 +540,9 @@ function AdminDashboardContent() {
                   </div>
 
           <Tabs defaultValue="bookings" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-5 bg-white border-2 border-gray-200">
+            <TabsList className="grid w-full grid-cols-4 bg-white border-2 border-gray-200">
               <TabsTrigger value="bookings" className="data-[state=active]:bg-moroccan-blue data-[state=active]:text-white">📋 Réservations</TabsTrigger>
               <TabsTrigger value="activities" className="data-[state=active]:bg-moroccan-blue data-[state=active]:text-white">🎯 Activités</TabsTrigger>
-              <TabsTrigger value="gyg-reference" className="data-[state=active]:bg-moroccan-blue data-[state=active]:text-white">🔍 GYG Reference</TabsTrigger>
               <TabsTrigger value="whatsapp" className="data-[state=active]:bg-moroccan-blue data-[state=active]:text-white">💬 WhatsApp</TabsTrigger>
               <TabsTrigger value="reports" className="data-[state=active]:bg-moroccan-blue data-[state=active]:text-white">📊 Rapports</TabsTrigger>
             </TabsList>
@@ -727,18 +726,6 @@ function AdminDashboardContent() {
                 <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle>Activity Management & Pricing</CardTitle>
                   <div className="flex gap-2">
-                    <Button 
-                      onClick={() => {
-                        // Switch to GYG reference tab
-                        const gygTab = document.querySelector('[data-value="gyg-reference"]') as HTMLElement;
-                        if (gygTab) gygTab.click();
-                      }}
-                      variant="outline" 
-                      size="sm"
-                      className="border-blue-200 text-blue-700 hover:bg-blue-50"
-                    >
-                      🔍 GYG Reference
-                    </Button>
                     <SimpleActivityForm mode="create" />
                   </div>
                 </CardHeader>
@@ -853,31 +840,7 @@ function AdminDashboardContent() {
               </Card>
             </TabsContent>
 
-            <TabsContent value="gyg-reference" className="space-y-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    🔍 GetYourGuide Reference & Activity Research
-                  </CardTitle>
-                  <p className="text-sm text-gray-600">
-                    Search GetYourGuide activities to get pricing ideas and inspiration for your own activities
-                  </p>
-                </CardHeader>
-                <CardContent>
-                  <GYGActivitySearch 
-                    onActivitySelect={(activity) => {
-                      // When an activity is selected, you can use this data
-                      console.log('Selected GYG activity:', activity);
-                      // You could open a modal or form to create a new activity based on this reference
-                      toast({
-                        title: "Activity Selected",
-                        description: `"${activity.title}" selected for reference. Use this data to create your own activity.`,
-                      });
-                    }}
-                  />
-                </CardContent>
-              </Card>
-            </TabsContent>
+            {/* GYG Reference tab removed - not needed */}
 
             <TabsContent value="whatsapp" className="space-y-4">
               <Card>
