@@ -75,6 +75,7 @@ router.post('/login', async (req: Request, res: Response) => {
 
     return res.status(200).json({
       status: 'success',
+      success: true, // Also include success field for client compatibility
       user: {
         id: userId,
         username: user.username,

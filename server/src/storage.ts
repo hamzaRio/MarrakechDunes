@@ -1062,13 +1062,30 @@ class MongoStorage implements IStorage {
           // Force update password to ensure it's correct
           console.log(`🔄 Updating password for existing user: ${userData.username}`);
           const hashedPassword = await bcrypt.hash(userData.password, 10);
-          await User.updateOne(
+          const updateResult = await User.updateOne(
             { username: userData.username },
             { $set: { password: hashedPassword, role: userData.role } }
           );
-          console.log(`✅ Updated password and role for admin user: ${userData.username}`);
+          console.log(`✅ Updated password and role for admin user: ${userData.username}`, {
+            matched: updateResult.matchedCount,
+            modified: updateResult.modifiedCount
+          });
+          
+          // Verify the user exists after update
+          const verifiedUser = await User.findOne({ username: userData.username });
+          if (!verifiedUser) {
+            console.error(`❌ ERROR: User ${userData.username} not found after update!`);
+          } else {
+            console.log(`✅ Verified user ${userData.username} exists after update with ID: ${verifiedUser._id}`);
+          }
         }
       }
+      
+      // Final verification: List all users in database
+      const allUsersAfterSeeding = await User.find({}).select('username role');
+      console.log(`📋 Final user count: ${allUsersAfterSeeding.length}`, 
+        allUsersAfterSeeding.map(u => ({ username: u.username, role: u.role }))
+      );
 
       // Check if we need to update existing activities with new image filenames
       const existingSeeded = await Activity.findOne({ isSeeded: true });
