@@ -451,7 +451,21 @@ class MongoStorage implements IStorage {
   }
 
   async deleteActivity(id: string): Promise<void> {
+    // Check if there are bookings for this activity
+    const bookingsCount = await Booking.countDocuments({ activityId: id });
+    
+    if (bookingsCount > 0) {
+      // Prevent deletion if bookings exist to avoid orphaned bookings
+      throw new Error(
+        `Cannot delete activity: ${bookingsCount} booking(s) are associated with this activity. ` +
+        `Please delete or reassign the bookings first, or delete the activity manually if you're sure.`
+      );
+    }
+    
     await Activity.findByIdAndDelete(id);
+    
+    // Invalidate related caches
+    await cacheService.invalidateRelated('activity', id);
   }
 
   // Booking operations
