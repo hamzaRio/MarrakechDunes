@@ -61,7 +61,7 @@ export default function ActivityDetail() {
             <CardContent className="p-8 text-center">
               <h2 className="text-2xl font-bold text-red-600 mb-4">Activity Not Found</h2>
               <p className="text-gray-600 mb-4">The activity you're looking for doesn't exist or has been removed.</p>
-              <Button onClick={() => setLocation("/activities-simple")} variant="outline">
+              <Button onClick={() => setLocation("/activities")} variant="outline">
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back to Activities
               </Button>
