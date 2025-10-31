@@ -446,22 +446,47 @@ class MongoStorage implements IStorage {
       'all',
       async () => {
         const bookings = await Booking.find().populate('activityId').sort({ createdAt: -1 });
-        return bookings.map(booking => {
-          const bookingObj = this.transformDocument(booking);
-          if (bookingObj.activityId && typeof bookingObj.activityId === 'object') {
-            bookingObj.activity = this.transformDocument(bookingObj.activityId);
-            if (bookingObj.activity && bookingObj.activity._id) {
-              bookingObj.activityId = bookingObj.activity._id;
+        
+        // Process bookings and manually fetch activities if populate failed
+        const processedBookings = await Promise.all(
+          bookings.map(async (booking) => {
+            const bookingObj = this.transformDocument(booking);
+            
+            // If activity was populated successfully
+            if (bookingObj.activityId && typeof bookingObj.activityId === 'object') {
+              bookingObj.activity = this.transformDocument(bookingObj.activityId);
+              if (bookingObj.activity && bookingObj.activity._id) {
+                bookingObj.activityId = bookingObj.activity._id;
+              }
+            } 
+            // If activityId is a string (populate failed), try to fetch it manually
+            else if (bookingObj.activityId && typeof bookingObj.activityId === 'string') {
+              const activityId = bookingObj.activityId;
+              console.log('[STORAGE] Activity not populated, attempting manual fetch for:', activityId);
+              
+              try {
+                const activity = await this.getActivity(activityId);
+                if (activity) {
+                  bookingObj.activity = activity;
+                  bookingObj.activityId = activity._id || activityId;
+                  console.log('[STORAGE] Successfully fetched activity manually:', activity.name);
+                } else {
+                  console.warn('[STORAGE] Activity not found for booking:', activityId);
+                  // Activity doesn't exist - booking will be included but without activity data
+                }
+              } catch (error) {
+                console.error('[STORAGE] Error fetching activity manually:', activityId, error);
+                // Activity fetch failed - booking will be included but without activity data
+              }
+            } else {
+              console.warn('[STORAGE] Booking has no activityId:', bookingObj.id || bookingObj._id);
             }
-          } else if (bookingObj.activityId && typeof bookingObj.activityId === 'string') {
-            // Activity ID exists but activity was not populated (maybe deleted)
-            // Try to fetch it manually
-            // Note: We still include the booking but without activity data
-            // The frontend will skip these bookings
-            console.warn('[STORAGE] Booking has activityId but activity not populated:', bookingObj.activityId);
-          }
-          return bookingObj;
-        });
+            
+            return bookingObj;
+          })
+        );
+        
+        return processedBookings;
       },
       300 // 5 minutes cache
     );
@@ -472,10 +497,27 @@ class MongoStorage implements IStorage {
     if (!booking) return null;
     
     const bookingObj = this.transformDocument(booking);
+    
+    // If activity was populated successfully
     if (bookingObj.activityId && typeof bookingObj.activityId === 'object') {
       bookingObj.activity = this.transformDocument(bookingObj.activityId);
-      bookingObj.activityId = bookingObj.activity._id;
+      if (bookingObj.activity && bookingObj.activity._id) {
+        bookingObj.activityId = bookingObj.activity._id;
+      }
     }
+    // If populate failed, try manual fetch
+    else if (bookingObj.activityId && typeof bookingObj.activityId === 'string') {
+      try {
+        const activity = await this.getActivity(bookingObj.activityId);
+        if (activity) {
+          bookingObj.activity = activity;
+          bookingObj.activityId = activity._id || bookingObj.activityId;
+        }
+      } catch (error) {
+        console.error('[STORAGE] Error fetching activity for booking:', bookingObj.activityId, error);
+      }
+    }
+    
     return bookingObj;
   }
 
