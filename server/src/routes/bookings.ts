@@ -10,6 +10,73 @@ const paymentUpdateSchema = z.object({
   paidAmount: z.number().nonnegative(),
 });
 
+/**
+ * POST /api/bookings
+ * Create a new booking
+ */
+router.post('/', async (req, res) => {
+  try {
+    const bookingData = req.body;
+    const booking = await storage.createBooking(bookingData);
+    return res.status(201).json(booking);
+  } catch (error) {
+    console.error('[BOOKINGS] Error creating booking:', error);
+    return res.status(500).json({
+      status: 'error',
+      message: 'Failed to create booking'
+    });
+  }
+});
+
+/**
+ * GET /api/bookings/:id
+ * Get single booking by ID
+ */
+router.get('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const booking = await storage.getBooking(id);
+    if (!booking) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'Booking not found'
+      });
+    }
+    return res.status(200).json(booking);
+  } catch (error) {
+    console.error('[BOOKINGS] Error fetching booking:', error);
+    return res.status(500).json({
+      status: 'error',
+      message: 'Failed to fetch booking'
+    });
+  }
+});
+
+/**
+ * PATCH /api/bookings/:id/status
+ * Update booking status
+ */
+router.patch('/:id/status', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    const updatedBooking = await storage.updateBookingStatus(id, status);
+    if (!updatedBooking) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'Booking not found'
+      });
+    }
+    return res.status(200).json(updatedBooking);
+  } catch (error) {
+    console.error('[BOOKINGS] Error updating booking status:', error);
+    return res.status(500).json({
+      status: 'error',
+      message: 'Failed to update booking status'
+    });
+  }
+});
+
 router.post('/:id/payment', async (req, res) => {
   try {
     const { id } = req.params;

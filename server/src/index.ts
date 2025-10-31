@@ -600,6 +600,10 @@ app.use((req, res, next) => {
   const authRouter = (await import('./routes/auth.js')).default;
   app.use("/api/auth", authRouter);
   
+  // Mount admin router (should be after auth but before public routes)
+  const adminRouter = (await import('./routes/admin.js')).default;
+  app.use("/api/admin", adminRouter);
+  
   // Mount new routes with proper security order
   const activitiesRouter = (await import('./routes/activities.js')).default;
   const reviewsRouter = (await import('./routes/reviews.js')).default;

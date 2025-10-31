@@ -20,5 +20,47 @@ router.get('/', async (req: Request, res: Response) => {
   }
 });
 
+/**
+ * GET /api/activities/:id
+ * Get single activity by ID
+ */
+router.get('/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const activity = await storage.getActivity(id);
+    if (!activity) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'Activity not found'
+      });
+    }
+    return res.status(200).json(activity);
+  } catch (error) {
+    console.error('[ACTIVITIES] Error fetching activity:', error);
+    return res.status(500).json({
+      status: 'error',
+      message: 'Failed to fetch activity'
+    });
+  }
+});
+
+/**
+ * GET /api/activities/:id/rating
+ * Get activity rating
+ */
+router.get('/:id/rating', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const rating = await storage.getActivityRating(id);
+    return res.status(200).json(rating);
+  } catch (error) {
+    console.error('[ACTIVITIES] Error fetching activity rating:', error);
+    return res.status(500).json({
+      status: 'error',
+      message: 'Failed to fetch activity rating'
+    });
+  }
+});
+
 export default router;
 
