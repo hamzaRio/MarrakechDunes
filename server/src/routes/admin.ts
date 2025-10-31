@@ -1,7 +1,11 @@
 import { Router, type Request, type Response } from 'express';
 import { storage } from '../storage.js';
+import { requireAdmin } from '../middleware/admin-auth.js';
 
 const router = Router();
+
+// Apply admin authentication middleware to all routes
+router.use(requireAdmin);
 
 /**
  * GET /api/admin/bookings
@@ -474,6 +478,23 @@ router.post('/notifications/send', async (req: Request, res: Response) => {
     return res.status(500).json({
       status: 'error',
       message: 'Failed to send notification'
+    });
+  }
+});
+
+/**
+ * GET /api/admin/audit-logs
+ * Get audit logs (admin/superadmin only)
+ */
+router.get('/audit-logs', async (req: Request, res: Response) => {
+  try {
+    const auditLogs = await storage.getAuditLogs();
+    return res.status(200).json(auditLogs);
+  } catch (error) {
+    console.error('[ADMIN] Error fetching audit logs:', error);
+    return res.status(500).json({
+      status: 'error',
+      message: 'Failed to fetch audit logs'
     });
   }
 });
