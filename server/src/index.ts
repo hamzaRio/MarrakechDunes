@@ -596,12 +596,20 @@ app.use((req, res, next) => {
   // Mount session router BEFORE other routes
   app.use("/api/session", sessionRouter);
   
+  // Mount auth router for login/logout
+  const authRouter = (await import('./routes/auth.js')).default;
+  app.use("/api/auth", authRouter);
+  
   // Mount new routes with proper security order
+  const activitiesRouter = (await import('./routes/activities.js')).default;
+  const reviewsRouter = (await import('./routes/reviews.js')).default;
   const notificationsRouter = (await import('./routes/notifications.js')).default;
   const externalActivitiesRouter = (await import('./routes/externalActivities.js')).default;
   const bookingsRouter = (await import('./routes/bookings.js')).default;
   const competitorsRouter = (await import('./routes/competitors.js')).default;
   const marketIntelligenceRouter = (await import('./routes/market-intelligence.js')).default;
+  app.use("/api/activities", activitiesRouter);
+  app.use("/api/reviews", reviewsRouter);
   app.use("/api/notifications", notificationsRouter);
   app.use("/api/external-activities", externalActivitiesRouter);
   app.use('/api/bookings', bookingsRouter);
