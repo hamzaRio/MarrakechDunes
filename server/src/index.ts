@@ -629,6 +629,14 @@ app.use((req, res, next) => {
   app.use('/api/competitors', competitorsRouter);
   app.use('/api/market', marketIntelligenceRouter);
   
+  // Mount portal router for customer portal
+  const portalRouter = (await import('./routes/portal.js')).default;
+  app.use('/api/portal', portalRouter);
+  
+  // Mount upload router for file uploads
+  const uploadRouter = (await import('./routes/upload.js')).default;
+  app.use('/api', uploadRouter);
+  
   // Routes are now mounted directly above, no need for registerRoutes
   const server = app;
 

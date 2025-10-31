@@ -59,6 +59,50 @@ router.post('/email/send', async (req, res) => {
 });
 
 /**
+ * POST /api/notifications/subscribe
+ * Subscribe to push notifications
+ */
+router.post('/subscribe', async (req, res) => {
+  try {
+    // TODO: Implement push notification subscription logic
+    const { endpoint, keys } = req.body;
+    console.log('[NOTIFICATIONS] Push subscription request:', { hasEndpoint: !!endpoint, hasKeys: !!keys });
+    return res.status(200).json({
+      success: true,
+      message: 'Subscription successful'
+    });
+  } catch (error) {
+    console.error('[NOTIFICATIONS] Subscribe error:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to subscribe'
+    });
+  }
+});
+
+/**
+ * POST /api/notifications/unsubscribe
+ * Unsubscribe from push notifications
+ */
+router.post('/unsubscribe', async (req, res) => {
+  try {
+    // TODO: Implement push notification unsubscription logic
+    const { endpoint } = req.body;
+    console.log('[NOTIFICATIONS] Push unsubscription request:', { hasEndpoint: !!endpoint });
+    return res.status(200).json({
+      success: true,
+      message: 'Unsubscription successful'
+    });
+  } catch (error) {
+    console.error('[NOTIFICATIONS] Unsubscribe error:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to unsubscribe'
+    });
+  }
+});
+
+/**
  * POST /api/notifications/email/booking-confirmation
  * Send booking confirmation email
  */

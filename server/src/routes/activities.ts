@@ -62,5 +62,30 @@ router.get('/:id/rating', async (req: Request, res: Response) => {
   }
 });
 
+/**
+ * PATCH /api/activities/:id
+ * Update activity (partial update, used for price updates from dashboard)
+ */
+router.patch('/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const activityData = req.body;
+    const updatedActivity = await storage.updateActivity(id, activityData);
+    if (!updatedActivity) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'Activity not found'
+      });
+    }
+    return res.status(200).json(updatedActivity);
+  } catch (error) {
+    console.error('[ACTIVITIES] Error updating activity:', error);
+    return res.status(500).json({
+      status: 'error',
+      message: 'Failed to update activity'
+    });
+  }
+});
+
 export default router;
 
