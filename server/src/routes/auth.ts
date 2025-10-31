@@ -6,7 +6,8 @@ const router = Router();
 
 /**
  * POST /api/auth/login
- * Authenticate admin user
+ * Authenticate admin or superadmin user
+ * Supports both 'admin' and 'superadmin' roles
  */
 router.post('/login', async (req: Request, res: Response) => {
   try {
@@ -34,6 +35,15 @@ router.post('/login', async (req: Request, res: Response) => {
     }
 
     console.log('[AUTH] User found:', { id: user.id || user._id, username: user.username, role: user.role, hasPassword: !!user.password });
+
+    // Verify user has admin or superadmin role
+    if (!user.role || (user.role !== 'admin' && user.role !== 'superadmin')) {
+      console.log('[AUTH] User does not have admin/superadmin role:', user.role);
+      return res.status(403).json({
+        status: 'error',
+        message: 'Accès refusé - permissions insuffisantes'
+      });
+    }
 
     // Verify password
     if (!user.password) {
@@ -88,6 +98,51 @@ router.post('/login', async (req: Request, res: Response) => {
     return res.status(500).json({
       status: 'error',
       message: 'Erreur de connexion inattendue'
+    });
+  }
+});
+
+/**
+ * POST /api/auth/logout
+ * Logout admin or superadmin user
+ */
+router.post('/logout', async (req: Request, res: Response) => {
+  try {
+    console.log('[AUTH] Logout attempt');
+    
+    if (req.session) {
+      const username = (req.session as any).username || 'unknown';
+      req.session.destroy((err) => {
+        if (err) {
+          console.error('[AUTH] Error destroying session:', err);
+          return res.status(500).json({
+            status: 'error',
+            message: 'Erreur lors de la déconnexion'
+          });
+        }
+        
+        res.clearCookie('connect.sid');
+        console.log('[AUTH] Logged out user:', username);
+        
+        return res.status(200).json({
+          status: 'success',
+          success: true,
+          message: 'Déconnexion réussie'
+        });
+      });
+    } else {
+      // No active session
+      return res.status(200).json({
+        status: 'success',
+        success: true,
+        message: 'Déconnexion réussie (aucune session active)'
+      });
+    }
+  } catch (error) {
+    console.error('[AUTH] Logout error:', error);
+    return res.status(500).json({
+      status: 'error',
+      message: 'Erreur lors de la déconnexion'
     });
   }
 });
