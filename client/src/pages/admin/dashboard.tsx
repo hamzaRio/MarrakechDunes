@@ -213,6 +213,14 @@ function AdminDashboardContent() {
   };
 
   const handleSendWhatsApp = (booking: BookingWithActivity) => {
+    if (!booking.activity) {
+      toast({
+        title: "Error",
+        description: "Activity information not available for this booking",
+        variant: "destructive",
+      });
+      return;
+    }
     const message = `Hello ${booking.customerName}, regarding your booking for ${booking.activity.name} for ${booking.numberOfPeople} people. Status: ${booking.status}. Total: ${booking.totalAmount} MAD.`;
     const phone = booking.customerPhone.replace(/[^0-9]/g, '');
     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
@@ -551,14 +559,20 @@ function AdminDashboardContent() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-6">
-                    {bookings.slice(0, 10).map((booking, index) => (
-                      <div key={booking.id || booking._id || `booking-${index}`} className="border rounded-lg p-6 space-y-4">
+                    {bookings.slice(0, 10).map((booking, index) => {
+                      // Skip bookings without activity data
+                      if (!booking.activity) {
+                        console.warn('[DASHBOARD] Booking missing activity:', booking.id || booking._id);
+                        return null;
+                      }
+                      return (
+                        <div key={booking.id || booking._id || `booking-${index}`} className="border rounded-lg p-6 space-y-4">
                         <div className="flex items-start justify-between">
                           <div className="flex-1">
                             <div className="flex items-center gap-4 mb-3">
                               <div>
                                 <h3 className="font-semibold text-lg">{booking.customerName}</h3>
-                                <p className="text-sm text-gray-600">{booking.activity.name}</p>
+                                <p className="text-sm text-gray-600">{booking.activity?.name || 'Activity not found'}</p>
                                 <p className="text-sm text-gray-500">{booking.customerPhone}</p>
                               </div>
                               <Badge variant={booking.status === 'pending' as any ? 'destructive' : booking.status === 'confirmed' as any ? 'default' : 'secondary'}>
@@ -582,7 +596,7 @@ function AdminDashboardContent() {
                                 Notre Prix
                               </div>
                               <div className="text-xl font-bold text-green-600 mt-1">
-                                {Number(booking.activity.price).toLocaleString()} MAD
+                                {booking.activity?.price ? Number(booking.activity.price).toLocaleString() : 'N/A'} MAD
                               </div>
                               <div className="text-xs text-gray-600">Par personne</div>
                             </div>
@@ -592,9 +606,9 @@ function AdminDashboardContent() {
                                 GetYourGuide
                               </div>
                               <div className="text-xl font-bold text-orange-600 mt-1">
-                                {booking.activity.getyourguidePrice ? 
+                                {booking.activity?.getyourguidePrice ? 
                                   Number(booking.activity.getyourguidePrice).toLocaleString() : 
-                                  (Number(booking.activity.price) + 200).toLocaleString()
+                                  booking.activity?.price ? (Number(booking.activity.price) + 200).toLocaleString() : 'N/A'
                                 } MAD
                               </div>
                               <div className="text-xs text-red-600">Prix concurrent</div>
@@ -606,6 +620,7 @@ function AdminDashboardContent() {
                               </div>
                               <div className="text-xl font-bold text-blue-600 mt-1">
                                 {(() => {
+                                  if (!booking.activity?.price) return 'N/A';
                                   const ourPrice = Number(booking.activity.price);
                                   const competitorPrice = booking.activity.getyourguidePrice ? 
                                     Number(booking.activity.getyourguidePrice) : 
@@ -678,7 +693,8 @@ function AdminDashboardContent() {
                           </Button>
                         </div>
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </CardContent>
               </Card>

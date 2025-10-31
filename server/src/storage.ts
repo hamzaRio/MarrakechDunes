@@ -450,7 +450,15 @@ class MongoStorage implements IStorage {
           const bookingObj = this.transformDocument(booking);
           if (bookingObj.activityId && typeof bookingObj.activityId === 'object') {
             bookingObj.activity = this.transformDocument(bookingObj.activityId);
-            bookingObj.activityId = bookingObj.activity._id;
+            if (bookingObj.activity && bookingObj.activity._id) {
+              bookingObj.activityId = bookingObj.activity._id;
+            }
+          } else if (bookingObj.activityId && typeof bookingObj.activityId === 'string') {
+            // Activity ID exists but activity was not populated (maybe deleted)
+            // Try to fetch it manually
+            // Note: We still include the booking but without activity data
+            // The frontend will skip these bookings
+            console.warn('[STORAGE] Booking has activityId but activity not populated:', bookingObj.activityId);
           }
           return bookingObj;
         });
