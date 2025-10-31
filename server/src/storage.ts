@@ -607,6 +607,15 @@ class MongoStorage implements IStorage {
     const startTime = Date.now();
     
     try {
+      // Enforce cash-only payment methods
+      if (bookingData.paymentMethod && !['cash', 'cash_deposit'].includes(bookingData.paymentMethod)) {
+        throw new Error('Invalid payment method. Only "cash" or "cash_deposit" are allowed.');
+      }
+      // Ensure default payment method is cash if not provided
+      if (!bookingData.paymentMethod) {
+        bookingData.paymentMethod = 'cash';
+      }
+      
       const booking = new Booking(bookingData);
       const savedBooking = await booking.save();
       
@@ -634,6 +643,11 @@ class MongoStorage implements IStorage {
   }
 
   async updateBooking(id: string, updateData: Partial<InsertBooking>): Promise<BookingType | null> {
+    // Validate payment method if provided
+    if (updateData.paymentMethod && !['cash', 'cash_deposit'].includes(updateData.paymentMethod)) {
+      throw new Error('Invalid payment method. Only "cash" or "cash_deposit" are allowed.');
+    }
+    
     const booking = await Booking.findByIdAndUpdate(id, updateData, { new: true });
     if (booking) {
       // Smart cache invalidation - only invalidate related caches

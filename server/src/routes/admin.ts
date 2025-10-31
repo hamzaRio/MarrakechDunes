@@ -323,9 +323,17 @@ const handleBookingPayment = async (req: Request, res: Response) => {
       }
     }
 
-    // Use provided paymentMethod or calculate it
+    // Use provided paymentMethod or calculate it (ensure cash-only)
     let finalPaymentMethod: 'cash' | 'cash_deposit' = paymentMethod || 'cash';
     if (type === 'DEPOSIT' && !paymentMethod) finalPaymentMethod = 'cash_deposit';
+    
+    // Validate payment method is cash-only
+    if (finalPaymentMethod && !['cash', 'cash_deposit'].includes(finalPaymentMethod)) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Invalid payment method. Only "cash" or "cash_deposit" are allowed.'
+      });
+    }
 
     const updatedBooking = await storage.updateBooking(id, {
       paidAmount: newPaid,
