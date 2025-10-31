@@ -65,10 +65,10 @@ export default function ActivityCard({ activity, showDescription = false }: Acti
 
 
   const handleCardClick = () => {
-    // Navigate to booking page with activity ID
+    // Navigate to activity detail page
     const activityId = activity._id || activity.id;
     if (activityId) {
-      setLocation(`/booking?activity=${activityId}`);
+      setLocation(`/activity/${activityId}`);
     }
   };
 

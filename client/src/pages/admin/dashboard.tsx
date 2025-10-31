@@ -19,7 +19,7 @@ import PaymentManagement from "@/components/payment-management";
 import { WhatsAppNotificationPanel } from "@/components/whatsapp-notification-panel";
 import SimpleActivityForm from "@/components/simple-activity-form-v2";
 import GYGActivitySearch from "@/components/gyg-activity-search";
-import BookingTest from "@/components/booking-test";
+// Removed BookingTest - was only for testing
 // Removed duplicate cash analytics dashboard import
 import CashBookingReminders from "@/components/cash-booking-reminders";
 import EmailModal from "@/components/EmailModal";
@@ -105,9 +105,14 @@ function AdminDashboardContent() {
     staleTime: 30 * 1000, // 30 seconds
   });
 
+  // Fetch only INTERNAL activities (not GetYourGuide activities) for management
   const { data: activities = [] } = useQuery<ActivityType[]>({
-    queryKey: ["/activities"],
+    queryKey: ["/admin/activities"],
     enabled: !!user, // Only fetch if user is authenticated
+    queryFn: async () => {
+      const response = await api.get("/admin/activities");
+      return response.data || [];
+    },
     retry: (failureCount, error: any) => {
       if (error?.response?.status === 401 || error?.response?.status === 403) {
         console.warn('[DASHBOARD] Activities fetch failed - authentication issue:', error?.response?.status);
@@ -133,7 +138,8 @@ function AdminDashboardContent() {
 
   // Fix: Calculate real revenue from all bookings (regardless of status)
   // Include all bookings that have a totalAmount > 0
-  const revenueBookings = bookings.filter(b => Number(b.totalAmount) > 0);
+  // Filter out bookings with deleted activities for revenue calculation
+  const revenueBookings = bookings.filter(b => Number(b.totalAmount) > 0 && b.activity);
   const totalRevenue = revenueBookings.reduce((sum, b) => sum + (Number(b.totalAmount) || 0), 0);
 
   // Debug logging for revenue calculation
@@ -570,8 +576,6 @@ function AdminDashboardContent() {
                 </div>
               </div>
 
-              {/* Booking Test Component */}
-              <BookingTest />
 
               <Card>
                 <CardHeader>
@@ -579,12 +583,10 @@ function AdminDashboardContent() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-6">
-                    {bookings.slice(0, 10).map((booking, index) => {
-                      // Skip bookings without activity data
-                      if (!booking.activity) {
-                        console.warn('[DASHBOARD] Booking missing activity:', booking.id || booking._id);
-                        return null;
-                      }
+                    {bookings
+                      .filter((booking) => booking.activity) // Filter out bookings with deleted activities
+                      .slice(0, 10)
+                      .map((booking, index) => {
                       return (
                         <div key={booking.id || booking._id || `booking-${index}`} className="border rounded-lg p-6 space-y-4">
                         <div className="flex items-start justify-between">
