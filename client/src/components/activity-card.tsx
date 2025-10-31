@@ -87,7 +87,7 @@ export default function ActivityCard({ activity, showDescription = false }: Acti
 
           alt={activity.name}
 
-          className="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-500"
+          className="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-500 cursor-pointer"
 
           style={{ objectPosition: 'center' }}
 
@@ -107,9 +107,9 @@ export default function ActivityCard({ activity, showDescription = false }: Acti
 
         />
 
-        <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent pointer-events-none" />
 
-        <div className="absolute top-4 right-4">
+        <div className="absolute top-4 right-4 pointer-events-none">
 
           <Badge variant="secondary" className="bg-moroccan-gold text-white">
 
@@ -119,7 +119,7 @@ export default function ActivityCard({ activity, showDescription = false }: Acti
 
         </div>
 
-        <div className="absolute bottom-4 left-4 text-white">
+        <div className="absolute bottom-4 left-4 text-white pointer-events-none">
 
           <div className="text-3xl font-black text-white drop-shadow-2xl" style={{ textShadow: '2px 2px 4px rgba(0,0,0,0.8), 0 0 8px rgba(0,0,0,0.6)' }}>
 
@@ -161,9 +161,13 @@ export default function ActivityCard({ activity, showDescription = false }: Acti
                 src={image}
                 alt={`${activity.name} - Image ${index + 1}`}
                 aria-label={`${activity.name} - Gallery image ${index + 1}`}
-                className="h-16 w-16 object-cover rounded-md border border-white/40 shadow-sm"
+                className="h-16 w-16 object-cover rounded-md border border-white/40 shadow-sm cursor-pointer hover:opacity-80 transition-opacity"
                 loading="lazy"
                 onError={(e) => handleImageError(e, fallbackImage)}
+                onClick={(e) => {
+                  e.stopPropagation(); // Prevent double navigation from card click
+                  handleCardClick(); // Navigate to activity detail when clicking thumbnail
+                }}
               />
             ))}
           </div>
