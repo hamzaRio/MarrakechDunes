@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useLocation } from 'wouter';
 
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -32,6 +33,7 @@ interface ActivityCardProps {
 
 export default function ActivityCard({ activity, showDescription = false }: ActivityCardProps) {
 
+  const [, setLocation] = useLocation();
   const { user } = useAuth();
 
   const [showPreview, setShowPreview] = useState(false);
@@ -62,9 +64,20 @@ export default function ActivityCard({ activity, showDescription = false }: Acti
 
 
 
+  const handleCardClick = () => {
+    // Navigate to booking page with activity ID
+    const activityId = activity._id || activity.id;
+    if (activityId) {
+      setLocation(`/booking?activity=${activityId}`);
+    }
+  };
+
   return (
 
-    <Card className="overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 group bg-white">
+    <Card 
+      className="overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 group bg-white cursor-pointer"
+      onClick={handleCardClick}
+    >
 
       <div className="relative overflow-hidden">
 
@@ -235,7 +248,10 @@ export default function ActivityCard({ activity, showDescription = false }: Acti
 
           className="w-full bg-moroccan-red hover:bg-red-600 text-white transition-all duration-300 transform hover:scale-105"
 
-          onClick={() => setShowPreview(true)}
+          onClick={(e) => {
+            e.stopPropagation(); // Prevent card click when clicking button
+            setShowPreview(true);
+          }}
 
         >
 

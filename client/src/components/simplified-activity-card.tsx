@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -13,6 +14,7 @@ interface SimplifiedActivityCardProps {
 }
 
 export default function SimplifiedActivityCard({ activity }: SimplifiedActivityCardProps) {
+  const [, setLocation] = useLocation();
   const [isBookingOpen, setIsBookingOpen] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
@@ -23,8 +25,19 @@ export default function SimplifiedActivityCard({ activity }: SimplifiedActivityC
     setIsBookingOpen(false);
   };
 
+  const handleCardClick = () => {
+    // Navigate to booking page with activity ID
+    const activityId = activity._id || activity.id;
+    if (activityId) {
+      setLocation(`/booking?activity=${activityId}`);
+    }
+  };
+
   return (
-    <Card className="group hover:shadow-lg transition-all duration-300 overflow-hidden">
+    <Card 
+      className="group hover:shadow-lg transition-all duration-300 overflow-hidden cursor-pointer"
+      onClick={handleCardClick}
+    >
       {/* Image Section */}
       <div className="relative h-48 overflow-hidden">
         <img
@@ -43,7 +56,10 @@ export default function SimplifiedActivityCard({ activity }: SimplifiedActivityC
             {images.map((_, index) => (
               <button
                 key={index}
-                onClick={() => setSelectedImageIndex(index)}
+                onClick={(e) => {
+                  e.stopPropagation(); // Prevent card click when clicking image dots
+                  setSelectedImageIndex(index);
+                }}
                 className={`w-2 h-2 rounded-full transition-colors ${
                   index === selectedImageIndex ? 'bg-white' : 'bg-white/50'
                 }`}
@@ -121,7 +137,12 @@ export default function SimplifiedActivityCard({ activity }: SimplifiedActivityC
         {/* Booking Button */}
         <Dialog open={isBookingOpen} onOpenChange={setIsBookingOpen}>
           <DialogTrigger asChild>
-            <Button className="w-full bg-moroccan-blue hover:bg-moroccan-blue/90 text-white py-3 text-lg font-semibold group">
+            <Button 
+              className="w-full bg-moroccan-blue hover:bg-moroccan-blue/90 text-white py-3 text-lg font-semibold group"
+              onClick={(e) => {
+                e.stopPropagation(); // Prevent card click when clicking button
+              }}
+            >
               <div className="flex items-center justify-center gap-2">
                 <Calendar className="h-5 w-5" />
                 Book Now
