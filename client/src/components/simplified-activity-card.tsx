@@ -3,7 +3,7 @@ import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { MapPin, Clock, Users, Star, Calendar, ArrowRight } from "lucide-react";
 import { getAssetUrl } from "@/lib/utils";
 import SimplifiedBookingForm from "./simplified-booking-form";
@@ -156,6 +156,9 @@ export default function SimplifiedActivityCard({ activity }: SimplifiedActivityC
               <DialogTitle className="text-center text-xl">
                 Book {activity.name}
               </DialogTitle>
+              <DialogDescription className="text-center">
+                Complete your booking details below
+              </DialogDescription>
             </DialogHeader>
             <SimplifiedBookingForm
               activityId={activity._id}

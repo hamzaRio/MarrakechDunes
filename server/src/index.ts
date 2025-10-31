@@ -445,6 +445,25 @@ app.use(cookieParser());
 
 // CORS already configured at the top of middleware stack
 
+// Static file routes - MUST be BEFORE session/auth middleware to prevent 401 errors
+// These files should NOT require authentication
+app.get('/manifest.webmanifest', (req, res) => {
+  // Return 204 to prevent 401 errors - Vercel handles the actual file
+  res.status(204).end();
+});
+
+app.get('/favicon.ico', (req, res) => {
+  res.status(204).end();
+});
+
+app.get('/sw.js', (req, res) => {
+  res.status(204).end();
+});
+
+app.get('/workbox-*.js', (req, res) => {
+  res.status(204).end();
+});
+
 // Session middleware
 app.use(session(sessionSecurity));
 
@@ -770,23 +789,8 @@ app.use((req, res, next) => {
     res.json(healthData);
   });
 
-  // Handle static files that should be served by frontend (Vercel)
-  // These files should NOT require authentication and should redirect to frontend
-  app.get('/manifest.webmanifest', (req, res) => {
-    res.redirect(301, 'https://marrakech-dunes.vercel.app/manifest.webmanifest');
-  });
-
-  app.get('/favicon.ico', (req, res) => {
-    res.redirect(301, 'https://marrakech-dunes.vercel.app/favicon.ico');
-  });
-
-  app.get('/sw.js', (req, res) => {
-    res.redirect(301, 'https://marrakech-dunes.vercel.app/sw.js');
-  });
-
-  app.get('/workbox-*.js', (req, res) => {
-    res.redirect(301, `https://marrakech-dunes.vercel.app${req.path}`);
-  });
+  // Note: Static file routes are handled earlier in the middleware stack
+  // (before session/auth middleware) to prevent 401 errors
 
   // Handle favicon.ico requests to prevent 404 errors
   app.get('/api/favicon.ico', (req, res) => {

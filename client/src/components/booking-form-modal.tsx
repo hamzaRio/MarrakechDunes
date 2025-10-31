@@ -6,6 +6,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -166,6 +167,9 @@ export default function BookingFormModal({
             <Calendar className="h-5 w-5" />
             Create New Booking
           </DialogTitle>
+          <DialogDescription>
+            Fill in the details below to create a new booking
+          </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
