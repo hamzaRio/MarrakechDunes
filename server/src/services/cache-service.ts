@@ -230,6 +230,53 @@ export class CacheService {
     return this.invalidatePattern('bookings:*');
   }
 
+  // Smart cache invalidation - invalidate related caches when data changes
+  async invalidateRelated(type: string, id: string): Promise<void> {
+    const keysToInvalidate: string[] = [];
+    
+    if (type === 'booking') {
+      // Invalidate booking-specific caches
+      keysToInvalidate.push(this.getKey('bookings', 'all'));
+      keysToInvalidate.push(this.getKey('analytics', 'earnings'));
+      keysToInvalidate.push(this.getKey('analytics', 'revenue-all'));
+      keysToInvalidate.push(this.getKey('analytics', `activity-${id}`));
+      
+      // Also invalidate pattern-based caches
+      await this.invalidatePattern('bookings:*');
+      await this.invalidatePattern('analytics:revenue-*');
+    }
+    
+    if (type === 'activity') {
+      // Invalidate activity-specific caches
+      keysToInvalidate.push(this.getKey('activities', 'all'));
+      keysToInvalidate.push(this.getKey('activities', id));
+      keysToInvalidate.push(this.getKey('pricing', id));
+      keysToInvalidate.push(this.getKey('analytics', 'activity'));
+      
+      // Also invalidate bookings since they reference activities
+      keysToInvalidate.push(this.getKey('bookings', 'all'));
+      
+      await this.invalidatePattern('activities:*');
+      await this.invalidatePattern('pricing:*');
+    }
+    
+    // Delete memory cache entries
+    for (const key of keysToInvalidate) {
+      this.memoryCache.delete(key);
+    }
+    
+    // Delete Redis cache entries
+    if (this.isConnected && this.client && keysToInvalidate.length > 0) {
+      try {
+        await this.client.del(keysToInvalidate);
+      } catch (error) {
+        console.warn('Cache invalidation error:', error);
+      }
+    }
+    
+    this.stats.deletes += keysToInvalidate.length;
+  }
+
   // Memory cache helpers
   private getFromMemoryCache<T>(key: string): T | null {
     const entry = this.memoryCache.get(key);

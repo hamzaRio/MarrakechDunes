@@ -63,3 +63,54 @@ export const getActivityImages = (imageUrls: string[] | string | undefined, acti
   
   return urls.map(url => getAssetUrl(url)).filter(Boolean);
 };
+
+// Responsive image utilities for better performance
+export function getResponsiveImageUrl(
+  imageUrl: string, 
+  size: 'thumb' | 'small' | 'medium' | 'large' = 'medium'
+): string {
+  if (!imageUrl) return '';
+  
+  const sizes = {
+    thumb: 'w_200',
+    small: 'w_400',
+    medium: 'w_800',
+    large: 'w_1200'
+  };
+  
+  // If using Cloudinary or similar CDN
+  if (imageUrl.includes('cloudinary')) {
+    return imageUrl.replace('/upload/', `/upload/${sizes[size]}/`);
+  }
+  
+  // If using Imgix or similar
+  if (imageUrl.includes('imgix') || imageUrl.includes('imagekit')) {
+    const separator = imageUrl.includes('?') ? '&' : '?';
+    return `${imageUrl}${separator}w=${size === 'thumb' ? 200 : size === 'small' ? 400 : size === 'medium' ? 800 : 1200}`;
+  }
+  
+  // Return original for other cases
+  return imageUrl;
+}
+
+export function getImageSrcSet(imageUrl: string): string {
+  if (!imageUrl) return '';
+  
+  const sizes = ['200', '400', '800', '1200'];
+  return sizes.map(size => {
+    const sizeKey = size === '200' ? 'thumb' : size === '400' ? 'small' : size === '800' ? 'medium' : 'large';
+    const url = getResponsiveImageUrl(imageUrl, sizeKey as any);
+    return `${url} ${size}w`;
+  }).join(', ');
+}
+
+// Lazy load image helper
+export function useLazyImage(src: string, fallback?: string): { src: string; loading: 'lazy' | 'eager'; onError: (e: React.SyntheticEvent<HTMLImageElement>) => void } {
+  return {
+    src: src || fallback || getActivityFallbackImage(''),
+    loading: 'lazy' as const,
+    onError: (e: React.SyntheticEvent<HTMLImageElement>) => {
+      handleImageError(e, fallback || getActivityFallbackImage(''));
+    }
+  };
+}

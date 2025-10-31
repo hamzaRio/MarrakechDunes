@@ -152,7 +152,18 @@ export interface IStorage {
   approveActivity(id: string, approvedBy: string): Promise<ActivityType | null>;
   rejectActivity(id: string, approvedBy: string): Promise<ActivityType | null>;
   deleteActivity(id: string): Promise<void>;
-  getBookings(): Promise<BookingWithActivity[]>;
+  getBookings(options?: {
+    page?: number;
+    limit?: number;
+    fields?: string[];
+    sort?: { field: string; order: 1 | -1 };
+  }): Promise<BookingWithActivity[]>;
+  getBookingsPaginated(options?: {
+    page?: number;
+    limit?: number;
+    fields?: string[];
+    sort?: { field: string; order: 1 | -1 };
+  }): Promise<{ bookings: BookingWithActivity[]; total: number; page: number; totalPages: number }>;
   getBooking(id: string): Promise<BookingWithActivity | null>;
   createBooking(booking: InsertBooking): Promise<BookingType>;
   updateBooking(id: string, updateData: Partial<InsertBooking>): Promise<BookingType | null>;
@@ -391,6 +402,10 @@ class MongoStorage implements IStorage {
     }
 
     const activity = await Activity.findByIdAndUpdate(id, updatedFields, { new: true });
+    if (activity) {
+      // Smart cache invalidation - only invalidate related caches
+      await cacheService.invalidateRelated('activity', id);
+    }
     return this.transformDocument(activity);
   }
 
@@ -440,88 +455,122 @@ class MongoStorage implements IStorage {
   }
 
   // Booking operations
-  async getBookings(): Promise<BookingWithActivity[]> {
-    return await cacheService.withCache(
-      'bookings',
-      'all',
-      async () => {
-        const bookings = await Booking.find().populate('activityId').sort({ createdAt: -1 });
-        console.log('[STORAGE] Fetched', bookings.length, 'bookings from database');
+  async getBookings(options?: {
+    page?: number;
+    limit?: number;
+    fields?: string[];
+    sort?: { field: string; order: 1 | -1 };
+  }): Promise<BookingWithActivity[]> {
+    // If no pagination options, return all (backward compatible)
+    if (!options || (!options.page && !options.limit)) {
+      return await cacheService.withCache(
+        'bookings',
+        'all',
+        async () => {
+          const bookings = await Booking.find().populate('activityId').sort({ createdAt: -1 });
+          return this.processBookingsWithActivities(bookings);
+        },
+        60
+      );
+    }
+    
+    // Use paginated version for options
+    const result = await this.getBookingsPaginated(options);
+    return result.bookings;
+  }
+
+  async getBookingsPaginated(options?: {
+    page?: number;
+    limit?: number;
+    fields?: string[];
+    sort?: { field: string; order: 1 | -1 };
+  }): Promise<{ bookings: BookingWithActivity[]; total: number; page: number; totalPages: number }> {
+    const page = options?.page || 1;
+    const limit = options?.limit || 50;
+    const skip = (page - 1) * limit;
+    
+    // Build sort object
+    const sortField = options?.sort?.field || 'createdAt';
+    const sortOrder = options?.sort?.order || -1;
+    const sortObj: any = { [sortField]: sortOrder };
+    
+    // Build projection if fields specified (only fetch needed fields)
+    const projection = options?.fields && options.fields.length > 0
+      ? options.fields.reduce((acc, field) => ({ ...acc, [field]: 1 }), {})
+      : {};
+    
+    // Execute queries in parallel
+    const [bookings, total] = await Promise.all([
+      Booking.find()
+        .select(projection)
+        .populate('activityId', 'name price imageUrls category') // Only fetch needed activity fields
+        .sort(sortObj)
+        .skip(skip)
+        .limit(limit),
+      Booking.countDocuments()
+    ]);
+    
+    console.log(`[STORAGE] Fetched ${bookings.length} bookings (page ${page}, total: ${total})`);
+    
+    const processedBookings = await this.processBookingsWithActivities(bookings);
+    const totalPages = Math.ceil(total / limit);
+    
+    return {
+      bookings: processedBookings,
+      total,
+      page,
+      totalPages
+    };
+  }
+
+  private async processBookingsWithActivities(bookings: any[]): Promise<BookingWithActivity[]> {
+    return await Promise.all(
+      bookings.map(async (booking) => {
+        const bookingObj = this.transformDocument(booking);
+        const bookingId = bookingObj.id || bookingObj._id;
         
-        // Process bookings and manually fetch activities if populate failed
-        const processedBookings = await Promise.all(
-          bookings.map(async (booking) => {
-            const bookingObj = this.transformDocument(booking);
-            const bookingId = bookingObj.id || bookingObj._id;
+        // Check if activityId exists and what type it is
+        if (!bookingObj.activityId) {
+          console.warn('[STORAGE] Booking has no activityId:', bookingId);
+          return bookingObj;
+        }
+        
+        // If activity was populated successfully
+        if (typeof bookingObj.activityId === 'object') {
+          bookingObj.activity = this.transformDocument(bookingObj.activityId);
+          if (bookingObj.activity && bookingObj.activity._id) {
+            bookingObj.activityId = bookingObj.activity._id;
+          }
+        } 
+        // If activityId is a string (populate failed), try to fetch it manually
+        else if (typeof bookingObj.activityId === 'string') {
+          const activityId = bookingObj.activityId;
+          
+          try {
+            let activity = await this.getActivity(activityId);
             
-            // Check if activityId exists and what type it is
-            if (!bookingObj.activityId) {
-              console.warn('[STORAGE] Booking has no activityId:', bookingId);
-              return bookingObj;
-            }
-            
-            // If activity was populated successfully
-            if (typeof bookingObj.activityId === 'object') {
-              bookingObj.activity = this.transformDocument(bookingObj.activityId);
-              if (bookingObj.activity && bookingObj.activity._id) {
-                bookingObj.activityId = bookingObj.activity._id;
-              }
-              console.log('[STORAGE] Activity populated for booking:', bookingId, 'activity:', bookingObj.activity?.name);
-            } 
-            // If activityId is a string (populate failed), try to fetch it manually
-            else if (typeof bookingObj.activityId === 'string') {
-              const activityId = bookingObj.activityId;
-              console.log('[STORAGE] Activity not populated, attempting manual fetch for booking:', bookingId, 'activityId:', activityId);
-              
+            if (!activity) {
               try {
-                // Try multiple approaches to find the activity
-                let activity = await this.getActivity(activityId);
-                
-                // If getActivity failed, try findById directly
-                if (!activity) {
-                  console.log('[STORAGE] getActivity failed, trying direct findById:', activityId);
-                  try {
-                    const activityDoc = await Activity.findById(activityId);
-                    if (activityDoc) {
-                      activity = this.transformDocument(activityDoc);
-                      console.log('[STORAGE] Found activity via direct findById:', activity?.name || 'unknown');
-                    }
-                  } catch (findError) {
-                    console.error('[STORAGE] Direct findById also failed:', findError);
-                  }
+                const activityDoc = await Activity.findById(activityId);
+                if (activityDoc) {
+                  activity = this.transformDocument(activityDoc);
                 }
-                
-                if (activity) {
-                  bookingObj.activity = activity;
-                  bookingObj.activityId = activity._id || activityId;
-                  console.log('[STORAGE] ✅ Successfully fetched activity manually for booking:', bookingId, 'activity:', activity.name);
-                } else {
-                  console.error('[STORAGE] ❌ Activity not found in database for booking:', bookingId, 'activityId:', activityId);
-                  // List all activities to help debug
-                  const allActivities = await Activity.find({}).select('_id name').limit(10);
-                  console.log('[STORAGE] Available activities:', allActivities.map(a => ({ id: a._id.toString(), name: a.name })));
-                }
-              } catch (error) {
-                console.error('[STORAGE] ❌ Error fetching activity manually for booking:', bookingId, 'activityId:', activityId, error);
+              } catch (findError) {
+                console.error('[STORAGE] Direct findById failed:', findError);
               }
             }
             
-            return bookingObj;
-          })
-        );
+            if (activity) {
+              bookingObj.activity = activity;
+              bookingObj.activityId = activity._id || activityId;
+            }
+          } catch (error) {
+            console.error('[STORAGE] Error fetching activity for booking:', bookingId, error);
+          }
+        }
         
-        // Log summary
-        const withActivity = processedBookings.filter(b => b.activity).length;
-        const withoutActivity = processedBookings.filter(b => !b.activity).length;
-        console.log('[STORAGE] Bookings summary:', {
-          total: processedBookings.length,
-          withActivity,
-          withoutActivity
-        });
-        
-        return processedBookings;
-      },
-      60 // Reduced cache to 1 minute for now to help with debugging
+        return bookingObj;
+      })
     );
   }
 
@@ -586,11 +635,19 @@ class MongoStorage implements IStorage {
 
   async updateBooking(id: string, updateData: Partial<InsertBooking>): Promise<BookingType | null> {
     const booking = await Booking.findByIdAndUpdate(id, updateData, { new: true });
+    if (booking) {
+      // Smart cache invalidation - only invalidate related caches
+      await cacheService.invalidateRelated('booking', id);
+    }
     return this.transformDocument(booking);
   }
 
   async updateBookingStatus(id: string, status: string): Promise<BookingType | null> {
     const booking = await Booking.findByIdAndUpdate(id, { status }, { new: true });
+    if (booking) {
+      // Smart cache invalidation
+      await cacheService.invalidateRelated('booking', id);
+    }
     return this.transformDocument(booking);
   }
 
@@ -600,7 +657,16 @@ class MongoStorage implements IStorage {
     paymentMethod: string;
     depositAmount?: number;
   }): Promise<BookingType | null> {
+    // Ensure payment method is only 'cash' or 'cash_deposit'
+    if (paymentData.paymentMethod && !['cash', 'cash_deposit'].includes(paymentData.paymentMethod)) {
+      throw new Error('Invalid payment method. Only "cash" or "cash_deposit" are allowed.');
+    }
+    
     const booking = await Booking.findByIdAndUpdate(id, paymentData, { new: true });
+    if (booking) {
+      // Smart cache invalidation
+      await cacheService.invalidateRelated('booking', id);
+    }
     return this.transformDocument(booking);
   }
 
@@ -1340,27 +1406,95 @@ class MongoStorage implements IStorage {
     }
   }
 
-  // Analytics methods
+  // Analytics methods - Optimized with aggregation
   async getEarningsAnalytics(): Promise<any> {
-    const now = new Date();
-    const currentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    
-    const currentMonthEarnings = await Booking.aggregate([
-      { $match: { createdAt: { $gte: currentMonth }, paymentStatus: { $in: ['deposit_paid', 'fully_paid'] } } },
-      { $group: { _id: null, total: { $sum: '$paidAmount' } } }
-    ]);
-    
-    const lastMonthEarnings = await Booking.aggregate([
-      { $match: { createdAt: { $gte: lastMonth, $lt: currentMonth }, paymentStatus: { $in: ['deposit_paid', 'fully_paid'] } } },
-      { $group: { _id: null, total: { $sum: '$paidAmount' } } }
-    ]);
+    return await cacheService.withCache(
+      'analytics',
+      'earnings',
+      async () => {
+        const now = new Date();
+        const currentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        
+        // Use aggregation pipeline for better performance
+        const [currentMonthEarnings, lastMonthEarnings] = await Promise.all([
+          Booking.aggregate([
+            { $match: { createdAt: { $gte: currentMonth }, paymentStatus: { $in: ['deposit_paid', 'fully_paid'] } } },
+            { $group: { _id: null, total: { $sum: '$paidAmount' } } }
+          ]),
+          Booking.aggregate([
+            { $match: { createdAt: { $gte: lastMonth, $lt: currentMonth }, paymentStatus: { $in: ['deposit_paid', 'fully_paid'] } } },
+            { $group: { _id: null, total: { $sum: '$paidAmount' } } }
+          ])
+        ]);
 
-    return {
-      currentMonth: currentMonthEarnings[0]?.total || 0,
-      lastMonth: lastMonthEarnings[0]?.total || 0,
-      currency: 'MAD'
-    };
+        return {
+          currentMonth: currentMonthEarnings[0]?.total || 0,
+          lastMonth: lastMonthEarnings[0]?.total || 0,
+          currency: 'MAD'
+        };
+      },
+      600 // Cache for 10 minutes
+    );
+  }
+
+  // New optimized revenue summary method
+  async getRevenueSummary(dateRange?: { start: Date; end: Date }): Promise<{
+    totalRevenue: number;
+    bookingCount: number;
+    averageBookingValue: number;
+    byStatus: Record<string, { revenue: number; count: number }>;
+  }> {
+    const cacheKey = dateRange 
+      ? `revenue-${dateRange.start.getTime()}-${dateRange.end.getTime()}` 
+      : 'revenue-all';
+    
+    return await cacheService.withCache(
+      'analytics',
+      cacheKey,
+      async () => {
+        const matchStage: any = {
+          totalAmount: { $exists: true, $ne: '' },
+          status: { $ne: 'CANCELLED' }
+        };
+        
+        if (dateRange) {
+          matchStage.createdAt = {
+            $gte: dateRange.start,
+            $lte: dateRange.end
+          };
+        }
+        
+        // Optimized aggregation pipeline
+        const result = await Booking.aggregate([
+          { $match: matchStage },
+          {
+            $group: {
+              _id: '$status',
+              revenue: { $sum: { $toDouble: '$totalAmount' } },
+              count: { $sum: 1 },
+              avgValue: { $avg: { $toDouble: '$totalAmount' } }
+            }
+          }
+        ]);
+        
+        const byStatus = result.reduce((acc, item) => ({
+          ...acc,
+          [item._id]: { revenue: item.revenue || 0, count: item.count || 0 }
+        }), {});
+        
+        const totalRevenue = result.reduce((sum, item) => sum + (item.revenue || 0), 0);
+        const bookingCount = result.reduce((sum, item) => sum + (item.count || 0), 0);
+        
+        return {
+          totalRevenue,
+          bookingCount,
+          averageBookingValue: bookingCount > 0 ? totalRevenue / bookingCount : 0,
+          byStatus
+        };
+      },
+      600 // Cache for 10 minutes
+    );
   }
 
   async getActivityAnalytics(): Promise<any> {

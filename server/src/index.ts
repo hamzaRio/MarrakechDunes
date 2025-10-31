@@ -848,6 +848,15 @@ app.use((req, res, next) => {
   // Start server
   const PORT = process.env.PORT || 10000;
 
+  // Start notification scheduler for automated reminders
+  try {
+    const { notificationScheduler } = await import('./jobs/notification-scheduler.js');
+    notificationScheduler.start();
+    log(`⏰ Notification scheduler started`);
+  } catch (error) {
+    console.warn('⚠️ Failed to start notification scheduler:', error);
+  }
+
   server.listen(PORT, () => {
     console.log(`[server] listening on ${PORT}`);
     console.log(`[assets] Static assets served by frontend at /images/`);

@@ -20,6 +20,25 @@ router.get('/bookings', async (req: Request, res: Response) => {
       console.log('[ADMIN] Bookings cache cleared');
     }
     
+    // Support pagination via query params
+    const page = req.query.page ? parseInt(req.query.page as string, 10) : undefined;
+    const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : undefined;
+    const sortField = req.query.sortField as string | undefined;
+    const sortOrder = req.query.sortOrder === 'asc' ? 1 : -1;
+    
+    const options = (page || limit) ? {
+      page: page || 1,
+      limit: limit || 50,
+      sort: sortField ? { field: sortField, order: sortOrder as 1 | -1 } : undefined
+    } : undefined;
+    
+    // If pagination requested, return paginated response
+    if (options && (page || limit)) {
+      const result = await storage.getBookingsPaginated(options);
+      return res.status(200).json(result);
+    }
+    
+    // Otherwise return all (backward compatible)
     const bookings = await storage.getBookings();
     return res.status(200).json(bookings);
   } catch (error) {
@@ -401,6 +420,28 @@ router.get('/export/bookings/pdf', async (req: Request, res: Response) => {
     return res.status(500).json({
       status: 'error',
       message: 'Failed to export bookings PDF'
+    });
+  }
+});
+
+/**
+ * GET /api/admin/revenue-summary
+ * Get optimized revenue summary with aggregation (admin only)
+ */
+router.get('/revenue-summary', async (req: Request, res: Response) => {
+  try {
+    const startDate = req.query.startDate ? new Date(req.query.startDate as string) : undefined;
+    const endDate = req.query.endDate ? new Date(req.query.endDate as string) : undefined;
+    
+    const dateRange = (startDate && endDate) ? { start: startDate, end: endDate } : undefined;
+    const summary = await storage.getRevenueSummary(dateRange);
+    
+    return res.status(200).json(summary);
+  } catch (error) {
+    console.error('[ADMIN] Error fetching revenue summary:', error);
+    return res.status(500).json({
+      status: 'error',
+      message: 'Failed to fetch revenue summary'
     });
   }
 });
