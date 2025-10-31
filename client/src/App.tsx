@@ -22,6 +22,7 @@ const Reviews = lazy(() => import("@/pages/reviews"));
 const Contact = lazy(() => import("@/pages/contact"));
 const AdminLogin = lazy(() => import("@/pages/admin/login"));
 const AdminDashboard = lazy(() => import("@/pages/admin/dashboard"));
+const CEODashboard = lazy(() => import("@/pages/admin/ceo-dashboard"));
 // Removed duplicate dashboard imports
 const AdminAccessGuide = lazy(() => import("@/components/admin-access-guide"));
 const CustomerPortal = lazy(() => import("@/pages/customer-portal"));
@@ -75,6 +76,7 @@ function Router() {
       <Route path="/confirmation-and-pay" component={BookingConfirmationPage} />
       <Route path="/admin/login" component={withSecurity(AdminLogin, ADMIN_ROUTE)} />
       <Route path="/admin/dashboard" component={withSecurity(AdminDashboard, ADMIN_ROUTE)} />
+      <Route path="/admin/ceo" component={withSecurity(CEODashboard, ADMIN_ROUTE)} />
       <Route path="/admin" component={withSecurity(AdminDashboard, ADMIN_ROUTE)} />
       <Route path="/admin/business-intelligence" component={withSecurity(BusinessIntelligence, ADMIN_ROUTE)} />
       <Route path="/admin/access-guide" component={withSecurity(AdminAccessGuide, PUBLIC_ROUTE)} />

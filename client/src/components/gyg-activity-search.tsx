@@ -49,8 +49,13 @@ export const GYGActivitySearch: React.FC<GYGSearchProps> = ({ onActivitySelect }
 
       setActivities(result.activities);
       setApiStatus(getGetYourGuideAPIStatus());
+      
+      // Show warning if using mock data
+      if (!apiStatus.available) {
+        console.warn('ℹ️ Mode données de test activé. Pour utiliser les vraies données GetYourGuide, configurez VITE_GETYOURGUIDE_API_KEY.');
+      }
     } catch (err) {
-      setError('Failed to search activities. Please try again.');
+      setError('Échec de la recherche. Veuillez réessayer.');
       console.error('Search error:', err);
     } finally {
       setLoading(false);
@@ -69,7 +74,7 @@ export const GYGActivitySearch: React.FC<GYGSearchProps> = ({ onActivitySelect }
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-gray-800 flex items-center">
             <Search className="mr-2 text-blue-600" />
-            Search GetYourGuide Activities
+            Recherche d'Activités GetYourGuide
           </h2>
           <div className="flex items-center text-sm">
             {apiStatus.available ? (
@@ -80,7 +85,7 @@ export const GYGActivitySearch: React.FC<GYGSearchProps> = ({ onActivitySelect }
             ) : (
               <div className="flex items-center text-orange-600">
                 <WifiOff className="h-4 w-4 mr-1" />
-                Mock Data
+                Données de Test
               </div>
             )}
           </div>
@@ -92,7 +97,7 @@ export const GYGActivitySearch: React.FC<GYGSearchProps> = ({ onActivitySelect }
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search Moroccan activities (e.g., 'desert tour', 'atlas mountains', 'cooking class', 'city tour', 'hammam')"
+              placeholder="Rechercher des activités marocaines (ex: 'tour du désert', 'montagnes de l'Atlas', 'cours de cuisine', 'tour de ville', 'hammam')"
               className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
             />
@@ -106,7 +111,7 @@ export const GYGActivitySearch: React.FC<GYGSearchProps> = ({ onActivitySelect }
               ) : (
                 <>
                   <Search className="mr-2 h-5 w-5" />
-                  Search
+                  Rechercher
                 </>
               )}
             </button>
@@ -122,7 +127,7 @@ export const GYGActivitySearch: React.FC<GYGSearchProps> = ({ onActivitySelect }
         {activities.length > 0 && (
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-gray-700 mb-4">
-              Found {activities.length} activities
+              {activities.length} activité{activities.length !== 1 ? 's' : ''} trouvée{activities.length !== 1 ? 's' : ''}
             </h3>
             
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">

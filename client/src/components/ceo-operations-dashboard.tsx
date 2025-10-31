@@ -158,17 +158,17 @@ export default function CEOOperationsDashboard() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">CEO Operations Dashboard</h2>
-          <p className="text-gray-600">Comprehensive business intelligence and operational insights</p>
+          <h2 className="text-2xl font-bold text-gray-900">Tableau de Bord Opérationnel CEO</h2>
+          <p className="text-gray-600">Analyse approfondie des performances et intelligence opérationnelle</p>
         </div>
         <div className="flex gap-2">
           <Button onClick={handleExportBookingsPDF} variant="outline" size="sm">
             <FileText className="h-4 w-4 mr-2" />
-            Export Bookings PDF
+            Exporter Réservations PDF
           </Button>
           <Button onClick={handleExportOperationsPDF} variant="outline" size="sm">
             <BarChart3 className="h-4 w-4 mr-2" />
-            Export Operations PDF
+            Exporter Rapport PDF
           </Button>
         </div>
       </div>
@@ -177,52 +177,52 @@ export default function CEOOperationsDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+            <CardTitle className="text-sm font-medium">Revenus Totaux</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{(operationsData as any)?.summary?.totalRevenue || 0} MAD</div>
             <p className="text-xs text-muted-foreground">
-              Average: {(operationsData as any)?.summary?.averageBookingValue?.toFixed(2) || 0} MAD per booking
+              Moyenne: {(operationsData as any)?.summary?.averageBookingValue?.toFixed(2) || 0} MAD par réservation
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Bookings</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Réservations</CardTitle>
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{(operationsData as any)?.summary?.totalBookings || 0}</div>
             <p className="text-xs text-muted-foreground">
-              Across {(operationsData as any)?.summary?.totalActivities || 0} activities
+              Sur {(operationsData as any)?.summary?.totalActivities || 0} activités
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Customer Rating</CardTitle>
+            <CardTitle className="text-sm font-medium">Note Clients</CardTitle>
             <Star className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{(operationsData as any)?.summary?.averageRating?.toFixed(1) || 0}/5</div>
             <p className="text-xs text-muted-foreground">
-              Based on customer reviews
+              Basé sur les avis clients
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Activities</CardTitle>
+            <CardTitle className="text-sm font-medium">Activités Actives</CardTitle>
             <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{(operationsData as any)?.summary?.totalActivities || 0}</div>
             <p className="text-xs text-muted-foreground">
-              Available for booking
+              Disponibles pour réservation
             </p>
           </CardContent>
         </Card>
@@ -231,15 +231,15 @@ export default function CEOOperationsDashboard() {
       {/* Detailed Analytics */}
       <Tabs defaultValue="performance" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="performance">Activity Performance</TabsTrigger>
-          <TabsTrigger value="trends">Monthly Trends</TabsTrigger>
-          <TabsTrigger value="insights">Business Insights</TabsTrigger>
+          <TabsTrigger value="performance">Performance Activités</TabsTrigger>
+          <TabsTrigger value="trends">Tendances Mensuelles</TabsTrigger>
+          <TabsTrigger value="insights">Analyses Stratégiques</TabsTrigger>
         </TabsList>
 
         <TabsContent value="performance" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Activity Performance Analysis</CardTitle>
+              <CardTitle>Analyse de Performance des Activités</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
@@ -252,7 +252,7 @@ export default function CEOOperationsDashboard() {
                       <div>
                         <p className="font-medium">{activity.name}</p>
                         <p className="text-sm text-gray-500">
-                          {activity.bookings} bookings • {activity.popularity.toFixed(1)}% of total
+                          {activity.bookings} réservations • {activity.popularity.toFixed(1)}% du total
                         </p>
                       </div>
                     </div>
@@ -273,7 +273,7 @@ export default function CEOOperationsDashboard() {
         <TabsContent value="trends" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Monthly Performance Trends</CardTitle>
+              <CardTitle>Tendances de Performance Mensuelles</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
@@ -281,11 +281,11 @@ export default function CEOOperationsDashboard() {
                   <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
                     <div>
                       <p className="font-medium">{month.month}</p>
-                      <p className="text-sm text-gray-500">Monthly performance</p>
+                      <p className="text-sm text-gray-500">Performance mensuelle</p>
                     </div>
                     <div className="text-right">
-                      <p className="font-bold">{month.bookings} bookings</p>
-                      <p className="text-sm text-gray-500">{month.revenue} MAD revenue</p>
+                      <p className="font-bold">{month.bookings} réservations</p>
+                      <p className="text-sm text-gray-500">{month.revenue} MAD revenus</p>
                     </div>
                   </div>
                 ))}
@@ -300,22 +300,22 @@ export default function CEOOperationsDashboard() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Target className="h-5 w-5" />
-                  Business Insights
+                  Analyses Stratégiques
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">
                     <CheckCircle className="h-4 w-4 text-green-500" />
-                    <span className="text-sm">Strong customer satisfaction</span>
+                    <span className="text-sm">Forte satisfaction client</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <TrendingUp className="h-4 w-4 text-blue-500" />
-                    <span className="text-sm">Revenue growth potential</span>
+                    <span className="text-sm">Potentiel de croissance des revenus</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Activity className="h-4 w-4 text-purple-500" />
-                    <span className="text-sm">Diverse activity portfolio</span>
+                    <span className="text-sm">Portefeuille d'activités diversifié</span>
                   </div>
                 </div>
               </CardContent>
@@ -325,22 +325,22 @@ export default function CEOOperationsDashboard() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <AlertTriangle className="h-5 w-5" />
-                  Recommendations
+                  Recommandations
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">
                     <Clock className="h-4 w-4 text-orange-500" />
-                    <span className="text-sm">Optimize booking times</span>
+                    <span className="text-sm">Optimiser les horaires de réservation</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Users className="h-4 w-4 text-green-500" />
-                    <span className="text-sm">Expand customer base</span>
+                    <span className="text-sm">Élargir la base de clients</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <MapPin className="h-4 w-4 text-blue-500" />
-                    <span className="text-sm">Consider new locations</span>
+                    <span className="text-sm">Envisager de nouveaux emplacements</span>
                   </div>
                 </div>
               </CardContent>

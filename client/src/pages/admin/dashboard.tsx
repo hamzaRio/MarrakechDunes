@@ -19,6 +19,7 @@ import PaymentManagement from "@/components/payment-management";
 import { WhatsAppNotificationPanel } from "@/components/whatsapp-notification-panel";
 import SimpleActivityForm from "@/components/simple-activity-form-v2";
 import GYGActivitySearch from "@/components/gyg-activity-search";
+import BookingTest from "@/components/booking-test";
 // Removed duplicate cash analytics dashboard import
 import CashBookingReminders from "@/components/cash-booking-reminders";
 import EmailModal from "@/components/EmailModal";
@@ -479,7 +480,25 @@ function AdminDashboardContent() {
                         <div className="text-2xl font-bold text-green-900">
                           {totalRevenue.toLocaleString()} MAD
                         </div>
-                        <p className="text-xs text-green-600 mt-1">Chiffre d'affaires</p>
+                        <p className="text-xs text-green-600 mt-1">
+                          Chiffre d'affaires ({revenueBookings.length} réservation{revenueBookings.length !== 1 ? 's' : ''})
+                        </p>
+                        {revenueBookings.length > 0 && (
+                          <details className="mt-3 text-xs">
+                            <summary className="cursor-pointer text-green-700 hover:text-green-900 font-medium">
+                              Voir les détails ({revenueBookings.length})
+                            </summary>
+                            <div className="mt-2 space-y-1 max-h-32 overflow-y-auto">
+                              {revenueBookings.map((b) => (
+                                <div key={b.id || b._id} className="bg-white/50 p-2 rounded border border-green-200">
+                                  <div className="font-medium">{b.customerName}</div>
+                                  <div className="text-green-600">{b.activity?.name || 'Activité supprimée'}</div>
+                                  <div className="text-green-700 font-semibold">{b.totalAmount} MAD - {b.status}</div>
+                                </div>
+                              ))}
+                            </div>
+                          </details>
+                        )}
                       </CardContent>
                     </Card>
 
@@ -551,11 +570,12 @@ function AdminDashboardContent() {
                 </div>
               </div>
 
-
+              {/* Booking Test Component */}
+              <BookingTest />
 
               <Card>
                 <CardHeader>
-                  <CardTitle>All Bookings with Price Analysis</CardTitle>
+                  <CardTitle>📋 Toutes les Réservations avec Analyse des Prix</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-6">

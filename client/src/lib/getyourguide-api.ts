@@ -39,8 +39,8 @@ const GYG_API_KEY = import.meta.env.VITE_GETYOURGUIDE_API_KEY;
 export async function searchGetYourGuideActivities(params: GYGSearchParams): Promise<GYGSearchResponse> {
   try {
     // Check if we have API key
-    if (!GYG_API_KEY) {
-      console.warn('GetYourGuide API key not found, using mock data');
+    if (!GYG_API_KEY || GYG_API_KEY.trim() === '') {
+      console.warn('⚠️ GetYourGuide API key not found, using mock data. To use real GetYourGuide data, set VITE_GETYOURGUIDE_API_KEY in your environment variables.');
       return searchMockActivities(params);
     }
 
