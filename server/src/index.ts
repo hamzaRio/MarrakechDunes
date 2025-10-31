@@ -555,6 +555,11 @@ app.use((req, res, next) => {
   // ? Connect to MongoDB before starting the server
   await connectToDatabase();
 
+  // ? Seed initial data (admin users, activities, etc.)
+  const { storage } = await import('./storage.js');
+  await storage.seedInitialData();
+  console.log('[server] Initial data seeding completed');
+
   // ? Initialize cache service
   const { cacheService } = await import('./services/cache-service.js');
   await cacheService.connect();
