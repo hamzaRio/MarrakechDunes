@@ -10,11 +10,69 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Star, Award, MapPin, Calendar } from "lucide-react";
 import { useLanguage } from "@/hooks/use-language";
 import { asset } from "@/lib/env";
+import { useLocation } from "wouter";
+import { useQuery } from "@tanstack/react-query";
+import { apiFetch } from "@/lib/api";
+import type { ActivityType } from "marrakechdunes-shared/schema";
 // Single hero background image - force refresh
 const heroBackgroundImage = asset("riad-kheirredine_1756041288677.jpg");
 
 export default function Home() {
   const { t, language } = useLanguage();
+  const [, setLocation] = useLocation();
+  
+  // Fetch activities to get their IDs for navigation
+  const { data: activities = [] } = useQuery<ActivityType[]>({
+    queryKey: ["/activities"],
+    queryFn: async () => {
+      try {
+        const response = await apiFetch("/activities");
+        if (!response.ok) return [];
+        const data = await response.json();
+        return Array.isArray(data) ? data : [];
+      } catch {
+        return [];
+      }
+    },
+    staleTime: 10 * 60 * 1000, // 10 minutes cache
+  });
+  
+  // Helper to find activity by name keyword
+  const findActivityByName = (keywords: string[]): ActivityType | null => {
+    const lowerKeywords = keywords.map(k => k.toLowerCase());
+    return activities.find(activity => {
+      const name = (activity.name || '').toLowerCase();
+      return lowerKeywords.some(keyword => name.includes(keyword));
+    }) || null;
+  };
+  
+  // Navigation handlers
+  const handleHotAirBalloonClick = () => {
+    const activity = findActivityByName(['balloon', 'montgolfière', 'hot air', 'montgolfiere']);
+    if (activity) {
+      setLocation(`/booking?activity=${activity._id || activity.id}`);
+    } else {
+      setLocation('/activities-simple');
+    }
+  };
+  
+  const handleAgafayClick = () => {
+    const activity = findActivityByName(['agafay', 'desert']);
+    if (activity) {
+      setLocation(`/activity/${activity._id || activity.id}`);
+    } else {
+      setLocation('/activities-simple');
+    }
+  };
+  
+  const handleEssaouiraClick = () => {
+    const activity = findActivityByName(['essaouira', 'essaouira']);
+    if (activity) {
+      setLocation(`/booking?activity=${activity._id || activity.id}`);
+    } else {
+      setLocation('/activities-simple');
+    }
+  };
   const seoConfig = seoConfigs.home(language);
 
   return (
@@ -366,7 +424,8 @@ export default function Home() {
             </p>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              <div className="group cursor-pointer" onClick={() => window.location.href = '/activities-simple'}>
+              {/* Hot Air Balloon - Goes to Booking */}
+              <div className="group cursor-pointer" onClick={handleHotAirBalloonClick}>
                 <div className="relative overflow-hidden rounded-2xl shadow-lg group-hover:shadow-xl transition-shadow duration-300">
                   <img
                     src={asset("Hot Air Balloon Ride2.jpg")}
@@ -385,7 +444,8 @@ export default function Home() {
                 </div>
               </div>
 
-              <div className="group cursor-pointer" onClick={() => window.location.href = '/activities-simple'}>
+              {/* Agafay Desert - Goes to Activity Detail */}
+              <div className="group cursor-pointer" onClick={handleAgafayClick}>
                 <div className="relative overflow-hidden rounded-2xl shadow-lg group-hover:shadow-xl transition-shadow duration-300">
                   <img
                     src={asset("agafaypack1.jpeg")}
@@ -404,7 +464,8 @@ export default function Home() {
                 </div>
               </div>
 
-              <div className="group cursor-pointer" onClick={() => window.location.href = '/activities-simple'}>
+              {/* Essaouira - Goes to Booking */}
+              <div className="group cursor-pointer" onClick={handleEssaouiraClick}>
                 <div className="relative overflow-hidden rounded-2xl shadow-lg group-hover:shadow-xl transition-shadow duration-300">
                   <img
                     src={asset("Essaouira Day Trip1_1751124502666.jpg")}
