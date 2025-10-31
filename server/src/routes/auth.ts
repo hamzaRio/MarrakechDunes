@@ -103,6 +103,70 @@ router.post('/login', async (req: Request, res: Response) => {
 });
 
 /**
+ * GET /api/auth/user
+ * Get current authenticated user from session
+ */
+router.get('/user', async (req: Request, res: Response) => {
+  try {
+    console.log('[AUTH] Getting current user from session');
+    
+    if (!req.session || !(req.session as any).authenticated) {
+      console.log('[AUTH] No authenticated session found');
+      return res.status(401).json({
+        status: 'error',
+        message: 'Not authenticated'
+      });
+    }
+
+    const sessionUserId = (req.session as any).userId;
+    const sessionUsername = (req.session as any).username;
+    const sessionRole = (req.session as any).role;
+
+    console.log('[AUTH] Session data:', { userId: sessionUserId, username: sessionUsername, role: sessionRole });
+
+    // Optionally verify user still exists in database
+    if (sessionUserId) {
+      const user = await storage.getUser(sessionUserId);
+      if (!user) {
+        console.log('[AUTH] User not found in database, clearing session');
+        req.session.destroy(() => {});
+        return res.status(401).json({
+          status: 'error',
+          message: 'User not found'
+        });
+      }
+
+      return res.status(200).json({
+        status: 'success',
+        success: true,
+        user: {
+          id: user.id || user._id,
+          username: user.username,
+          role: user.role
+        }
+      });
+    }
+
+    // Return session data if no user lookup needed
+    return res.status(200).json({
+      status: 'success',
+      success: true,
+      user: {
+        id: sessionUserId,
+        username: sessionUsername,
+        role: sessionRole
+      }
+    });
+  } catch (error) {
+    console.error('[AUTH] Get user error:', error);
+    return res.status(500).json({
+      status: 'error',
+      message: 'Error fetching user'
+    });
+  }
+});
+
+/**
  * POST /api/auth/logout
  * Logout admin or superadmin user
  */

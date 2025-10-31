@@ -225,26 +225,46 @@ class MongoStorage implements IStorage {
 
   async getUserByUsername(username: string): Promise<UserType | null> {
     try {
-      console.log('[STORAGE] Looking up user by username:', username);
-      const user = await User.findOne({ username });
-      console.log('[STORAGE] User.findOne result:', user ? { id: user._id, username: user.username, hasPassword: !!user.password } : 'null');
+      // Trim whitespace to handle any hidden spaces
+      const trimmedUsername = username.trim();
+      console.log('[STORAGE] Looking up user by username:', JSON.stringify(trimmedUsername), 'length:', trimmedUsername.length);
+      
+      // First try exact match with trimmed username
+      let user = await User.findOne({ username: trimmedUsername });
+      console.log('[STORAGE] User.findOne (exact) result:', user ? { id: user._id, username: user.username, usernameLength: user.username.length, hasPassword: !!user.password } : 'null');
       
       if (!user) {
         // Try case-insensitive lookup
         const userCaseInsensitive = await User.findOne({ 
-          username: { $regex: new RegExp(`^${username}$`, 'i') } 
+          username: { $regex: new RegExp(`^${trimmedUsername.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') } 
         });
-        console.log('[STORAGE] Case-insensitive lookup result:', userCaseInsensitive ? { id: userCaseInsensitive._id, username: userCaseInsensitive.username } : 'null');
+        console.log('[STORAGE] Case-insensitive lookup result:', userCaseInsensitive ? { id: userCaseInsensitive._id, username: userCaseInsensitive.username, usernameLength: userCaseInsensitive.username.length } : 'null');
         
         if (userCaseInsensitive) {
           console.log('[STORAGE] Found user with case-insensitive search, returning transformed');
           return this.transformDocument(userCaseInsensitive);
         }
         
-        // Debug: List all usernames in database
+        // Debug: List all usernames in database with their exact bytes
         const allUsers = await User.find({}).select('username');
-        console.log('[STORAGE] All usernames in database:', allUsers.map(u => u.username));
-        return null;
+        console.log('[STORAGE] All usernames in database:', allUsers.map(u => ({
+          username: u.username,
+          length: u.username.length,
+          bytes: Buffer.from(u.username).toString('hex')
+        })));
+        
+        // Try finding by comparing trimmed usernames
+        for (const dbUser of allUsers) {
+          if (dbUser.username.trim() === trimmedUsername) {
+            console.log('[STORAGE] Found user by trimming database username');
+            user = await User.findOne({ _id: dbUser._id });
+            break;
+          }
+        }
+        
+        if (!user) {
+          return null;
+        }
       }
       
       const transformed = this.transformDocument(user);
