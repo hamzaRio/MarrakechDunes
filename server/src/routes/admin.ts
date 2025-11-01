@@ -643,10 +643,24 @@ router.get('/export/operations-report/pdf', async (req: Request, res: Response) 
  */
 router.get('/notifications', async (req: Request, res: Response) => {
   try {
-    // TODO: Implement notification fetching logic
+    const { freeNotificationQueue } = await import('../services/free-notification-queue.js');
+    const { type, limit, priority } = req.query;
+    
+    let notifications;
+    if (type) {
+      notifications = freeNotificationQueue.getByType(type as any);
+    } else if (priority === 'high') {
+      notifications = freeNotificationQueue.getHighPriority();
+    } else {
+      notifications = freeNotificationQueue.getQueue(limit ? parseInt(limit as string) : undefined);
+    }
+
+    const stats = freeNotificationQueue.getStats();
+
     return res.status(200).json({
       status: 'success',
-      notifications: []
+      notifications,
+      stats
     });
   } catch (error) {
     console.error('[ADMIN] Error fetching notifications:', error);
@@ -658,21 +672,32 @@ router.get('/notifications', async (req: Request, res: Response) => {
 });
 
 /**
- * POST /api/admin/notifications/send
- * Send notification (admin only)
+ * POST /api/admin/notifications/:id/mark-sent
+ * Mark notification as sent (removes from queue)
  */
-router.post('/notifications/send', async (req: Request, res: Response) => {
+router.post('/notifications/:id/mark-sent', async (req: Request, res: Response) => {
   try {
-    // TODO: Implement notification sending logic
-    return res.status(200).json({
-      status: 'success',
-      message: 'Notification sent successfully'
-    });
+    const { id } = req.params;
+    const { freeNotificationQueue } = await import('../services/free-notification-queue.js');
+    
+    const removed = freeNotificationQueue.removeNotification(id);
+    
+    if (removed) {
+      return res.status(200).json({
+        status: 'success',
+        message: 'Notification marked as sent'
+      });
+    } else {
+      return res.status(404).json({
+        status: 'error',
+        message: 'Notification not found'
+      });
+    }
   } catch (error) {
-    console.error('[ADMIN] Error sending notification:', error);
+    console.error('[ADMIN] Error marking notification:', error);
     return res.status(500).json({
       status: 'error',
-      message: 'Failed to send notification'
+      message: 'Failed to mark notification'
     });
   }
 });

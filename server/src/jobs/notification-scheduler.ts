@@ -115,7 +115,7 @@ class NotificationScheduler {
   }
 
   /**
-   * Send reminder notification
+   * Send reminder notification using Twilio WhatsApp
    */
   private async sendReminder(booking: BookingWithActivity, type: '24h' | '2h'): Promise<void> {
     if (!booking.activity) {
@@ -123,22 +123,67 @@ class NotificationScheduler {
       return;
     }
 
-    const templateId = type === '24h' ? 'reminder_24h' : 'reminder_2h';
-    
-    // Use WhatsApp service to send reminder
-    await whatsappService.sendSmartNotification({
-      customerName: booking.customerName,
+    try {
+      // Try Twilio WhatsApp first (preferred)
+      const { twilioService } = await import('../services/twilio-service.js');
+      const hoursBefore = type === '24h' ? 24 : 2;
+      
+      const sent = await twilioService.sendReminder({
+        customerPhone: booking.customerPhone,
+        activityName: booking.activity.name || 'Activity',
+        preferredDate: booking.preferredDate,
+        paymentStatus: booking.paymentStatus,
+        numberOfPeople: booking.numberOfPeople
+      }, hoursBefore);
+
+      if (sent) {
+        console.log(`[SCHEDULER] Twilio reminder sent for booking ${booking._id || booking.id}`);
+        return;
+      }
+    } catch (twilioError) {
+      console.warn(`[SCHEDULER] Twilio reminder failed, falling back to WhatsApp service:`, twilioError);
+    }
+
+    // Fallback to FREE notification queue
+    const { freeNotificationQueue } = await import('../services/free-notification-queue.js');
+    const hoursBefore = type === '24h' ? 24 : 2;
+    const activityName = booking.activity.name || 'Activity';
+    const date = new Date(booking.preferredDate).toLocaleDateString('en-US', { 
+      weekday: 'long', 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit'
+    });
+
+    const paymentReminder = booking.paymentStatus === 'unpaid' 
+      ? '\n💰 Remember to bring cash payment'
+      : booking.paymentStatus === 'deposit_paid'
+      ? '\n💰 Balance payment due on arrival'
+      : '\n✅ Payment received';
+
+    const message = `⏰ *Reminder: ${hoursBefore}h until your activity!*
+
+*${activityName}*
+📅 ${date}
+👥 ${booking.numberOfPeople || 1} ${booking.numberOfPeople === 1 ? 'person' : 'people'}${paymentReminder}
+
+See you soon! 🏜️`.trim();
+
+    freeNotificationQueue.addNotification({
+      type: type === '24h' ? 'reminder_24h' : 'reminder_2h',
       customerPhone: booking.customerPhone,
-      activityName: booking.activity.name || 'Activity',
-      preferredDate: booking.preferredDate,
-      numberOfPeople: booking.numberOfPeople,
-      totalAmount: Number(booking.totalAmount) || 0,
-      paymentStatus: booking.paymentStatus,
-      // Note: Payment method stays as 'cash' or 'cash_deposit' only
-      paymentMethod: (booking.paymentMethod === 'cash_deposit' ? 'cash_deposit' : 'cash'),
-      status: booking.status,
-      bookingId: booking._id || booking.id || 'unknown'
-    }, templateId);
+      customerName: booking.customerName,
+      message,
+      whatsappLink: freeNotificationQueue.generateWhatsAppLink(booking.customerPhone, message),
+      priority: type === '2h' ? 'high' : 'medium',
+      bookingId: booking._id || booking.id,
+      metadata: {
+        activityName,
+        date: booking.preferredDate.toString()
+      }
+    });
   }
 }
 

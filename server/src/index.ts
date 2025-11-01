@@ -649,6 +649,10 @@ app.use((req, res, next) => {
   const portalRouter = (await import('./routes/portal.js')).default;
   app.use('/api/portal', portalRouter);
   
+  // Mount auto-response router for customer message handling
+  const autoResponseRouter = (await import('./routes/auto-response.js')).default;
+  app.use('/api/auto-response', autoResponseRouter);
+  
   // Mount upload router for file uploads
   const uploadRouter = (await import('./routes/upload.js')).default;
   app.use('/api', uploadRouter);
