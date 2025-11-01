@@ -625,6 +625,10 @@ app.use((req, res, next) => {
   const adminRouter = (await import('./routes/admin.js')).default;
   app.use("/api/admin", adminRouter);
   
+  // Mount superadmin router (for admin management - superadmin only)
+  const superadminRouter = (await import('./routes/superadmin.js')).default;
+  app.use("/api/superadmin", superadminRouter);
+  
   // Mount new routes with proper security order
   const activitiesRouter = (await import('./routes/activities.js')).default;
   const reviewsRouter = (await import('./routes/reviews.js')).default;

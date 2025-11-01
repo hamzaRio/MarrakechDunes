@@ -609,12 +609,18 @@ function AdminDashboardContent() {
                   </div>
 
           <Tabs defaultValue="bookings" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-5 bg-white border-2 border-gray-200">
+            <TabsList className={`grid w-full ${user?.role === 'superadmin' ? 'grid-cols-7' : 'grid-cols-5'} bg-white border-2 border-gray-200`}>
               <TabsTrigger value="bookings" className="data-[state=active]:bg-moroccan-blue data-[state=active]:text-white">📋 Réservations</TabsTrigger>
               <TabsTrigger value="activities" className="data-[state=active]:bg-moroccan-blue data-[state=active]:text-white">🎯 Activités</TabsTrigger>
               <TabsTrigger value="gyg-reference" className="data-[state=active]:bg-moroccan-blue data-[state=active]:text-white">🔍 Référence GYG</TabsTrigger>
               <TabsTrigger value="whatsapp" className="data-[state=active]:bg-moroccan-blue data-[state=active]:text-white">💬 WhatsApp</TabsTrigger>
               <TabsTrigger value="reports" className="data-[state=active]:bg-moroccan-blue data-[state=active]:text-white">📊 Rapports</TabsTrigger>
+              {user?.role === 'superadmin' && (
+                <>
+                  <TabsTrigger value="admin-management" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white">👥 Admins</TabsTrigger>
+                  <TabsTrigger value="audit" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white">🔒 Audit</TabsTrigger>
+                </>
+              )}
             </TabsList>
 
             <TabsContent value="bookings" className="space-y-4">

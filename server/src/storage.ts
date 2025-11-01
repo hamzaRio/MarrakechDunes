@@ -143,6 +143,8 @@ export interface IStorage {
   getUsers(): Promise<UserType[]>;
   createUser(user: InsertUser): Promise<UserType>;
   updateUserPassword(username: string, password: string): Promise<void>;
+  updateUser(id: string, updateData: Partial<InsertUser>): Promise<UserType | null>;
+  deleteUser(id: string): Promise<boolean>;
   getActivities(): Promise<ActivityType[]>;
   getPendingActivities(): Promise<ActivityType[]>;
   getAllActivities(): Promise<ActivityType[]>;
@@ -315,6 +317,36 @@ class MongoStorage implements IStorage {
       { username },
       { $set: { password: hashedPassword } }
     );
+  }
+
+  async updateUser(id: string, updateData: Partial<InsertUser>): Promise<UserType | null> {
+    try {
+      // If password is being updated, hash it
+      if (updateData.password) {
+        updateData.password = await bcrypt.hash(updateData.password, 10);
+      }
+      
+      const updatedUser = await User.findByIdAndUpdate(
+        id,
+        { $set: updateData },
+        { new: true }
+      );
+      
+      return updatedUser ? this.transformDocument(updatedUser) : null;
+    } catch (error) {
+      console.error('Error updating user:', error);
+      return null;
+    }
+  }
+
+  async deleteUser(id: string): Promise<boolean> {
+    try {
+      const result = await User.findByIdAndDelete(id);
+      return !!result;
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      return false;
+    }
   }
 
   // Activity operations
