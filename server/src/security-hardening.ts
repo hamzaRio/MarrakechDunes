@@ -107,8 +107,12 @@ export const securityRequestLogger = (req: Request, res: Response, next: NextFun
       contentLength: res.get('Content-Length') || '0'
     };
 
-    // Log suspicious activities (but not common 404s for assets)
-    if (res.statusCode >= 400 && !isCommon404(req.url)) {
+    // Log suspicious activities (but not common 404s for assets or normal auth failures)
+    // Don't log 401 on /api/auth/user as suspicious (normal after logout)
+    const isNormalAuthCheck = req.path === '/api/auth/user' && res.statusCode === 401;
+    const isCommonError = isCommon404(req.url) || isNormalAuthCheck;
+    
+    if (res.statusCode >= 400 && !isCommonError) {
       console.warn('[SECURITY] Suspicious request:', logData);
     }
 

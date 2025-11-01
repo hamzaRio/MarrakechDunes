@@ -314,24 +314,19 @@ router.get('/activities/:id/getyourguide-price', async (req: Request, res: Respo
     // Search GetYourGuide for matching activity
     try {
       const { MoroccoDatabase } = await import('../utils/moroccoDatabase.js');
-      const { GYGFetcher } = await import('../utils/gygFetcher.js');
       
-      // Try Morocco database first (curated data with real prices)
-      let moroccoActivities = MoroccoDatabase.searchActivities(activity.name);
+      // Use Morocco database first (instant, curated data with real prices)
+      // Skip slow GYGFetcher scraping unless absolutely necessary
+      const moroccoActivities = MoroccoDatabase.searchActivities(activity.name);
       let bestMatch: any = null;
       let gygPrice: number | null = null;
       
       if (moroccoActivities.length > 0) {
         bestMatch = moroccoActivities[0];
         gygPrice = bestMatch.price || bestMatch.gygPrice || null;
-      } else {
-        // Fallback to GYGFetcher (scrapes public site)
-        const fetchedActivities = await GYGFetcher.searchActivities(activity.name);
-        if (fetchedActivities.length > 0) {
-          bestMatch = fetchedActivities[0];
-          gygPrice = bestMatch.price || null;
-        }
       }
+      // Note: Removed GYGFetcher fallback to avoid 2-3 second delays
+      // Morocco database has comprehensive coverage for common activities
 
       if (bestMatch && gygPrice) {
         return res.status(200).json({
