@@ -810,10 +810,12 @@ app.use((req, res, next) => {
     res.status(204).end();
   });
 
-  // Redirect /assets/ to /images/ for frontend compatibility
+  // Assets are served by Vercel (frontend), not the backend
+  // Return 204 for /assets/* requests to prevent 404 errors
+  // Frontend should use relative URLs or Vercel URLs for assets
   app.get('/assets/*', (req, res) => {
-    const imagePath = req.path.replace('/assets/', '/images/');
-    res.redirect(301, imagePath);
+    // Return 204 No Content instead of redirect to prevent 404 chain
+    res.status(204).end();
   });
 
 
