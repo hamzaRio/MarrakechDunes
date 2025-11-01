@@ -105,9 +105,16 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
   };
 
   // Fetch activities from GetYourGuide (live search in dashboard)
-  const handleFetchActivities = (query?: string, useLiveScrape: boolean = false) => {
+  const handleFetchActivities = (query?: string, useLiveScrape: boolean = false, redirectToWebsite: boolean = false) => {
     const searchTerm = query || searchQuery.trim();
     if (!searchTerm || searchTerm.length < 3) {
+      return;
+    }
+    
+    // If redirect is requested, open GetYourGuide immediately
+    if (redirectToWebsite) {
+      const gygUrl = getGYGSearchUrl(searchTerm);
+      window.open(gygUrl, '_blank', 'noopener,noreferrer');
       return;
     }
     
@@ -251,6 +258,16 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
                 title="Scraping en temps réel depuis GetYourGuide (plus lent mais plus précis)"
               >
                 🔄 Live
+              </Button>
+              <Button
+                onClick={() => handleFetchActivities(undefined, false, true)}
+                disabled={!searchQuery.trim() || searchQuery.trim().length < 3}
+                variant="outline"
+                className="bg-green-50 hover:bg-green-100 border-green-300 text-green-700 px-4 h-11"
+                title="Ouvrir GetYourGuide dans un nouvel onglet avec cette recherche"
+              >
+                <ExternalLink className="w-4 h-4 mr-1" />
+                Ouvrir GYG
               </Button>
             </>
           )}
@@ -411,91 +428,112 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
           )}
 
           {!isLoading && !error && searchResults && searchResults.length > 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {searchResults.map((activity) => (
-                <Card
-                  key={activity.id}
-                  className="hover:shadow-lg transition-shadow cursor-pointer overflow-hidden"
-                  onClick={() => window.open(activity.link, '_blank', 'noopener,noreferrer')}
+            <>
+              <div className="mb-4 flex items-center justify-between bg-blue-50 p-3 rounded-lg border border-blue-200">
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                    {searchResults.length} résultat{searchResults.length > 1 ? 's' : ''} trouvé{searchResults.length > 1 ? 's' : ''}
+                  </Badge>
+                  <span className="text-sm text-gray-600">
+                    Cliquez sur une carte pour voir sur GetYourGuide
+                  </span>
+                </div>
+                <Button
+                  onClick={() => handleGYGSearch(activeSearch)}
+                  variant="outline"
+                  size="sm"
+                  className="bg-green-50 hover:bg-green-100 border-green-300 text-green-700"
                 >
-                  {activity.image && (
-                    <div className="relative h-40 bg-gray-200 overflow-hidden">
-                      <img
-                        src={activity.image}
-                        alt={activity.title}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).style.display = 'none';
-                        }}
-                      />
-                      <div className="absolute top-2 right-2">
-                        <Badge className="bg-blue-600 text-white">GetYourGuide</Badge>
+                  <ExternalLink className="w-4 h-4 mr-2" />
+                  Voir tous sur GetYourGuide
+                </Button>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {searchResults.map((activity) => (
+                  <Card
+                    key={activity.id}
+                    className="hover:shadow-lg transition-shadow cursor-pointer overflow-hidden"
+                    onClick={() => window.open(activity.link, '_blank', 'noopener,noreferrer')}
+                  >
+                    {activity.image && (
+                      <div className="relative h-40 bg-gray-200 overflow-hidden">
+                        <img
+                          src={activity.image}
+                          alt={activity.title}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display = 'none';
+                          }}
+                        />
+                        <div className="absolute top-2 right-2">
+                          <Badge className="bg-blue-600 text-white">GetYourGuide</Badge>
+                        </div>
                       </div>
-                    </div>
-                  )}
-                  <CardContent className="p-4">
-                    <h5 className="font-semibold text-gray-900 mb-2 line-clamp-2 h-12">
-                      {activity.title}
-                    </h5>
-                    
-                    <div className="space-y-2 mb-3">
-                      {activity.rating && (
-                        <div className="flex items-center gap-1 text-sm text-gray-600">
-                          <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                          <span className="font-medium">{activity.rating}</span>
-                          {activity.reviewCount && (
-                            <span className="text-gray-500">({activity.reviewCount.toLocaleString()} avis)</span>
+                    )}
+                    <CardContent className="p-4">
+                      <h5 className="font-semibold text-gray-900 mb-2 line-clamp-2 h-12">
+                        {activity.title}
+                      </h5>
+                      
+                      <div className="space-y-2 mb-3">
+                        {activity.rating && (
+                          <div className="flex items-center gap-1 text-sm text-gray-600">
+                            <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                            <span className="font-medium">{activity.rating}</span>
+                            {activity.reviewCount && (
+                              <span className="text-gray-500">({activity.reviewCount.toLocaleString()} avis)</span>
+                            )}
+                          </div>
+                        )}
+                        
+                        <div className="flex items-center gap-4 text-sm text-gray-600">
+                          {activity.duration && (
+                            <div className="flex items-center gap-1">
+                              <Clock className="w-4 h-4" />
+                              <span>{activity.duration}</span>
+                            </div>
+                          )}
+                          {activity.location && (
+                            <div className="flex items-center gap-1">
+                              <MapPin className="w-4 h-4" />
+                              <span className="truncate">{activity.location}</span>
+                            </div>
                           )}
                         </div>
-                      )}
-                      
-                      <div className="flex items-center gap-4 text-sm text-gray-600">
-                        {activity.duration && (
-                          <div className="flex items-center gap-1">
-                            <Clock className="w-4 h-4" />
-                            <span>{activity.duration}</span>
-                          </div>
-                        )}
-                        {activity.location && (
-                          <div className="flex items-center gap-1">
-                            <MapPin className="w-4 h-4" />
-                            <span className="truncate">{activity.location}</span>
-                          </div>
-                        )}
                       </div>
-                    </div>
 
-                    <div className="flex items-center justify-between pt-3 border-t border-gray-200">
-                      <div>
-                        <div className="flex items-baseline gap-2">
-                          <span className="text-2xl font-bold text-blue-600">
-                            {activity.gygPrice} {activity.currency}
-                          </span>
-                          <span className="text-xs text-gray-500">per person</span>
+                      <div className="flex items-center justify-between pt-3 border-t border-gray-200">
+                        <div>
+                          <div className="flex items-baseline gap-2">
+                            <span className="text-2xl font-bold text-blue-600">
+                              {activity.gygPrice} {activity.currency}
+                            </span>
+                            <span className="text-xs text-gray-500">per person</span>
+                          </div>
+                          {activity.suggestedPrice && (
+                            <p className="text-xs text-gray-500 mt-1">
+                              Prix suggéré: {activity.suggestedPrice} {activity.currency}
+                            </p>
+                          )}
                         </div>
-                        {activity.suggestedPrice && (
-                          <p className="text-xs text-gray-500 mt-1">
-                            Prix suggéré: {activity.suggestedPrice} {activity.currency}
-                          </p>
-                        )}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            window.open(activity.link, '_blank', 'noopener,noreferrer');
+                          }}
+                          className="border-blue-300 text-blue-600 hover:bg-blue-50"
+                        >
+                          <ExternalLink className="w-3 h-3 mr-1" />
+                          Voir
+                        </Button>
                       </div>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          window.open(activity.link, '_blank', 'noopener,noreferrer');
-                        }}
-                        className="border-blue-300 text-blue-600 hover:bg-blue-50"
-                      >
-                        <ExternalLink className="w-3 h-3 mr-1" />
-                        Voir
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </>
           )}
         </div>
       )}

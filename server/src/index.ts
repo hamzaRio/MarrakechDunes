@@ -641,6 +641,10 @@ app.use((req, res, next) => {
   app.use('/api/competitors', competitorsRouter);
   app.use('/api/market', marketIntelligenceRouter);
   
+  // Mount GetYourGuide router for GYG search and activities
+  const gygRouter = (await import('./routes/getyourguide.js')).default;
+  app.use('/api/gyg', gygRouter);
+  
   // Mount portal router for customer portal
   const portalRouter = (await import('./routes/portal.js')).default;
   app.use('/api/portal', portalRouter);
