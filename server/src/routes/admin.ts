@@ -314,26 +314,81 @@ router.get('/activities/:id/getyourguide-price', async (req: Request, res: Respo
     // Search GetYourGuide for matching activity
     try {
       const { MoroccoDatabase } = await import('../utils/moroccoDatabase.js');
+      const { GYGFetcher } = await import('../utils/gygFetcher.js');
+      const forceLiveScrape = req.query.forceScrape === 'true';
       
-      // Use Morocco database first (instant, curated data with real prices)
-      // Skip slow GYGFetcher scraping unless absolutely necessary
+      // Use Morocco database first (instant, curated data)
       const moroccoActivities = MoroccoDatabase.searchActivities(activity.name);
       let bestMatch: any = null;
       let gygPrice: number | null = null;
+      let source = 'curated-database';
       
-      if (moroccoActivities.length > 0) {
+      if (moroccoActivities.length > 0 && !forceLiveScrape) {
         bestMatch = moroccoActivities[0];
         gygPrice = bestMatch.price || bestMatch.gygPrice || null;
       }
-      // Note: Removed GYGFetcher fallback to avoid 2-3 second delays
-      // Morocco database has comprehensive coverage for common activities
+
+      // If force live scrape requested OR no match found, scrape GetYourGuide website
+      if (forceLiveScrape || (!bestMatch || !gygPrice)) {
+        console.log(`[ADMIN] Scraping GetYourGuide for: "${activity.name}" (forceScrape=${forceLiveScrape})`);
+        try {
+          // Use Promise.race to timeout after 5 seconds
+          const scrapePromise = GYGFetcher.searchActivities(activity.name);
+          const timeoutPromise = new Promise<never>((_, reject) => {
+            setTimeout(() => reject(new Error('Scrape timeout')), 5000);
+          });
+
+          const scrapedActivities = await Promise.race([scrapePromise, timeoutPromise]);
+          
+          if (scrapedActivities && scrapedActivities.length > 0) {
+            // Find best match by title similarity
+            const activityNameLower = activity.name.toLowerCase();
+            const scoredActivities = scrapedActivities.map(a => {
+              const titleLower = a.title.toLowerCase();
+              let score = 0;
+              
+              // Exact match
+              if (titleLower === activityNameLower) score = 100;
+              // Contains all keywords
+              else if (activityNameLower.split(' ').every(word => titleLower.includes(word))) score = 80;
+              // Contains main keywords
+              else if (titleLower.includes('balloon') && activityNameLower.includes('balloon')) score = 70;
+              else if (titleLower.includes(activityNameLower.split(' ')[0])) score = 50;
+              
+              return { activity: a, score };
+            });
+
+            scoredActivities.sort((a, b) => b.score - a.score);
+            const bestScraped = scoredActivities[0];
+            
+            if (bestScraped && bestScraped.score > 40 && bestScraped.activity.price > 0) {
+              bestMatch = {
+                title: bestScraped.activity.title,
+                price: bestScraped.activity.price,
+                gygPrice: bestScraped.activity.price,
+                currency: bestScraped.activity.currency || 'MAD',
+                rating: bestScraped.activity.rating || 0,
+                reviewCount: bestScraped.activity.reviewCount || 0,
+                link: bestScraped.activity.link,
+                url: bestScraped.activity.link
+              };
+              gygPrice = bestScraped.activity.price;
+              source = 'getyourguide-scraped';
+              console.log(`[ADMIN] Found GYG price via scraping: ${gygPrice} MAD for "${bestMatch.title}"`);
+            }
+          }
+        } catch (scrapeError: any) {
+          console.warn(`[ADMIN] Live scraping failed: ${scrapeError.message}`);
+          // Continue with database result or fallback
+        }
+      }
 
       if (bestMatch && gygPrice) {
         return res.status(200).json({
           status: 'success',
           price: gygPrice,
-          currency: moroccoActivities.length > 0 ? (bestMatch.currency || 'MAD') : 'MAD',
-          source: moroccoActivities.length > 0 ? 'curated-database' : 'getyourguide-scraped',
+          currency: bestMatch.currency || 'MAD',
+          source: source,
           activity: {
             title: bestMatch.title,
             url: bestMatch.link || bestMatch.url,

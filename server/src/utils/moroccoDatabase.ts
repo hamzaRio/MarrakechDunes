@@ -275,21 +275,21 @@ export class MoroccoDatabase {
     {
       id: 'hot-air-balloon-marrakech',
       title: 'Hot Air Balloon Ride',
-      price: 800,
+      price: 1100,
       currency: 'MAD',
       rating: 4.9,
-      reviewCount: 95,
+      reviewCount: 5980,
       image: '/images/hot-air-balloon.jpg',
-      link: 'https://www.getyourguide.com/marrakech-l208/',
-      description: 'Soar above Marrakech in a hot air balloon with breathtaking views.',
-      duration: '4 hours',
+      link: 'https://www.getyourguide.com/marrakech-l208/marrakech-hot-air-balloon-flight-with-berber-breakfast-t601980/',
+      description: 'Soar above Marrakech in a hot air balloon with breathtaking views and enjoy a traditional Berber breakfast.',
+      duration: '4-5 hours',
       location: 'Marrakech, Morocco',
       category: 'Adventure',
       difficulty: 'Easy',
-      keywords: ['hot', 'air', 'balloon', 'ride', 'marrakech', 'views', 'soar'],
-      gygPrice: 800,
-      viatorPrice: 100,
-      tripadvisorPrice: 95
+      keywords: ['hot', 'air', 'balloon', 'ride', 'marrakech', 'views', 'soar', 'montgolfière', 'breakfast', 'berber'],
+      gygPrice: 1114, // Updated from actual GetYourGuide website (Nov 2024)
+      viatorPrice: 1054,
+      tripadvisorPrice: 1100
     }
   ];
 

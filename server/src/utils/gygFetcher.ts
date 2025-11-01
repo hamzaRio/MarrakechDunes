@@ -164,22 +164,45 @@ export class GYGFetcher {
       if (!title) return null;
 
       // Extract price with multiple selectors
+      // GetYourGuide shows prices in formats like "From 1,955 د.م. **1,114 د.م.** per person"
       const priceSelectors = [
         '[data-testid="price"]',
         '[data-testid="tour-price"]',
+        '[data-testid="activity-card-price"]',
         '.price',
         '.tour-price',
         '.activity-price',
         '.cost',
-        '.amount'
+        '.amount',
+        '[class*="price"]',
+        '[class*="Price"]'
       ];
 
       let priceText = '';
+      // Try to get the entire price element HTML (to catch bold/discounted prices)
       for (const selector of priceSelectors) {
         const priceEl = $el.find(selector).first();
         if (priceEl.length) {
-          priceText = priceEl.text().trim();
-          if (priceText) break;
+          // Get both text and HTML to capture formatted prices
+          priceText = priceEl.html() || priceEl.text().trim();
+          if (priceText) {
+            // If HTML contains bold tags or strong tags, prefer that
+            if (priceText.includes('<strong>') || priceText.includes('<b>') || priceText.includes('**')) {
+              break;
+            }
+          }
+        }
+      }
+
+      // Also try to get text from the entire card element to find price patterns
+      if (!priceText || this.extractPrice(priceText) === 0) {
+        const cardText = $el.text();
+        // Look for price patterns in the entire card text
+        const pricePattern = /(?:From\s+)?(?:[\d,]+\s*د\.م\.)?\s*\*\*?([\d,]+)\s*د\.م\.|([\d,]+)\s*د\.م\./;
+        const match = cardText.match(pricePattern);
+        if (match) {
+          priceText = match[1] || match[2] || '';
+          priceText += ' د.م.';
         }
       }
 
@@ -387,14 +410,34 @@ export class GYGFetcher {
 
   /**
    * Extract price from text
+   * Handles formats like:
+   * - "1,114 د.م." (Moroccan Dirham with comma)
+   * - "From 1,955 د.م. **1,114 د.م.** per person" (original + discounted)
+   * - "€99" or "$99"
    */
   private static extractPrice(priceText: string): number {
     if (!priceText) return 0;
 
-    // Remove currency symbols and extract number
-    const match = priceText.match(/(\d+(?:\.\d+)?)/);
+    // First, try to extract discounted price (if format is "From X **Y**")
+    const discountedMatch = priceText.match(/\*\*([\d,]+\.?\d*)\s*(?:د\.م\.|MAD|€|\$|EUR|USD)/i);
+    if (discountedMatch) {
+      const priceStr = discountedMatch[1].replace(/,/g, '');
+      let price = parseFloat(priceStr);
+      return Math.round(price);
+    }
+
+    // Try to find price with Arabic currency symbol (د.م.)
+    const arabicMatch = priceText.match(/([\d,]+\.?\d*)\s*د\.م\./);
+    if (arabicMatch) {
+      const priceStr = arabicMatch[1].replace(/,/g, '');
+      let price = parseFloat(priceStr);
+      return Math.round(price);
+    }
+
+    // Extract number with currency symbols
+    const match = priceText.match(/([\d,]+(?:\.\d+)?)/);
     if (match) {
-      let price = parseFloat(match[1]);
+      let price = parseFloat(match[1].replace(/,/g, ''));
       
       // Convert to MAD if needed (rough conversion rates)
       if (priceText.includes('€') || priceText.includes('EUR')) {

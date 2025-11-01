@@ -390,15 +390,19 @@ function AdminDashboardContent() {
     }
   };
 
-  const handleUpdateGetYourGuidePrice = async (activity: ActivityType) => {
+  const handleUpdateGetYourGuidePrice = async (activity: ActivityType, forceScrape: boolean = false) => {
     try {
       toast({
         title: "Mise à jour du prix concurrent",
-        description: "Recherche du prix GetYourGuide en cours...",
+        description: forceScrape 
+          ? "Scraping en temps réel du site GetYourGuide (5-10 secondes)..."
+          : "Recherche du prix GetYourGuide en cours...",
       });
       
-      // First, fetch real price from GetYourGuide API
-      const priceResponse = await api.get(`/admin/activities/${activity._id || activity.id}/getyourguide-price`);
+      // Fetch real price from GetYourGuide (with optional force scrape)
+      const priceResponse = await api.get(`/admin/activities/${activity._id || activity.id}/getyourguide-price`, {
+        params: { forceScrape: forceScrape ? 'true' : 'false' }
+      });
       
       if (priceResponse.data && priceResponse.data.status === 'success') {
         const gygPrice = priceResponse.data.price;
@@ -418,9 +422,9 @@ function AdminDashboardContent() {
             const sourceMessage = source === 'estimated' 
               ? 'Prix estimé'
               : source === 'curated-database'
-                ? 'Prix vérifié GetYourGuide'
+                ? 'Prix vérifié GetYourGuide (base de données)'
                 : source === 'getyourguide-scraped'
-                  ? 'Prix GetYourGuide (site web)'
+                  ? 'Prix GetYourGuide (scraping en temps réel)'
                   : 'Prix GetYourGuide';
             
             toast({
@@ -436,7 +440,8 @@ function AdminDashboardContent() {
                 title: activityMatch.title,
                 url: activityMatch.url,
                 price: gygPrice,
-                ourPrice: activity.price
+                ourPrice: activity.price,
+                source: source
               });
             }
           }
@@ -884,9 +889,19 @@ function AdminDashboardContent() {
                           <Button 
                             size="sm" 
                             variant="outline"
-                            onClick={() => handleUpdateGetYourGuidePrice(activity)}
+                            onClick={() => handleUpdateGetYourGuidePrice(activity, false)}
+                            title="Mise à jour rapide depuis la base de données"
                           >
-                            Update GetYourGuide Price
+                            Update GYG Price (DB)
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => handleUpdateGetYourGuidePrice(activity, true)}
+                            title="Scraping en temps réel du site GetYourGuide (plus lent mais plus précis)"
+                            className="bg-blue-50 hover:bg-blue-100"
+                          >
+                            🔄 Scrape Live GYG
                           </Button>
                           <Button 
                             size="sm" 
