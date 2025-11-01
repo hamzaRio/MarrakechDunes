@@ -257,37 +257,27 @@ router.get('/search', async (req: Request, res: Response) => {
     try {
       console.log(`[GYG Search] Query="${query}" | Fetching from live GetYourGuide...`);
       
-      // Priority: If forceRefresh, always scrape live first. Otherwise try database first, then scrape.
+      // Priority: If forceRefresh, ONLY scrape from website - NO database fallback
       if (shouldForceRefresh) {
-        // Force refresh: Always scrape from GetYourGuide website first
-        console.log(`[GYG Search] Query="${query}" | Force refresh - scraping GetYourGuide website...`);
+        // Force refresh: ONLY scrape from GetYourGuide website - show actual website results
+        console.log(`[GYG Search] Query="${query}" | Force refresh - scraping GetYourGuide website ONLY (no database fallback)...`);
         try {
           activities = await GYGFetcher.searchActivities(query);
           source = 'getyourguide-scraped';
-          console.log(`[GYG Search] Query="${query}" | Scraped ${activities.length} activities from GetYourGuide website`);
-        } catch (scrapeError: any) {
-          console.error(`[GYG Search] Query="${query}" | Live scraping failed:`, scrapeError.message);
-          // Fallback to database if scraping fails
-          const moroccoActivities = MoroccoDatabase.searchActivities(query);
-          if (moroccoActivities.length > 0) {
-            activities = moroccoActivities.map((a: MoroccoActivityData) => ({
-              id: a.id,
-              title: a.title,
-              price: a.price || a.gygPrice || 0,
-              currency: a.currency || 'MAD',
-              rating: a.rating,
-              reviewCount: a.reviewCount,
-              image: a.image,
-              link: a.link,
-              description: a.description,
-              duration: a.duration,
-              location: a.location
-            }));
-            source = 'curated-database-fallback';
-          } else {
-            activities = GYGFetcher.generateFallbackActivities(query);
-            source = 'fallback';
+          console.log(`[GYG Search] Query="${query}" | ✅ Scraped ${activities.length} activities from GetYourGuide website`);
+          
+          // If scraping returns empty, throw error instead of using database
+          if (activities.length === 0) {
+            throw new Error('No activities found from GetYourGuide website');
           }
+        } catch (scrapeError: any) {
+          console.error(`[GYG Search] Query="${query}" | ❌ Live scraping failed:`, scrapeError.message);
+          console.error(`[GYG Search] Query="${query}" | NOT using database fallback - user wants real website results`);
+          // DON'T fallback to database - user wants real website results
+          // Return empty array or throw error so user knows scraping failed
+          activities = [];
+          source = 'scraping-failed';
+          throw new Error(`Failed to scrape GetYourGuide: ${scrapeError.message}`);
         }
       } else {
         // Normal flow: Try database first, then scrape if needed
@@ -383,7 +373,17 @@ router.get('/search', async (req: Request, res: Response) => {
     } catch (fetchError: any) {
       console.error(`[GYG Morocco Search] Live fetch failed for "${query}":`, fetchError.message);
       
-      // Try to return cached results even if expired
+      // If forceRefresh was requested, DON'T use fallback - return error
+      if (shouldForceRefresh) {
+        console.error(`[GYG Morocco Search] Query="${query}" | Force refresh requested but scraping failed - returning error (NO fallback)`);
+        return res.status(500).json({
+          error: 'Failed to scrape GetYourGuide website',
+          message: fetchError.message,
+          hint: 'The GetYourGuide website may be temporarily unavailable. Try again in a few moments.'
+        });
+      }
+      
+      // Try to return cached results even if expired (only for non-forceRefresh)
       try {
         const expiredCache = await GYGCache.findOne({ normalizedQuery: normalizedQuery });
         if (expiredCache && expiredCache.results.length > 0) {
@@ -395,7 +395,7 @@ router.get('/search', async (req: Request, res: Response) => {
         console.warn(`[GYG Morocco Search] Failed to get expired cache for "${query}":`, cacheError.message);
       }
 
-      // Final fallback with enhanced logging
+      // Final fallback with enhanced logging (only for non-forceRefresh)
       console.log(`[GYG Morocco Search] Using Morocco fallback data for: "${query}"`);
       const fallbackActivities = GYGFetcher.generateFallbackActivities(query);
       const transformedFallback = fallbackActivities.map(activity => ({

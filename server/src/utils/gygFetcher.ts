@@ -26,11 +26,12 @@ export class GYGFetcher {
    */
   static async searchActivities(query: string): Promise<GYGActivity[]> {
     try {
-      console.log(`[GYG Fetcher] Morocco-only search for: "${query}"`);
+      console.log(`[GYG Fetcher] Search for: "${query}"`);
       
-      // Use official GetYourGuide Morocco search URL
-      const moroccoQuery = `${query} morocco`;
-      const searchUrl = `https://www.getyourguide.com/s/?q=${encodeURIComponent(moroccoQuery)}&searchSource=3`;
+      // Use the query directly - don't add "morocco" as it might filter too much
+      // GetYourGuide will handle location-based results automatically
+      const searchUrl = `https://www.getyourguide.com/s/?q=${encodeURIComponent(query)}&searchSource=3`;
+      console.log(`[GYG Fetcher] Scraping URL: ${searchUrl}`);
       
       const response = await axios.get(searchUrl, {
         headers: {
