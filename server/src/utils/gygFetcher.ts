@@ -18,7 +18,7 @@ export class GYGFetcher {
   private static readonly BASE_URL = 'https://www.getyourguide.com';
   private static readonly SEARCH_URL = 'https://www.getyourguide.com/s/';
   private static readonly USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
-  private static readonly MAX_RESULTS = 15;
+  private static readonly MAX_RESULTS = 50; // Increased to match GetYourGuide's search results
 
   /**
    * Search GetYourGuide public site for Morocco activities only
@@ -59,11 +59,18 @@ export class GYGFetcher {
 
       const allActivities = this.parseGlobalSearchResults(response.data, query);
       
-      // Filter to only Morocco activities
-      const moroccoActivities = this.filterMoroccoActivities(allActivities, query);
-      console.log(`[GYG Fetcher] Found ${moroccoActivities.length} Morocco activities for "${query}" (from ${allActivities.length} total)`);
+      // For Morocco-related queries, return all activities (they're already from Morocco search)
+      // Only filter if query is very generic and we get non-Morocco results
+      let activities = allActivities;
+      if (allActivities.length > 0 && !this.isMoroccoQuery(query)) {
+        // Only filter if it's not obviously a Morocco query
+        activities = this.filterMoroccoActivities(allActivities, query);
+        console.log(`[GYG Fetcher] Filtered to ${activities.length} Morocco activities for "${query}" (from ${allActivities.length} total)`);
+      } else {
+        console.log(`[GYG Fetcher] Found ${activities.length} activities for Morocco query "${query}"`);
+      }
       
-      return moroccoActivities;
+      return activities;
     } catch (error: any) {
       console.error(`[GYG Fetcher] Global search error for "${query}":`, error.message);
       throw error;
@@ -79,14 +86,22 @@ export class GYGFetcher {
 
     try {
       // Multiple parsing strategies for different page structures
+      // Updated selectors based on GetYourGuide's actual page structure
       const selectors = [
-        // Modern GetYourGuide selectors
+        // Modern GetYourGuide selectors (priority order)
+        'article[data-testid="activity-card"]',
+        'article[class*="Card"]',
         '[data-testid="activity-card"]',
         '[data-testid="search-result-item"]',
+        '[data-testid="activity-item"]',
+        // Card-based selectors
         '.activity-card',
         '.search-result-item',
         '.activity-item',
+        'article.activity',
+        'article.tour',
         // Generic card selectors
+        'article.card',
         '.card',
         '.result-item',
         '.tour-card',
@@ -94,7 +109,11 @@ export class GYGFetcher {
         // List item selectors
         'li[data-testid*="activity"]',
         'li[data-testid*="tour"]',
-        'li[data-testid*="experience"]'
+        'li[data-testid*="experience"]',
+        // Grid item selectors
+        'div[class*="ActivityCard"]',
+        'div[class*="TourCard"]',
+        'div[class*="Card"]'
       ];
 
       for (const selector of selectors) {
@@ -471,6 +490,19 @@ export class GYGFetcher {
 
     const match = reviewText.match(/(\d+)/);
     return match ? parseInt(match[1]) : 0;
+  }
+
+  /**
+   * Check if query is obviously Morocco-related
+   */
+  private static isMoroccoQuery(query: string): boolean {
+    const moroccoTerms = [
+      'morocco', 'moroccan', 'marrakech', 'marrakesh', 'fes', 'fez', 'casablanca',
+      'rabat', 'tangier', 'tanger', 'chefchaouen', 'agadir', 'essaouira',
+      'merzouga', 'sahara', 'atlas', 'agafay', 'ouzoud', 'ourika'
+    ];
+    const lowerQuery = query.toLowerCase();
+    return moroccoTerms.some(term => lowerQuery.includes(term));
   }
 
   /**
