@@ -274,9 +274,7 @@ router.get('/search', async (req: Request, res: Response) => {
           console.error(`[GYG Search] Query="${query}" | ❌ Live scraping failed:`, scrapeError.message);
           console.error(`[GYG Search] Query="${query}" | NOT using database fallback - user wants real website results`);
           // DON'T fallback to database - user wants real website results
-          // Return empty array or throw error so user knows scraping failed
-          activities = [];
-          source = 'scraping-failed';
+          // Re-throw error to be caught by outer catch block
           throw new Error(`Failed to scrape GetYourGuide: ${scrapeError.message}`);
         }
       } else {
