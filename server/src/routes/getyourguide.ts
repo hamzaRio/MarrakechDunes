@@ -78,28 +78,12 @@ router.get('/search', async (req: Request, res: Response) => {
               // Search GYG for this activity
               let gygMatches: any[] = [];
               
-              // Try curated database first
-              const dbMatches = MoroccoDatabase.searchActivities(myActivity.name);
-              if (dbMatches.length > 0) {
-                gygMatches = dbMatches.map((a: MoroccoActivityData) => {
-                  const price = a.price || a.gygPrice || 0;
-                  return {
-                    id: a.id,
-                    title: a.title,
-                    gygPrice: price,
-                    currency: a.currency || 'MAD',
-                    link: a.link,
-                    rating: a.rating,
-                    reviewCount: a.reviewCount,
-                    image: a.image,
-                    duration: a.duration,
-                    location: a.location
-                  };
-                });
-              } else {
-                // Try live scraping
-                try {
-                  const scraped = await GYGFetcher.searchActivities(myActivity.name);
+              // For comparison mode, SKIP MoroccoDatabase (mock data)
+              // Try live scraping from GetYourGuide ONLY
+              try {
+                console.log(`[GYG Comparison] Scraping GetYourGuide for "${myActivity.name}"...`);
+                const scraped = await GYGFetcher.searchActivities(myActivity.name);
+                if (scraped.length > 0) {
                   gygMatches = scraped.map((a: GYGActivity) => {
                     const price = a.price || 0;
                     return {
@@ -115,9 +99,12 @@ router.get('/search', async (req: Request, res: Response) => {
                       location: a.location
                     };
                   });
-                } catch (scrapeError) {
-                  // Continue without matches for this activity
+                  console.log(`[GYG Comparison] Found ${gygMatches.length} matches for "${myActivity.name}"`);
                 }
+              } catch (scrapeError: any) {
+                // Scraping failed - log and continue without matches
+                console.warn(`[GYG Comparison] Scraping failed for "${myActivity.name}":`, scrapeError.message);
+                // Don't use MoroccoDatabase as fallback - user wants real GYG data
               }
               
               if (gygMatches.length > 0) {
@@ -161,27 +148,10 @@ router.get('/search', async (req: Request, res: Response) => {
           
           let gygMatches: any[] = [];
           
-          // Try curated database
-          const dbMatches = MoroccoDatabase.searchActivities(matchingActivity.name);
-          if (dbMatches.length > 0) {
-            gygMatches = dbMatches.map((a: MoroccoActivityData) => {
-              const price = a.price || a.gygPrice || 0;
-              return {
-                id: a.id,
-                title: a.title,
-                gygPrice: price,
-                currency: a.currency || 'MAD',
-                link: a.link,
-                rating: a.rating,
-                reviewCount: a.reviewCount,
-                image: a.image,
-                duration: a.duration,
-                location: a.location,
-                suggestedPrice: calculateSuggestedPrice(price, a.currency || 'MAD')
-              };
-            });
-          } else {
-            // Try live scraping
+          // For comparison mode, SKIP MoroccoDatabase (mock data)
+          // Try live scraping from GetYourGuide ONLY
+          try {
+            console.log(`[GYG Comparison] Scraping GetYourGuide for "${matchingActivity.name}"...`);
             const scraped = await GYGFetcher.searchActivities(matchingActivity.name);
             gygMatches = scraped.map((a: GYGActivity) => {
               const price = a.price || 0;
@@ -199,6 +169,11 @@ router.get('/search', async (req: Request, res: Response) => {
                 suggestedPrice: calculateSuggestedPrice(price, a.currency || 'MAD')
               };
             });
+            console.log(`[GYG Comparison] Found ${gygMatches.length} matches for "${matchingActivity.name}"`);
+          } catch (scrapeError: any) {
+            console.warn(`[GYG Comparison] Scraping failed for "${matchingActivity.name}":`, scrapeError.message);
+            // Return empty matches - don't use mock data
+            gygMatches = [];
           }
           
           return res.json([{
@@ -279,23 +254,23 @@ router.get('/search', async (req: Request, res: Response) => {
         }
       } else {
         // Normal flow: Try database first, then scrape if needed
-        console.log(`[Morocco Database] Query="${query}" | Searching curated Morocco database...`);
-        try {
-          const moroccoActivities = MoroccoDatabase.searchActivities(query);
-          console.log(`[Morocco Database] Query="${query}" | Found ${moroccoActivities.length} activities from curated database`);
-          
-          if (moroccoActivities.length === 0) {
+      console.log(`[Morocco Database] Query="${query}" | Searching curated Morocco database...`);
+      try {
+        const moroccoActivities = MoroccoDatabase.searchActivities(query);
+        console.log(`[Morocco Database] Query="${query}" | Found ${moroccoActivities.length} activities from curated database`);
+        
+        if (moroccoActivities.length === 0) {
             console.log(`[Morocco Database] Query="${query}" | No results found, scraping GetYourGuide...`);
             try {
               activities = await GYGFetcher.searchActivities(query);
               source = 'getyourguide-scraped';
             } catch (scrapeError: any) {
               console.error(`[GYG Search] Query="${query}" | Scraping failed:`, scrapeError.message);
-              activities = GYGFetcher.generateFallbackActivities(query);
-              source = 'fallback';
+          activities = GYGFetcher.generateFallbackActivities(query);
+          source = 'fallback';
             }
-          } else {
-            // Convert MoroccoActivityData to GYGActivity format
+        } else {
+          // Convert MoroccoActivityData to GYGActivity format
             activities = moroccoActivities.map((a: MoroccoActivityData) => ({
               id: a.id,
               title: a.title,
@@ -308,20 +283,20 @@ router.get('/search', async (req: Request, res: Response) => {
               description: a.description,
               duration: a.duration,
               location: a.location
-            }));
-            source = 'curated-database';
-          }
-        } catch (databaseError: any) {
-          console.error(`[Morocco Database] Query="${query}" | Database search failed:`, databaseError.message);
+          }));
+          source = 'curated-database';
+        }
+      } catch (databaseError: any) {
+        console.error(`[Morocco Database] Query="${query}" | Database search failed:`, databaseError.message);
           console.log(`[Morocco Database] Query="${query}" | Falling back to live scraper`);
-          
-          try {
-            activities = await GYGFetcher.searchActivities(query);
+        
+        try {
+          activities = await GYGFetcher.searchActivities(query);
             source = 'getyourguide-scraped';
-          } catch (originalError: any) {
+        } catch (originalError: any) {
             console.error(`[GYG Search] Query="${query}" | Scraping failed:`, originalError.message);
-            activities = GYGFetcher.generateFallbackActivities(query);
-            source = 'fallback';
+          activities = GYGFetcher.generateFallbackActivities(query);
+          source = 'fallback';
           }
         }
       }

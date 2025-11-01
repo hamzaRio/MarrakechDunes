@@ -59,6 +59,14 @@ export class GYGFetcher {
 
       const allActivities = this.parseGlobalSearchResults(response.data, query);
       
+      console.log(`[GYG Fetcher] Parsed ${allActivities.length} activities from HTML for "${query}"`);
+      
+      // If no activities found, return empty array (don't throw error)
+      if (allActivities.length === 0) {
+        console.warn(`[GYG Fetcher] No activities found in HTML for "${query}" - HTML parsing may have failed`);
+        return []; // Return empty instead of throwing
+      }
+      
       // For Morocco-related queries, return all activities (they're already from Morocco search)
       // Only filter if query is very generic and we get non-Morocco results
       let activities = allActivities;

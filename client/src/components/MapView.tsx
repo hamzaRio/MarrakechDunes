@@ -117,30 +117,30 @@ export default function MapView({
           </div>
         ) : (
           <>
-            <iframe
-              title={iframeTitle}
-              src={GOOGLE_EMBED_URL}
-              style={{ border: 0, width: '100%', height: '100%' }}
-              allowFullScreen
-              loading="lazy"
-              referrerPolicy="no-referrer-when-downgrade"
-              onLoad={() => {
+        <iframe
+          title={iframeTitle}
+          src={GOOGLE_EMBED_URL}
+          style={{ border: 0, width: '100%', height: '100%' }}
+          allowFullScreen
+          loading="lazy"
+          referrerPolicy="no-referrer-when-downgrade"
+          onLoad={() => {
                 // Suppress slow network warnings for Google Maps only in dev
                 if (import.meta.env.DEV) {
                   // Don't clear console completely, just suppress map warnings
                 }
-              }}
-            />
-            <div className="bg-moroccan-sand/40 px-3 py-2 text-sm text-moroccan-blue font-medium">
-              <a
-                href="https://maps.google.com/?q=54+Riad+Zitoun+Lakdim,+Marrakech+40000,+Morocco"
-                target="_blank"
-                rel="noreferrer"
-                className="underline hover:text-moroccan-red transition-colors"
-              >
-                View larger map
-              </a>
-            </div>
+          }}
+        />
+        <div className="bg-moroccan-sand/40 px-3 py-2 text-sm text-moroccan-blue font-medium">
+          <a
+            href="https://maps.google.com/?q=54+Riad+Zitoun+Lakdim,+Marrakech+40000,+Morocco"
+            target="_blank"
+            rel="noreferrer"
+            className="underline hover:text-moroccan-red transition-colors"
+          >
+            View larger map
+          </a>
+        </div>
           </>
         )}
       </div>
