@@ -65,20 +65,21 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
   });
 
   // Fetch activities from GetYourGuide API (regular search)
+  // Always use forceRefresh=true to get real-time results from GetYourGuide website
   const { data: searchResults, isLoading, error } = useQuery<GYGActivityResult[]>({
-    queryKey: ['gyg-search', activeSearch, forceLiveScrape, searchMode],
+    queryKey: ['gyg-search', activeSearch, searchMode],
     enabled: activeSearch.length >= 3 && searchMode === 'gyg',
     queryFn: async () => {
       const response = await api.get('/gyg/search', {
         params: {
           q: activeSearch,
-          forceRefresh: forceLiveScrape ? 'true' : 'false',
+          forceRefresh: 'true', // Always fetch fresh from GetYourGuide website
           useMyActivities: 'false'
         }
       });
       return response.data || [];
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 0, // Don't cache - always get fresh results
   });
 
   // Fetch activities based on YOUR database activities
@@ -241,7 +242,7 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
                 {isLoading && activeSearch === searchQuery ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Recherche...
+                    Scraping GetYourGuide...
                   </>
                 ) : (
                   <>
@@ -255,9 +256,9 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
                 disabled={!searchQuery.trim() || searchQuery.trim().length < 3}
                 variant="outline"
                 className="bg-purple-50 hover:bg-purple-100 border-purple-300 text-purple-700 px-4 h-11"
-                title="Scraping en temps réel depuis GetYourGuide (plus lent mais plus précis)"
+                title="Forcer le scraping en temps réel (ignorer le cache)"
               >
-                🔄 Live
+                🔄 Force Live
               </Button>
               <Button
                 onClick={() => handleFetchActivities(undefined, false, true)}
@@ -404,7 +405,7 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
             <div className="flex items-center justify-center py-12">
               <Loader2 className="w-8 h-8 animate-spin text-blue-600 mr-3" />
               <span className="text-gray-600">
-                {forceLiveScrape ? 'Scraping en temps réel depuis GetYourGuide...' : 'Recherche en cours...'}
+                Scraping en temps réel depuis GetYourGuide... Cela peut prendre 5-10 secondes...
               </span>
             </div>
           )}
