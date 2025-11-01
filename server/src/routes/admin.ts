@@ -100,6 +100,33 @@ router.patch('/bookings/:id/status', async (req: Request, res: Response) => {
 });
 
 /**
+ * DELETE /api/admin/bookings/:id
+ * Delete booking (admin only)
+ */
+router.delete('/bookings/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const deleted = await storage.deleteBooking(id);
+    if (!deleted) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'Booking not found'
+      });
+    }
+    return res.status(200).json({
+      status: 'success',
+      message: 'Booking deleted successfully'
+    });
+  } catch (error) {
+    console.error('[ADMIN] Error deleting booking:', error);
+    return res.status(500).json({
+      status: 'error',
+      message: 'Failed to delete booking'
+    });
+  }
+});
+
+/**
  * GET /api/admin/activities/all
  * Get all activities including pending (admin only)
  */
@@ -275,13 +302,80 @@ router.post('/activities/:id/image', async (req: Request, res: Response) => {
 router.get('/activities/:id/getyourguide-price', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    // This would integrate with GetYourGuide API
-    // For now, return a placeholder
-    return res.status(200).json({
-      status: 'success',
-      price: null,
-      message: 'GetYourGuide price lookup not yet implemented'
-    });
+    const activity = await storage.getActivity(id);
+    
+    if (!activity) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'Activity not found'
+      });
+    }
+
+    // Search GetYourGuide for matching activity
+    try {
+      const { MoroccoDatabase } = await import('../utils/moroccoDatabase.js');
+      const { GYGFetcher } = await import('../utils/gygFetcher.js');
+      
+      // Try Morocco database first (curated data with real prices)
+      let moroccoActivities = MoroccoDatabase.searchActivities(activity.name);
+      let bestMatch: any = null;
+      let gygPrice: number | null = null;
+      
+      if (moroccoActivities.length > 0) {
+        bestMatch = moroccoActivities[0];
+        gygPrice = bestMatch.price || bestMatch.gygPrice || null;
+      } else {
+        // Fallback to GYGFetcher (scrapes public site)
+        const fetchedActivities = await GYGFetcher.searchActivities(activity.name);
+        if (fetchedActivities.length > 0) {
+          bestMatch = fetchedActivities[0];
+          gygPrice = bestMatch.price || null;
+        }
+      }
+
+      if (bestMatch && gygPrice) {
+        return res.status(200).json({
+          status: 'success',
+          price: gygPrice,
+          currency: moroccoActivities.length > 0 ? (bestMatch.currency || 'MAD') : 'MAD',
+          source: moroccoActivities.length > 0 ? 'curated-database' : 'getyourguide-scraped',
+          activity: {
+            title: bestMatch.title,
+            url: bestMatch.link || bestMatch.url,
+            rating: bestMatch.rating || 0,
+            reviewCount: bestMatch.reviewCount || 0
+          },
+          suggestions: moroccoActivities.length > 0 
+            ? moroccoActivities.slice(0, 3).map(a => ({
+                title: a.title,
+                price: a.price || a.gygPrice,
+                url: a.link
+              }))
+            : []
+        });
+      } else {
+        // No results found, return estimated price (14% higher)
+        const estimatedPrice = Math.round(Number(activity.price) * 1.14);
+        return res.status(200).json({
+          status: 'success',
+          price: estimatedPrice,
+          currency: 'MAD',
+          source: 'estimated',
+          message: 'No matching activity found on GetYourGuide. Using estimated price.'
+        });
+      }
+    } catch (searchError) {
+      console.error('[ADMIN] GYG search error:', searchError);
+      // Fallback to estimated price
+      const estimatedPrice = Math.round(Number(activity.price) * 1.14);
+      return res.status(200).json({
+        status: 'success',
+        price: estimatedPrice,
+        currency: 'MAD',
+        source: 'estimated',
+        message: 'Could not search GetYourGuide. Using estimated price.'
+      });
+    }
   } catch (error) {
     console.error('[ADMIN] Error fetching GYG price:', error);
     return res.status(500).json({

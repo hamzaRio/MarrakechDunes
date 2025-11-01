@@ -394,25 +394,57 @@ function AdminDashboardContent() {
     try {
       toast({
         title: "Mise à jour du prix concurrent",
-        description: "Récupération du prix GetYourGuide en cours...",
+        description: "Recherche du prix GetYourGuide en cours...",
       });
       
-      // Calculate a competitive price (typically 14% higher than our price)
-      const competitivePrice = Math.round(Number(activity.price) * 1.14);
+      // First, fetch real price from GetYourGuide API
+      const priceResponse = await api.get(`/admin/activities/${activity._id || activity.id}/getyourguide-price`);
       
-      // Update the activity with the new GetYourGuide price
-      const response = await api.patch(`/admin/activities/${activity._id || activity.id}`, {
-        getyourguidePrice: competitivePrice
-      });
-      
-      if (response.data) {
-        // Invalidate and refetch activities
-        await queryClient.invalidateQueries({ queryKey: ["/admin/activities"] });
+      if (priceResponse.data && priceResponse.data.status === 'success') {
+        const gygPrice = priceResponse.data.price;
+        const source = priceResponse.data.source || 'api';
+        const activityMatch = priceResponse.data.activity;
         
-        toast({
-          title: "Prix mis à jour",
-          description: `Prix GetYourGuide mis à jour à ${competitivePrice} MAD`,
-        });
+        if (gygPrice) {
+          // Update the activity with the real GetYourGuide price
+          const updateResponse = await api.patch(`/admin/activities/${activity._id || activity.id}`, {
+            getyourguidePrice: gygPrice
+          });
+          
+          if (updateResponse.data) {
+            // Invalidate and refetch activities
+            await queryClient.invalidateQueries({ queryKey: ["/admin/activities"] });
+            
+            const sourceMessage = source === 'estimated' 
+              ? 'Prix estimé'
+              : source === 'curated-database'
+                ? 'Prix vérifié GetYourGuide'
+                : source === 'getyourguide-scraped'
+                  ? 'Prix GetYourGuide (site web)'
+                  : 'Prix GetYourGuide';
+            
+            toast({
+              title: "Prix mis à jour",
+              description: activityMatch?.title
+                ? `${sourceMessage}: ${gygPrice} ${priceResponse.data.currency || 'MAD'} - ${activityMatch.title}`
+                : `${sourceMessage}: ${gygPrice} ${priceResponse.data.currency || 'MAD'}`,
+            });
+            
+            // Log link to GYG activity if found for verification
+            if (activityMatch?.url) {
+              console.log('[GYG] Activity found on GetYourGuide:', {
+                title: activityMatch.title,
+                url: activityMatch.url,
+                price: gygPrice,
+                ourPrice: activity.price
+              });
+            }
+          }
+        } else {
+          throw new Error('Prix GetYourGuide non trouvé');
+        }
+      } else {
+        throw new Error('Impossible de récupérer le prix GetYourGuide');
       }
     } catch (error: any) {
       console.error('[DASHBOARD] Failed to update GetYourGuide price:', error);
@@ -734,14 +766,26 @@ function AdminDashboardContent() {
                               }
                             />
                           )}
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => handleDeleteBooking(booking._id, booking.customerName)}
-                            className="ml-2"
-                          >
-                            Delete
-                          </Button>
+                          {(() => {
+                            // Detect test bookings for special deletion button
+                            const isTestBooking = 
+                              booking.customerName?.toLowerCase().includes('test') ||
+                              booking.customerName?.toLowerCase().includes('notification') ||
+                              booking.customerPhone === '+212600123456' ||
+                              booking.customerPhone === '212600123456';
+                            
+                            return (
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => handleDeleteBooking(booking._id || booking.id || '', booking.customerName)}
+                                title={isTestBooking ? "Supprimer cette réservation de test" : "Supprimer la réservation"}
+                                className={isTestBooking ? "bg-red-600 hover:bg-red-700" : ""}
+                              >
+                                {isTestBooking ? "🗑️ Supprimer Test" : "Delete"}
+                              </Button>
+                            );
+                          })()}
                         </div>
                       </div>
                       );
