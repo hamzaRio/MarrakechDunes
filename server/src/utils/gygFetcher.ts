@@ -352,7 +352,7 @@ export class GYGFetcher {
           
           if (data['@type'] === 'ItemList' && data.itemListElement) {
             data.itemListElement.forEach((item: any, itemIndex: number) => {
-              if (activities.length >= this.MAX_RESULTS) return false;
+              // Capture all results - no limit
 
               const itemData = item.item || item;
               if (itemData.name && itemData.offers) {
@@ -394,7 +394,7 @@ export class GYGFetcher {
 
     // Try to find any elements that might contain activity information
     $('article, .card, .item, .result').each((index, element) => {
-      if (activities.length >= 5) return false;
+      // Capture all results - no limit
 
       const $el = $(element);
       const text = $el.text().toLowerCase();
