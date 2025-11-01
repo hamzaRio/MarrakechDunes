@@ -543,52 +543,56 @@ class MongoStorage implements IStorage {
         const bookingObj = this.transformDocument(booking);
         const bookingId = bookingObj.id || bookingObj._id;
         
-        // Check if activityId exists and what type it is
-        if (!bookingObj.activityId) {
-          // This happens when:
-          // 1. activityId is null/undefined in database (shouldn't happen due to schema required:true)
-          // 2. The referenced activity was deleted (populate returns null)
-          // 3. The activityId was corrupted
-          // Only log in development to reduce noise in production
-          if (process.env.NODE_ENV === 'development') {
-            console.warn('[STORAGE] Booking has no activityId:', bookingId);
-            console.warn('[STORAGE] This usually means the referenced activity was deleted');
+        // Get the raw activityId from the original booking document
+        const rawActivityId = booking.activityId || bookingObj.activityId;
+        let activityIdToUse: string | null = null;
+        
+        // Extract activityId as string
+        if (rawActivityId) {
+          if (typeof rawActivityId === 'object' && rawActivityId._id) {
+            activityIdToUse = rawActivityId._id.toString();
+            // If it's an object, use it as activity
+            bookingObj.activity = this.transformDocument(rawActivityId);
+          } else if (typeof rawActivityId === 'string') {
+            activityIdToUse = rawActivityId;
+          } else if (rawActivityId?.toString) {
+            activityIdToUse = rawActivityId.toString();
           }
-          return bookingObj;
         }
         
-        // If activity was populated successfully
-        if (typeof bookingObj.activityId === 'object') {
-          bookingObj.activity = this.transformDocument(bookingObj.activityId);
-          if (bookingObj.activity && bookingObj.activity._id) {
-            bookingObj.activityId = bookingObj.activity._id;
-          }
-        } 
-        // If activityId is a string (populate failed), try to fetch it manually
-        else if (typeof bookingObj.activityId === 'string') {
-          const activityId = bookingObj.activityId;
-          
+        // If activity wasn't populated from the object above, try to fetch it
+        if (!bookingObj.activity && activityIdToUse) {
           try {
-            let activity = await this.getActivity(activityId);
-            
-            if (!activity) {
-              try {
-                const activityDoc = await Activity.findById(activityId);
-                if (activityDoc) {
-                  activity = this.transformDocument(activityDoc);
-                }
-              } catch (findError) {
-                console.error('[STORAGE] Direct findById failed:', findError);
-              }
-            }
-            
+            const activity = await Activity.findById(activityIdToUse);
             if (activity) {
-              bookingObj.activity = activity;
-              bookingObj.activityId = activity._id || activityId;
+              bookingObj.activity = this.transformDocument(activity);
             }
           } catch (error) {
             console.error('[STORAGE] Error fetching activity for booking:', bookingId, error);
           }
+        }
+        
+        // If still no activity, create a placeholder so booking shows in dashboard
+        if (!bookingObj.activity) {
+          bookingObj.activity = {
+            _id: activityIdToUse || 'unknown',
+            id: activityIdToUse || 'unknown',
+            name: activityIdToUse ? 'Activity Deleted' : 'Activity Not Found',
+            price: '0',
+            description: activityIdToUse 
+              ? 'This activity has been removed from the system' 
+              : 'Activity reference is missing',
+            category: 'Deleted',
+            imageUrls: [],
+            isActive: false
+          } as any;
+        }
+        
+        // Ensure activityId is set
+        if (activityIdToUse) {
+          bookingObj.activityId = activityIdToUse;
+        } else if (bookingObj.activity?._id) {
+          bookingObj.activityId = bookingObj.activity._id.toString();
         }
         
         return bookingObj;
