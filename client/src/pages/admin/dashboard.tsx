@@ -18,7 +18,7 @@ import { getAssetUrl } from "@/lib/utils";
 import PaymentManagement from "@/components/payment-management";
 import { WhatsAppNotificationPanel } from "@/components/whatsapp-notification-panel";
 import SimpleActivityForm from "@/components/simple-activity-form-v2";
-// Removed GYGActivitySearch - not needed
+import GYGReferenceTool from "@/components/GYGReferenceTool";
 // Removed BookingTest - was only for testing
 // Removed duplicate cash analytics dashboard import
 import CashBookingReminders from "@/components/cash-booking-reminders";
@@ -602,9 +602,10 @@ function AdminDashboardContent() {
                   </div>
 
           <Tabs defaultValue="bookings" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-4 bg-white border-2 border-gray-200">
+            <TabsList className="grid w-full grid-cols-5 bg-white border-2 border-gray-200">
               <TabsTrigger value="bookings" className="data-[state=active]:bg-moroccan-blue data-[state=active]:text-white">📋 Réservations</TabsTrigger>
               <TabsTrigger value="activities" className="data-[state=active]:bg-moroccan-blue data-[state=active]:text-white">🎯 Activités</TabsTrigger>
+              <TabsTrigger value="gyg-reference" className="data-[state=active]:bg-moroccan-blue data-[state=active]:text-white">🔍 Référence GYG</TabsTrigger>
               <TabsTrigger value="whatsapp" className="data-[state=active]:bg-moroccan-blue data-[state=active]:text-white">💬 WhatsApp</TabsTrigger>
               <TabsTrigger value="reports" className="data-[state=active]:bg-moroccan-blue data-[state=active]:text-white">📊 Rapports</TabsTrigger>
             </TabsList>
@@ -914,7 +915,20 @@ function AdminDashboardContent() {
               </Card>
             </TabsContent>
 
-            {/* GYG Reference tab removed - not needed */}
+            {/* GYG Reference Tab - Search GetYourGuide website */}
+            <TabsContent value="gyg-reference" className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Search className="h-5 w-5 text-blue-600" />
+                    Référence GetYourGuide
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <GYGReferenceTool />
+                </CardContent>
+              </Card>
+            </TabsContent>
 
             <TabsContent value="whatsapp" className="space-y-4">
               <Card>
