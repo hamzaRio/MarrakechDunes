@@ -49,11 +49,163 @@ interface GetYourGuideActivity {
 
 /**
  * Search GetYourGuide activities with MongoDB caching and public site scraping
- * GET /api/gyg/search?q=...&forceRefresh=true
+ * GET /api/gyg/search?q=...&forceRefresh=true&useMyActivities=true
+ * 
+ * If useMyActivities=true, it will:
+ * 1. Get activities from your database
+ * 2. Search GetYourGuide for each activity to find similar ones
+ * 3. Return Morocco-based matches
  */
 router.get('/search', async (req: Request, res: Response) => {
   try {
-    const { q, forceRefresh } = req.query;
+    const { q, forceRefresh, useMyActivities } = req.query;
+    
+    // If useMyActivities is true, search based on your own activities
+    if (useMyActivities === 'true') {
+      try {
+        const { default: storage } = await import('../storage.js');
+        const myActivities = await storage.getActivities();
+        
+        if (!q || q === '' || q === 'all') {
+          // Return all activities from your database with their GYG matches
+          const results: any[] = [];
+          
+          for (const myActivity of myActivities) {
+            try {
+              const { MoroccoDatabase } = await import('../utils/moroccoDatabase.js');
+              const { GYGFetcher } = await import('../utils/gygFetcher.js');
+              
+              // Search GYG for this activity
+              let gygMatches: any[] = [];
+              
+              // Try curated database first
+              const dbMatches = MoroccoDatabase.searchActivities(myActivity.name);
+              if (dbMatches.length > 0) {
+                gygMatches = dbMatches.map(a => ({
+                  id: a.id,
+                  title: a.title,
+                  gygPrice: a.price || a.gygPrice,
+                  currency: a.currency || 'MAD',
+                  link: a.link,
+                  rating: a.rating,
+                  reviewCount: a.reviewCount,
+                  image: a.image,
+                  duration: a.duration,
+                  location: a.location
+                }));
+              } else {
+                // Try live scraping
+                try {
+                  const scraped = await GYGFetcher.searchActivities(myActivity.name);
+                  gygMatches = scraped.map(a => ({
+                    id: a.id,
+                    title: a.title,
+                    gygPrice: a.price,
+                    currency: a.currency || 'MAD',
+                    link: a.link,
+                    rating: a.rating,
+                    reviewCount: a.reviewCount,
+                    image: a.image,
+                    duration: a.duration,
+                    location: a.location
+                  }));
+                } catch (scrapeError) {
+                  // Continue without matches for this activity
+                }
+              }
+              
+              if (gygMatches.length > 0) {
+                results.push({
+                  myActivity: {
+                    id: myActivity._id || myActivity.id,
+                    name: myActivity.name,
+                    price: myActivity.price,
+                    category: myActivity.category
+                  },
+                  gygMatches: gygMatches.map(a => ({
+                    ...a,
+                    suggestedPrice: calculateSuggestedPrice(a.gygPrice, a.currency)
+                  }))
+                });
+              }
+            } catch (activityError) {
+              // Skip this activity if search fails
+              console.warn(`[GYG Search] Failed to search for "${myActivity.name}":`, activityError);
+            }
+          }
+          
+          return res.json(results);
+        } else {
+          // Search for a specific activity from your database
+          const myActivities = await storage.getActivities();
+          const matchingActivity = myActivities.find(a => 
+            a.name.toLowerCase().includes((q as string).toLowerCase()) ||
+            (q as string).toLowerCase().includes(a.name.toLowerCase())
+          );
+          
+          if (!matchingActivity) {
+            return res.status(404).json({
+              error: `Activity "${q}" not found in your database`
+            });
+          }
+          
+          // Search GYG for this specific activity
+          const { MoroccoDatabase } = await import('../utils/moroccoDatabase.js');
+          const { GYGFetcher } = await import('../utils/gygFetcher.js');
+          
+          let gygMatches: any[] = [];
+          
+          // Try curated database
+          const dbMatches = MoroccoDatabase.searchActivities(matchingActivity.name);
+          if (dbMatches.length > 0) {
+            gygMatches = dbMatches.map(a => ({
+              id: a.id,
+              title: a.title,
+              gygPrice: a.price || a.gygPrice,
+              currency: a.currency || 'MAD',
+              link: a.link,
+              rating: a.rating,
+              reviewCount: a.reviewCount,
+              image: a.image,
+              duration: a.duration,
+              location: a.location,
+              suggestedPrice: calculateSuggestedPrice(a.price || a.gygPrice, a.currency || 'MAD')
+            }));
+          } else {
+            // Try live scraping
+            const scraped = await GYGFetcher.searchActivities(matchingActivity.name);
+            gygMatches = scraped.map(a => ({
+              id: a.id,
+              title: a.title,
+              gygPrice: a.price,
+              currency: a.currency || 'MAD',
+              link: a.link,
+              rating: a.rating,
+              reviewCount: a.reviewCount,
+              image: a.image,
+              duration: a.duration,
+              location: a.location,
+              suggestedPrice: calculateSuggestedPrice(a.price, a.currency || 'MAD')
+            }));
+          }
+          
+          return res.json([{
+            myActivity: {
+              id: matchingActivity._id || matchingActivity.id,
+              name: matchingActivity.name,
+              price: matchingActivity.price,
+              category: matchingActivity.category
+            },
+            gygMatches: gygMatches
+          }]);
+        }
+      } catch (dbError: any) {
+        console.error('[GYG Search] Error accessing your activities:', dbError);
+        return res.status(500).json({
+          error: 'Failed to access your activities database'
+        });
+      }
+    }
     
     if (!q || typeof q !== 'string' || q.length < 3) {
       return res.status(400).json({

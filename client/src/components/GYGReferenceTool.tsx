@@ -27,6 +27,16 @@ interface GYGActivityResult {
   category?: string | null;
 }
 
+interface MyActivityWithGYG {
+  myActivity: {
+    id: string;
+    name: string;
+    price: string | number;
+    category?: string;
+  };
+  gygMatches: GYGActivityResult[];
+}
+
 // Popular Morocco activities for quick search
 const POPULAR_SEARCHES = [
   { name: 'Hot Air Balloon', query: 'Montgolfière (Hot Air Balloon)', icon: '🎈' },
@@ -43,6 +53,7 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
   const [searchQuery, setSearchQuery] = useState('');
   const [activeSearch, setActiveSearch] = useState<string>('');
   const [forceLiveScrape, setForceLiveScrape] = useState(false);
+  const [searchMode, setSearchMode] = useState<'gyg' | 'my-activities'>('gyg');
   const [recentSearches, setRecentSearches] = useState<string[]>(() => {
     // Load recent searches from localStorage
     try {
@@ -53,20 +64,38 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
     }
   });
 
-  // Fetch activities from GetYourGuide API
+  // Fetch activities from GetYourGuide API (regular search)
   const { data: searchResults, isLoading, error } = useQuery<GYGActivityResult[]>({
-    queryKey: ['gyg-search', activeSearch, forceLiveScrape],
-    enabled: activeSearch.length >= 3,
+    queryKey: ['gyg-search', activeSearch, forceLiveScrape, searchMode],
+    enabled: activeSearch.length >= 3 && searchMode === 'gyg',
     queryFn: async () => {
       const response = await api.get('/gyg/search', {
         params: {
           q: activeSearch,
-          forceRefresh: forceLiveScrape ? 'true' : 'false'
+          forceRefresh: forceLiveScrape ? 'true' : 'false',
+          useMyActivities: 'false'
         }
       });
       return response.data || [];
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  // Fetch activities based on YOUR database activities
+  const { data: myActivitiesResults, isLoading: isLoadingMyActivities, error: errorMyActivities } = useQuery<MyActivityWithGYG[]>({
+    queryKey: ['gyg-search-my-activities', activeSearch, forceLiveScrape],
+    enabled: searchMode === 'my-activities',
+    queryFn: async () => {
+      const response = await api.get('/gyg/search', {
+        params: {
+          q: activeSearch || 'all',
+          forceRefresh: forceLiveScrape ? 'true' : 'false',
+          useMyActivities: 'true'
+        }
+      });
+      return response.data || [];
+    },
+    staleTime: 5 * 60 * 1000,
   });
 
   // Generate GetYourGuide search URL
@@ -146,6 +175,37 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
           Recherchez des activités sur GetYourGuide pour comparer les prix et obtenir des idées de tarification pour vos propres activités.
         </p>
 
+        {/* Search Mode Toggle */}
+        <div className="flex gap-2 mb-4 p-2 bg-white rounded-lg border border-gray-200">
+          <button
+            onClick={() => {
+              setSearchMode('gyg');
+              setActiveSearch('');
+              setSearchQuery('');
+            }}
+            className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              searchMode === 'gyg'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            🔍 Recherche GetYourGuide
+          </button>
+          <button
+            onClick={() => {
+              setSearchMode('my-activities');
+              setActiveSearch('all');
+            }}
+            className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              searchMode === 'my-activities'
+                ? 'bg-green-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            📋 Mes Activités vs GetYourGuide
+          </button>
+        </div>
+
         {/* Search Input */}
         <div className="flex gap-2 mb-4">
           <div className="relative flex-1">
@@ -155,36 +215,70 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder="Ex: Hot Air Balloon, Desert Tour, Cooking Class..."
+              placeholder={
+                searchMode === 'my-activities'
+                  ? "Rechercher une activité spécifique (ou laisser vide pour toutes)..."
+                  : "Ex: Hot Air Balloon, Desert Tour, Cooking Class..."
+              }
               className="pl-10 h-11 bg-white"
+              disabled={searchMode === 'my-activities' && activeSearch === 'all'}
             />
           </div>
-          <Button
-            onClick={() => handleFetchActivities()}
-            disabled={!searchQuery.trim() || searchQuery.trim().length < 3}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-6 h-11"
-          >
-            {isLoading && activeSearch === searchQuery ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Recherche...
-              </>
-            ) : (
-              <>
-                <Search className="w-4 h-4 mr-2" />
-                Chercher ici
-              </>
-            )}
-          </Button>
-          <Button
-            onClick={() => handleFetchActivities(undefined, true)}
-            disabled={!searchQuery.trim() || searchQuery.trim().length < 3}
-            variant="outline"
-            className="bg-purple-50 hover:bg-purple-100 border-purple-300 text-purple-700 px-4 h-11"
-            title="Scraping en temps réel depuis GetYourGuide (plus lent mais plus précis)"
-          >
-            🔄 Live
-          </Button>
+          {searchMode === 'gyg' && (
+            <>
+              <Button
+                onClick={() => handleFetchActivities()}
+                disabled={!searchQuery.trim() || searchQuery.trim().length < 3}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-6 h-11"
+              >
+                {isLoading && activeSearch === searchQuery ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Recherche...
+                  </>
+                ) : (
+                  <>
+                    <Search className="w-4 h-4 mr-2" />
+                    Chercher ici
+                  </>
+                )}
+              </Button>
+              <Button
+                onClick={() => handleFetchActivities(undefined, true)}
+                disabled={!searchQuery.trim() || searchQuery.trim().length < 3}
+                variant="outline"
+                className="bg-purple-50 hover:bg-purple-100 border-purple-300 text-purple-700 px-4 h-11"
+                title="Scraping en temps réel depuis GetYourGuide (plus lent mais plus précis)"
+              >
+                🔄 Live
+              </Button>
+            </>
+          )}
+          {searchMode === 'my-activities' && (
+            <Button
+              onClick={() => {
+                if (searchQuery.trim().length >= 3) {
+                  setActiveSearch(searchQuery.trim());
+                } else {
+                  setActiveSearch('all');
+                }
+              }}
+              disabled={searchMode === 'my-activities' && activeSearch === 'all' && !searchQuery.trim()}
+              className="bg-green-600 hover:bg-green-700 text-white px-6 h-11"
+            >
+              {isLoadingMyActivities ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Recherche...
+                </>
+              ) : (
+                <>
+                  <Search className="w-4 h-4 mr-2" />
+                  Comparer
+                </>
+              )}
+            </Button>
+          )}
           <Button
             onClick={() => handleGYGSearch()}
             variant="outline"
@@ -275,12 +369,12 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
         </div>
       )}
 
-      {/* Search Results */}
-      {activeSearch && (
+      {/* Search Results - Regular GYG Search */}
+      {activeSearch && searchMode === 'gyg' && (
         <div className="bg-white border border-gray-200 rounded-lg p-6">
           <div className="flex items-center justify-between mb-4">
             <h4 className="text-lg font-semibold text-gray-800">
-              Résultats pour "{activeSearch}"
+              Résultats GetYourGuide pour "{activeSearch}"
             </h4>
             {searchResults && (
               <Badge variant="secondary" className="bg-blue-100 text-blue-800">
@@ -397,6 +491,167 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
                         <ExternalLink className="w-3 h-3 mr-1" />
                         Voir
                       </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Search Results - My Activities vs GetYourGuide */}
+      {searchMode === 'my-activities' && (
+        <div className="bg-white border border-gray-200 rounded-lg p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h4 className="text-lg font-semibold text-gray-800">
+              Comparaison: Mes Activités vs GetYourGuide
+            </h4>
+            {myActivitiesResults && (
+              <Badge variant="secondary" className="bg-green-100 text-green-800">
+                {myActivitiesResults.length} activité{myActivitiesResults.length > 1 ? 's' : ''} avec correspondances
+              </Badge>
+            )}
+          </div>
+
+          {isLoadingMyActivities && (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-green-600 mr-3" />
+              <span className="text-gray-600">
+                Recherche des correspondances GetYourGuide pour vos activités...
+              </span>
+            </div>
+          )}
+
+          {errorMyActivities && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-800">
+              <p className="font-semibold mb-1">Erreur de recherche</p>
+              <p className="text-sm">
+                Impossible de récupérer vos activités ou les correspondances GetYourGuide.
+              </p>
+            </div>
+          )}
+
+          {!isLoadingMyActivities && !errorMyActivities && myActivitiesResults && myActivitiesResults.length === 0 && (
+            <div className="text-center py-12 text-gray-500">
+              <p className="mb-2">Aucune correspondance trouvée sur GetYourGuide</p>
+              <p className="text-sm">
+                Vos activités ne correspondent à aucune activité trouvée sur GetYourGuide pour le moment.
+              </p>
+            </div>
+          )}
+
+          {!isLoadingMyActivities && !errorMyActivities && myActivitiesResults && myActivitiesResults.length > 0 && (
+            <div className="space-y-6">
+              {myActivitiesResults.map((item) => (
+                <Card key={item.myActivity.id} className="border-2 border-green-200">
+                  <CardContent className="p-6">
+                    {/* Your Activity */}
+                    <div className="mb-4 pb-4 border-b border-gray-200">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h5 className="text-lg font-bold text-gray-900 mb-1">
+                            {item.myActivity.name}
+                          </h5>
+                          <div className="flex items-center gap-4 text-sm text-gray-600">
+                            {item.myActivity.category && (
+                              <Badge variant="outline">{item.myActivity.category}</Badge>
+                            )}
+                            <span className="font-semibold text-green-600">
+                              Votre prix: {item.myActivity.price} MAD
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* GetYourGuide Matches */}
+                    <div>
+                      <h6 className="text-sm font-semibold text-gray-700 mb-3">
+                        Correspondances GetYourGuide ({item.gygMatches.length})
+                      </h6>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {item.gygMatches.map((gygActivity) => {
+                          const myPrice = Number(item.myActivity.price);
+                          const gygPrice = gygActivity.gygPrice;
+                          const priceDiff = myPrice - gygPrice;
+                          const priceDiffPercent = gygPrice > 0 ? Math.round((priceDiff / gygPrice) * 100) : 0;
+
+                          return (
+                            <Card
+                              key={gygActivity.id}
+                              className="hover:shadow-md transition-shadow cursor-pointer overflow-hidden border-blue-200"
+                              onClick={() => window.open(gygActivity.link, '_blank', 'noopener,noreferrer')}
+                            >
+                              {gygActivity.image && (
+                                <div className="relative h-32 bg-gray-200 overflow-hidden">
+                                  <img
+                                    src={gygActivity.image}
+                                    alt={gygActivity.title}
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                      (e.target as HTMLImageElement).style.display = 'none';
+                                    }}
+                                  />
+                                  <Badge className="absolute top-2 right-2 bg-blue-600 text-white">
+                                    GetYourGuide
+                                  </Badge>
+                                </div>
+                              )}
+                              <CardContent className="p-4">
+                                <h6 className="font-semibold text-sm text-gray-900 mb-2 line-clamp-2 h-10">
+                                  {gygActivity.title}
+                                </h6>
+                                
+                                <div className="space-y-2 mb-3">
+                                  {gygActivity.rating && (
+                                    <div className="flex items-center gap-1 text-xs text-gray-600">
+                                      <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                                      <span>{gygActivity.rating}</span>
+                                      {gygActivity.reviewCount && (
+                                        <span>({gygActivity.reviewCount.toLocaleString()})</span>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+
+                                <div className="pt-3 border-t border-gray-200">
+                                  <div className="flex items-baseline gap-2 mb-1">
+                                    <span className="text-xl font-bold text-blue-600">
+                                      {gygPrice} {gygActivity.currency}
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center justify-between">
+                                    <div className="text-xs">
+                                      {priceDiff !== 0 && (
+                                        <span className={`font-medium ${
+                                          priceDiff > 0 ? 'text-red-600' : 'text-green-600'
+                                        }`}>
+                                          {priceDiff > 0 ? '+' : ''}{priceDiff} MAD ({priceDiffPercent > 0 ? '+' : ''}{priceDiffPercent}%)
+                                        </span>
+                                      )}
+                                      {priceDiff === 0 && (
+                                        <span className="text-gray-500">Même prix</span>
+                                      )}
+                                    </div>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        window.open(gygActivity.link, '_blank', 'noopener,noreferrer');
+                                      }}
+                                      className="h-7 text-xs border-blue-300 text-blue-600 hover:bg-blue-50"
+                                    >
+                                      Voir
+                                    </Button>
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          );
+                        })}
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
