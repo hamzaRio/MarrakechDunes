@@ -1,4 +1,4 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -68,9 +68,12 @@ export default function BookingDetailsModal({ booking, isOpen, onClose }: Bookin
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" aria-describedby="booking-details-description">
         <DialogHeader>
-          <DialogTitle className="text-xl font-bold text-gray-800" id="booking-details-description">
+          <DialogTitle className="text-xl font-bold text-gray-800">
             Détails de la Réservation
           </DialogTitle>
+          <DialogDescription id="booking-details-description">
+            View complete information about this booking including customer details, activity, and payment status
+          </DialogDescription>
         </DialogHeader>
         
         <div className="space-y-6">

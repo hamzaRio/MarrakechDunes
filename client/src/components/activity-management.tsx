@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { 
   Plus, 
@@ -316,9 +316,12 @@ export default function ActivityManagement() {
             className="max-w-2xl max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
             aria-describedby="activity-form-description"
           >
-            <DialogHeader>
-              <DialogTitle className="text-gray-900 dark:text-gray-100">Create New Activity</DialogTitle>
-            </DialogHeader>
+          <DialogHeader>
+            <DialogTitle className="text-gray-900 dark:text-gray-100">Create New Activity</DialogTitle>
+            <DialogDescription id="activity-form-description" className="text-gray-600 dark:text-gray-400">
+              Fill in the details below to create a new activity for your catalog
+            </DialogDescription>
+          </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4 text-gray-900 dark:text-gray-100">
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -662,6 +665,9 @@ export default function ActivityManagement() {
         >
           <DialogHeader>
             <DialogTitle>Edit Activity</DialogTitle>
+            <DialogDescription id="edit-activity-description">
+              Update the activity details and pricing information
+            </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
