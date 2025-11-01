@@ -63,7 +63,7 @@ router.get('/search', async (req: Request, res: Response) => {
     // If useMyActivities is true, search based on your own activities
     if (useMyActivities === 'true') {
       try {
-        const { default: storage } = await import('../storage.js');
+        const { storage } = await import('../storage.js');
         const myActivities = await storage.getActivities();
         
         if (!q || q === '' || q === 'all') {
@@ -81,26 +81,12 @@ router.get('/search', async (req: Request, res: Response) => {
               // Try curated database first
               const dbMatches = MoroccoDatabase.searchActivities(myActivity.name);
               if (dbMatches.length > 0) {
-                gygMatches = dbMatches.map(a => ({
-                  id: a.id,
-                  title: a.title,
-                  gygPrice: a.price || a.gygPrice,
-                  currency: a.currency || 'MAD',
-                  link: a.link,
-                  rating: a.rating,
-                  reviewCount: a.reviewCount,
-                  image: a.image,
-                  duration: a.duration,
-                  location: a.location
-                }));
-              } else {
-                // Try live scraping
-                try {
-                  const scraped = await GYGFetcher.searchActivities(myActivity.name);
-                  gygMatches = scraped.map(a => ({
+                gygMatches = dbMatches.map((a: MoroccoActivityData) => {
+                  const price = a.price || a.gygPrice || 0;
+                  return {
                     id: a.id,
                     title: a.title,
-                    gygPrice: a.price,
+                    gygPrice: price,
                     currency: a.currency || 'MAD',
                     link: a.link,
                     rating: a.rating,
@@ -108,7 +94,27 @@ router.get('/search', async (req: Request, res: Response) => {
                     image: a.image,
                     duration: a.duration,
                     location: a.location
-                  }));
+                  };
+                });
+              } else {
+                // Try live scraping
+                try {
+                  const scraped = await GYGFetcher.searchActivities(myActivity.name);
+                  gygMatches = scraped.map((a: GYGActivity) => {
+                    const price = a.price || 0;
+                    return {
+                      id: a.id,
+                      title: a.title,
+                      gygPrice: price,
+                      currency: a.currency || 'MAD',
+                      link: a.link,
+                      rating: a.rating,
+                      reviewCount: a.reviewCount,
+                      image: a.image,
+                      duration: a.duration,
+                      location: a.location
+                    };
+                  });
                 } catch (scrapeError) {
                   // Continue without matches for this activity
                 }
@@ -122,10 +128,10 @@ router.get('/search', async (req: Request, res: Response) => {
                     price: myActivity.price,
                     category: myActivity.category
                   },
-                  gygMatches: gygMatches.map(a => ({
-                    ...a,
-                    suggestedPrice: calculateSuggestedPrice(a.gygPrice, a.currency)
-                  }))
+                gygMatches: gygMatches.map((a: any) => ({
+                  ...a,
+                  suggestedPrice: calculateSuggestedPrice(a.gygPrice || 0, a.currency || 'MAD')
+                }))
                 });
               }
             } catch (activityError) {
@@ -138,7 +144,7 @@ router.get('/search', async (req: Request, res: Response) => {
         } else {
           // Search for a specific activity from your database
           const myActivities = await storage.getActivities();
-          const matchingActivity = myActivities.find(a => 
+          const matchingActivity = myActivities.find((a: any) => 
             a.name.toLowerCase().includes((q as string).toLowerCase()) ||
             (q as string).toLowerCase().includes(a.name.toLowerCase())
           );
@@ -158,35 +164,41 @@ router.get('/search', async (req: Request, res: Response) => {
           // Try curated database
           const dbMatches = MoroccoDatabase.searchActivities(matchingActivity.name);
           if (dbMatches.length > 0) {
-            gygMatches = dbMatches.map(a => ({
-              id: a.id,
-              title: a.title,
-              gygPrice: a.price || a.gygPrice,
-              currency: a.currency || 'MAD',
-              link: a.link,
-              rating: a.rating,
-              reviewCount: a.reviewCount,
-              image: a.image,
-              duration: a.duration,
-              location: a.location,
-              suggestedPrice: calculateSuggestedPrice(a.price || a.gygPrice, a.currency || 'MAD')
-            }));
+            gygMatches = dbMatches.map((a: MoroccoActivityData) => {
+              const price = a.price || a.gygPrice || 0;
+              return {
+                id: a.id,
+                title: a.title,
+                gygPrice: price,
+                currency: a.currency || 'MAD',
+                link: a.link,
+                rating: a.rating,
+                reviewCount: a.reviewCount,
+                image: a.image,
+                duration: a.duration,
+                location: a.location,
+                suggestedPrice: calculateSuggestedPrice(price, a.currency || 'MAD')
+              };
+            });
           } else {
             // Try live scraping
             const scraped = await GYGFetcher.searchActivities(matchingActivity.name);
-            gygMatches = scraped.map(a => ({
-              id: a.id,
-              title: a.title,
-              gygPrice: a.price,
-              currency: a.currency || 'MAD',
-              link: a.link,
-              rating: a.rating,
-              reviewCount: a.reviewCount,
-              image: a.image,
-              duration: a.duration,
-              location: a.location,
-              suggestedPrice: calculateSuggestedPrice(a.price, a.currency || 'MAD')
-            }));
+            gygMatches = scraped.map((a: GYGActivity) => {
+              const price = a.price || 0;
+              return {
+                id: a.id,
+                title: a.title,
+                gygPrice: price,
+                currency: a.currency || 'MAD',
+                link: a.link,
+                rating: a.rating,
+                reviewCount: a.reviewCount,
+                image: a.image,
+                duration: a.duration,
+                location: a.location,
+                suggestedPrice: calculateSuggestedPrice(price, a.currency || 'MAD')
+              };
+            });
           }
           
           return res.json([{
