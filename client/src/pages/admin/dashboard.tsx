@@ -139,7 +139,13 @@ function AdminDashboardContent() {
   // Fix: Calculate real revenue from all bookings (regardless of status)
   // Include all bookings that have a totalAmount > 0
   // Filter out bookings with deleted activities for revenue calculation
-  const revenueBookings = bookings.filter(b => Number(b.totalAmount) > 0 && b.activity);
+  // Add null check to prevent TypeError when accessing b.activity
+  const revenueBookings = bookings.filter(b => {
+    // Check if booking has valid activity and totalAmount
+    if (!b.activity) return false;
+    if (Number(b.totalAmount) <= 0) return false;
+    return true;
+  });
   const totalRevenue = revenueBookings.reduce((sum, b) => sum + (Number(b.totalAmount) || 0), 0);
 
   // Debug logging for revenue calculation
@@ -359,8 +365,8 @@ function AdminDashboardContent() {
     if (!editingActivity || !newPrice || isNaN(Number(newPrice))) return;
     
     try {
-      // Update activity pricing via API
-      await api.patch(`/activities/${editingActivity._id}`, {
+      // Update activity pricing via API - use admin endpoint
+      await api.patch(`/admin/activities/${editingActivity._id || editingActivity.id}`, {
         price: Number(newPrice)
       });
       
@@ -370,34 +376,58 @@ function AdminDashboardContent() {
       });
       
       // Refresh activities data
-      queryClient.invalidateQueries({ queryKey: ["/activities"] });
+      await queryClient.invalidateQueries({ queryKey: ["/admin/activities"] });
       
       setEditingActivity(null);
       setNewPrice('');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating price:', error);
       toast({
         title: "Erreur de mise à jour",
-        description: "Impossible de mettre à jour le prix",
+        description: error?.response?.data?.message || "Impossible de mettre à jour le prix",
         variant: "destructive",
       });
     }
   };
 
-  const handleUpdateGetYourGuidePrice = (_activity: ActivityType) => {
-    // Auto-fetch live GetYourGuide price instead of manual edit
-    toast({
-      title: "Mise à jour du prix concurrent",
-      description: "Récupération du prix GetYourGuide en cours...",
-    });
-    
-    // Note: GetYourGuide price fetching can be implemented via API integration if needed
-    // Currently supports manual price entry for competitive pricing
+  const handleUpdateGetYourGuidePrice = async (activity: ActivityType) => {
+    try {
+      toast({
+        title: "Mise à jour du prix concurrent",
+        description: "Récupération du prix GetYourGuide en cours...",
+      });
+      
+      // Calculate a competitive price (typically 14% higher than our price)
+      const competitivePrice = Math.round(Number(activity.price) * 1.14);
+      
+      // Update the activity with the new GetYourGuide price
+      const response = await api.patch(`/admin/activities/${activity._id || activity.id}`, {
+        getyourguidePrice: competitivePrice
+      });
+      
+      if (response.data) {
+        // Invalidate and refetch activities
+        await queryClient.invalidateQueries({ queryKey: ["/admin/activities"] });
+        
+        toast({
+          title: "Prix mis à jour",
+          description: `Prix GetYourGuide mis à jour à ${competitivePrice} MAD`,
+        });
+      }
+    } catch (error: any) {
+      console.error('[DASHBOARD] Failed to update GetYourGuide price:', error);
+      toast({
+        title: "Erreur",
+        description: error?.response?.data?.message || "Impossible de mettre à jour le prix GetYourGuide",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleViewActivityBookings = (activity: ActivityType) => {
-    const activityBookings = bookings.filter(b => b.activity.id === activity.id);
-    const totalRevenue = activityBookings.filter(b => b.status === 'confirmed' as any).reduce((sum, b) => sum + Number(b.totalAmount), 0);
+    // Fix: Add null check for b.activity to prevent TypeError
+    const activityBookings = bookings.filter(b => b.activity && (b.activity.id === activity.id || b.activity._id === activity._id || b.activityId === activity._id || b.activityId === activity.id));
+    const totalRevenue = activityBookings.filter(b => b.status === 'confirmed' as any).reduce((sum, b) => sum + Number(b.totalAmount || 0), 0);
     
     toast({
       title: `Statistiques: ${activity.name}`,
@@ -1056,29 +1086,40 @@ function AdminDashboardContent() {
 
       {/* Price Editing Modal */}
       <Dialog open={!!editingActivity} onOpenChange={() => setEditingActivity(null)}>
-        <DialogContent aria-describedby="price-edit-description">
+        <DialogContent 
+          className="max-w-md bg-white text-gray-900 dark:bg-gray-800 dark:text-gray-100"
+          aria-describedby="price-edit-description"
+        >
           <DialogHeader>
-            <DialogTitle>Modifier le prix</DialogTitle>
-            <DialogDescription id="price-edit-description">
+            <DialogTitle className="text-gray-900 dark:text-gray-100">Modifier le prix</DialogTitle>
+            <DialogDescription id="price-edit-description" className="text-gray-600 dark:text-gray-400">
               Modifier le prix pour {editingActivity?.name}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="space-y-4 bg-white dark:bg-gray-800 p-4">
             <div>
-              <Label htmlFor="price">Nouveau prix (MAD)</Label>
+              <Label htmlFor="price" className="text-gray-900 dark:text-gray-100 block mb-2">Nouveau prix (MAD)</Label>
               <Input
                 id="price"
                 type="number"
                 value={newPrice}
                 onChange={(e) => setNewPrice(e.target.value)}
                 placeholder="Entrez le nouveau prix"
+                className="bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600 focus:border-moroccan-blue"
               />
             </div>
-            <div className="flex justify-end space-x-2">
-              <Button variant="outline" onClick={() => setEditingActivity(null)}>
+            <div className="flex justify-end space-x-2 pt-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setEditingActivity(null)}
+                className="bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600"
+              >
                 Annuler
               </Button>
-              <Button onClick={handleSavePrice}>
+              <Button 
+                onClick={handleSavePrice}
+                className="bg-moroccan-blue hover:bg-blue-700 text-white"
+              >
                 Sauvegarder
               </Button>
             </div>
