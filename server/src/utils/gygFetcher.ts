@@ -18,7 +18,7 @@ export class GYGFetcher {
   private static readonly BASE_URL = 'https://www.getyourguide.com';
   private static readonly SEARCH_URL = 'https://www.getyourguide.com/s/';
   private static readonly USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
-  private static readonly MAX_RESULTS = 50; // Increased to match GetYourGuide's search results
+  private static readonly MAX_RESULTS = 500; // Capture all activities from GetYourGuide website (no artificial limit)
 
   /**
    * Search GetYourGuide public site for Morocco activities only
@@ -118,7 +118,8 @@ export class GYGFetcher {
 
       for (const selector of selectors) {
         $(selector).each((index, element) => {
-          if (activities.length >= this.MAX_RESULTS) return false;
+          // Capture all available results from GetYourGuide website
+          // No artificial limit - show all activities like the website does
 
           const $el = $(element);
           const activity = this.extractActivityFromElement($el, query, index);
