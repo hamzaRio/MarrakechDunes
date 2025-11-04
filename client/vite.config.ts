@@ -90,13 +90,15 @@ export default defineConfig(({ mode }) => {
     },
     build: {
       outDir: 'dist',
-      sourcemap: true, // Enable sourcemaps for debugging
+      sourcemap: true,
       minify: 'esbuild',
       chunkSizeWarningLimit: 2000,
       rollupOptions: {
         output: {
-          // Disable manual chunking to prevent initialization errors
-          // Let Vite handle chunking automatically
+          manualChunks: {
+            react: ['react', 'react-dom'],
+            tanstack: ['@tanstack/react-query'],
+          },
         },
       },
     },
