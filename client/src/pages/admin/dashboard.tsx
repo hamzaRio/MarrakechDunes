@@ -18,7 +18,6 @@ import { getAssetUrl } from "@/lib/utils";
 import PaymentManagement from "@/components/payment-management";
 import { WhatsAppNotificationPanel } from "@/components/whatsapp-notification-panel";
 import FreeNotificationPanel from "@/components/free-notification-panel";
-import CustomerMessageInput from "@/components/customer-message-input";
 import SimpleActivityForm from "@/components/simple-activity-form-v2";
 import GYGReferenceTool from "@/components/GYGReferenceTool";
 // Removed BookingTest - was only for testing
@@ -962,9 +961,6 @@ function AdminDashboardContent() {
             <TabsContent value="whatsapp" className="space-y-4">
               {/* FREE Notification Queue - Shows all pending WhatsApp messages */}
               <FreeNotificationPanel />
-              
-              {/* Test Auto-Response - Enter customer messages */}
-              <CustomerMessageInput />
               
               {/* Existing WhatsApp Panel (for manual messages) */}
               <Card>
