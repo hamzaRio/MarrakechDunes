@@ -22,7 +22,9 @@ export default function AdminRoute({ children, requireSuperAdmin = false }: Admi
 
     // Layer 2: Check if user is authenticated
     if (!isAuthenticated) {
-      console.warn('[SECURITY] Unauthenticated access attempt blocked');
+      if (import.meta.env.DEV) {
+        console.warn('[SECURITY] Unauthenticated access attempt blocked');
+      }
       
       // Check localStorage as fallback
       const localUser = JSON.parse(localStorage.getItem('user') || 'null');
@@ -57,7 +59,9 @@ export default function AdminRoute({ children, requireSuperAdmin = false }: Admi
 
     // Layer 3: Verify user has valid role
     if (!user || (user.role !== 'admin' && user.role !== 'superadmin')) {
-      console.warn('[SECURITY] Invalid role access attempt blocked:', user?.role);
+      if (import.meta.env.DEV) {
+        console.warn('[SECURITY] Invalid role access attempt blocked:', user?.role);
+      }
       
       // Clear authentication data
       localStorage.removeItem('user');
@@ -74,12 +78,14 @@ export default function AdminRoute({ children, requireSuperAdmin = false }: Admi
       return;
     }
 
-    // Layer 4: Log successful admin access
-    console.log('[SECURITY] Admin access granted:', {
-      user: user.username || user.id,
-      role: user.role,
-      timestamp: new Date().toISOString()
-    });
+    // Layer 4: Log successful admin access (DEV only)
+    if (import.meta.env.DEV) {
+      console.log('[SECURITY] Admin access granted:', {
+        user: user.username || user.id,
+        role: user.role,
+        timestamp: new Date().toISOString()
+      });
+    }
 
   }, [isAuthenticated, isLoading, user, toast, setLocation]);
 

@@ -51,7 +51,9 @@ function AdminDashboardContent() {
   
   // ENHANCED SECURITY: Multiple authentication checks - NO BYPASSING
   if (!authLoading && !user) {
-    console.warn('[SECURITY] Dashboard access denied - no user');
+    if (import.meta.env.DEV) {
+      console.warn('[SECURITY] Dashboard access denied - no user');
+    }
     // Check localStorage as fallback
     const localUser = JSON.parse(localStorage.getItem('user') || 'null');
     if (!localUser) {
@@ -67,7 +69,9 @@ function AdminDashboardContent() {
 
   // Additional role verification
   if (!authLoading && user && user.role !== 'admin' && user.role !== 'superadmin') {
-    console.warn('[SECURITY] Dashboard access denied - invalid role:', user.role);
+    if (import.meta.env.DEV) {
+      console.warn('[SECURITY] Dashboard access denied - invalid role:', user.role);
+    }
     // Clear authentication data
     localStorage.removeItem('user');
     localStorage.removeItem('auth-token');
@@ -150,18 +154,20 @@ function AdminDashboardContent() {
   });
   const totalRevenue = revenueBookings.reduce((sum, b) => sum + (Number(b.totalAmount) || 0), 0);
 
-  // Debug logging for revenue calculation
-  console.log('[REVENUE DEBUG]', {
-    totalBookings: bookings.length,
-    revenueBookings: revenueBookings.length,
-    allBookingsData: bookings.map(b => ({
-      id: b._id,
-      status: b.status,
-      totalAmount: b.totalAmount,
-      paidAmount: b.paidAmount
-    })),
-    calculatedRevenue: totalRevenue
-  });
+  // Debug logging for revenue calculation (DEV only)
+  if (import.meta.env.DEV) {
+    console.log('[REVENUE DEBUG]', {
+      totalBookings: bookings.length,
+      revenueBookings: revenueBookings.length,
+      allBookingsData: bookings.map(b => ({
+        id: b._id,
+        status: b.status,
+        totalAmount: b.totalAmount,
+        paidAmount: b.paidAmount
+      })),
+      calculatedRevenue: totalRevenue
+    });
+  }
 
   const pendingBookings = bookings.filter(b => b.status === 'pending' as any).length;
   const confirmedBookings = bookings.filter(b => b.status === 'confirmed' as any).length;
