@@ -66,9 +66,12 @@ export default function ActivityCard({ activity, showDescription = false }: Acti
 
   const handleCardClick = () => {
     // Navigate to activity detail page
-    const activityId = activity._id || activity.id;
+    // Ensure we get the ID as a string, handling both _id and id properties
+    const activityId = String(activity._id || activity.id || '').trim();
     if (activityId) {
       setLocation(`/activity/${activityId}`);
+    } else {
+      console.error('[ActivityCard] No valid activity ID found:', activity);
     }
   };
 
@@ -102,6 +105,14 @@ export default function ActivityCard({ activity, showDescription = false }: Acti
               console.log('Image loaded successfully:', primaryImage);
 
             }
+
+          }}
+
+          onClick={(e) => {
+
+            e.stopPropagation(); // Prevent double navigation
+
+            handleCardClick(); // Navigate to activity detail when clicking main image
 
           }}
 
@@ -276,7 +287,19 @@ export default function ActivityCard({ activity, showDescription = false }: Acti
 
           onBookNow={() => {
 
-            window.location.href = `/booking?activity=${activity.id || activity._id}`;
+            // Ensure we get the ID as a string, handling both _id and id properties
+
+            const activityId = String(activity._id || activity.id || '').trim();
+
+            if (activityId) {
+
+              window.location.href = `/booking?activity=${activityId}`;
+
+            } else {
+
+              console.error('[ActivityCard] No valid activity ID for booking:', activity);
+
+            }
 
           }}
 
