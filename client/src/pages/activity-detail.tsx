@@ -32,8 +32,15 @@ export default function ActivityDetail() {
         throw new Error(`Failed to fetch activity: ${response.statusText}`);
       }
       const data = await response.json();
-      if (!data || !data._id) {
+      // Validate that we have activity data with an ID
+      if (!data || (!data._id && !data.id)) {
+        if (import.meta.env.DEV) {
+          console.error('[ActivityDetail] Invalid activity data received:', data);
+        }
         throw new Error("Activity not found");
+      }
+      if (import.meta.env.DEV) {
+        console.log('[ActivityDetail] Activity loaded successfully:', { id: data._id || data.id, name: data.name });
       }
       return data;
     },
@@ -50,16 +57,18 @@ export default function ActivityDetail() {
   const galleryImages = getActivityImages(images, activity?.name || '');
   const primaryImage = galleryImages[0] || getActivityFallbackImage(activity?.name || '');
 
-  // Auto-redirect to activities page if activity not found
+  // Auto-redirect to activities page if activity not found (only on actual error, not during loading)
   useEffect(() => {
-    if (!isLoading && (error || !activity)) {
+    // Only redirect if we're not loading AND there's an actual error
+    // Don't redirect if we're still loading or if activity is just undefined during initial load
+    if (!isLoading && error) {
       // Redirect after a short delay to show error message briefly
       const timer = setTimeout(() => {
         setLocation("/activities");
       }, 2000); // 2 second delay
       return () => clearTimeout(timer);
     }
-  }, [isLoading, error, activity, setLocation]);
+  }, [isLoading, error, setLocation]);
 
   if (isLoading) {
     return (
@@ -75,7 +84,9 @@ export default function ActivityDetail() {
     );
   }
 
-  if (error || !activity) {
+  // Only show error if we're not loading and there's an actual error
+  // Don't show error during initial load when activity is undefined
+  if (!isLoading && error) {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar />
@@ -91,6 +102,21 @@ export default function ActivityDetail() {
               </Button>
             </CardContent>
           </Card>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  // If still loading, show loading state (already handled above, but keep for safety)
+  if (isLoading || !activity) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <Navbar />
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex items-center justify-center h-64">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-moroccan-blue"></div>
+          </div>
         </div>
         <Footer />
       </div>
