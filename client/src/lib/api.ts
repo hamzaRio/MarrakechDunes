@@ -160,7 +160,7 @@ export async function logout(): Promise<void> {
 }
 
 /**
- * Legacy apiFetch function
+ * Legacy apiFetch function - Fixed to properly handle CORS and errors
  * @param url - API endpoint URL
  * @param options - Request options
  * @returns Promise<Response>
@@ -176,14 +176,92 @@ export async function apiFetch(url: string, options?: {
   const data = options?.data;
   const headers = options?.headers || (body || data ? { "Content-Type": "application/json" } : {});
 
-  const response = await axios.request({
-    url,
-    method: method as any,
-    headers,
-    data: data || body,
-  });
+  try {
+    const response = await axios.request({
+      url,
+      method: method as any,
+      headers,
+      data: data || body,
+    });
 
-  return response as any;
+    // Convert axios response to Fetch-like Response object
+    return {
+      ok: response.status >= 200 && response.status < 300,
+      status: response.status,
+      statusText: response.statusText,
+      headers: response.headers as any,
+      json: async () => response.data,
+      text: async () => JSON.stringify(response.data),
+      blob: async () => new Blob([JSON.stringify(response.data)]),
+      arrayBuffer: async () => new ArrayBuffer(0),
+      clone: () => {
+        throw new Error('Response.clone() not implemented');
+      },
+      redirected: false,
+      type: 'default' as ResponseType,
+      url: response.config.url || url,
+      body: null,
+      bodyUsed: false,
+    } as Response;
+  } catch (error: any) {
+    // Handle CORS and network errors
+    if (error.code === 'ERR_NETWORK' || error.message?.includes('CORS') || error.message?.includes('Network Error')) {
+      if (import.meta.env.DEV) {
+        console.error('[API] CORS/Network error:', {
+          url,
+          method,
+          baseURL: apiBaseURL,
+          error: error.message,
+          code: error.code
+        });
+      }
+      
+      // Return a Response-like object that indicates failure
+      return {
+        ok: false,
+        status: 0,
+        statusText: 'Network Error',
+        headers: {} as any,
+        json: async () => ({ error: 'Network error - CORS or connection failed', message: error.message }),
+        text: async () => JSON.stringify({ error: 'Network error - CORS or connection failed', message: error.message }),
+        blob: async () => new Blob([JSON.stringify({ error: 'Network error', message: error.message })]),
+        arrayBuffer: async () => new ArrayBuffer(0),
+        clone: () => {
+          throw new Error('Response.clone() not implemented');
+        },
+        redirected: false,
+        type: 'error' as ResponseType,
+        url: url,
+        body: null,
+        bodyUsed: false,
+      } as Response;
+    }
+
+    // Handle axios errors with response
+    if (error.response) {
+      return {
+        ok: error.response.status >= 200 && error.response.status < 300,
+        status: error.response.status,
+        statusText: error.response.statusText,
+        headers: error.response.headers as any,
+        json: async () => error.response.data,
+        text: async () => JSON.stringify(error.response.data),
+        blob: async () => new Blob([JSON.stringify(error.response.data)]),
+        arrayBuffer: async () => new ArrayBuffer(0),
+        clone: () => {
+          throw new Error('Response.clone() not implemented');
+        },
+        redirected: false,
+        type: 'default' as ResponseType,
+        url: error.config?.url || url,
+        body: null,
+        bodyUsed: false,
+      } as Response;
+    }
+
+    // Re-throw other errors
+    throw error;
+  }
 }
 
 // Make clearAuthData available globally for debugging
