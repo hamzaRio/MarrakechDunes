@@ -31,8 +31,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Upload, Search } from "lucide-react";
+import { Plus, Upload, Search, X, Link as LinkIcon } from "lucide-react";
 import { ObjectUploader } from "@/components/ObjectUploader";
+import { apiRequest } from "@/lib/queryClient";
 // Removed GYGReferenceTool - not needed for simple form
 import type { ActivityType } from "marrakechdunes-shared/schema";
 
@@ -146,7 +147,39 @@ export default function SimpleActivityForm({
   };
 
   const handleImageUpload = (urls: string[]) => {
-    setImages(urls);
+    setImages(prev => [...prev, ...urls]);
+  };
+
+  const handleAddImageUrl = () => {
+    const urlInput = document.getElementById('image-url-input') as HTMLInputElement;
+    const url = urlInput?.value?.trim();
+    if (url && isValidImageUrl(url)) {
+      setImages(prev => [...prev, url]);
+      urlInput.value = '';
+      toast({
+        title: "Image URL Added",
+        description: "Image URL has been added successfully",
+      });
+    } else {
+      toast({
+        title: "Invalid URL",
+        description: "Please enter a valid image URL",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleRemoveImage = (index: number) => {
+    setImages(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const isValidImageUrl = (url: string): boolean => {
+    try {
+      const urlObj = new URL(url);
+      return urlObj.protocol === 'http:' || urlObj.protocol === 'https:';
+    } catch {
+      return false;
+    }
   };
 
   return (
@@ -325,16 +358,87 @@ export default function SimpleActivityForm({
             </div>
 
             {/* Upload d'Images */}
-            <div className="space-y-2">
+            <div className="space-y-4">
               <FormLabel>Images de l'Activité</FormLabel>
+              
+              {/* URL Input for Internet Images */}
+              <div className="space-y-2">
+                <div className="flex gap-2">
+                  <Input
+                    id="image-url-input"
+                    type="url"
+                    placeholder="https://example.com/image.jpg"
+                    className="flex-1"
+                  />
+                  <Button
+                    type="button"
+                    onClick={handleAddImageUrl}
+                    variant="outline"
+                    className="gap-2"
+                  >
+                    <LinkIcon className="h-4 w-4" />
+                    Add URL
+                  </Button>
+                </div>
+                <p className="text-xs text-gray-500">
+                  Or upload from your computer below
+                </p>
+              </div>
+
+              {/* File Upload */}
               <ObjectUploader
+                maxNumberOfFiles={5}
+                maxFileSize={10485760} // 10MB
+                onGetUploadParameters={async () => {
+                  const res = await apiRequest("/api/objects/upload", {
+                    method: "POST"
+                  });
+                  const data = await res.json();
+                  return {
+                    method: "PUT" as const,
+                    url: data.uploadURL,
+                  };
+                }}
                 onUpload={handleImageUpload}
-                // existingUrls={images} // Not supported in current ObjectUploader
-                maxFiles={5}
-                acceptedFileTypes={["image/jpeg", "image/png", "image/webp"]}
-              />
+                buttonClassName="w-full"
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                Upload Images from Desktop
+              </ObjectUploader>
+
+              {/* Display Current Images */}
+              {images.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">Current Images ({images.length}/5):</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    {images.map((imageUrl, index) => (
+                      <div key={index} className="relative group">
+                        <img
+                          src={imageUrl}
+                          alt={`Activity image ${index + 1}`}
+                          className="w-full h-24 object-cover rounded-md border border-gray-300"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect width="100" height="100" fill="%23ddd"/%3E%3Ctext x="50" y="50" text-anchor="middle" dy=".3em" fill="%23999"%3EInvalid Image%3C/text%3E%3C/svg%3E';
+                          }}
+                        />
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="destructive"
+                          className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6 p-0"
+                          onClick={() => handleRemoveImage(index)}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <p className="text-sm text-gray-500">
-                Téléchargez jusqu'à 5 images (JPEG, PNG, WebP)
+                Maximum 5 images (JPEG, PNG, WebP) - Upload from desktop or add URLs from internet
               </p>
             </div>
 

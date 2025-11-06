@@ -28,7 +28,6 @@ const CEODashboard = lazy(() => import("@/pages/admin/ceo-dashboard"));
 const AdminAccessGuide = lazy(() => import("@/components/admin-access-guide"));
 const CustomerPortal = lazy(() => import("@/pages/customer-portal"));
 const BusinessIntelligence = lazy(() => import("@/pages/admin/business-intelligence"));
-const AddActivity = lazy(() => import("@/pages/add-activity"));
 const NotFound = lazy(() => import("@/pages/not-found"));
 
 type LazyComponent = LazyExoticComponent<ComponentType<Record<string, unknown>>>;
@@ -94,7 +93,6 @@ function Router() {
       <Route path="/admin" component={withSecurity(AdminDashboard, ADMIN_ROUTE)} />
       <Route path="/admin/business-intelligence" component={withSecurity(BusinessIntelligence, ADMIN_ROUTE)} />
       <Route path="/admin/access-guide" component={withSecurity(AdminAccessGuide, PUBLIC_ROUTE)} />
-      <Route path="/add-activity" component={withSecurity(AddActivity, ADMIN_ROUTE)} />
       <Route path="/customer" component={withSecurity(CustomerPortal, PUBLIC_ROUTE)} />
       <Route component={withSecurity(NotFound, PUBLIC_ROUTE)} />
     </Switch>

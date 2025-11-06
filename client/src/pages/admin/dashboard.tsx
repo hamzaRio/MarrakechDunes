@@ -17,7 +17,6 @@ import { ensureArray } from "@/lib/ensureArray";
 import { getAssetUrl } from "@/lib/utils";
 import PaymentManagement from "@/components/payment-management";
 import { WhatsAppNotificationPanel } from "@/components/whatsapp-notification-panel";
-import FreeNotificationPanel from "@/components/free-notification-panel";
 import SimpleActivityForm from "@/components/simple-activity-form-v2";
 import GYGReferenceTool from "@/components/GYGReferenceTool";
 // Removed BookingTest - was only for testing
@@ -509,7 +508,7 @@ function AdminDashboardContent() {
                         <p className="text-gray-600">Bienvenue, {user?.username} 👋</p>
               </div>
               <div className="flex gap-3">
-                <Link href="/add-activity">
+                <SimpleActivityForm mode="create" trigger={
                   <Button 
                     variant="outline" 
                     className="border-green-500 text-green-500 hover:bg-green-500 hover:text-white"
@@ -517,7 +516,7 @@ function AdminDashboardContent() {
                     <Plus className="h-4 w-4 mr-2" />
                     Add Activity
                   </Button>
-                </Link>
+                } />
                 <Link href="/">
                   <Button 
                     variant="outline" 
@@ -959,9 +958,6 @@ function AdminDashboardContent() {
             </TabsContent>
 
             <TabsContent value="whatsapp" className="space-y-4">
-              {/* FREE Notification Queue - Shows all pending WhatsApp messages */}
-              <FreeNotificationPanel />
-              
               {/* Existing WhatsApp Panel (for manual messages) */}
               <Card>
                 <CardHeader>
