@@ -2,7 +2,7 @@ import express from 'express';
 import { z } from 'zod';
 import { PaymentStatus, PaymentType } from '../types/finance.js';
 import { storage } from '../storage.js';
-import { twilioService } from '../services/twilio-service.js';
+// Twilio removed - using free notification queue only
 
 const router = express.Router();
 
@@ -38,37 +38,23 @@ router.post('/', async (req, res) => {
     
     const booking = await storage.createBooking(bookingData);
     
-    // Send WhatsApp confirmation (FREE MODE: Adds to notification queue)
+    // Send WhatsApp confirmation via FREE notification queue
     try {
       // Fetch activity name for confirmation
       const activity = await storage.getActivity(bookingData.activityId);
       const activityName = activity?.name || 'Activity';
       
-      // Try Twilio first (if configured)
-      const sent = await twilioService.sendBookingConfirmation({
-        customerPhone: bookingData.customerPhone,
-        customerName: bookingData.customerName,
-        activityName: activityName,
-        preferredDate: bookingData.preferredDate,
-        numberOfPeople: bookingData.numberOfPeople,
-        totalAmount: bookingData.totalAmount,
-        depositAmount: bookingData.depositAmount,
-        paymentMethod: bookingData.paymentMethod
+      const { freeNotificationQueue } = await import('../services/free-notification-queue.js');
+      const date = new Date(bookingData.preferredDate).toLocaleDateString('en-US', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
       });
+      const total = typeof bookingData.totalAmount === 'string' ? bookingData.totalAmount : `${bookingData.totalAmount} MAD`;
+      const deposit = bookingData.depositAmount ? `${bookingData.depositAmount} MAD` : null;
 
-      // If Twilio not configured, add to FREE notification queue
-      if (!sent) {
-        const { freeNotificationQueue } = await import('../services/free-notification-queue.js');
-        const date = new Date(bookingData.preferredDate).toLocaleDateString('en-US', { 
-          weekday: 'long', 
-          year: 'numeric', 
-          month: 'long', 
-          day: 'numeric' 
-        });
-        const total = typeof bookingData.totalAmount === 'string' ? bookingData.totalAmount : `${bookingData.totalAmount} MAD`;
-        const deposit = bookingData.depositAmount ? `${bookingData.depositAmount} MAD` : null;
-
-        const message = `🎉 *Booking Confirmed!*
+      const message = `🎉 *Booking Confirmed!*
 
 Activity: ${activityName}
 Date: ${date}
@@ -81,21 +67,20 @@ We'll send you a reminder 24 hours before your activity!
 
 Thank you for choosing MarrakechDunes! 🏜️`.trim();
 
-        freeNotificationQueue.addNotification({
-          type: 'booking_confirmation',
-          customerPhone: bookingData.customerPhone,
-          customerName: bookingData.customerName,
-          message,
-          whatsappLink: freeNotificationQueue.generateWhatsAppLink(bookingData.customerPhone, message),
-          priority: 'high',
-          bookingId: booking._id || booking.id,
-          metadata: {
-            activityName,
-            date: bookingData.preferredDate,
-            amount: bookingData.depositAmount
-          }
-        });
-      }
+      freeNotificationQueue.addNotification({
+        type: 'booking_confirmation',
+        customerPhone: bookingData.customerPhone,
+        customerName: bookingData.customerName,
+        message,
+        whatsappLink: freeNotificationQueue.generateWhatsAppLink(bookingData.customerPhone, message),
+        priority: 'high',
+        bookingId: booking._id || booking.id,
+        metadata: {
+          activityName,
+          date: bookingData.preferredDate,
+          amount: bookingData.depositAmount
+        }
+      });
     } catch (notificationError) {
       // Don't fail booking creation if notification fails
       console.error('[BOOKINGS] Failed to send confirmation:', notificationError);
@@ -194,16 +179,31 @@ router.post('/:id/payment', async (req, res) => {
       paymentMethod: paymentMethod,
     });
 
-    // Send payment confirmation via WhatsApp (async)
+    // Send payment confirmation via FREE notification queue (async)
     try {
       const activity = booking.activity ? await storage.getActivity((booking.activity as any)._id || (booking.activity as any).id) : null;
-      await twilioService.sendPaymentConfirmation({
+      const { freeNotificationQueue } = await import('../services/free-notification-queue.js');
+      const remaining = total - newPaid;
+      
+      const message = `✅ *Payment Received!*
+
+Activity: ${activity?.name || 'Activity'}
+Paid: ${newPaid} MAD${remaining > 0 ? `\nRemaining: ${remaining} MAD` : '\n✅ Fully Paid'}
+
+Thank you for your payment! See you at your activity! 🎉`.trim();
+
+      freeNotificationQueue.addNotification({
+        type: 'payment_confirmation',
         customerPhone: booking.customerPhone,
         customerName: booking.customerName,
-        activityName: activity?.name || 'Activity',
-        paidAmount: newPaid,
-        totalAmount: total,
-        paymentStatus: status
+        message,
+        whatsappLink: freeNotificationQueue.generateWhatsAppLink(booking.customerPhone, message),
+        priority: 'medium',
+        bookingId: booking._id || booking.id,
+        metadata: {
+          activityName: activity?.name || 'Activity',
+          amount: newPaid
+        }
       });
     } catch (notificationError) {
       console.error('[BOOKINGS] Failed to send payment confirmation:', notificationError);

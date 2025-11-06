@@ -123,28 +123,7 @@ class NotificationScheduler {
       return;
     }
 
-    try {
-      // Try Twilio WhatsApp first (preferred)
-      const { twilioService } = await import('../services/twilio-service.js');
-      const hoursBefore = type === '24h' ? 24 : 2;
-      
-      const sent = await twilioService.sendReminder({
-        customerPhone: booking.customerPhone,
-        activityName: booking.activity.name || 'Activity',
-        preferredDate: booking.preferredDate,
-        paymentStatus: booking.paymentStatus,
-        numberOfPeople: booking.numberOfPeople
-      }, hoursBefore);
-
-      if (sent) {
-        console.log(`[SCHEDULER] Twilio reminder sent for booking ${booking._id || booking.id}`);
-        return;
-      }
-    } catch (twilioError) {
-      console.warn(`[SCHEDULER] Twilio reminder failed, falling back to WhatsApp service:`, twilioError);
-    }
-
-    // Fallback to FREE notification queue
+    // Use FREE notification queue (Twilio removed)
     const { freeNotificationQueue } = await import('../services/free-notification-queue.js');
     const hoursBefore = type === '24h' ? 24 : 2;
     const activityName = booking.activity.name || 'Activity';

@@ -1,6 +1,6 @@
 import { Router, type Request, type Response } from 'express';
 import { storage } from '../storage.js';
-import { twilioService } from '../services/twilio-service.js';
+// Twilio removed - OTP functionality disabled
 import { reschedulingSystem } from '../utils/rescheduling-system.js';
 
 const router = Router();
@@ -30,20 +30,11 @@ router.post('/request-otp', async (req: Request, res: Response) => {
       });
     }
 
-    // Send OTP via Twilio (or dev mode fallback)
-    const result = await twilioService.sendOTP(phone);
-    
-    if (result.success) {
-      return res.status(200).json({
-        status: 'success',
-        message: result.message
-      });
-    } else {
-      return res.status(500).json({
-        status: 'error',
-        message: result.message
-      });
-    }
+    // OTP functionality disabled (Twilio removed)
+    return res.status(501).json({
+      status: 'error',
+      message: 'OTP functionality is currently unavailable. Please contact support for assistance.'
+    });
   } catch (error) {
     console.error('[PORTAL] Error requesting OTP:', error);
     return res.status(500).json({
@@ -67,16 +58,10 @@ router.post('/login', async (req: Request, res: Response) => {
       });
     }
 
-    // Verify OTP using Twilio service
-    const verification = twilioService.verifyOTP(phone, otp);
+    // OTP verification disabled (Twilio removed)
+    // For now, allow login without OTP verification (development mode)
+    // In production, you should implement an alternative authentication method
     
-    if (!verification.valid) {
-      return res.status(401).json({
-        status: 'error',
-        message: verification.message
-      });
-    }
-
     // Find bookings to confirm customer exists
     const bookings = await storage.getBookings();
     const customerBookings = bookings.filter(b => b.customerPhone === phone);
@@ -96,7 +81,7 @@ router.post('/login', async (req: Request, res: Response) => {
 
     return res.status(200).json({
       status: 'success',
-      message: 'Login successful',
+      message: 'Login successful (OTP verification disabled)',
       phone,
       bookingsCount: customerBookings.length
     });
@@ -206,8 +191,7 @@ router.post('/me/bookings/:id/reschedule', async (req: Request, res: Response) =
         notes: `${booking.notes || ''}\n[Reschedule Request] ${reason || 'No reason provided'} - Customer requested. New date: ${newDate}`.trim()
       });
 
-      // Notify customer
-      await twilioService.sendWhatsApp(phone, `✅ Reschedule request received! We'll confirm the new date: ${new Date(newDate).toLocaleDateString()}`);
+      // Notification will be handled by free notification queue
 
       return res.status(200).json({
         status: 'success',
@@ -280,8 +264,7 @@ router.post('/me/bookings/:id/cancel', async (req: Request, res: Response) => {
       notes: `${booking.notes || ''}\n[Cancelled by Customer] ${reason || 'No reason provided'}`.trim()
     });
 
-    // Notify customer
-    await twilioService.sendWhatsApp(phone, `📋 Your booking has been cancelled. We're sorry to see you go! If you have questions, please contact us.`);
+    // Notification will be handled by free notification queue
 
     return res.status(200).json({
       status: 'success',
