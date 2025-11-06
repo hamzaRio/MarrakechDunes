@@ -26,12 +26,23 @@ export default function ActivityDetail() {
       if (!activityId) throw new Error("Activity ID is required");
       const response = await apiFetch(`/activities/${activityId}`);
       if (!response.ok) {
-        if (response.status === 404) {
+        if (response.status === 404 || response.status === 0) {
           throw new Error("Activity not found");
         }
         throw new Error(`Failed to fetch activity: ${response.statusText}`);
       }
-      const data = await response.json();
+      
+      // Parse JSON with error handling
+      let data;
+      try {
+        data = await response.json();
+      } catch (jsonError) {
+        if (import.meta.env.DEV) {
+          console.error('[ActivityDetail] Failed to parse JSON response:', jsonError);
+        }
+        throw new Error("Invalid response from server");
+      }
+      
       // Validate that we have activity data with an ID
       if (!data || (!data._id && !data.id)) {
         if (import.meta.env.DEV) {
