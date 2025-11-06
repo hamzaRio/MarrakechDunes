@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useLocation, useRoute } from "wouter";
+import { useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -48,6 +49,17 @@ export default function ActivityDetail() {
   const images = ensureArray(activity?.imageUrls || []);
   const galleryImages = getActivityImages(images, activity?.name || '');
   const primaryImage = galleryImages[0] || getActivityFallbackImage(activity?.name || '');
+
+  // Auto-redirect to activities page if activity not found
+  useEffect(() => {
+    if (!isLoading && (error || !activity)) {
+      // Redirect after a short delay to show error message briefly
+      const timer = setTimeout(() => {
+        setLocation("/activities");
+      }, 2000); // 2 second delay
+      return () => clearTimeout(timer);
+    }
+  }, [isLoading, error, activity, setLocation]);
 
   if (isLoading) {
     return (
