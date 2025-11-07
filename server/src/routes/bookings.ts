@@ -19,8 +19,16 @@ router.post('/', async (req, res) => {
   try {
     const bookingData = req.body;
     
+    // Ensure totalAmount is present and valid
+    if (!bookingData.totalAmount || Number(bookingData.totalAmount) <= 0) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'totalAmount is required and must be greater than 0'
+      });
+    }
+    
     // AUTO-CALCULATE DEPOSIT (30% of total, minimum 100 MAD)
-    const totalAmount = Number(bookingData.totalAmount) || 0;
+    const totalAmount = Number(bookingData.totalAmount);
     if (totalAmount > 0) {
       // Calculate 30% deposit (rounded to nearest 10)
       const calculatedDeposit = Math.round(totalAmount * 0.3 / 10) * 10;

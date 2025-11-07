@@ -234,11 +234,15 @@ export default function BookingFixed() {
   };
 
   const handlePaymentConfirm = (paymentType: 'full' | 'deposit') => {
-    if (pendingBookingData) {
+    if (pendingBookingData && currentActivity) {
+      // Calculate total amount
+      const calculatedTotal = parseInt(currentActivity.price) * form.getValues('numberOfPeople');
+      
       // Always create booking as PENDING with unpaid status
       // Admin will confirm and set payment status later
       const bookingData = {
         ...pendingBookingData,
+        totalAmount: calculatedTotal, // Add totalAmount to fix 500 error
         paymentType,
         // Always start as unpaid - admin will confirm payment
         paymentStatus: 'unpaid'

@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -94,6 +95,10 @@ function AdminDashboardContent() {
   // Modal state for booking details
   const [selectedBooking, setSelectedBooking] = useState<BookingWithActivity | null>(null);
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
+  
+  // Delete confirmation dialog state
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [bookingToDelete, setBookingToDelete] = useState<{ id: string; name: string } | null>(null);
   
   const { data: bookings = [], error: bookingsError } = useQuery<BookingWithActivity[]>({
     queryKey: ["/admin/bookings"],
@@ -223,8 +228,15 @@ function AdminDashboardContent() {
   });
 
   const handleDeleteBooking = (bookingId: string, customerName: string) => {
-    if (confirm(`Êtes-vous sûr de vouloir supprimer la réservation de ${customerName} ? Cette action ne peut pas être annulée.`)) {
-      deleteBookingMutation.mutate(bookingId);
+    setBookingToDelete({ id: bookingId, name: customerName });
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (bookingToDelete) {
+      deleteBookingMutation.mutate(bookingToDelete.id);
+      setDeleteDialogOpen(false);
+      setBookingToDelete(null);
     }
   };
 
@@ -1201,6 +1213,33 @@ function AdminDashboardContent() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
+            <AlertDialogDescription>
+              Êtes-vous sûr de vouloir supprimer la réservation de <strong>{bookingToDelete?.name}</strong> ? 
+              Cette action ne peut pas être annulée.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              setDeleteDialogOpen(false);
+              setBookingToDelete(null);
+            }}>
+              Annuler
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
