@@ -61,7 +61,16 @@ export const getActivityImages = (imageUrls: string[] | string | undefined, acti
     return [getActivityFallbackImage(activityName)];
   }
   
-  return urls.map(url => getAssetUrl(url)).filter(Boolean);
+  // Handle both full URLs (http/https) and relative paths
+  return urls.map(url => {
+    if (!url) return '';
+    // If it's already a full URL, use it directly
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return url;
+    }
+    // Otherwise, use assetUrl for relative paths
+    return getAssetUrl(url);
+  }).filter(Boolean);
 };
 
 // Responsive image utilities for better performance

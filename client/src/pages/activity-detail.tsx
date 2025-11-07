@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Clock, MapPin, Users, Star, Calendar, ArrowLeft } from "lucide-react";
 import { getAssetUrl } from "@/lib/utils";
-import SimplifiedBookingForm from "@/components/simplified-booking-form";
 import { apiFetch } from "@/lib/api";
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
@@ -170,12 +169,13 @@ export default function ActivityDetail() {
               <CardContent className="p-0">
                 <div className="relative h-96 overflow-hidden rounded-t-lg">
                   <img
-                    src={getAssetUrl(primaryImage)}
+                    src={primaryImage.startsWith('http://') || primaryImage.startsWith('https://') ? primaryImage : getAssetUrl(primaryImage)}
                     alt={activity.name}
                     className="w-full h-full object-cover"
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
-                      target.src = getActivityFallbackImage(activity.name);
+                      const fallback = getActivityFallbackImage(activity.name);
+                      target.src = fallback.startsWith('http://') || fallback.startsWith('https://') ? fallback : getAssetUrl(fallback);
                     }}
                   />
                 </div>
@@ -260,12 +260,6 @@ export default function ActivityDetail() {
                   <Calendar className="h-5 w-5 mr-2 inline" />
                   Book Now
                 </Button>
-                
-                <SimplifiedBookingForm
-                  activityId={activity._id || activity.id || ''}
-                  activityName={activity.name}
-                  activityPrice={Number(activity.price || 0)}
-                />
 
                 <div className="mt-6 pt-6 border-t space-y-3 text-sm text-gray-600">
                   <div className="flex items-center gap-2">
