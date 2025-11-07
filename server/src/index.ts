@@ -301,14 +301,30 @@ const corsOptions: cors.CorsOptions = {
 
 app.use(cors(corsOptions));
 
-// Explicitly handle CORS preflight for all routes
-app.options("*", cors(corsOptions));
-
-// Additional CORS middleware to ensure headers are set
+// Additional CORS middleware to ensure headers are set for ALL requests (including preflight)
 app.use((req, res, next) => {
   const origin = req.headers.origin;
   
-  // Set CORS headers for all requests
+  // Handle OPTIONS preflight requests FIRST
+  if (req.method === 'OPTIONS') {
+    // Check if origin is allowed
+    const isAllowed = !origin || 
+                     allowedOrigins.includes(origin) || 
+                     (origin && origin.match(/^https:\/\/marrakech-dunes-.*\.vercel\.app$/)) ||
+                     (origin && origin.match(/^https:\/\/marrakechdunes-.*\.vercel\.app$/)) ||
+                     (origin && origin.match(/^https:\/\/.*\.vercel\.app$/));
+    
+    if (isAllowed && origin) {
+      res.header('Access-Control-Allow-Origin', origin);
+      res.header('Access-Control-Allow-Credentials', 'true');
+      res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS,HEAD');
+      res.header('Access-Control-Allow-Headers', 'Content-Type, Accept, Accept-Charset, X-CSRF-Token, X-Requested-With, Authorization');
+      res.header('Access-Control-Max-Age', '86400'); // 24 hours
+    }
+    return res.sendStatus(204);
+  }
+  
+  // Set CORS headers for all other requests
   if (origin) {
     // Check if origin is allowed
     const isAllowed = allowedOrigins.includes(origin) || 
@@ -324,10 +340,26 @@ app.use((req, res, next) => {
     }
   }
   
-  if (req.method === 'OPTIONS') {
-    return res.sendStatus(204);
-  }
   next();
+});
+
+// Explicitly handle CORS preflight for all routes (backup)
+app.options("*", (req, res) => {
+  const origin = req.headers.origin;
+  const isAllowed = !origin || 
+                   allowedOrigins.includes(origin) || 
+                   (origin && origin.match(/^https:\/\/marrakech-dunes-.*\.vercel\.app$/)) ||
+                   (origin && origin.match(/^https:\/\/marrakechdunes-.*\.vercel\.app$/)) ||
+                   (origin && origin.match(/^https:\/\/.*\.vercel\.app$/));
+  
+  if (isAllowed && origin) {
+    res.header('Access-Control-Allow-Origin', origin);
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS,HEAD');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Accept, Accept-Charset, X-CSRF-Token, X-Requested-With, Authorization');
+    res.header('Access-Control-Max-Age', '86400');
+  }
+  res.sendStatus(204);
 });
 
 // Security middleware with CORS-friendly configuration and map support
@@ -448,8 +480,20 @@ app.use(cookieParser());
 // Static file routes - MUST be BEFORE session/auth middleware to prevent 401 errors
 // These files should NOT require authentication
 app.get('/manifest.webmanifest', (req, res) => {
-  // Return 204 to prevent 401 errors - Vercel handles the actual file
-  res.status(204).end();
+  // Return a valid manifest JSON to prevent 401 errors
+  // Vercel will serve the actual file if it exists, otherwise this fallback is used
+  res.setHeader('Content-Type', 'application/manifest+json');
+  res.setHeader('Cache-Control', 'public, max-age=3600');
+  res.status(200).json({
+    name: "MarrakechDunes",
+    short_name: "MarrakechDunes",
+    description: "Marrakech Dunes Activity Booking",
+    start_url: "/",
+    display: "standalone",
+    background_color: "#ffffff",
+    theme_color: "#000000",
+    icons: []
+  });
 });
 
 app.get('/favicon.ico', (req, res) => {
@@ -474,13 +518,17 @@ app.use(uploadSecurityHeaders);
 
 // CSRF protection with custom implementation
 app.use(generateCSRFToken);
-// Skip CSRF verification for safe methods and auth/session bootstrap routes
+// Skip CSRF verification for safe methods and auth/session/bootstrap routes
 app.use((req: Request, res: Response, next: NextFunction) => {
   const isSafeMethod = req.method === 'GET' || req.method === 'HEAD' || req.method === 'OPTIONS';
   const path = req.path;
-  const isAuthOrSession = path.startsWith('/api/auth/') || path.startsWith('/api/session/');
+  const isAuthOrSession = path.startsWith('/api/auth/') || 
+                         path.startsWith('/api/session/') ||
+                         path.startsWith('/api/security-events') ||
+                         path === '/manifest.webmanifest' ||
+                         path === '/favicon.ico';
   
-  // Skip CSRF for safe methods, auth routes, and also skip if session is authenticated (admin routes)
+  // Skip CSRF for safe methods, auth routes, security events, and static files
   // This allows authenticated admin requests to work even if CSRF token is missing
   if (isSafeMethod || isAuthOrSession) {
     return next();
