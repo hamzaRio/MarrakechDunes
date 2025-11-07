@@ -156,7 +156,10 @@ export class LoggingService {
       .map(([key, value]) => `${key}=${value}`)
       .join(' ');
 
-    console.log(`[ACCESS] ${formattedLog}`);
+    // Only log to console in development - file logging always happens
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`[ACCESS] ${formattedLog}`);
+    }
     this.writeToFile(this.accessLogFile, formattedLog);
   }
 

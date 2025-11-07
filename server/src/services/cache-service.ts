@@ -113,12 +113,16 @@ export class CacheService {
     // Try to get from cache first
     const cached = await this.get<T>(type, identifier);
     if (cached) {
-      console.log(`📦 Cache hit: ${type}:${identifier}`);
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(`📦 Cache hit: ${type}:${identifier}`);
+      }
       return cached;
     }
 
     // Fetch from database
-    console.log(`🔍 Cache miss: ${type}:${identifier} - fetching from database`);
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`🔍 Cache miss: ${type}:${identifier} - fetching from database`);
+    }
     const data = await fetchFn();
     
     // Store in cache

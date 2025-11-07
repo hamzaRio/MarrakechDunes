@@ -242,10 +242,15 @@ if (isProduction) {
 
 const corsOptions: cors.CorsOptions = {
   origin: (origin, callback) => {
-    console.log(`?? CORS Check - Origin: ${origin}`);
+    // Only log CORS checks in development
+    if (!isProduction) {
+      console.log(`?? CORS Check - Origin: ${origin}`);
+    }
     
     if (!origin) {
-      console.log("? Allowing request without origin (SSR, Postman, mobile)");
+      if (!isProduction) {
+        console.log("? Allowing request without origin (SSR, Postman, mobile)");
+      }
       return callback(null, true); // SSR, Postman, mobile
     }
     
@@ -256,19 +261,25 @@ const corsOptions: cors.CorsOptions = {
     
     // Automatically allow ALL Vercel preview URLs (with hyphen)
     if (origin && origin.match(/^https:\/\/marrakech-dunes-.*\.vercel\.app$/)) {
-      console.log("? Allowing Vercel preview URL:", origin);
+      if (!isProduction) {
+        console.log("? Allowing Vercel preview URL:", origin);
+      }
       return callback(null, true);
     }
     
     // Allow all marrakechdunes Vercel URLs (including preview URLs without hyphen)
     if (origin && origin.match(/^https:\/\/marrakechdunes-.*\.vercel\.app$/)) {
-      console.log("? Allowing marrakechdunes Vercel URL:", origin);
+      if (!isProduction) {
+        console.log("? Allowing marrakechdunes Vercel URL:", origin);
+      }
       return callback(null, true);
     }
     
     // Allow all Vercel preview URLs with any subdomain pattern
     if (origin && origin.match(/^https:\/\/.*\.vercel\.app$/)) {
-      console.log("? Allowing any Vercel preview URL:", origin);
+      if (!isProduction) {
+        console.log("? Allowing any Vercel preview URL:", origin);
+      }
       return callback(null, true);
     }
     
@@ -278,12 +289,15 @@ const corsOptions: cors.CorsOptions = {
         const pattern = allowedOrigin.replace(/\*/g, '.*');
         const regex = new RegExp(`^${pattern}$`);
         if (origin && regex.test(origin)) {
-          console.log("? Allowing wildcard origin:", origin, "matches pattern:", allowedOrigin);
+          if (!isProduction) {
+            console.log("? Allowing wildcard origin:", origin, "matches pattern:", allowedOrigin);
+          }
           return callback(null, true);
         }
       }
     }
     
+    // Always log blocked CORS origins (security issue)
     console.warn("❌ Blocked CORS origin:", origin);
     return callback(new Error("CORS not allowed for this origin: " + origin));
   },
@@ -581,8 +595,8 @@ app.use((req, res, next) => {
   const path = req.path;
   let capturedJsonResponse: Record<string, any> | undefined = undefined;
   
-  // Log Origin header for CORS debugging
-  if (req.headers.origin) {
+  // Log Origin header for CORS debugging (only in development)
+  if (req.headers.origin && !isProduction) {
     log(`Origin: ${req.headers.origin} for ${req.method} ${path}`, "cors");
   }
 

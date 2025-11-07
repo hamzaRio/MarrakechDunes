@@ -12,8 +12,8 @@ router.post('/security-events', async (req: Request, res: Response) => {
     // In a production system, you might log these to a security audit log
     const { event, details, timestamp } = req.body;
     
-    // Log security event (optional - can be enhanced with proper audit logging)
-    if (event) {
+    // Log security event (only in development - production should use proper audit logging)
+    if (event && process.env.NODE_ENV !== 'production') {
       console.log('[SECURITY] Client security event:', { event, timestamp, hasDetails: !!details });
     }
     
