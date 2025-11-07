@@ -66,7 +66,7 @@ export default function BookingDetailsModal({ booking, isOpen, onClose }: Bookin
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" aria-describedby="booking-details-description">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-white text-gray-900" aria-describedby="booking-details-description">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold text-gray-800">
             Détails de la Réservation
@@ -78,43 +78,43 @@ export default function BookingDetailsModal({ booking, isOpen, onClose }: Bookin
         
         <div className="space-y-6">
           {/* Customer Information */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-lg">
+          <Card className="bg-white">
+            <CardHeader className="pb-3 bg-white">
+              <CardTitle className="flex items-center gap-2 text-lg text-gray-900">
                 <User className="w-5 h-5 text-blue-600" />
                 Informations Client
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="space-y-3 bg-white">
               <div className="flex items-center gap-3">
                 <User className="w-4 h-4 text-gray-500" />
-                <span className="font-medium">Nom:</span>
+                <span className="font-medium text-gray-900">Nom:</span>
                 <span className="text-gray-700">{booking.customerName}</span>
               </div>
               <div className="flex items-center gap-3">
                 <Phone className="w-4 h-4 text-gray-500" />
-                <span className="font-medium">Téléphone:</span>
+                <span className="font-medium text-gray-900">Téléphone:</span>
                 <span className="text-gray-700">{booking.customerPhone}</span>
               </div>
               {booking.customerEmail && (
                 <div className="flex items-center gap-3">
                   <Mail className="w-4 h-4 text-gray-500" />
-                  <span className="font-medium">Email:</span>
-                  <span className="text-gray-700">{booking.customerPhone}</span>
+                  <span className="font-medium text-gray-900">Email:</span>
+                  <span className="text-gray-700">{booking.customerEmail}</span>
                 </div>
               )}
             </CardContent>
           </Card>
 
           {/* Activity Information */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-lg">
+          <Card className="bg-white">
+            <CardHeader className="pb-3 bg-white">
+              <CardTitle className="flex items-center gap-2 text-lg text-gray-900">
                 <MapPin className="w-5 h-5 text-green-600" />
                 Détails de l'Activité
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="space-y-3 bg-white">
               <div className="flex items-center gap-3">
                 <span className="font-medium">Activité:</span>
                 <span className="text-gray-700">{booking.activity?.name || 'N/A'}</span>
@@ -145,14 +145,14 @@ export default function BookingDetailsModal({ booking, isOpen, onClose }: Bookin
           </Card>
 
           {/* Payment Information */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-lg">
+          <Card className="bg-white">
+            <CardHeader className="pb-3 bg-white">
+              <CardTitle className="flex items-center gap-2 text-lg text-gray-900">
                 <DollarSign className="w-5 h-5 text-purple-600" />
                 Informations de Paiement
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent className="space-y-3 bg-white">
               <div className="flex items-center justify-between">
                 <span className="font-medium">Statut de la réservation:</span>
                 <Badge className={`${getStatusColor(booking.status)} flex items-center gap-1`}>
@@ -194,11 +194,11 @@ export default function BookingDetailsModal({ booking, isOpen, onClose }: Bookin
 
           {/* Notes */}
           {booking.notes && (
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg">Notes</CardTitle>
+            <Card className="bg-white">
+              <CardHeader className="pb-3 bg-white">
+                <CardTitle className="text-lg text-gray-900">Notes</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="bg-white">
                 <p className="text-gray-700">{booking.notes}</p>
               </CardContent>
             </Card>

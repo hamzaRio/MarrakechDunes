@@ -40,15 +40,35 @@ export default function EmailModal({
 
   const sendEmailMutation = useMutation({
     mutationFn: async (data: typeof formData) => {
-      const response = await apiFetch('/api/notifications/email/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...data,
-          bookingId
-        })
-      });
-      return response;
+      try {
+        const response = await apiFetch('/notifications/email/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            to: data.customerEmail,
+            subject: data.subject,
+            message: data.message
+          })
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ error: 'Failed to send email', success: false }));
+          throw new Error(errorData.error || errorData.message || 'Failed to send email');
+        }
+        
+        const result = await response.json();
+        if (!result.success) {
+          throw new Error(result.error || result.message || 'Failed to send email');
+        }
+        
+        return result;
+      } catch (error: any) {
+        // Don't let axios interceptor redirect on email errors
+        if (error.response?.status === 401 || error.response?.status === 403) {
+          throw new Error('Authentication error. Please try logging in again.');
+        }
+        throw error;
+      }
     },
     onSuccess: () => {
       toast({

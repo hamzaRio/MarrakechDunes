@@ -760,13 +760,6 @@ function AdminDashboardContent() {
                           <Button 
                             size="sm" 
                             variant="outline"
-                            onClick={() => handleViewBookingDetails(booking)}
-                          >
-                            View Details
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            variant="outline"
                             onClick={() => handleSendWhatsApp(booking)}
                           >
                             Send WhatsApp
