@@ -186,9 +186,9 @@ export default function SimpleActivityForm({
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
         {trigger || (
-          <Button>
+          <Button className="bg-green-600 hover:bg-green-700 text-white">
             <Plus className="w-4 h-4 mr-2" />
-            {activity ? "Modifier l'Activité" : "Ajouter une Activité"}
+            {activity ? "Modifier l'Activité" : "+ Ajouter une Activité"}
           </Button>
         )}
       </DialogTrigger>
@@ -454,7 +454,7 @@ export default function SimpleActivityForm({
               <Button
                 type="submit"
                 disabled={createActivityMutation.isPending}
-                className="bg-moroccan-blue hover:bg-moroccan-blue/90"
+                className="bg-red-600 hover:bg-red-700 text-white"
               >
                 {createActivityMutation.isPending ? (
                   "Sauvegarde..."

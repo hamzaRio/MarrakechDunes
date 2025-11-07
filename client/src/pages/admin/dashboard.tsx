@@ -104,9 +104,11 @@ function AdminDashboardContent() {
         console.warn('[DASHBOARD] Bookings fetch failed - authentication issue:', error?.response?.status);
         return false;
       }
-      return failureCount < 2; // Retry up to 2 times for other errors
+      return failureCount < 1; // Retry only once for other errors
     },
-    staleTime: 30 * 1000, // 30 seconds
+    staleTime: 5 * 60 * 1000, // 5 minutes - reduce unnecessary refetches
+    refetchOnWindowFocus: false, // Don't refetch when window regains focus
+    refetchOnMount: false, // Don't refetch on component mount if data exists
   });
 
   // Fetch only INTERNAL activities (not GetYourGuide activities) for management
@@ -122,9 +124,11 @@ function AdminDashboardContent() {
         console.warn('[DASHBOARD] Activities fetch failed - authentication issue:', error?.response?.status);
         return false;
       }
-      return failureCount < 2;
+      return failureCount < 1; // Retry only once
     },
-    staleTime: 30 * 1000,
+    staleTime: 5 * 60 * 1000, // 5 minutes - reduce unnecessary refetches
+    refetchOnWindowFocus: false, // Don't refetch when window regains focus
+    refetchOnMount: false, // Don't refetch on component mount if data exists
   });
 
   const { data: auditLogs = [] } = useQuery<AuditLogType[]>({
@@ -135,9 +139,11 @@ function AdminDashboardContent() {
         console.warn('[DASHBOARD] Audit logs fetch failed - authentication issue:', error?.response?.status);
         return false;
       }
-      return failureCount < 2;
+      return failureCount < 1; // Retry only once
     },
-    staleTime: 30 * 1000,
+    staleTime: 5 * 60 * 1000, // 5 minutes - reduce unnecessary refetches
+    refetchOnWindowFocus: false, // Don't refetch when window regains focus
+    refetchOnMount: false, // Don't refetch on component mount if data exists
   });
 
   // Fix: Calculate real revenue from all bookings (regardless of status)
@@ -508,15 +514,6 @@ function AdminDashboardContent() {
                         <p className="text-gray-600">Bienvenue, {user?.username} 👋</p>
               </div>
               <div className="flex gap-3">
-                <SimpleActivityForm mode="create" trigger={
-                  <Button 
-                    variant="outline" 
-                    className="border-green-500 text-green-500 hover:bg-green-500 hover:text-white"
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Activity
-                  </Button>
-                } />
                 <Link href="/">
                   <Button 
                     variant="outline" 
@@ -651,7 +648,6 @@ function AdminDashboardContent() {
                     <FileText className="h-4 w-4 mr-2" />
                     📄 Exporter PDF
                   </Button>
-                  <SimpleActivityForm mode="create" />
                 </div>
               </div>
 
