@@ -8,7 +8,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, Users, TrendingUp, Crown, MessageCircle, LogOut, Download, FileText, Mail, Settings, Home, Plus, Search } from "lucide-react";
+import { Calendar, Users, TrendingUp, Crown, MessageCircle, LogOut, Download, FileText, Mail, Settings, Home, Plus, Search, Trash2 } from "lucide-react";
 import AdminRoute from "@/components/admin-route";
 import { useAuth } from "@/hooks/use-auth";
 // import { useLanguage } from "@/hooks/use-language";
@@ -99,6 +99,8 @@ function AdminDashboardContent() {
   // Delete confirmation dialog state
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [bookingToDelete, setBookingToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [deleteActivityDialogOpen, setDeleteActivityDialogOpen] = useState(false);
+  const [activityToDelete, setActivityToDelete] = useState<{ id: string; name: string } | null>(null);
   
   const { data: bookings = [], error: bookingsError } = useQuery<BookingWithActivity[]>({
     queryKey: ["/admin/bookings"],
@@ -237,6 +239,48 @@ function AdminDashboardContent() {
       deleteBookingMutation.mutate(bookingToDelete.id);
       setDeleteDialogOpen(false);
       setBookingToDelete(null);
+    }
+  };
+
+  // Delete activity mutation
+  const deleteActivityMutation = useMutation({
+    mutationFn: async (activityId: string) => {
+      const res = await apiFetch(`/admin/activities/${activityId}`, {
+        method: "DELETE"
+      });
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to delete activity');
+      }
+      return res;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/admin/activities"] });
+      queryClient.invalidateQueries({ queryKey: ["/activities"] });
+      toast({
+        title: "Activité Supprimée",
+        description: "L'activité a été supprimée avec succès.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Échec de la Suppression",
+        description: error.message || "Erreur lors de la suppression de l'activité",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleDeleteActivity = (activityId: string, activityName: string) => {
+    setActivityToDelete({ id: activityId, name: activityName });
+    setDeleteActivityDialogOpen(true);
+  };
+
+  const confirmDeleteActivity = () => {
+    if (activityToDelete) {
+      deleteActivityMutation.mutate(activityToDelete.id);
+      setDeleteActivityDialogOpen(false);
+      setActivityToDelete(null);
     }
   };
 
@@ -923,6 +967,15 @@ function AdminDashboardContent() {
                           >
                             View Bookings
                           </Button>
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => handleDeleteActivity(activity._id || activity.id || '', activity.name)}
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                          >
+                            <Trash2 className="w-4 h-4 mr-1" />
+                            Delete
+                          </Button>
                         </div>
                       </div>
                     ))}
@@ -1214,7 +1267,7 @@ function AdminDashboardContent() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
+      {/* Delete Booking Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -1233,6 +1286,33 @@ function AdminDashboardContent() {
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDelete}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Activity Confirmation Dialog */}
+      <AlertDialog open={deleteActivityDialogOpen} onOpenChange={setDeleteActivityDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmer la suppression de l'activité</AlertDialogTitle>
+            <AlertDialogDescription>
+              Êtes-vous sûr de vouloir supprimer l'activité <strong>{activityToDelete?.name}</strong> ? 
+              Cette action ne peut pas être annulée. Si cette activité a des réservations associées, la suppression sera bloquée.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              setDeleteActivityDialogOpen(false);
+              setActivityToDelete(null);
+            }}>
+              Annuler
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteActivity}
               className="bg-red-600 hover:bg-red-700 text-white"
             >
               Supprimer

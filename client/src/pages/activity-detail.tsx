@@ -162,33 +162,86 @@ export default function ActivityDetail() {
         description={activity.description || `Book ${activity.name} in Marrakech`}
       />
       
-      {/* Enhanced Header with Gradient */}
-      <div className="bg-gradient-to-r from-moroccan-blue via-blue-700 to-moroccan-blue text-white py-16 shadow-lg">
-        <div className="container mx-auto px-4">
+      {/* Beautiful Enhanced Header with Gradient and Decorative Elements */}
+      <div className="relative bg-gradient-to-br from-moroccan-blue via-blue-700 via-blue-800 to-moroccan-blue text-white py-20 shadow-2xl overflow-hidden">
+        {/* Decorative Background Pattern */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-0 left-0 w-96 h-96 bg-white rounded-full blur-3xl transform -translate-x-1/2 -translate-y-1/2"></div>
+          <div className="absolute bottom-0 right-0 w-96 h-96 bg-moroccan-gold rounded-full blur-3xl transform translate-x-1/2 translate-y-1/2"></div>
+          <div className="absolute top-1/2 left-1/2 w-64 h-64 bg-blue-400 rounded-full blur-3xl transform -translate-x-1/2 -translate-y-1/2"></div>
+        </div>
+        
+        {/* Geometric Decorative Elements */}
+        <div className="absolute top-0 right-0 w-64 h-64 opacity-5">
+          <svg viewBox="0 0 200 200" className="w-full h-full">
+            <polygon points="100,10 190,70 190,130 100,190 10,130 10,70" fill="white" />
+          </svg>
+        </div>
+        <div className="absolute bottom-0 left-0 w-48 h-48 opacity-5">
+          <svg viewBox="0 0 200 200" className="w-full h-full">
+            <circle cx="100" cy="100" r="80" fill="white" />
+          </svg>
+        </div>
+        
+        <div className="container mx-auto px-4 relative z-10">
           <Button
             variant="ghost"
             onClick={() => setLocation("/activities")}
-            className="mb-6 text-white hover:bg-white/20 backdrop-blur-sm"
+            className="mb-8 text-white hover:bg-white/20 backdrop-blur-sm border border-white/20 transition-all duration-300 hover:scale-105"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Activities
           </Button>
-          <div className="flex items-center gap-4 mb-4">
-            <h1 className="text-5xl font-bold font-playfair">{activity.name}</h1>
-            {activity.category && (
-              <Badge className="bg-moroccan-gold text-white text-lg px-4 py-2">
-                {activity.category}
-              </Badge>
-            )}
-          </div>
-          {activity.rating && (
-            <div className="flex items-center gap-2 text-yellow-300">
-              <Star className="h-5 w-5 fill-current" />
-              <span className="text-lg font-semibold">{activity.rating.toFixed(1)}</span>
-              <span className="text-gray-300">/ 5.0</span>
+          
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+            <div className="flex-1">
+              <div className="flex items-center gap-4 mb-4 flex-wrap">
+                <h1 className="text-5xl md:text-6xl font-bold font-playfair drop-shadow-lg">
+                  {activity.name}
+                </h1>
+                {activity.category && (
+                  <Badge className="bg-gradient-to-r from-moroccan-gold to-yellow-500 text-white text-lg px-5 py-2.5 shadow-lg border-2 border-white/30 backdrop-blur-sm">
+                    {activity.category}
+                  </Badge>
+                )}
+              </div>
+              
+              <div className="flex items-center gap-6 flex-wrap">
+                {activity.rating && (
+                  <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md px-4 py-2 rounded-full border border-white/20">
+                    <Star className="h-5 w-5 text-yellow-300 fill-current" />
+                    <span className="text-lg font-bold text-yellow-300">{activity.rating.toFixed(1)}</span>
+                    <span className="text-gray-200">/ 5.0</span>
+                  </div>
+                )}
+                {activity.duration && (
+                  <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md px-4 py-2 rounded-full border border-white/20">
+                    <Clock className="h-4 w-4" />
+                    <span className="text-sm font-medium">{activity.duration}</span>
+                  </div>
+                )}
+                {activity.location && (
+                  <div className="flex items-center gap-2 bg-white/10 backdrop-blur-md px-4 py-2 rounded-full border border-white/20">
+                    <MapPin className="h-4 w-4" />
+                    <span className="text-sm font-medium">{activity.location}</span>
+                  </div>
+                )}
+              </div>
             </div>
-          )}
+            
+            {/* Price Badge */}
+            <div className="bg-gradient-to-br from-moroccan-gold via-yellow-500 to-moroccan-gold text-white px-8 py-6 rounded-2xl shadow-2xl border-2 border-white/30 backdrop-blur-sm transform hover:scale-105 transition-transform duration-300">
+              <div className="text-center">
+                <div className="text-sm font-medium mb-1 opacity-90">Starting from</div>
+                <div className="text-4xl font-bold">{Number(activity.price || 0).toLocaleString()} MAD</div>
+                <div className="text-sm font-medium mt-1 opacity-90">per person</div>
+              </div>
+            </div>
+          </div>
         </div>
+        
+        {/* Bottom Wave Decoration */}
+        <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-gray-50 to-transparent"></div>
       </div>
 
       <div className="container mx-auto px-4 py-12">

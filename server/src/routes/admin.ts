@@ -235,16 +235,36 @@ router.patch('/activities/:id', async (req: Request, res: Response) => {
 router.delete('/activities/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+    
+    // Invalidate cache before deletion
+    const { cacheService } = await import('../services/cache-service.js');
+    await cacheService.invalidateActivities();
+    await cacheService.invalidateRelated('activity', id);
+    
     await storage.deleteActivity(id);
+    
+    // Invalidate cache after deletion
+    await cacheService.invalidateActivities();
+    await cacheService.invalidateRelated('activity', id);
+    
     return res.status(200).json({
       status: 'success',
       message: 'Activity deleted successfully'
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('[ADMIN] Error deleting activity:', error);
+    
+    // Return specific error message if activity has bookings
+    if (error.message && error.message.includes('booking')) {
+      return res.status(400).json({
+        status: 'error',
+        message: error.message
+      });
+    }
+    
     return res.status(500).json({
       status: 'error',
-      message: 'Failed to delete activity'
+      message: error.message || 'Failed to delete activity'
     });
   }
 });
