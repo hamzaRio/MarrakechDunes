@@ -28,7 +28,15 @@ class EmailService {
         auth: {
           user: process.env.SMTP_USER || process.env.EMAIL_USER || 'timedizzy45@gmail.com',
           pass: process.env.SMTP_PASS || process.env.EMAIL_PASS
-        }
+        },
+        // Add connection timeout settings to prevent long waits
+        connectionTimeout: 10000, // 10 seconds
+        greetingTimeout: 10000, // 10 seconds
+        socketTimeout: 10000, // 10 seconds
+        // Retry configuration
+        pool: false,
+        maxConnections: 1,
+        maxMessages: 1
       };
 
       // Warn if using legacy EMAIL_* variables
@@ -78,11 +86,27 @@ class EmailService {
         `
       };
 
-      const result = await this.transporter.sendMail(mailOptions);
-      console.log('[EMAIL] Email sent successfully:', result.messageId);
+      // Add timeout wrapper to prevent long waits
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('Email sending timeout after 15 seconds')), 15000);
+      });
+
+      const sendPromise = this.transporter.sendMail(mailOptions);
+      
+      const result = await Promise.race([sendPromise, timeoutPromise]);
+      if (result && typeof result === 'object' && 'messageId' in result) {
+        console.log('[EMAIL] Email sent successfully:', result.messageId);
+      } else {
+        console.log('[EMAIL] Email sent successfully');
+      }
       return true;
-    } catch (error) {
-      console.error('[EMAIL] Failed to send email:', error);
+    } catch (error: any) {
+      // Handle timeout and connection errors gracefully
+      if (error.message?.includes('timeout') || error.code === 'ETIMEDOUT' || error.code === 'ECONNREFUSED') {
+        console.error('[EMAIL] Connection timeout or refused - SMTP server may be unreachable:', error.message || error.code);
+      } else {
+        console.error('[EMAIL] Failed to send email:', error);
+      }
       return false;
     }
   }

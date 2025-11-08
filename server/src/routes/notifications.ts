@@ -19,6 +19,8 @@ const emailNotificationSchema = z.object({
  * CSRF excluded for this route
  */
 router.post('/email/send', async (req, res) => {
+  const startTime = Date.now();
+  
   try {
     // Validate request payload
     const validationResult = emailNotificationSchema.safeParse(req.body);
@@ -33,24 +35,43 @@ router.post('/email/send', async (req, res) => {
 
     const { to, subject, message } = validationResult.data;
 
-    // Send email
-    const success = await emailService.sendEmail(to, subject, message);
+    // Add overall timeout wrapper (20 seconds max)
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error('Request timeout')), 20000);
+    });
+
+    // Send email with timeout protection
+    const sendPromise = emailService.sendEmail(to, subject, message);
+    const success = await Promise.race([sendPromise, timeoutPromise]);
+
+    const duration = Date.now() - startTime;
 
     if (success) {
-      console.log(`[NOTIFICATIONS] Email sent successfully to: ${to}`);
+      console.log(`[NOTIFICATIONS] Email sent successfully to: ${to} (${duration}ms)`);
       return res.status(200).json({
         success: true,
         message: 'Email envoyé avec succès'
       });
     } else {
-      console.error(`[NOTIFICATIONS] Failed to send email to: ${to}`);
+      console.error(`[NOTIFICATIONS] Failed to send email to: ${to} (${duration}ms)`);
       return res.status(500).json({
         success: false,
-        error: 'Erreur lors de l\'envoi de l\'email'
+        error: 'Erreur lors de l\'envoi de l\'email. Veuillez vérifier la configuration SMTP.'
       });
     }
-  } catch (error) {
-    console.error('[NOTIFICATIONS] Email send error:', error);
+  } catch (error: any) {
+    const duration = Date.now() - startTime;
+    
+    // Handle timeout errors specifically
+    if (error.message?.includes('timeout') || error.code === 'ETIMEDOUT') {
+      console.error(`[NOTIFICATIONS] Email send timeout after ${duration}ms to: ${req.body?.to || 'unknown'}`);
+      return res.status(504).json({
+        success: false,
+        error: 'Timeout lors de la connexion au serveur email. Veuillez réessayer plus tard.'
+      });
+    }
+    
+    console.error(`[NOTIFICATIONS] Email send error (${duration}ms):`, error);
     return res.status(500).json({
       success: false,
       error: 'Erreur interne du serveur'
