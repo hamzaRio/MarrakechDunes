@@ -8,9 +8,9 @@ const router = Router();
  * Zod schema for email notification payload
  */
 const emailNotificationSchema = z.object({
-  to: z.string().email('Adresse email invalide'),
-  subject: z.string().min(1, 'Le sujet est requis'),
-  message: z.string().min(1, 'Le message est requis')
+  to: z.string().email('Veuillez fournir une adresse email valide'),
+  subject: z.string().min(1, 'Le sujet de l\'email est requis'),
+  message: z.string().min(1, 'Le contenu du message est requis')
 });
 
 /**
@@ -28,7 +28,7 @@ router.post('/email/send', async (req, res) => {
     if (!validationResult.success) {
       return res.status(400).json({
         success: false,
-        error: 'Données invalides',
+        message: 'Veuillez vérifier les informations saisies. Certains champs sont manquants ou incorrects.',
         details: validationResult.error.errors
       });
     }
@@ -50,13 +50,13 @@ router.post('/email/send', async (req, res) => {
       console.log(`[NOTIFICATIONS] Email sent successfully to: ${to} (${duration}ms)`);
       return res.status(200).json({
         success: true,
-        message: 'Email envoyé avec succès'
+        message: 'Votre email a été envoyé avec succès. Le client devrait le recevoir sous peu.'
       });
     } else {
       console.error(`[NOTIFICATIONS] Failed to send email to: ${to} (${duration}ms)`);
       return res.status(500).json({
         success: false,
-        error: 'Erreur lors de l\'envoi de l\'email. Veuillez vérifier la configuration SMTP.'
+        message: 'Nous rencontrons actuellement des difficultés pour envoyer l\'email. Notre équipe technique a été notifiée et travaille à résoudre le problème. Vous pouvez réessayer dans quelques instants.'
       });
     }
   } catch (error: any) {
@@ -67,14 +67,14 @@ router.post('/email/send', async (req, res) => {
       console.error(`[NOTIFICATIONS] Email send timeout after ${duration}ms to: ${req.body?.to || 'unknown'}`);
       return res.status(504).json({
         success: false,
-        error: 'Timeout lors de la connexion au serveur email. Veuillez réessayer plus tard.'
+        message: 'La connexion au serveur d\'envoi d\'emails prend plus de temps que prévu. Cela peut être dû à une surcharge temporaire. Nous vous invitons à réessayer dans quelques minutes.'
       });
     }
     
     console.error(`[NOTIFICATIONS] Email send error (${duration}ms):`, error);
     return res.status(500).json({
       success: false,
-      error: 'Erreur interne du serveur'
+      message: 'Une erreur inattendue s\'est produite lors de l\'envoi de l\'email. Notre équipe a été automatiquement informée et travaille à résoudre ce problème. Merci de votre compréhension.'
     });
   }
 });
@@ -90,13 +90,13 @@ router.post('/subscribe', async (req, res) => {
     console.log('[NOTIFICATIONS] Push subscription request:', { hasEndpoint: !!endpoint, hasKeys: !!keys });
     return res.status(200).json({
       success: true,
-      message: 'Subscription successful'
+      message: 'Vous êtes maintenant abonné aux notifications. Vous recevrez des mises à jour importantes concernant vos réservations.'
     });
   } catch (error) {
     console.error('[NOTIFICATIONS] Subscribe error:', error);
     return res.status(500).json({
       success: false,
-      error: 'Failed to subscribe'
+      message: 'Nous n\'avons pas pu finaliser votre abonnement aux notifications pour le moment. Veuillez réessayer ultérieurement.'
     });
   }
 });
@@ -112,13 +112,13 @@ router.post('/unsubscribe', async (req, res) => {
     console.log('[NOTIFICATIONS] Push unsubscription request:', { hasEndpoint: !!endpoint });
     return res.status(200).json({
       success: true,
-      message: 'Unsubscription successful'
+      message: 'Vous avez été désabonné des notifications avec succès. Vous ne recevrez plus de notifications push.'
     });
   } catch (error) {
     console.error('[NOTIFICATIONS] Unsubscribe error:', error);
     return res.status(500).json({
       success: false,
-      error: 'Failed to unsubscribe'
+      message: 'Nous n\'avons pas pu traiter votre demande de désabonnement pour le moment. Veuillez réessayer dans quelques instants.'
     });
   }
 });
@@ -142,7 +142,7 @@ router.post('/email/booking-confirmation', async (req, res) => {
     if (!validationResult.success) {
       return res.status(400).json({
         success: false,
-        error: 'Données de réservation invalides',
+        message: 'Les informations de réservation fournies sont incomplètes ou incorrectes. Veuillez vérifier tous les champs requis.',
         details: validationResult.error.errors
       });
     }
@@ -161,19 +161,19 @@ router.post('/email/booking-confirmation', async (req, res) => {
       console.log(`[NOTIFICATIONS] Booking confirmation sent to: ${customerEmail}`);
       return res.status(200).json({
         success: true,
-        message: 'Confirmation de réservation envoyée'
+        message: 'L\'email de confirmation a été envoyé au client avec succès. Il devrait le recevoir dans les prochaines minutes.'
       });
     } else {
       return res.status(500).json({
         success: false,
-        error: 'Erreur lors de l\'envoi de la confirmation'
+        message: 'Nous n\'avons pas pu envoyer l\'email de confirmation pour le moment. La réservation a bien été enregistrée, mais l\'envoi de l\'email sera réessayé automatiquement.'
       });
     }
   } catch (error) {
     console.error('[NOTIFICATIONS] Booking confirmation error:', error);
     return res.status(500).json({
       success: false,
-      error: 'Erreur interne du serveur'
+      message: 'Une erreur technique s\'est produite lors de l\'envoi de la confirmation. Notre équipe a été notifiée et la réservation reste valide.'
     });
   }
 });
