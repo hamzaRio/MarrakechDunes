@@ -27,6 +27,15 @@
   .select-item {
     @apply hover:bg-moroccan-blue/10 focus:bg-moroccan-blue/10 text-foreground;
   }
+  
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 :root {
