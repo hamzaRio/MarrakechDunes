@@ -18,6 +18,7 @@ import { ensureArray } from "@/lib/ensureArray";
 import { getAssetUrl } from "@/lib/utils";
 import PaymentManagement from "@/components/payment-management";
 import { WhatsAppNotificationPanel } from "@/components/whatsapp-notification-panel";
+import FreeNotificationPanel from "@/components/free-notification-panel";
 import SimpleActivityForm from "@/components/simple-activity-form-v2";
 import GYGReferenceTool from "@/components/GYGReferenceTool";
 // Removed BookingTest - was only for testing
@@ -1032,6 +1033,9 @@ function AdminDashboardContent() {
             </TabsContent>
 
             <TabsContent value="whatsapp" className="space-y-4">
+              {/* Pending Notifications from Queue - Shows automatic booking confirmations */}
+              <FreeNotificationPanel />
+              
               {/* Existing WhatsApp Panel (for manual messages) */}
               <Card>
                 <CardHeader>
