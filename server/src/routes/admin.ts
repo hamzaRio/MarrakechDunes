@@ -82,6 +82,11 @@ router.patch('/bookings/:id/status', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
+    
+    // Get booking before update to check if status is changing to confirmed
+    const booking = await storage.getBooking(id);
+    const wasConfirmed = booking?.status === 'CONFIRMED';
+    
     const updatedBooking = await storage.updateBookingStatus(id, status);
     if (!updatedBooking) {
       return res.status(404).json({
@@ -89,6 +94,69 @@ router.patch('/bookings/:id/status', async (req: Request, res: Response) => {
         message: 'Booking not found'
       });
     }
+    
+    // Send automatic notification when booking is confirmed
+    if (status === 'CONFIRMED' && !wasConfirmed && booking) {
+      try {
+        const activity = await storage.getActivity(booking.activityId);
+        const activityName = activity?.name || 'Activity';
+        
+        // Send WhatsApp notification via free notification queue
+        const { freeNotificationQueue } = await import('../services/free-notification-queue.js');
+        const date = new Date(booking.preferredDate).toLocaleDateString('en-US', { 
+          weekday: 'long', 
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric' 
+        });
+        const total = typeof booking.totalAmount === 'string' ? booking.totalAmount : `${booking.totalAmount} MAD`;
+        const deposit = booking.depositAmount ? `${booking.depositAmount} MAD` : null;
+
+        const whatsappMessage = `🎉 *Booking Confirmed!*
+
+Activity: ${activityName}
+Date: ${date}
+People: ${booking.numberOfPeople}
+Total: ${total}${deposit ? `\nDeposit Required: ${deposit}` : ''}
+
+Payment: ${booking.depositAmount ? 'Deposit required before activity' : 'Cash on arrival'}
+
+We'll send you a reminder 24 hours before your activity!
+
+Thank you for choosing MarrakechDunes! 🏜️`.trim();
+
+        freeNotificationQueue.addNotification({
+          type: 'booking_confirmation',
+          customerPhone: booking.customerPhone,
+          customerName: booking.customerName,
+          message: whatsappMessage,
+          whatsappLink: freeNotificationQueue.generateWhatsAppLink(booking.customerPhone, whatsappMessage),
+          priority: 'high',
+          bookingId: booking._id || booking.id,
+          metadata: {
+            activityName,
+            date: booking.preferredDate,
+            amount: booking.depositAmount
+          }
+        });
+        
+        // Send email confirmation if email is available
+        if (booking.customerEmail) {
+          const { emailService } = await import('../utils/emailService.js');
+          await emailService.sendBookingConfirmation(
+            booking.customerEmail,
+            booking.customerName,
+            activityName,
+            date,
+            Number(booking.totalAmount || 0)
+          );
+        }
+      } catch (notificationError) {
+        // Don't fail status update if notification fails
+        console.error('[ADMIN] Failed to send confirmation notification:', notificationError);
+      }
+    }
+    
     return res.status(200).json(updatedBooking);
   } catch (error) {
     console.error('[ADMIN] Error updating booking status:', error);
@@ -106,6 +174,12 @@ router.patch('/bookings/:id/status', async (req: Request, res: Response) => {
 router.delete('/bookings/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+    
+    // Invalidate cache before deletion
+    const { cacheService } = await import('../services/cache-service.js');
+    await cacheService.invalidateRelated('booking', id);
+    await cacheService.invalidateBookings();
+    
     const deleted = await storage.deleteBooking(id);
     if (!deleted) {
       return res.status(404).json({
@@ -113,6 +187,11 @@ router.delete('/bookings/:id', async (req: Request, res: Response) => {
         message: 'Booking not found'
       });
     }
+    
+    // Invalidate cache after deletion
+    await cacheService.invalidateRelated('booking', id);
+    await cacheService.invalidateBookings();
+    
     return res.status(200).json({
       status: 'success',
       message: 'Booking deleted successfully'

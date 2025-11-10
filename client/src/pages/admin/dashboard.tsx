@@ -193,15 +193,29 @@ function AdminDashboardContent() {
   // Admin booking management functions
   const handleBookingStatusUpdate = async (bookingId: string, status: string) => {
     try {
-      await apiFetch(`/admin/bookings/${bookingId}/status`, {
+      const res = await apiFetch(`/admin/bookings/${bookingId}/status`, {
         method: 'PATCH',
-        // headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status })
       });
+      if (!res.ok) {
+        throw new Error('Failed to update booking status');
+      }
       // Refresh bookings data using React Query
-      queryClient.invalidateQueries({ queryKey: ["/admin/bookings"] });
+      await queryClient.invalidateQueries({ queryKey: ["/admin/bookings"] });
+      await queryClient.refetchQueries({ queryKey: ["/admin/bookings"] });
+      
+      // Show success message
+      toast({
+        title: "Statut Mis à Jour",
+        description: `Le statut de la réservation a été mis à jour avec succès.${status === 'CONFIRMED' ? ' Une notification a été envoyée au client.' : ''}`,
+      });
     } catch (error) {
       console.error('Failed to update booking status:', error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de mettre à jour le statut de la réservation",
+        variant: "destructive",
+      });
     }
   };
 
@@ -211,19 +225,25 @@ function AdminDashboardContent() {
       const res = await apiFetch(`/admin/bookings/${bookingId}`, {
         method: "DELETE"
       });
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.message || 'Failed to delete booking');
+      }
       return res;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/admin/bookings"] });
+    onSuccess: async () => {
+      // Invalidate and refetch to ensure UI updates immediately
+      await queryClient.invalidateQueries({ queryKey: ["/admin/bookings"] });
+      await queryClient.refetchQueries({ queryKey: ["/admin/bookings"] });
       toast({
         title: "Réservation Supprimée",
         description: "La réservation a été supprimée avec succès.",
       });
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast({
         title: "Échec de la Suppression",
-        description: error.message,
+        description: error.message || "Erreur lors de la suppression de la réservation",
         variant: "destructive",
       });
     },

@@ -744,6 +744,11 @@ class MongoStorage implements IStorage {
 
   async deleteBooking(id: string): Promise<boolean> {
     const result = await Booking.findByIdAndDelete(id);
+    if (result) {
+      // Invalidate related caches
+      await cacheService.invalidateRelated('booking', id);
+      await cacheService.invalidateBookings();
+    }
     return !!result;
   }
 
