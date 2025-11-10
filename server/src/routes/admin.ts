@@ -135,14 +135,14 @@ Thank you for choosing MarrakechDunes! 🏜️`.trim();
           bookingId: booking._id || booking.id,
           metadata: {
             activityName,
-            date: booking.preferredDate,
+            date: typeof booking.preferredDate === 'string' ? booking.preferredDate : booking.preferredDate.toISOString(),
             amount: booking.depositAmount
           }
         });
         
         // Send email confirmation if email is available
         if (booking.customerEmail) {
-          const { emailService } = await import('../utils/emailService.js');
+          const emailService = (await import('../utils/emailService.js')).default;
           await emailService.sendBookingConfirmation(
             booking.customerEmail,
             booking.customerName,
