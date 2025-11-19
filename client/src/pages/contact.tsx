@@ -53,8 +53,8 @@ export default function Contact() {
                     </p>
                     <p className="flex items-center">
                       <Mail className="mr-2 h-4 w-4" />
-                      <a href="mailto:contact@marrakechdunes.com" className="hover:text-moroccan-red">
-                        contact@marrakechdunes.com
+                      <a href="mailto:timedizzy45@gmail.com" className="hover:text-moroccan-red">
+                        timedizzy45@gmail.com
                       </a>
                     </p>
                   </div>

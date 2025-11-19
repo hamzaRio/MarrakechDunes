@@ -119,9 +119,13 @@ class EmailService {
       process.env.RESEND_FROM ||
       process.env.SMTP_FROM ||
       process.env.EMAIL_FROM ||
-      'Marrakech Dunes <no-reply@marrakechdunes.com>';
+      'Marrakech Dunes <onboarding@resend.dev>'; // Default Resend domain for testing
 
     try {
+      // Add timeout for Resend API calls
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
       const response = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
@@ -134,8 +138,11 @@ class EmailService {
           subject,
           html,
           text
-        })
+        }),
+        signal: controller.signal
       });
+
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -143,10 +150,15 @@ class EmailService {
         return false;
       }
 
-      console.log('[EMAIL] Email sent via Resend fallback');
+      const result = await response.json();
+      console.log('[EMAIL] Email sent successfully via Resend:', result.id || 'success');
       return true;
-    } catch (error) {
-      console.error('[EMAIL] Failed to send email via Resend:', error);
+    } catch (error: any) {
+      if (error.name === 'AbortError') {
+        console.error('[EMAIL] Resend API timeout after 10 seconds');
+      } else {
+        console.error('[EMAIL] Failed to send email via Resend:', error);
+      }
       return false;
     }
   }
@@ -168,6 +180,18 @@ class EmailService {
       html
     };
 
+    // Try Resend first if configured (more reliable on cloud platforms like Render)
+    // Render often blocks outbound SMTP connections, so Resend is preferred
+    const resendApiKey = process.env.RESEND_API_KEY;
+    if (resendApiKey) {
+      const resendSuccess = await this.sendViaResend(to, subject, message, html);
+      if (resendSuccess) {
+        return true;
+      }
+      console.warn('[EMAIL] Resend delivery failed. Attempting SMTP fallback...');
+    }
+
+    // Fallback to SMTP if Resend not configured or failed
     if (!this.transporter && this.hasSmtpCredentials()) {
       this.initializeTransporter();
     }
@@ -177,13 +201,18 @@ class EmailService {
       if (smtpSuccess) {
         return true;
       }
-      console.warn('[EMAIL] SMTP delivery failed. Attempting Resend fallback...');
+      console.warn('[EMAIL] SMTP delivery failed (likely blocked by cloud provider).');
     } else {
-      console.warn('[EMAIL] SMTP credentials missing or transporter unavailable. Using Resend fallback if configured.');
+      console.warn('[EMAIL] SMTP credentials missing or transporter unavailable.');
     }
 
-    const resendSuccess = await this.sendViaResend(to, subject, message, html);
-    return resendSuccess;
+    // If both failed and Resend wasn't tried, try it now
+    if (!resendApiKey) {
+      console.warn('[EMAIL] No email service configured. Please set RESEND_API_KEY for reliable email delivery.');
+      return false;
+    }
+
+    return false;
   }
 
   /**

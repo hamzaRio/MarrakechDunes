@@ -266,10 +266,10 @@ export default function BookingConfirmationPage() {
                     <div>
                       <p className="font-semibold text-gray-900">Agency Email</p>
                       <a
-                        href="mailto:contact@marrakechdunes.com"
+                        href="mailto:timedizzy45@gmail.com"
                         className="text-sm text-green-700 hover:text-green-900 underline"
                       >
-                        contact@marrakechdunes.com
+                        timedizzy45@gmail.com
                       </a>
                       <p className="text-xs text-gray-500">We respond within the same day.</p>
                     </div>
