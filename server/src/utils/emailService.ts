@@ -28,7 +28,8 @@ class EmailService {
         secure: (process.env.SMTP_PORT || process.env.EMAIL_PORT) === '465',
         auth: {
           user: process.env.SMTP_USER || process.env.EMAIL_USER || 'timedizzy45@gmail.com',
-          pass: process.env.SMTP_PASS || process.env.EMAIL_PASS
+          // Remove spaces from password (Gmail app passwords should be 16 chars without spaces)
+          pass: (process.env.SMTP_PASS || process.env.EMAIL_PASS)?.replace(/\s+/g, '') || undefined
         },
         // Add connection timeout settings to prevent long waits
         connectionTimeout: 10000, // 10 seconds
