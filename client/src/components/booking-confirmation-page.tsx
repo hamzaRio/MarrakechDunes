@@ -215,28 +215,88 @@ export default function BookingConfirmationPage() {
               </div>
 
               {/* Contact Information */}
-              <div className="bg-green-50 border border-green-200 rounded-lg p-6">
-                <h3 className="font-semibold text-lg text-green-900 mb-4 flex items-center gap-2">
-                  <MessageCircle className="w-5 h-5" />
-                  How We'll Contact You
-                </h3>
-                
+              <div className="bg-green-50 border border-green-200 rounded-lg p-6 space-y-6">
+                <div>
+                  <h3 className="font-semibold text-lg text-green-900 mb-2 flex items-center gap-2">
+                    <MessageCircle className="w-5 h-5" />
+                    How We'll Contact You
+                  </h3>
+                  <p className="text-sm text-green-900/80">
+                    You will receive an update by WhatsApp first, then by email if we cannot reach you. 
+                    You can also contact our agency directly using the details below.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  {[
+                    { name: "Ahmed", role: "Desert Specialist", phone: "+212600623630" },
+                    { name: "Yahia", role: "Mountain Guide", phone: "+212693323368" },
+                    { name: "Nadia", role: "Guest Experience", phone: "+212654497354" },
+                  ].map((contact) => {
+                    const message = encodeURIComponent(
+                      `Hello ${contact.name}, I just booked ${bookingData.activity?.name || 'an activity'} on MarrakechDunes.`
+                    );
+                    const whatsappLink = `https://wa.me/${contact.phone.replace(/\D/g, '')}?text=${message}`;
+                    return (
+                      <div key={contact.phone} className="p-4 bg-white rounded-lg border flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                          <Phone className="w-5 h-5 text-green-600" />
+                          <div>
+                            <p className="font-semibold text-gray-900">{contact.name}</p>
+                            <p className="text-sm text-gray-600">{contact.role}</p>
+                            <p className="text-sm text-gray-700">{contact.phone}</p>
+                          </div>
+                        </div>
+                        <a
+                          href={whatsappLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm font-medium text-green-700 hover:text-green-900 underline"
+                        >
+                          Chat on WhatsApp
+                        </a>
+                      </div>
+                    );
+                  })}
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="flex items-center gap-3 p-3 bg-white rounded-lg border">
-                    <MessageCircle className="w-5 h-5 text-green-600" />
-                    <div>
-                      <p className="font-medium">WhatsApp</p>
-                      <p className="text-sm text-gray-600">Primary contact method</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-3 p-3 bg-white rounded-lg border">
+                  <div className="p-4 bg-white rounded-lg border flex items-center gap-3">
                     <Mail className="w-5 h-5 text-green-600" />
                     <div>
-                      <p className="font-medium">Email</p>
-                      <p className="text-sm text-gray-600">Backup confirmation</p>
+                      <p className="font-semibold text-gray-900">Agency Email</p>
+                      <a
+                        href="mailto:contact@marrakechdunes.com"
+                        className="text-sm text-green-700 hover:text-green-900 underline"
+                      >
+                        contact@marrakechdunes.com
+                      </a>
+                      <p className="text-xs text-gray-500">We respond within the same day.</p>
                     </div>
                   </div>
+
+                  <div className="p-4 bg-white rounded-lg border flex items-center gap-3">
+                    <Phone className="w-5 h-5 text-green-600" />
+                    <div>
+                      <p className="font-semibold text-gray-900">Office Hours</p>
+                      <p className="text-sm text-gray-600">Every day • 08:00 – 20:00</p>
+                      <p className="text-xs text-gray-500">Call or visit us for any assistance.</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-4 bg-white rounded-lg border">
+                  <div className="flex items-center gap-2 mb-2 text-moroccan-blue">
+                    <MapPin className="w-5 h-5" />
+                    <p className="font-semibold">Where to meet & pay</p>
+                  </div>
+                  <p className="text-sm text-gray-700">
+                    <strong>Agency & Payment Center:</strong> 54 Riad Zitoun Lakdim, Marrakech 40000. You can visit this office to ask questions or pay your deposit in cash before the activity.
+                  </p>
+                  <p className="text-sm text-gray-700 mt-2">
+                    <strong>Activity Meeting Point:</strong> {bookingData.activity?.location || "Confirmed by our team during the follow-up call"}.
+                    Cash payments are collected at the meeting/drop-off point on the day of the experience.
+                  </p>
                 </div>
               </div>
             </CardContent>
@@ -266,3 +326,4 @@ export default function BookingConfirmationPage() {
     </div>
   );
 }
+

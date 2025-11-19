@@ -112,6 +112,10 @@ MarrakechDunes is a comprehensive tourism platform that combines modern web tech
    SMTP_USER=your-email@gmail.com
    SMTP_PASS=your-app-password
    SMTP_FROM=MarrakechDunes <noreply@marrakechdunes.com>
+
+   # Optional Resend fallback (used if SMTP is unavailable)
+   RESEND_API_KEY=your_resend_api_key
+   RESEND_FROM=MarrakechDunes <notifications@your-domain.com>
    
    # WhatsApp Integration
    WHATSAPP_RECEIVERS=+212XXXXXXXXX,+212YYYYYYYYY
