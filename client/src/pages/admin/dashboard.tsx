@@ -8,7 +8,11 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, Users, TrendingUp, Crown, MessageCircle, LogOut, Download, FileText, Mail, Settings, Home, Plus, Search, Trash2 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Users, TrendingUp, Crown, MessageCircle, LogOut, Download, FileText, Mail, Settings, Home, Plus, Search, Trash2, Filter, X, CheckSquare, Square } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
 import AdminRoute from "@/components/admin-route";
 import { useAuth } from "@/hooks/use-auth";
 // import { useLanguage } from "@/hooks/use-language";
@@ -103,6 +107,19 @@ function AdminDashboardContent() {
   const [deleteActivityDialogOpen, setDeleteActivityDialogOpen] = useState(false);
   const [activityToDelete, setActivityToDelete] = useState<{ id: string; name: string } | null>(null);
   
+  // Search and filter state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState<string>("all");
+  const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date }>({});
+  const [selectedBookings, setSelectedBookings] = useState<Set<string>>(new Set());
+  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
+  const [bulkStatusUpdateDialogOpen, setBulkStatusUpdateDialogOpen] = useState(false);
+  const [bulkStatusToUpdate, setBulkStatusToUpdate] = useState<string>("");
+  
+  // Reports date range state
+  const [reportsDateRange, setReportsDateRange] = useState<{ from?: Date; to?: Date }>({});
+  
   const { data: bookings = [], error: bookingsError } = useQuery<BookingWithActivity[]>({
     queryKey: ["/admin/bookings"],
     enabled: !!user, // Only fetch if user is authenticated
@@ -158,13 +175,47 @@ function AdminDashboardContent() {
   // Include all bookings that have a totalAmount > 0
   // Filter out bookings with deleted activities for revenue calculation
   // Add null check to prevent TypeError when accessing b.activity
+  // Apply reports date range filter if set
   const revenueBookings = bookings.filter(b => {
     // Check if booking has valid activity and totalAmount
     if (!b.activity) return false;
     if (Number(b.totalAmount) <= 0) return false;
+    
+    // Apply reports date range filter
+    if (reportsDateRange.from || reportsDateRange.to) {
+      const bookingDate = new Date(b.preferredDate);
+      if (reportsDateRange.from && bookingDate < reportsDateRange.from) return false;
+      if (reportsDateRange.to) {
+        const toDate = new Date(reportsDateRange.to);
+        toDate.setHours(23, 59, 59, 999);
+        if (bookingDate > toDate) return false;
+      }
+    }
+    
     return true;
   });
   const totalRevenue = revenueBookings.reduce((sum, b) => sum + (Number(b.totalAmount) || 0), 0);
+  
+  // Filter bookings for reports based on date range
+  const reportsFilteredBookings = bookings.filter(b => {
+    if (!b.activity) return false;
+    
+    // Apply reports date range filter
+    if (reportsDateRange.from || reportsDateRange.to) {
+      const bookingDate = new Date(b.preferredDate);
+      if (reportsDateRange.from && bookingDate < reportsDateRange.from) return false;
+      if (reportsDateRange.to) {
+        const toDate = new Date(reportsDateRange.to);
+        toDate.setHours(23, 59, 59, 999);
+        if (bookingDate > toDate) return false;
+      }
+    }
+    
+    return true;
+  });
+  
+  const reportsPendingBookings = reportsFilteredBookings.filter(b => b.status === 'pending' as any).length;
+  const reportsConfirmedBookings = reportsFilteredBookings.filter(b => b.status === 'confirmed' as any).length;
 
   // Debug logging for revenue calculation (DEV only)
   if (import.meta.env.DEV) {
@@ -561,6 +612,183 @@ function AdminDashboardContent() {
     });
   };
 
+  // Filter bookings based on search and filters
+  const filteredBookings = bookings.filter((booking) => {
+    // Filter out bookings with deleted activities
+    if (!booking.activity) return false;
+
+    // Search filter (customer name, phone, activity name)
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      const matchesSearch = 
+        booking.customerName?.toLowerCase().includes(query) ||
+        booking.customerPhone?.toLowerCase().includes(query) ||
+        booking.activity?.name?.toLowerCase().includes(query);
+      if (!matchesSearch) return false;
+    }
+
+    // Status filter
+    if (statusFilter !== "all") {
+      if (booking.status?.toLowerCase() !== statusFilter.toLowerCase()) return false;
+    }
+
+    // Payment status filter
+    if (paymentStatusFilter !== "all") {
+      if (booking.paymentStatus !== paymentStatusFilter) return false;
+    }
+
+    // Date range filter
+    if (dateRange.from || dateRange.to) {
+      const bookingDate = new Date(booking.preferredDate);
+      if (dateRange.from && bookingDate < dateRange.from) return false;
+      if (dateRange.to) {
+        const toDate = new Date(dateRange.to);
+        toDate.setHours(23, 59, 59, 999); // Include entire end date
+        if (bookingDate > toDate) return false;
+      }
+    }
+
+    return true;
+  });
+
+  // Handle checkbox selection
+  const handleBookingSelect = (bookingId: string, checked: boolean) => {
+    const newSelected = new Set(selectedBookings);
+    if (checked) {
+      newSelected.add(bookingId);
+    } else {
+      newSelected.delete(bookingId);
+    }
+    setSelectedBookings(newSelected);
+  };
+
+  // Handle select all
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      const allIds = new Set(filteredBookings.map(b => b._id || b.id || '').filter(Boolean));
+      setSelectedBookings(allIds);
+    } else {
+      setSelectedBookings(new Set());
+    }
+  };
+
+  // Bulk status update
+  const handleBulkStatusUpdate = async () => {
+    if (!bulkStatusToUpdate || selectedBookings.size === 0) return;
+
+    const selectedCount = selectedBookings.size;
+    const selectedIds = Array.from(selectedBookings);
+
+    try {
+      // Update each booking status
+      for (const id of selectedIds) {
+        await handleBookingStatusUpdate(id, bulkStatusToUpdate as any);
+      }
+      
+      setSelectedBookings(new Set());
+      setBulkStatusUpdateDialogOpen(false);
+      setBulkStatusToUpdate("");
+      
+      toast({
+        title: "Statuts Mis à Jour",
+        description: `${selectedCount} réservation(s) mise(s) à jour avec succès.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: "Impossible de mettre à jour les réservations",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Bulk delete
+  const handleBulkDelete = async () => {
+    if (selectedBookings.size === 0) return;
+
+    const selectedCount = selectedBookings.size;
+    const selectedIds = Array.from(selectedBookings);
+
+    try {
+      // Delete each booking
+      for (const id of selectedIds) {
+        await deleteBookingMutation.mutateAsync(id);
+      }
+      
+      setSelectedBookings(new Set());
+      setBulkDeleteDialogOpen(false);
+      
+      toast({
+        title: "Réservations Supprimées",
+        description: `${selectedCount} réservation(s) supprimée(s) avec succès.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: "Impossible de supprimer les réservations",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Bulk export
+  const handleBulkExport = async () => {
+    if (selectedBookings.size === 0) {
+      toast({
+        title: "Aucune sélection",
+        description: "Veuillez sélectionner au moins une réservation à exporter.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const selectedBookingsData = filteredBookings.filter(b => 
+        selectedBookings.has(b._id || b.id || '')
+      );
+      
+      // Convert to CSV
+      const headers = ['Customer Name', 'Phone', 'Email', 'Activity', 'Date', 'People', 'Status', 'Total Amount', 'Payment Status'];
+      const rows = selectedBookingsData.map(b => [
+        b.customerName,
+        b.customerPhone,
+        b.customerEmail || '',
+        b.activity?.name || '',
+        new Date(b.preferredDate).toLocaleDateString(),
+        b.numberOfPeople,
+        b.status,
+        b.totalAmount,
+        b.paymentStatus
+      ]);
+      
+      const csvContent = [
+        headers.join(','),
+        ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+      ].join('\n');
+      
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `bookings-selected-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      toast({
+        title: "Export Réussi",
+        description: `${selectedBookings.size} réservation(s) exportée(s) avec succès.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Erreur d'Export",
+        description: "Impossible d'exporter les réservations sélectionnées.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <>
       <SEOHead 
@@ -728,32 +956,243 @@ function AdminDashboardContent() {
                 </div>
               </div>
 
+              {/* Search and Filter Section */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Filter className="h-5 w-5" />
+                    Recherche et Filtres
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                    {/* Search Bar */}
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                      <Input
+                        placeholder="Rechercher (nom, téléphone, activité)..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="pl-10"
+                      />
+                    </div>
+
+                    {/* Status Filter */}
+                    <Select value={statusFilter} onValueChange={setStatusFilter}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Statut" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Tous les statuts</SelectItem>
+                        <SelectItem value="pending">Pending</SelectItem>
+                        <SelectItem value="confirmed">Confirmed</SelectItem>
+                        <SelectItem value="paid">Paid</SelectItem>
+                        <SelectItem value="in_progress">In Progress</SelectItem>
+                        <SelectItem value="completed">Completed</SelectItem>
+                        <SelectItem value="cancelled">Cancelled</SelectItem>
+                      </SelectContent>
+                    </Select>
+
+                    {/* Payment Status Filter */}
+                    <Select value={paymentStatusFilter} onValueChange={setPaymentStatusFilter}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Statut de paiement" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Tous les paiements</SelectItem>
+                        <SelectItem value="unpaid">Unpaid</SelectItem>
+                        <SelectItem value="deposit_paid">Deposit Paid</SelectItem>
+                        <SelectItem value="fully_paid">Fully Paid</SelectItem>
+                      </SelectContent>
+                    </Select>
+
+                    {/* Date Range Picker */}
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" className="w-full justify-start text-left font-normal">
+                          <Calendar className="mr-2 h-4 w-4" />
+                          {dateRange.from ? (
+                            dateRange.to ? (
+                              <>
+                                {dateRange.from.toLocaleDateString()} - {dateRange.to.toLocaleDateString()}
+                              </>
+                            ) : (
+                              dateRange.from.toLocaleDateString()
+                            )
+                          ) : (
+                            <span>Période</span>
+                          )}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          initialFocus
+                          mode="range"
+                          defaultMonth={dateRange.from}
+                          selected={{ from: dateRange.from, to: dateRange.to }}
+                          onSelect={(range: any) => setDateRange({ from: range?.from, to: range?.to })}
+                          numberOfMonths={2}
+                        />
+                        {dateRange.from && (
+                          <div className="p-3 border-t flex justify-end gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setDateRange({})}
+                            >
+                              <X className="h-4 w-4 mr-1" />
+                              Effacer
+                            </Button>
+                          </div>
+                        )}
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+
+                  {/* Bulk Actions Bar */}
+                  {selectedBookings.size > 0 && (
+                    <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-200">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-blue-900">
+                          {selectedBookings.size} réservation(s) sélectionnée(s)
+                        </span>
+                      </div>
+                      <div className="flex gap-2">
+                        <Select value={bulkStatusToUpdate} onValueChange={setBulkStatusToUpdate}>
+                          <SelectTrigger className="w-40">
+                            <SelectValue placeholder="Changer statut" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="pending">Pending</SelectItem>
+                            <SelectItem value="confirmed">Confirmed</SelectItem>
+                            <SelectItem value="paid">Paid</SelectItem>
+                            <SelectItem value="completed">Completed</SelectItem>
+                            <SelectItem value="cancelled">Cancelled</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Button
+                          size="sm"
+                          onClick={() => {
+                            if (bulkStatusToUpdate) {
+                              setBulkStatusUpdateDialogOpen(true);
+                            } else {
+                              toast({
+                                title: "Sélection requise",
+                                description: "Veuillez sélectionner un statut.",
+                                variant: "destructive",
+                              });
+                            }
+                          }}
+                          disabled={!bulkStatusToUpdate}
+                        >
+                          Mettre à jour
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={handleBulkExport}
+                        >
+                          <Download className="h-4 w-4 mr-1" />
+                          Exporter
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => setBulkDeleteDialogOpen(true)}
+                        >
+                          <Trash2 className="h-4 w-4 mr-1" />
+                          Supprimer
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => setSelectedBookings(new Set())}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
 
               <Card>
                 <CardHeader>
                   <CardTitle>📋 Toutes les Réservations avec Analyse des Prix</CardTitle>
                 </CardHeader>
                 <CardContent>
+                  <div className="mb-4 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Checkbox
+                        checked={selectedBookings.size > 0 && selectedBookings.size === filteredBookings.length}
+                        onCheckedChange={handleSelectAll}
+                      />
+                      <Label className="text-sm text-gray-600">
+                        Sélectionner tout ({filteredBookings.length} réservation(s))
+                      </Label>
+                    </div>
+                    {searchQuery || statusFilter !== "all" || paymentStatusFilter !== "all" || dateRange.from || dateRange.to ? (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setSearchQuery("");
+                          setStatusFilter("all");
+                          setPaymentStatusFilter("all");
+                          setDateRange({});
+                        }}
+                      >
+                        <X className="h-4 w-4 mr-1" />
+                        Réinitialiser les filtres
+                      </Button>
+                    ) : null}
+                  </div>
                   <div className="space-y-6">
-                    {bookings
-                      .filter((booking) => booking.activity) // Filter out bookings with deleted activities
-                      .slice(0, 10)
-                      .map((booking, index) => {
-                      return (
-                        <div key={booking.id || booking._id || `booking-${index}`} className="border rounded-lg p-6 space-y-4">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-4 mb-3">
-                              <div>
-                                <h3 className="font-semibold text-lg">{booking.customerName}</h3>
-                                <p className="text-sm text-gray-600">{booking.activity?.name || 'Activity not found'}</p>
-                                <p className="text-sm text-gray-500">{booking.customerPhone}</p>
+                    {filteredBookings.length === 0 ? (
+                      <div className="text-center py-12">
+                        <p className="text-gray-500">Aucune réservation trouvée avec les filtres sélectionnés.</p>
+                        {(searchQuery || statusFilter !== "all" || paymentStatusFilter !== "all" || dateRange.from || dateRange.to) && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="mt-4"
+                            onClick={() => {
+                              setSearchQuery("");
+                              setStatusFilter("all");
+                              setPaymentStatusFilter("all");
+                              setDateRange({});
+                            }}
+                          >
+                            Réinitialiser les filtres
+                          </Button>
+                        )}
+                      </div>
+                    ) : (
+                      filteredBookings.map((booking, index) => {
+                        const bookingId = booking._id || booking.id || `booking-${index}`;
+                        const isSelected = selectedBookings.has(bookingId);
+                        return (
+                          <div key={bookingId} className={`border rounded-lg p-6 space-y-4 ${isSelected ? 'bg-blue-50 border-blue-300' : ''}`}>
+                            <div className="flex items-start justify-between">
+                              <div className="flex items-start gap-3 flex-1">
+                                <Checkbox
+                                  checked={isSelected}
+                                  onCheckedChange={(checked) => handleBookingSelect(bookingId, checked as boolean)}
+                                  className="mt-1"
+                                />
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-4 mb-3">
+                                    <div>
+                                      <h3 className="font-semibold text-lg">{booking.customerName}</h3>
+                                      <p className="text-sm text-gray-600">{booking.activity?.name || 'Activity not found'}</p>
+                                      <p className="text-sm text-gray-500">{booking.customerPhone}</p>
+                                    </div>
+                                    <Badge variant={booking.status === 'pending' as any ? 'destructive' : booking.status === 'confirmed' as any ? 'default' : 'secondary'}>
+                                      {booking.status}
+                                    </Badge>
+                                  </div>
+                                </div>
                               </div>
-                              <Badge variant={booking.status === 'pending' as any ? 'destructive' : booking.status === 'confirmed' as any ? 'default' : 'secondary'}>
-                                {booking.status}
-                              </Badge>
-                            </div>
-                          </div>
                           <div className="text-right">
                             <div className="text-lg font-bold text-moroccan-blue">{booking.totalAmount} MAD</div>
                             <div className="text-sm text-gray-500">{booking.numberOfPeople} people</div>
@@ -873,10 +1312,53 @@ function AdminDashboardContent() {
                         </div>
                       </div>
                       );
-                    })}
+                    })
+                    )}
                   </div>
                 </CardContent>
               </Card>
+
+              {/* Bulk Delete Confirmation Dialog */}
+              <AlertDialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Êtes-vous sûr de vouloir supprimer {selectedBookings.size} réservation(s) ? Cette action est irréversible.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Annuler</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleBulkDelete}
+                      className="bg-red-600 hover:bg-red-700"
+                    >
+                      Supprimer
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+
+              {/* Bulk Status Update Confirmation Dialog */}
+              <AlertDialog open={bulkStatusUpdateDialogOpen} onOpenChange={setBulkStatusUpdateDialogOpen}>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Confirmer la mise à jour</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Êtes-vous sûr de vouloir mettre à jour {selectedBookings.size} réservation(s) au statut "{bulkStatusToUpdate}" ?
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Annuler</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleBulkStatusUpdate}
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      Confirmer
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </TabsContent>
 
             <TabsContent value="activities" className="space-y-4">
@@ -1062,6 +1544,49 @@ function AdminDashboardContent() {
                   📊 Rapports et Analyses
                 </h2>
                 <div className="flex gap-2">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" size="sm" className="border-purple-200 text-purple-700 hover:bg-purple-50">
+                        <Calendar className="h-4 w-4 mr-2" />
+                        {reportsDateRange.from ? (
+                          reportsDateRange.to ? (
+                            <>
+                              {reportsDateRange.from.toLocaleDateString()} - {reportsDateRange.to.toLocaleDateString()}
+                            </>
+                          ) : (
+                            reportsDateRange.from.toLocaleDateString()
+                          )
+                        ) : (
+                          <span>Période</span>
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="end">
+                      <Calendar
+                        initialFocus
+                        mode="range"
+                        defaultMonth={reportsDateRange.from}
+                        selected={{ from: reportsDateRange.from, to: reportsDateRange.to }}
+                        onSelect={(range: any) => setReportsDateRange({ from: range?.from, to: range?.to })}
+                        numberOfMonths={2}
+                      />
+                      {reportsDateRange.from && (
+                        <div className="p-3 border-t flex justify-between items-center">
+                          <span className="text-sm text-gray-600">
+                            {reportsFilteredBookings.length} réservation(s) dans cette période
+                          </span>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setReportsDateRange({})}
+                          >
+                            <X className="h-4 w-4 mr-1" />
+                            Effacer
+                          </Button>
+                        </div>
+                      )}
+                    </PopoverContent>
+                  </Popover>
                   <Button 
                     onClick={handleExportBookings} 
                     variant="outline" 
@@ -1106,9 +1631,9 @@ function AdminDashboardContent() {
                   </CardHeader>
                   <CardContent>
                     <div className="text-3xl font-bold text-green-900">
-                      {confirmedBookings.toString()}
+                      {reportsConfirmedBookings.toString()}
                     </div>
-                    <p className="text-sm text-green-600 mt-1">Clients satisfaits</p>
+                    <p className="text-sm text-green-600 mt-1">Clients satisfaits{reportsDateRange.from ? ' (période sélectionnée)' : ''}</p>
                   </CardContent>
                 </Card>
 
@@ -1120,9 +1645,9 @@ function AdminDashboardContent() {
                   </CardHeader>
                   <CardContent>
                     <div className="text-3xl font-bold text-orange-900">
-                      {pendingBookings}
+                      {reportsPendingBookings}
                     </div>
-                    <p className="text-sm text-orange-600 mt-1">En cours de traitement</p>
+                    <p className="text-sm text-orange-600 mt-1">En cours de traitement{reportsDateRange.from ? ' (période sélectionnée)' : ''}</p>
                   </CardContent>
                 </Card>
               </div>
