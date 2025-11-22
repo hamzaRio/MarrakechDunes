@@ -24,8 +24,9 @@ class EmailService {
       // Use SMTP_* variables as canonical, fallback to EMAIL_* for backward compatibility
       const smtpConfig = {
         host: process.env.SMTP_HOST || 'smtp.gmail.com',
-        port: parseInt(process.env.SMTP_PORT || process.env.EMAIL_PORT || '587'),
-        secure: (process.env.SMTP_PORT || process.env.EMAIL_PORT) === '465',
+        // Try port 465 (SSL) first, fallback to 587 (TLS) - some cloud providers block 587
+        port: parseInt(process.env.SMTP_PORT || process.env.EMAIL_PORT || '465'),
+        secure: true, // Use SSL for port 465 (more reliable on cloud platforms)
         auth: {
           user: process.env.SMTP_USER || process.env.EMAIL_USER || 'timedizzy45@gmail.com',
           // Remove spaces from password (Gmail app passwords should be 16 chars without spaces)
@@ -150,7 +151,7 @@ class EmailService {
         return false;
       }
 
-      const result = await response.json();
+      const result = await response.json() as { id?: string };
       console.log('[EMAIL] Email sent successfully via Resend:', result.id || 'success');
       return true;
     } catch (error: any) {
@@ -180,18 +181,7 @@ class EmailService {
       html
     };
 
-    // Try Resend first if configured (more reliable on cloud platforms like Render)
-    // Render often blocks outbound SMTP connections, so Resend is preferred
-    const resendApiKey = process.env.RESEND_API_KEY;
-    if (resendApiKey) {
-      const resendSuccess = await this.sendViaResend(to, subject, message, html);
-      if (resendSuccess) {
-        return true;
-      }
-      console.warn('[EMAIL] Resend delivery failed. Attempting SMTP fallback...');
-    }
-
-    // Fallback to SMTP if Resend not configured or failed
+    // Try SMTP first (primary method)
     if (!this.transporter && this.hasSmtpCredentials()) {
       this.initializeTransporter();
     }
@@ -201,15 +191,24 @@ class EmailService {
       if (smtpSuccess) {
         return true;
       }
-      console.warn('[EMAIL] SMTP delivery failed (likely blocked by cloud provider).');
+      console.warn('[EMAIL] SMTP delivery failed. Attempting Resend fallback if configured...');
     } else {
-      console.warn('[EMAIL] SMTP credentials missing or transporter unavailable.');
+      console.warn('[EMAIL] SMTP credentials missing or transporter unavailable. Trying Resend if configured...');
     }
 
-    // If both failed and Resend wasn't tried, try it now
-    if (!resendApiKey) {
-      console.warn('[EMAIL] No email service configured. Please set RESEND_API_KEY for reliable email delivery.');
-      return false;
+    // Fallback to Resend if SMTP failed and Resend is configured
+    const resendApiKey = process.env.RESEND_API_KEY;
+    if (resendApiKey) {
+      const resendSuccess = await this.sendViaResend(to, subject, message, html);
+      if (resendSuccess) {
+        return true;
+      }
+      console.warn('[EMAIL] Resend fallback also failed.');
+    }
+
+    // If both failed
+    if (!this.hasSmtpCredentials() && !resendApiKey) {
+      console.error('[EMAIL] No email service configured. Please set SMTP credentials or RESEND_API_KEY.');
     }
 
     return false;
