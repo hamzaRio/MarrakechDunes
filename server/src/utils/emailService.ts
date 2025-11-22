@@ -34,9 +34,15 @@ class EmailService {
           pass: (process.env.SMTP_PASS || process.env.EMAIL_PASS)?.replace(/\s+/g, '') || undefined
         },
         // Add connection timeout settings to prevent long waits
-        connectionTimeout: 10000, // 10 seconds
-        greetingTimeout: 10000, // 10 seconds
-        socketTimeout: 10000, // 10 seconds
+        connectionTimeout: 5000, // 5 seconds (faster failure detection)
+        greetingTimeout: 5000, // 5 seconds
+        socketTimeout: 5000, // 5 seconds
+        // Try to use TLS upgrade if secure is false
+        requireTLS: smtpPort === 587,
+        // Disable certificate validation issues (for testing)
+        tls: {
+          rejectUnauthorized: false // Allow self-signed certificates
+        },
         // Retry configuration
         pool: false,
         maxConnections: 1,
@@ -85,6 +91,19 @@ class EmailService {
     }
 
     try {
+      // First verify connection (this will fail fast if Render blocks SMTP)
+      console.log('[EMAIL] Verifying SMTP connection to server...');
+      try {
+        await this.transporter.verify();
+        console.log('[EMAIL] ✅ SMTP connection verified - server is reachable');
+      } catch (verifyError: any) {
+        console.error('[EMAIL] ❌ SMTP connection verification failed:', verifyError.code || verifyError.message);
+        if (verifyError.code === 'ETIMEDOUT' || verifyError.code === 'ECONNREFUSED') {
+          throw new Error('SMTP connection blocked by cloud provider (Render firewall). Use Resend API instead.');
+        }
+        throw verifyError;
+      }
+      
       const timeoutPromise = new Promise<never>((_, reject) => {
         setTimeout(() => reject(new Error('Email sending timeout after 15 seconds')), 15000);
       });
