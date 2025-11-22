@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Users, TrendingUp, Crown, MessageCircle, LogOut, Download, FileText, Mail, Settings, Home, Plus, Search, Trash2, Filter, X, CheckSquare, Square } from "lucide-react";
+import { Users, TrendingUp, Crown, MessageCircle, LogOut, Download, FileText, Mail, Settings, Home, Plus, Search, Trash2, Filter, X, CheckSquare, Square, Calendar as CalendarIcon } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import AdminRoute from "@/components/admin-route";
 import { useAuth } from "@/hooks/use-auth";
@@ -1010,7 +1010,7 @@ function AdminDashboardContent() {
                     <Popover>
                       <PopoverTrigger asChild>
                         <Button variant="outline" className="w-full justify-start text-left font-normal">
-                          <Calendar className="mr-2 h-4 w-4" />
+                          <CalendarIcon className="mr-2 h-4 w-4" />
                           {dateRange.from ? (
                             dateRange.to ? (
                               <>
@@ -1547,7 +1547,7 @@ function AdminDashboardContent() {
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button variant="outline" size="sm" className="border-purple-200 text-purple-700 hover:bg-purple-50">
-                        <Calendar className="h-4 w-4 mr-2" />
+                        <CalendarIcon className="h-4 w-4 mr-2" />
                         {reportsDateRange.from ? (
                           reportsDateRange.to ? (
                             <>
