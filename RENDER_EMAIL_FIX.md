@@ -1,13 +1,20 @@
 # Fix Email Sending on Render
 
 ## Problem
-Render blocks outbound SMTP connections (ports 465 and 587) at the firewall level. This is a security measure to prevent spam.
+**Render changed their policy on September 26, 2025**: Free tier services now block outbound SMTP connections (ports 25, 465, and 587). This is a platform restriction, not a code issue.
 
-## Solution: Use Resend API
+## Solutions (Choose One)
 
-Resend uses HTTPS (not blocked) and works immediately.
+### Option 1: Upgrade Render to Paid Plan ⭐ (SMTP Works)
+If you upgrade to any paid Render plan, SMTP will work normally:
+- Starter plan: $7/month
+- SMTP ports are unblocked on paid plans
+- Your current SMTP configuration will work immediately
 
-### Quick Setup (5 minutes)
+### Option 2: Use Resend API (Free, Works on Free Tier)
+Resend uses HTTPS (not blocked) and works on free tier.
+
+#### Quick Setup (5 minutes)
 
 1. **Sign up for Resend** (Free tier: 3,000 emails/month)
    - Go to: https://resend.com/signup
@@ -38,14 +45,20 @@ Resend uses HTTPS (not blocked) and works immediately.
 - You keep SMTP configured - if Render ever unblocks it, SMTP will work
 - Resend is just a fallback that works NOW
 
-### Alternative: Contact Render Support
+### Option 3: Use Another Email API Service
+- SendGrid (free tier: 100 emails/day)
+- Mailgun (free tier: 5,000 emails/month)
+- AWS SES (pay-as-you-go, very cheap)
 
-If you want SMTP only:
-1. Contact Render support: support@render.com
-2. Ask them to unblock outbound SMTP ports (465/587)
-3. They may require justification and may not allow it on free plans
+All use HTTPS APIs, so they work on Render's free tier.
 
-**Note:** This may take days/weeks and may not be approved.
+---
+
+## Recommendation
+
+**For Free Tier**: Use Resend (Option 2) - it's free, works immediately, and you get 3,000 emails/month.
+
+**For SMTP Only**: Upgrade to Render paid plan (Option 1) - SMTP will work normally.
 
 ### Why Resend Works
 
