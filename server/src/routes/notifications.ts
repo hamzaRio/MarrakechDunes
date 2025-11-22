@@ -42,7 +42,19 @@ router.post('/email/send', async (req, res) => {
 
     // Send email with timeout protection
     const sendPromise = emailService.sendEmail(to, subject, message);
-    const success = await Promise.race([sendPromise, timeoutPromise]);
+    let success: boolean;
+    try {
+      success = await Promise.race([sendPromise, timeoutPromise]);
+    } catch (timeoutError: any) {
+      if (timeoutError.message?.includes('timeout')) {
+        console.error(`[NOTIFICATIONS] Email send timeout after 20 seconds to: ${to}`);
+        return res.status(504).json({
+          success: false,
+          message: 'La connexion au serveur d\'envoi d\'emails prend plus de temps que prévu. Cela peut être dû à une surcharge temporaire. Nous vous invitons à réessayer dans quelques minutes.'
+        });
+      }
+      throw timeoutError;
+    }
 
     const duration = Date.now() - startTime;
 

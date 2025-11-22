@@ -22,11 +22,12 @@ class EmailService {
   private initializeTransporter() {
     try {
       // Use SMTP_* variables as canonical, fallback to EMAIL_* for backward compatibility
+      const smtpPort = parseInt(process.env.SMTP_PORT || process.env.EMAIL_PORT || '465');
       const smtpConfig = {
         host: process.env.SMTP_HOST || 'smtp.gmail.com',
         // Try port 465 (SSL) first, fallback to 587 (TLS) - some cloud providers block 587
-        port: parseInt(process.env.SMTP_PORT || process.env.EMAIL_PORT || '465'),
-        secure: true, // Use SSL for port 465 (more reliable on cloud platforms)
+        port: smtpPort,
+        secure: smtpPort === 465, // Use SSL for port 465, TLS for 587
         auth: {
           user: process.env.SMTP_USER || process.env.EMAIL_USER || 'timedizzy45@gmail.com',
           // Remove spaces from password (Gmail app passwords should be 16 chars without spaces)
@@ -49,7 +50,7 @@ class EmailService {
 
       this.transporter = nodemailer.createTransport(smtpConfig);
 
-      console.log('[EMAIL] Transporter initialized successfully');
+      console.log(`[EMAIL] Transporter initialized - Host: ${smtpConfig.host}, Port: ${smtpPort}, Secure: ${smtpConfig.secure}, User: ${smtpConfig.auth.user}`);
     } catch (error) {
       console.error('[EMAIL] Failed to initialize transporter:', error);
       this.transporter = null;
@@ -99,11 +100,14 @@ class EmailService {
       return true;
     } catch (error: any) {
       if (error.message?.includes('timeout') || error.code === 'ETIMEDOUT' || error.code === 'ECONNREFUSED') {
-        console.error('[EMAIL] Connection timeout or refused - SMTP server may be unreachable:', error.message || error.code);
+        const errorMsg = error.message || error.code || 'Unknown timeout error';
+        console.error(`[EMAIL] Connection timeout or refused - SMTP server may be unreachable: ${errorMsg}`);
+        console.error(`[EMAIL] This often happens on cloud platforms like Render that block outbound SMTP ports.`);
+        console.error(`[EMAIL] Solution: Use Resend API (set RESEND_API_KEY) or contact Render support to unblock SMTP.`);
       } else if (error.code === 'EAUTH' || error.message?.includes('Invalid login')) {
         console.error('[EMAIL] SMTP authentication failed - please verify SMTP_USER/SMTP_PASS:', error.message);
       } else {
-        console.error('[EMAIL] Failed to send email via SMTP:', error);
+        console.error('[EMAIL] Failed to send email via SMTP:', error.message || error);
       }
       return false;
     }
@@ -199,11 +203,14 @@ class EmailService {
     // Fallback to Resend if SMTP failed and Resend is configured
     const resendApiKey = process.env.RESEND_API_KEY;
     if (resendApiKey) {
+      console.log('[EMAIL] Attempting Resend fallback...');
       const resendSuccess = await this.sendViaResend(to, subject, message, html);
       if (resendSuccess) {
         return true;
       }
       console.warn('[EMAIL] Resend fallback also failed.');
+    } else {
+      console.warn('[EMAIL] Resend API key not configured. SMTP is the only email method available.');
     }
 
     // If both failed
