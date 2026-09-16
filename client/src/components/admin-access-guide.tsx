@@ -135,7 +135,7 @@ export default function AdminAccessGuide() {
         <CardHeader>
           <CardTitle className="flex items-center text-orange-800">
             <Key className="h-5 w-5 mr-2" />
-            Default Login Credentials
+            Login Credentials
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -150,7 +150,7 @@ export default function AdminAccessGuide() {
                   </div>
                   <div>
                     <span className="text-gray-600">Password:</span>
-                    <code className="block bg-gray-100 p-2 mt-1 rounded">admin123</code>
+                    <span className="block bg-gray-100 p-2 mt-1 rounded">Provided by your administrator</span>
                   </div>
                 </div>
               </div>
@@ -163,15 +163,15 @@ export default function AdminAccessGuide() {
                   </div>
                   <div>
                     <span className="text-gray-600">Password:</span>
-                    <code className="block bg-gray-100 p-2 mt-1 rounded">ahmed123</code>
+                    <span className="block bg-gray-100 p-2 mt-1 rounded">Provided by your administrator</span>
                   </div>
                 </div>
               </div>
             </div>
             <div className="mt-3 p-3 bg-orange-100 rounded border border-orange-300">
               <p className="text-xs text-orange-800">
-                <strong>Security Note:</strong> These are default credentials for development. 
-                Change passwords immediately in production environments.
+                <strong>Security Note:</strong> Use the credentials provided by your administrator.
+                No default passwords are provided.
               </p>
             </div>
           </div>

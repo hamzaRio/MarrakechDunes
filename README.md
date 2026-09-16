@@ -98,11 +98,11 @@ MarrakechDunes is a comprehensive tourism platform that combines modern web tech
    
    **Backend (.env in server/)**
    ```env
-   DATABASE_URL=mongodb+srv://username:password@cluster.mongodb.net/marrakech-tours
+   DATABASE_URL=<your-mongodb-connection-string>
    SESSION_SECRET=your-super-secret-session-key
    JWT_SECRET=your-jwt-secret-key
-   ADMIN_PASSWORD=admin123
-   SUPERADMIN_PASSWORD=superadmin123
+   ADMIN_PASSWORD=<your-admin-password>
+   SUPERADMIN_PASSWORD=<your-superadmin-password>
    CLIENT_URL=http://localhost:5173
    PORT=10000
    

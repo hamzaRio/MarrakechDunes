@@ -85,22 +85,10 @@ if (isProduction) {
     process.exit(1);
   }
 } else {
-  // For development, set defaults for missing variables
+  // For development, set only non-secret defaults; env.ts requires authentication values.
   if (!process.env.DATABASE_URL) {
     process.env.DATABASE_URL = 'mongodb://localhost:27017/marrakechdunes';
     console.warn('??  Using default DATABASE_URL for development');
-  }
-  if (!process.env.JWT_SECRET) {
-    process.env.JWT_SECRET = 'default-jwt-secret-for-development';
-    console.warn('??  Using default JWT_SECRET for development');
-  }
-  if (!process.env.ADMIN_PASSWORD) {
-    process.env.ADMIN_PASSWORD = 'admin123';
-    console.warn('??  Using default ADMIN_PASSWORD for development');
-  }
-  if (!process.env.SUPERADMIN_PASSWORD) {
-    process.env.SUPERADMIN_PASSWORD = 'superadmin123';
-    console.warn('??  Using default SUPERADMIN_PASSWORD for development');
   }
   if (!process.env.CLIENT_URL) {
     process.env.CLIENT_URL = 'http://localhost:5173,https://marrakech-dunes.vercel.app,https://marrakech-dunes-*.vercel.app';

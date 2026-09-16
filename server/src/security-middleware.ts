@@ -8,14 +8,10 @@ import { resolveDatabaseUrl, getRedactedDatabaseUrl } from './utils/database-url
 import crypto from 'crypto';
 
 const isProduction = process.env.NODE_ENV === 'production';
-const sessionSecret = process.env.SESSION_SECRET || 'default-session-secret-for-development-only';
+const sessionSecret = process.env.SESSION_SECRET;
 
-if (!process.env.SESSION_SECRET && isProduction) {
-  throw new Error('SESSION_SECRET environment variable is required for production session security.');
-}
-
-if (!process.env.SESSION_SECRET) {
-  console.warn('⚠️  WARNING: Using default SESSION_SECRET. Set SESSION_SECRET environment variable for production.');
+if (!sessionSecret) {
+  throw new Error('SESSION_SECRET environment variable is required for session security.');
 }
 
 // Rate limiting for authentication attempts
