@@ -531,15 +531,15 @@ app.use((req: Request, res: Response, next: NextFunction) => {
                          path === '/favicon.ico';
   
   // Public routes that should always be accessible (GET requests)
+  const isPublicBookingCreation = req.method === 'POST' && path === '/api/bookings';
   const isPublicRoute = path.startsWith('/api/activities') ||
                        path.startsWith('/api/reviews') ||
-                       path.startsWith('/api/bookings') ||
                        path.startsWith('/api/health') ||
                        path.startsWith('/api/cors-test');
   
   // Skip CSRF for safe methods, auth routes, security events, static files, and public routes
   // This allows authenticated admin requests to work even if CSRF token is missing
-  if (isSafeMethod || isAuthOrSession || isPublicRoute) {
+  if (isSafeMethod || isAuthOrSession || isPublicRoute || isPublicBookingCreation) {
     return next();
   }
   

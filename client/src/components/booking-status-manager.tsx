@@ -45,7 +45,7 @@ export default function BookingStatusManager({
       status: BookingStatus; 
       reason?: string; 
     }) => {
-      const response = await api.patch(`/bookings/${bookingId}/status`, {
+      const response = await api.patch(`/admin/bookings/${bookingId}/status`, {
         status,
         reason
       });

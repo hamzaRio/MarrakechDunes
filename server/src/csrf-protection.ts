@@ -73,13 +73,17 @@ export class CSRFProtection {
       return next();
     }
 
+    // Keep public booking creation available without CSRF; protect all other booking paths.
+    if (req.method === 'POST' && req.path === '/api/bookings') {
+      return next();
+    }
+
     // Skip CSRF for specific paths
     const skipPaths = [
       '/api/security-events',
       '/api/auth/login',
       '/api/auth/logout',
       '/api/session/init',
-      '/api/bookings',
       '/api/admin/bookings', // Allow admin booking operations
       '/api/reviews',
       '/api/notifications' // Email notifications - external service integration
