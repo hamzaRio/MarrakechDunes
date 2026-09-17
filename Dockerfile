@@ -1,5 +1,5 @@
 # Optimized Dockerfile for Render deployment
-FROM node:20-alpine AS builder
+FROM node:24-alpine AS builder
 
 # Set buildkit environment variables
 ENV DOCKER_BUILDKIT=0
@@ -34,7 +34,7 @@ RUN npm run build:client
 RUN npm run build:server
 
 # Runtime stage - minimal image
-FROM node:20-alpine AS runner
+FROM node:24-alpine AS runner
 
 ENV NODE_ENV=production
 ENV PORT=10000
