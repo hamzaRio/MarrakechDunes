@@ -1,4 +1,4 @@
-import nodemailer from 'nodemailer';
+import nodemailer, { type SendMailOptions, type Transporter } from 'nodemailer';
 import fetch from 'node-fetch';
 
 /**
@@ -9,7 +9,7 @@ import fetch from 'node-fetch';
  * Legacy EMAIL_* variables are supported for backward compatibility.
  */
 class EmailService {
-  private transporter: nodemailer.Transporter | null = null;
+  private transporter: Transporter | null = null;
 
   constructor() {
     this.initializeTransporter();
@@ -85,7 +85,7 @@ class EmailService {
     `;
   }
 
-  private async sendViaSMTP(mailOptions: nodemailer.SendMailOptions): Promise<boolean> {
+  private async sendViaSMTP(mailOptions: SendMailOptions): Promise<boolean> {
     if (!this.transporter) {
       return false;
     }
