@@ -1,5 +1,6 @@
 import { Router, type Request, type Response } from 'express';
 import { storage } from '../storage.js';
+import { requireAdmin } from '../middleware/admin-auth.js';
 
 const router = Router();
 
@@ -66,7 +67,7 @@ router.get('/:id/rating', async (req: Request, res: Response) => {
  * PATCH /api/activities/:id
  * Update activity (partial update, used for price updates from dashboard)
  */
-router.patch('/:id', async (req: Request, res: Response) => {
+router.patch('/:id', requireAdmin, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const activityData = req.body;

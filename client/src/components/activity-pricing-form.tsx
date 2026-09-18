@@ -76,7 +76,7 @@ export default function ActivityPricingForm({
 
   const updateActivityMutation = useMutation({
     mutationFn: async (data: PricingFormData) => {
-      const response = await api.patch(`/activities/${activity.id}`, {
+      const response = await api.patch(`/admin/activities/${activity.id}`, {
         price: data.price,
         getyourguidePrice: data.competitorPrice,
         notes: data.notes,
