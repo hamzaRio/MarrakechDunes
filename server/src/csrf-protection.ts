@@ -81,20 +81,12 @@ export class CSRFProtection {
     // Skip CSRF for specific paths
     const skipPaths = [
       '/api/security-events',
-      '/api/auth/login',
-      '/api/auth/logout',
       '/api/session/init',
-      '/api/admin/bookings', // Allow admin booking operations
-      '/api/reviews',
-      '/api/notifications' // Email notifications - external service integration
+      '/api/notifications/subscribe',
+      '/api/notifications/unsubscribe'
     ];
 
-    if (skipPaths.some(path => req.path === path || req.path.startsWith(path))) {
-      return next();
-    }
-
-    // Skip CSRF for DELETE operations and export endpoints
-    if (req.method === 'DELETE' || req.path.startsWith('/api/admin/export')) {
+    if (skipPaths.includes(req.path)) {
       return next();
     }
 

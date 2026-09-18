@@ -1,7 +1,17 @@
 import { Router, type Request, type Response } from 'express';
+import { z } from 'zod';
 import { storage } from '../storage.js';
 
 const router = Router();
+
+const publicReviewSchema = z.object({
+  customerName: z.string().min(1),
+  customerEmail: z.string().email(),
+  activityId: z.string().min(1),
+  rating: z.number().min(1).max(5),
+  title: z.string().min(1),
+  comment: z.string().min(1),
+});
 
 /**
  * GET /api/reviews
@@ -51,8 +61,20 @@ router.get('/:id', async (req: Request, res: Response) => {
  */
 router.post('/', async (req: Request, res: Response) => {
   try {
-    const reviewData = req.body;
-    const review = await storage.createReview(reviewData);
+    const parsedReview = publicReviewSchema.safeParse(req.body);
+    if (!parsedReview.success) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Invalid review data',
+        errors: parsedReview.error.flatten().fieldErrors,
+      });
+    }
+
+    const review = await storage.createReview({
+      ...parsedReview.data,
+      verified: false,
+      approved: false,
+    });
     return res.status(201).json(review);
   } catch (error) {
     console.error('[REVIEWS] Error creating review:', error);

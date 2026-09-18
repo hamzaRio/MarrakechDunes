@@ -5,6 +5,7 @@ import { GYGFetcher, GYGActivity } from '../utils/gygFetcher.js';
 import { MoroccoActivityFetcher, MoroccoActivity } from '../utils/moroccoActivityFetcher.js';
 import { MoroccoDatabase, MoroccoActivityData } from '../utils/moroccoDatabase.js';
 import GYGCache from '../models/GYGCache.js';
+import { requireAdmin } from '../middleware/admin-auth.js';
 
 const router = Router();
 
@@ -667,7 +668,7 @@ router.get('/cache/stats', async (req: Request, res: Response) => {
   }
 });
 
-router.delete('/cache/clear', async (req: Request, res: Response) => {
+router.delete('/cache/clear', requireAdmin, async (req: Request, res: Response) => {
   try {
     const { query } = req.query;
     
@@ -705,7 +706,7 @@ router.delete('/cache/clear', async (req: Request, res: Response) => {
  * Simple test route for debugging
  * GET /api/gyg/debug
  */
-router.get('/debug', async (req: Request, res: Response) => {
+router.get('/debug', requireAdmin, async (req: Request, res: Response) => {
   try {
     console.log('[GYG] Debug route called');
     

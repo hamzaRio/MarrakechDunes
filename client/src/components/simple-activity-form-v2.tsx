@@ -116,7 +116,7 @@ export default function SimpleActivityForm({
       };
 
       if (activity) {
-        return await api.put(`/activities/${activity._id}`, payload);
+        return await api.put(`/admin/activities/${activity._id}`, payload);
       } else {
         return await api.post("/activities", payload);
       }

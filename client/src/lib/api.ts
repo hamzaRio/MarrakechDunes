@@ -46,6 +46,26 @@ const axios = Axios.create({
   withCredentials: true, // keep cookies for cross-site
 });
 
+function getCSRFTokenFromCookie(): string | null {
+  if (typeof document === 'undefined') return null;
+  const csrfCookie = document.cookie
+    .split('; ')
+    .find((cookie) => cookie.startsWith('marrakech.csrf='));
+  return csrfCookie ? decodeURIComponent(csrfCookie.substring('marrakech.csrf='.length)) : null;
+}
+
+axios.interceptors.request.use((config) => {
+  const method = (config.method || 'get').toUpperCase();
+  if (!['GET', 'HEAD', 'OPTIONS'].includes(method)) {
+    const csrfToken = getCSRFTokenFromCookie();
+    if (csrfToken) {
+      config.headers = config.headers || {};
+      config.headers['X-CSRF-Token'] = csrfToken;
+    }
+  }
+  return config;
+});
+
 // Add response interceptor to handle authentication errors
 axios.interceptors.response.use(
   (response) => response,

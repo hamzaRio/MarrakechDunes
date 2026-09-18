@@ -524,33 +524,17 @@ app.use(generateCSRFToken);
 app.use((req: Request, res: Response, next: NextFunction) => {
   const isSafeMethod = req.method === 'GET' || req.method === 'HEAD' || req.method === 'OPTIONS';
   const path = req.path;
-  const isAuthOrSession = path.startsWith('/api/auth/') || 
-                         path.startsWith('/api/session/') ||
-                         path.startsWith('/api/security-events') ||
+  const isAuthOrSession = path === '/api/session/init' ||
+                         path === '/api/security-events' ||
                          path === '/manifest.webmanifest' ||
                          path === '/favicon.ico';
   
   // Public routes that should always be accessible (GET requests)
   const isPublicBookingCreation = req.method === 'POST' && path === '/api/bookings';
-  const isPublicRoute = path.startsWith('/api/activities') ||
-                       path.startsWith('/api/reviews') ||
-                       path.startsWith('/api/health') ||
-                       path.startsWith('/api/cors-test');
   
-  // Skip CSRF for safe methods, auth routes, security events, static files, and public routes
-  // This allows authenticated admin requests to work even if CSRF token is missing
-  if (isSafeMethod || isAuthOrSession || isPublicRoute || isPublicBookingCreation) {
+  // Skip CSRF for safe methods, exact bootstrap routes, and public booking creation
+  if (isSafeMethod || isAuthOrSession || isPublicBookingCreation) {
     return next();
-  }
-  
-  // For admin routes with authenticated sessions, skip CSRF check if session exists
-  // This fixes the 403 error on PATCH requests for admin activities
-  if (path.startsWith('/api/admin/') && req.session && (req.session as any).authenticated) {
-    const role = (req.session as any).role;
-    if (role === 'admin' || role === 'superadmin') {
-      // Admin is authenticated, allow the request (CSRF protection is still on for non-admin routes)
-      return next();
-    }
   }
   
   return verifyCSRFToken(req, res, next);

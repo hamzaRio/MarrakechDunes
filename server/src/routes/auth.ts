@@ -1,6 +1,7 @@
 import { Router, type Request, type Response } from 'express';
 import bcrypt from 'bcrypt';
 import { storage } from '../storage.js';
+import { strictLimiter } from '../rate-limiters.js';
 
 const router = Router();
 
@@ -9,7 +10,7 @@ const router = Router();
  * Authenticate admin or superadmin user
  * Supports both 'admin' and 'superadmin' roles
  */
-router.post('/login', async (req: Request, res: Response) => {
+router.post('/login', strictLimiter, async (req: Request, res: Response) => {
   try {
     const { username, password } = req.body;
 
