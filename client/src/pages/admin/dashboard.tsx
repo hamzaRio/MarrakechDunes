@@ -48,27 +48,21 @@ interface BookingWithActivity extends BookingType {
 }
 
 function AdminDashboardContent() {
-  const { user, isLoading: authLoading } = useAuth();
+  const { user, isLoading: authLoading, isAuthRejected } = useAuth();
   // const { t } = useLanguage();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   
   // ENHANCED SECURITY: Multiple authentication checks - NO BYPASSING
-  if (!authLoading && !user) {
+  if (!authLoading && !user && isAuthRejected) {
     if (import.meta.env.DEV) {
       console.warn('[SECURITY] Dashboard access denied - no user');
     }
-    // Check localStorage as fallback
-    const localUser = JSON.parse(localStorage.getItem('user') || 'null');
-    if (!localUser) {
-      // Clear all authentication data
-      localStorage.removeItem('user');
-      localStorage.removeItem('auth-token');
-      sessionStorage.clear();
-      // Force redirect
-      window.location.replace('/admin/login');
-      return null;
-    }
+    localStorage.removeItem('user');
+    localStorage.removeItem('auth-token');
+    sessionStorage.clear();
+    window.location.replace('/admin/login');
+    return null;
   }
 
   // Additional role verification
@@ -120,7 +114,7 @@ function AdminDashboardContent() {
   // Reports date range state
   const [reportsDateRange, setReportsDateRange] = useState<{ from?: Date; to?: Date }>({});
   
-  const { data: bookings = [], error: bookingsError } = useQuery<BookingWithActivity[]>({
+  const { data: bookings = [] } = useQuery<BookingWithActivity[]>({
     queryKey: ["/admin/bookings"],
     enabled: !!user, // Only fetch if user is authenticated
     retry: (failureCount, error: any) => {
@@ -214,8 +208,8 @@ function AdminDashboardContent() {
     return true;
   });
   
-  const reportsPendingBookings = reportsFilteredBookings.filter(b => b.status === 'pending' as any).length;
-  const reportsConfirmedBookings = reportsFilteredBookings.filter(b => b.status === 'confirmed' as any).length;
+  const reportsPendingBookings = reportsFilteredBookings.filter(b => String(b.status || '').toUpperCase() === 'PENDING').length;
+  const reportsConfirmedBookings = reportsFilteredBookings.filter(b => String(b.status || '').toUpperCase() === 'CONFIRMED').length;
 
   // Debug logging for revenue calculation (DEV only)
   if (import.meta.env.DEV) {
@@ -232,15 +226,8 @@ function AdminDashboardContent() {
     });
   }
 
-  const pendingBookings = bookings.filter(b => b.status === 'pending' as any).length;
-  const confirmedBookings = bookings.filter(b => b.status === 'confirmed' as any).length;
-
-  // Handle authentication errors
-  if (bookingsError && 'response' in bookingsError && (bookingsError.response as any)?.status === 401) {
-    console.error('[DASHBOARD] Authentication error detected, redirecting to login');
-    window.location.href = '/admin/login';
-    return null;
-  }
+  const pendingBookings = bookings.filter(b => String(b.status || '').toUpperCase() === 'PENDING').length;
+  const confirmedBookings = bookings.filter(b => String(b.status || '').toUpperCase() === 'CONFIRMED').length;
 
   // Admin booking management functions
   const handleBookingStatusUpdate = async (bookingId: string, status: string) => {
@@ -254,7 +241,6 @@ function AdminDashboardContent() {
       }
       // Refresh bookings data using React Query
       await queryClient.invalidateQueries({ queryKey: ["/admin/bookings"] });
-      await queryClient.refetchQueries({ queryKey: ["/admin/bookings"] });
       
       // Show success message
       toast({
@@ -604,7 +590,7 @@ function AdminDashboardContent() {
   const handleViewActivityBookings = (activity: ActivityType) => {
     // Fix: Add null check for b.activity to prevent TypeError
     const activityBookings = bookings.filter(b => b.activity && (b.activity.id === activity.id || b.activity._id === activity._id || b.activityId === activity._id || b.activityId === activity.id));
-    const totalRevenue = activityBookings.filter(b => b.status === 'confirmed' as any).reduce((sum, b) => sum + Number(b.totalAmount || 0), 0);
+    const totalRevenue = activityBookings.filter(b => String(b.status || '').toUpperCase() === 'CONFIRMED').reduce((sum, b) => sum + Number(b.totalAmount || 0), 0);
     
     toast({
       title: `Statistiques: ${activity.name}`,
@@ -984,12 +970,12 @@ function AdminDashboardContent() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">Tous les statuts</SelectItem>
-                        <SelectItem value="pending">Pending</SelectItem>
-                        <SelectItem value="confirmed">Confirmed</SelectItem>
-                        <SelectItem value="paid">Paid</SelectItem>
-                        <SelectItem value="in_progress">In Progress</SelectItem>
-                        <SelectItem value="completed">Completed</SelectItem>
-                        <SelectItem value="cancelled">Cancelled</SelectItem>
+                        <SelectItem value="PENDING">Pending</SelectItem>
+                        <SelectItem value="CONFIRMED">Confirmed</SelectItem>
+                        <SelectItem value="PAID">Paid</SelectItem>
+                        <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
+                        <SelectItem value="COMPLETED">Completed</SelectItem>
+                        <SelectItem value="CANCELLED">Cancelled</SelectItem>
                       </SelectContent>
                     </Select>
 
@@ -1063,11 +1049,11 @@ function AdminDashboardContent() {
                             <SelectValue placeholder="Changer statut" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="pending">Pending</SelectItem>
-                            <SelectItem value="confirmed">Confirmed</SelectItem>
-                            <SelectItem value="paid">Paid</SelectItem>
-                            <SelectItem value="completed">Completed</SelectItem>
-                            <SelectItem value="cancelled">Cancelled</SelectItem>
+                            <SelectItem value="PENDING">Pending</SelectItem>
+                            <SelectItem value="CONFIRMED">Confirmed</SelectItem>
+                            <SelectItem value="PAID">Paid</SelectItem>
+                            <SelectItem value="COMPLETED">Completed</SelectItem>
+                            <SelectItem value="CANCELLED">Cancelled</SelectItem>
                           </SelectContent>
                         </Select>
                         <Button
@@ -1187,7 +1173,7 @@ function AdminDashboardContent() {
                                       <p className="text-sm text-gray-600">{booking.activity?.name || 'Activity not found'}</p>
                                       <p className="text-sm text-gray-500">{booking.customerPhone}</p>
                                     </div>
-                                    <Badge variant={booking.status === 'pending' as any ? 'destructive' : booking.status === 'confirmed' as any ? 'default' : 'secondary'}>
+                                    <Badge variant={String(booking.status || '').toUpperCase() === 'PENDING' ? 'destructive' : String(booking.status || '').toUpperCase() === 'CONFIRMED' ? 'default' : 'secondary'}>
                                       {booking.status}
                                     </Badge>
                                   </div>
@@ -1251,12 +1237,12 @@ function AdminDashboardContent() {
                         <PaymentManagement booking={booking} />
 
                         <div className="flex gap-2 pt-4">
-                          {booking.status === 'pending' as any && (
+                          {String(booking.status || '').toUpperCase() === 'PENDING' && (
                             <>
                               <Button 
                                 size="sm" 
                                 className="bg-green-600 hover:bg-green-700"
-                                onClick={() => handleBookingStatusUpdate(booking._id || booking.id || '', 'confirmed')}
+                                onClick={() => handleBookingStatusUpdate(booking._id || booking.id || '', 'CONFIRMED')}
                               >
                                 Confirm Booking
                               </Button>

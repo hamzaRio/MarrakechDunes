@@ -37,11 +37,13 @@ export function useAuth() {
   });
 
   // Enhanced user state management with proper typing
-  const user = (data && 'user' in data && data.user) ? data.user : null;
+  const authStatus = (error as any)?.response?.status;
+  const isAuthRejected = authStatus === 401;
+  const serverUser = (data && 'user' in data && data.user) ? data.user : null;
   
   // For admin routes, also check localStorage as fallback
   let localUser: SessionUser | null = null;
-  if (isAdminRoute && !user && !isLoading) {
+  if (isAdminRoute && !serverUser && !isLoading && !isAuthRejected) {
     try {
       const stored = localStorage.getItem('user');
       if (stored) {
@@ -52,10 +54,10 @@ export function useAuth() {
       localStorage.removeItem('user');
     }
   }
-  const finalUser = user || localUser;
+  const finalUser = isAuthRejected ? null : serverUser || localUser;
   
-  // Clear localStorage if server says we're not authenticated (only on admin routes)
-  if (!isLoading && !user && localStorage.getItem('user') && isAdminRoute) {
+  // Clear persisted state only when the authoritative auth check explicitly returns 401.
+  if (!isLoading && isAuthRejected && isAdminRoute) {
     console.warn('[AUTH] Server says not authenticated on admin route, clearing localStorage');
     localStorage.removeItem('user');
     localStorage.removeItem('auth-token');
@@ -80,6 +82,7 @@ export function useAuth() {
     isLoading,
     isAuthenticated: !!finalUser,
     error,
+    isAuthRejected,
     refetch,
     clearAuthState,
   };

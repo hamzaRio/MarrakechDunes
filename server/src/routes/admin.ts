@@ -3,6 +3,7 @@ import { storage } from '../storage.js';
 import { requireAdmin } from '../middleware/admin-auth.js';
 
 const router = Router();
+const BOOKING_STATUSES = ['PENDING', 'CONFIRMED', 'PAID', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'NO_SHOW'] as const;
 
 // Apply admin authentication middleware to all routes
 router.use(requireAdmin);
@@ -82,12 +83,19 @@ router.patch('/bookings/:id/status', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
+    const normalizedStatus = String(status ?? '').toUpperCase();
+    if (!(BOOKING_STATUSES as readonly string[]).includes(normalizedStatus)) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Invalid booking status'
+      });
+    }
     
     // Get booking before update to check if status is changing to confirmed
     const booking = await storage.getBooking(id);
-    const wasConfirmed = booking?.status === 'CONFIRMED';
+    const wasConfirmed = String(booking?.status || '').toUpperCase() === 'CONFIRMED';
     
-    const updatedBooking = await storage.updateBookingStatus(id, status);
+    const updatedBooking = await storage.updateBookingStatus(id, normalizedStatus);
     if (!updatedBooking) {
       return res.status(404).json({
         status: 'error',
@@ -96,7 +104,7 @@ router.patch('/bookings/:id/status', async (req: Request, res: Response) => {
     }
     
     // Send automatic notification when booking is confirmed
-    if (status === 'CONFIRMED' && !wasConfirmed && booking) {
+    if (normalizedStatus === 'CONFIRMED' && !wasConfirmed && booking) {
       try {
         const activity = await storage.getActivity(booking.activityId);
         const activityName = activity?.name || 'Activity';

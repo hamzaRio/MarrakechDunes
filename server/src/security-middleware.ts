@@ -319,11 +319,13 @@ export const adminAuditLog = (req: Request, res: Response, next: NextFunction) =
 };
 
 // Create session store with MongoDB fallback to memory store
+const SESSION_TTL_SECONDS = 7 * 24 * 60 * 60;
+const SESSION_TTL_MS = SESSION_TTL_SECONDS * 1000;
 const memoryStoreFactory = () => {
   const MemoryStoreSession = MemoryStore(session);
   return new MemoryStoreSession({
-    checkPeriod: 24 * 60 * 60 * 1000,
-    ttl: 24 * 60 * 60 * 1000,
+    checkPeriod: SESSION_TTL_MS,
+    ttl: SESSION_TTL_MS,
     max: 1000,
   });
 };
@@ -345,7 +347,7 @@ const createSessionStore = () => {
     return MongoStore.create({
       mongoUrl,
       collectionName: 'sessions',
-      ttl: 24 * 60 * 60,
+      ttl: SESSION_TTL_SECONDS,
       autoRemove: 'native',
       crypto: {
         secret: sessionSecret,
@@ -374,7 +376,7 @@ const createEnhancedSessionStore = () => {
     const store = MongoStore.create({
       mongoUrl,
       collectionName: 'sessions',
-      ttl: 24 * 60 * 60,
+      ttl: SESSION_TTL_SECONDS,
       autoRemove: 'native',
       crypto: {
         secret: sessionSecret,

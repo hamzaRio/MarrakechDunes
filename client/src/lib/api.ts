@@ -90,10 +90,13 @@ axios.interceptors.response.use(
   (error) => {
     const status = error.response?.status;
     if (status === 401 || status === 403) {
+      const requestMethod = (error.config?.method || 'get').toUpperCase();
+      const requestUrl = String(error.config?.url || '').split('?')[0].replace(/\/$/, '');
+      const isAuthCheck = requestMethod === 'GET' &&
+        (requestUrl === '/auth/user' || requestUrl.endsWith('/api/auth/user') || requestUrl.endsWith('/auth/user'));
       const currentPath = window.location.pathname;
       const isAdminRoute = currentPath.startsWith('/admin') || currentPath.startsWith('/admin/');
       const isLoginPage = currentPath === '/admin/login' || currentPath === '/admin/Login';
-      const isPublicRoute = currentPath === '/' || currentPath.startsWith('/activities') || currentPath.startsWith('/reviews');
       
       // Only log authentication errors if not on login page
       if (!isLoginPage) {
@@ -106,8 +109,8 @@ axios.interceptors.response.use(
         });
       }
       
-      // Only clear auth data and redirect for expired/invalid sessions.
-      if (status === 401 && isAdminRoute && !isLoginPage) {
+      // Only the authoritative GET /auth/user check can invalidate an admin session.
+      if (status === 401 && isAuthCheck && isAdminRoute && !isLoginPage) {
         console.log('[API] Admin route authentication error - clearing auth data');
         csrfToken = null;
         
@@ -125,12 +128,8 @@ axios.interceptors.response.use(
         window.location.href = '/admin/login';
       } else if (status === 403) {
         console.warn('[API] Authorization or CSRF error - keeping authentication state');
-      } else if (isPublicRoute) {
-        console.log('[API] Public route - ignoring auth error');
-        // Don't clear auth data on public routes
-      } else if (isLoginPage) {
-        console.log('[API] Login page - ignoring auth error (expected)');
-        // Don't clear auth data or redirect on login page
+      } else if (status === 401) {
+        console.warn('[API] Non-authentication request returned 401; preserving authentication state');
       }
     }
     return Promise.reject(error);

@@ -186,7 +186,12 @@ router.post('/logout', async (req: Request, res: Response) => {
           });
         }
         
-        res.clearCookie('connect.sid');
+        const isProduction = process.env.NODE_ENV === 'production';
+        res.clearCookie('marrakech.session', {
+          path: '/',
+          secure: isProduction,
+          sameSite: isProduction ? 'none' : 'lax',
+        });
         console.log('[AUTH] Logged out user:', username);
         
         return res.status(200).json({

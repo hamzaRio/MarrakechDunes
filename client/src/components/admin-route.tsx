@@ -10,7 +10,7 @@ interface AdminRouteProps {
 
 export default function AdminRoute({ children, requireSuperAdmin = false }: AdminRouteProps) {
   const { toast } = useToast();
-  const { user, isLoading, isAuthenticated } = useAuth();
+  const { user, isLoading, isAuthenticated, error, isAuthRejected } = useAuth();
   const [, setLocation] = useLocation();
 
   // ENHANCED SECURITY: Multiple layers of authentication checks
@@ -18,6 +18,11 @@ export default function AdminRoute({ children, requireSuperAdmin = false }: Admi
     // Layer 1: Check if authentication is loading
     if (isLoading) {
       return; // Wait for authentication to complete
+    }
+
+    // Preserve a valid local session while the authoritative check is unavailable.
+    if (error && !isAuthRejected) {
+      return;
     }
 
     // Layer 2: Check if user is authenticated
@@ -58,7 +63,7 @@ export default function AdminRoute({ children, requireSuperAdmin = false }: Admi
     }
 
     // Layer 3: Verify user has valid role
-    if (!user || (user.role !== 'admin' && user.role !== 'superadmin')) {
+    if (user && user.role !== 'admin' && user.role !== 'superadmin') {
       if (import.meta.env.DEV) {
         console.warn('[SECURITY] Invalid role access attempt blocked:', user?.role);
       }
@@ -87,7 +92,7 @@ export default function AdminRoute({ children, requireSuperAdmin = false }: Admi
       });
     }
 
-  }, [isAuthenticated, isLoading, user, toast, setLocation]);
+  }, [isAuthenticated, isLoading, user, error, isAuthRejected, toast, setLocation]);
 
   // Check for superadmin requirement
   useEffect(() => {
