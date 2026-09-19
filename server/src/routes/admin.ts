@@ -3,7 +3,7 @@ import { storage } from '../storage.js';
 import { requireAdmin } from '../middleware/admin-auth.js';
 
 const router = Router();
-const BOOKING_STATUSES = ['PENDING', 'CONFIRMED', 'PAID', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'NO_SHOW'] as const;
+const BOOKING_STATUSES = ['PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED'] as const;
 
 // Apply admin authentication middleware to all routes
 router.use(requireAdmin);

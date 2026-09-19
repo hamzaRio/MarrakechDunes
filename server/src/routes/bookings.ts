@@ -10,7 +10,7 @@ const router = express.Router();
  */
 router.post('/', async (req, res) => {
   try {
-    const bookingData = req.body;
+    const bookingData = { ...req.body, status: 'PENDING' };
     
     // Ensure totalAmount is present and valid
     if (!bookingData.totalAmount || Number(bookingData.totalAmount) <= 0) {
