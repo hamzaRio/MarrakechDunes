@@ -5,6 +5,18 @@ import { requireAdmin } from '../middleware/admin-auth.js';
 const router = Router();
 const BOOKING_STATUSES = ['PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED'] as const;
 
+const normalizePaymentMethod = (paymentMethod: unknown): 'cash' | 'cash_deposit' | null => {
+  switch (String(paymentMethod ?? '').trim().toUpperCase()) {
+    case 'CASH':
+      return 'cash';
+    case 'DEPOSIT':
+    case 'CASH_DEPOSIT':
+      return 'cash_deposit';
+    default:
+      return null;
+  }
+};
+
 // Apply admin authentication middleware to all routes
 router.use(requireAdmin);
 
@@ -550,7 +562,7 @@ router.get('/activities/:id/getyourguide-price', async (req: Request, res: Respo
 const handleBookingPayment = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { type, paidAmount, paymentStatus, paymentMethod } = req.body;
+    const { type, paidAmount, paymentStatus, paymentMethod, depositAmount } = req.body;
     
     const booking = await storage.getBooking(id);
     if (!booking) {
@@ -574,22 +586,29 @@ const handleBookingPayment = async (req: Request, res: Response) => {
       }
     }
 
-    // Use provided paymentMethod or calculate it (ensure cash-only)
-    let finalPaymentMethod: 'cash' | 'cash_deposit' = paymentMethod || 'cash';
-    if (type === 'DEPOSIT' && !paymentMethod) finalPaymentMethod = 'cash_deposit';
-    
-    // Validate payment method is cash-only
-    if (finalPaymentMethod && !['cash', 'cash_deposit'].includes(finalPaymentMethod)) {
+    // Normalize supported client/legacy values to the canonical stored values.
+    const requestedPaymentMethod = paymentMethod ?? (type === 'DEPOSIT' ? 'DEPOSIT' : 'CASH');
+    const finalPaymentMethod = normalizePaymentMethod(requestedPaymentMethod);
+    if (!finalPaymentMethod) {
       return res.status(400).json({
         status: 'error',
         message: 'Invalid payment method. Only "cash" or "cash_deposit" are allowed.'
       });
     }
 
-    const updatedBooking = await storage.updateBooking(id, {
+    const normalizedDepositAmount = depositAmount === undefined ? undefined : Number(depositAmount);
+    if (normalizedDepositAmount !== undefined && (!Number.isFinite(normalizedDepositAmount) || normalizedDepositAmount < 0)) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Invalid deposit amount'
+      });
+    }
+
+    const updatedBooking = await storage.updateBookingPayment(id, {
       paidAmount: newPaid,
       paymentStatus: status,
       paymentMethod: finalPaymentMethod,
+      ...(normalizedDepositAmount !== undefined ? { depositAmount: normalizedDepositAmount } : {})
     });
 
     return res.status(200).json({
