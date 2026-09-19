@@ -12,6 +12,10 @@ export class CSRFProtection {
     return crypto.randomBytes(this.TOKEN_LENGTH).toString('hex');
   }
 
+  private static isValidToken(token: string | null): token is string {
+    return !!token && /^[0-9a-f]{64}$/i.test(token);
+  }
+
   // Get token from request (header or body)
   private static getTokenFromRequest(req: Request): string | null {
     return req.headers[this.HEADER_NAME] as string || 
@@ -48,7 +52,8 @@ export class CSRFProtection {
 
   // Middleware to generate and set CSRF token
   static generateTokenMiddleware = (req: Request, res: Response, next: NextFunction) => {
-    const token = this.generateToken();
+    const existingToken = this.getTokenFromCookie(req);
+    const token = this.isValidToken(existingToken) ? existingToken : this.generateToken();
     
     // Set token in cookie
     res.cookie(this.COOKIE_NAME, token, {

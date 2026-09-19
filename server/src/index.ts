@@ -540,16 +540,6 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   return verifyCSRFToken(req, res, next);
 });
 
-// CSRF session init route (AFTER CSRF middleware so token is available)
-app.get('/api/session/init', (req: Request, res: Response) => {
-  const token = res.locals.csrfToken || '';
-  res.setHeader('X-Session-Init', 'new-handler');
-  res.status(200).json({ csrfToken: token });
-});
-
-
-
-
 // Health endpoint - Render expects /api/health
 app.get("/api/health", (_req, res) => res.status(200).json({ status: "ok" }));
 

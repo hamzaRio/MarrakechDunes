@@ -46,23 +46,41 @@ const axios = Axios.create({
   withCredentials: true, // keep cookies for cross-site
 });
 
-function getCSRFTokenFromCookie(): string | null {
-  if (typeof document === 'undefined') return null;
-  const csrfCookie = document.cookie
-    .split('; ')
-    .find((cookie) => cookie.startsWith('marrakech.csrf='));
-  return csrfCookie ? decodeURIComponent(csrfCookie.substring('marrakech.csrf='.length)) : null;
+let csrfToken: string | null = null;
+let csrfInitialization: Promise<string> | null = null;
+
+export async function initializeCSRFToken(): Promise<string> {
+  if (csrfToken) return csrfToken;
+
+  if (!csrfInitialization) {
+    csrfInitialization = axios.get<{ csrfToken?: string }>('/session/init', {
+      withCredentials: true,
+    }).then((response) => {
+      const token = response.data?.csrfToken;
+      if (!token) {
+        throw new Error('CSRF token unavailable');
+      }
+      csrfToken = token;
+      return token;
+    }).finally(() => {
+      csrfInitialization = null;
+    });
+  }
+
+  return csrfInitialization;
 }
 
-axios.interceptors.request.use((config) => {
+axios.interceptors.request.use(async (config) => {
   const method = (config.method || 'get').toUpperCase();
-  if (!['GET', 'HEAD', 'OPTIONS'].includes(method)) {
-    const csrfToken = getCSRFTokenFromCookie();
-    if (csrfToken) {
-      config.headers = config.headers || {};
-      config.headers['X-CSRF-Token'] = csrfToken;
-    }
+  const isPublicBookingCreation = method === 'POST' &&
+    (config.url === '/bookings' || config.url === '/api/bookings');
+
+  if (!['GET', 'HEAD', 'OPTIONS'].includes(method) && !isPublicBookingCreation) {
+    const token = await initializeCSRFToken();
+    config.headers = config.headers || {};
+    config.headers['X-CSRF-Token'] = token;
   }
+
   return config;
 });
 
@@ -70,7 +88,8 @@ axios.interceptors.request.use((config) => {
 axios.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401 || error.response?.status === 403) {
+    const status = error.response?.status;
+    if (status === 401 || status === 403) {
       const currentPath = window.location.pathname;
       const isAdminRoute = currentPath.startsWith('/admin') || currentPath.startsWith('/admin/');
       const isLoginPage = currentPath === '/admin/login' || currentPath === '/admin/Login';
@@ -87,9 +106,10 @@ axios.interceptors.response.use(
         });
       }
       
-      // Only clear auth data and redirect if we're on admin routes (but not login page)
-      if (isAdminRoute && !isLoginPage) {
+      // Only clear auth data and redirect for expired/invalid sessions.
+      if (status === 401 && isAdminRoute && !isLoginPage) {
         console.log('[API] Admin route authentication error - clearing auth data');
+        csrfToken = null;
         
         // Clear authentication data on admin routes only
         localStorage.removeItem('auth-token');
@@ -103,6 +123,8 @@ axios.interceptors.response.use(
         
         console.log('[API] Redirecting to login page...');
         window.location.href = '/admin/login';
+      } else if (status === 403) {
+        console.warn('[API] Authorization or CSRF error - keeping authentication state');
       } else if (isPublicRoute) {
         console.log('[API] Public route - ignoring auth error');
         // Don't clear auth data on public routes
@@ -125,7 +147,7 @@ export const baseURL = axios.defaults.baseURL || '';
  */
 export async function sessionInit(): Promise<void> {
   try {
-    await axios.get('/session/init');
+    await initializeCSRFToken();
   } catch (error) {
     console.error('Session init error:', error);
   }
@@ -137,6 +159,7 @@ export async function sessionInit(): Promise<void> {
  */
 export function clearAuthData(): void {
   console.log('[API] Clearing all authentication data...');
+  csrfToken = null;
   
   // Clear localStorage
   localStorage.removeItem('auth-token');

@@ -9,7 +9,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { api } from "@/lib/api";
+import { api, initializeCSRFToken } from "@/lib/api";
 import { useLocation } from "wouter";
 import { useLanguage } from "@/hooks/use-language";
 import SEOHead, { seoConfigs } from "@/components/seo-head";
@@ -41,8 +41,7 @@ export default function AdminLogin() {
 
 // Always initialize CSRF and pass header explicitly
 const initSession = async (): Promise<string> => {
-  const { data } = await api.get<{ csrfToken: string }>("/session/init", { withCredentials: true });
-  return data?.csrfToken ?? "";
+  return initializeCSRFToken();
 };
 
 const mutation = useMutation({
