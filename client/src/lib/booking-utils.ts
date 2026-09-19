@@ -11,7 +11,13 @@ const VALID_TRANSITIONS: Record<BookingStatus, BookingStatus[]> = {
   NO_SHOW: [] // Final state
 };
 
-export function getStatusDisplayName(status: BookingStatus): string {
+const BOOKING_STATUS_CONTROLS: BookingStatus[] = ['PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED'];
+
+export function normalizeBookingStatus(status: BookingStatus | string | null | undefined): string {
+  return String(status || '').toUpperCase();
+}
+
+export function getStatusDisplayName(status: BookingStatus | string): string {
   const displayNames: Record<BookingStatus, string> = {
     PENDING: 'Pending Confirmation',
     CONFIRMED: 'Confirmed',
@@ -22,10 +28,11 @@ export function getStatusDisplayName(status: BookingStatus): string {
     NO_SHOW: 'No Show'
   };
   
-  return displayNames[status];
+  const normalizedStatus = normalizeBookingStatus(status);
+  return displayNames[normalizedStatus as BookingStatus] || normalizedStatus;
 }
 
-export function getStatusColor(status: BookingStatus): string {
+export function getStatusColor(status: BookingStatus | string): string {
   const colors: Record<BookingStatus, string> = {
     PENDING: 'yellow',
     CONFIRMED: 'blue',
@@ -36,29 +43,33 @@ export function getStatusColor(status: BookingStatus): string {
     NO_SHOW: 'gray'
   };
   
-  return colors[status];
+  return colors[normalizeBookingStatus(status) as BookingStatus] || 'gray';
 }
 
-export function getNextPossibleStatuses(currentStatus: BookingStatus): BookingStatus[] {
-  return VALID_TRANSITIONS[currentStatus] || [];
+export function getNextPossibleStatuses(currentStatus: BookingStatus | string): BookingStatus[] {
+  const normalizedStatus = normalizeBookingStatus(currentStatus) as BookingStatus;
+  return (VALID_TRANSITIONS[normalizedStatus] || [])
+    .filter((status) => BOOKING_STATUS_CONTROLS.includes(status));
 }
 
-export function isFinalStatus(status: BookingStatus): boolean {
-  return ['COMPLETED', 'CANCELLED', 'NO_SHOW'].includes(status);
+export function isFinalStatus(status: BookingStatus | string): boolean {
+  return ['COMPLETED', 'CANCELLED', 'NO_SHOW'].includes(normalizeBookingStatus(status));
 }
 
 export function validateStatusTransition(
-  from: BookingStatus, 
-  to: BookingStatus
+  from: BookingStatus | string,
+  to: BookingStatus | string
 ): { valid: boolean; reason?: string } {
-  const allowedTransitions = VALID_TRANSITIONS[from];
+  const normalizedFrom = normalizeBookingStatus(from) as BookingStatus;
+  const normalizedTo = normalizeBookingStatus(to) as BookingStatus;
+  const allowedTransitions = VALID_TRANSITIONS[normalizedFrom];
   
   if (!allowedTransitions) {
-    return { valid: false, reason: `Invalid source status: ${from}` };
+    return { valid: false, reason: `Invalid source status: ${normalizedFrom}` };
   }
   
-  if (!allowedTransitions.includes(to)) {
-    return { valid: false, reason: `Cannot transition from ${from} to ${to}` };
+  if (!allowedTransitions.includes(normalizedTo)) {
+    return { valid: false, reason: `Cannot transition from ${normalizedFrom} to ${normalizedTo}` };
   }
   
   return { valid: true };

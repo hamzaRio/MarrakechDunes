@@ -972,8 +972,6 @@ function AdminDashboardContent() {
                         <SelectItem value="all">Tous les statuts</SelectItem>
                         <SelectItem value="PENDING">Pending</SelectItem>
                         <SelectItem value="CONFIRMED">Confirmed</SelectItem>
-                        <SelectItem value="PAID">Paid</SelectItem>
-                        <SelectItem value="IN_PROGRESS">In Progress</SelectItem>
                         <SelectItem value="COMPLETED">Completed</SelectItem>
                         <SelectItem value="CANCELLED">Cancelled</SelectItem>
                       </SelectContent>
@@ -1051,7 +1049,6 @@ function AdminDashboardContent() {
                           <SelectContent>
                             <SelectItem value="PENDING">Pending</SelectItem>
                             <SelectItem value="CONFIRMED">Confirmed</SelectItem>
-                            <SelectItem value="PAID">Paid</SelectItem>
                             <SelectItem value="COMPLETED">Completed</SelectItem>
                             <SelectItem value="CANCELLED">Cancelled</SelectItem>
                           </SelectContent>

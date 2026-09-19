@@ -218,7 +218,7 @@ export default function CustomerPortal() {
             <div className="grid gap-4">
               {bookings.filter(b => 
                 new Date(b.preferredDate) > new Date() && 
-                !['CANCELLED', 'COMPLETED', 'NO_SHOW'].includes(b.status as any)
+                !['CANCELLED', 'COMPLETED', 'NO_SHOW'].includes(String(b.status || '').toUpperCase())
               ).map((booking) => (
                 <BookingCard key={booking._id} booking={booking} />
               ))}
@@ -228,7 +228,7 @@ export default function CustomerPortal() {
           <TabsContent value="history" className="space-y-4">
             <div className="grid gap-4">
               {bookings.filter(b => 
-                ['COMPLETED', 'CANCELLED', 'NO_SHOW'].includes(b.status as any)
+                ['COMPLETED', 'CANCELLED', 'NO_SHOW'].includes(String(b.status || '').toUpperCase())
               ).map((booking) => (
                 <BookingCard key={booking._id} booking={booking} />
               ))}
@@ -251,7 +251,8 @@ function BookingCard({ booking }: { booking: BookingType }) {
   const [reason, setReason] = useState('');
 
   const isUpcoming = new Date(booking.preferredDate) > new Date();
-  const canModify = isUpcoming && booking.status !== 'CANCELLED' && booking.status !== 'COMPLETED';
+  const normalizedStatus = String(booking.status || '').toUpperCase();
+  const canModify = isUpcoming && normalizedStatus !== 'CANCELLED' && normalizedStatus !== 'COMPLETED';
 
   const rescheduleMutation = useMutation({
     mutationFn: async ({ id, newDate, reason }: { id: string; newDate: string; reason: string }) => {
