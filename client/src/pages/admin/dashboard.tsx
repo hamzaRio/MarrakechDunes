@@ -569,7 +569,7 @@ function AdminDashboardContent() {
                         <CardTitle className="text-sm font-medium text-orange-700 flex items-center gap-2">
                           ⏳ Réservations en Attente
                         </CardTitle>
-                        <Calendar className="h-4 w-4 text-orange-600" />
+                        <CalendarIcon className="h-4 w-4 text-orange-600" />
                       </CardHeader>
                       <CardContent>
                         <div className="text-2xl font-bold text-orange-900">
