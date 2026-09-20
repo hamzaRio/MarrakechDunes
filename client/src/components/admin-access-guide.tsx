@@ -72,9 +72,9 @@ export default function AdminAccessGuide() {
               </code>
             </div>
             <div className="flex items-center justify-between">
-              <span className="font-medium">CEO Dashboard:</span>
+              <span className="font-medium">Executive Dashboard:</span>
               <code className="bg-purple-100 px-2 py-1 rounded text-sm text-purple-800">
-                /admin/ceo-dashboard
+                /admin/ceo
               </code>
             </div>
           </div>
@@ -100,12 +100,11 @@ export default function AdminAccessGuide() {
               </div>
               <h4 className="font-semibold text-green-900 mb-2">Regular Admin Access</h4>
               <ul className="text-sm text-green-800 space-y-1">
-                <li>Manage bookings and customer communication</li>
-                <li>Create, edit, and manage activities</li>
-                <li>Upload activity photos and images</li>
+                <li>Manage booking lifecycle and customer communication</li>
                 <li>Update booking status and payments</li>
                 <li>Send WhatsApp notifications</li>
-                <li>View analytics and reports</li>
+                <li>View activities and operational GetYourGuide references</li>
+                <li>Export operational booking reports</li>
               </ul>
             </div>
 
@@ -119,11 +118,11 @@ export default function AdminAccessGuide() {
               <h4 className="font-semibold text-purple-900 mb-2">Full System Access</h4>
               <ul className="text-sm text-purple-800 space-y-1">
                 <li>All admin permissions</li>
-                <li>User management and creation</li>
+                <li>Administrator management</li>
                 <li>System audit logs access</li>
-                <li>Advanced analytics and financial reports</li>
-                <li>Platform configuration settings</li>
-                <li>Database management tools</li>
+                <li>Executive analytics and financial reports</li>
+                <li>Activity creation, pricing, images, and deletion</li>
+                <li>Destructive ownership-level actions</li>
               </ul>
             </div>
           </div>
@@ -146,7 +145,7 @@ export default function AdminAccessGuide() {
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
                     <span className="text-gray-600">Username:</span>
-                    <code className="block bg-gray-100 p-2 mt-1 rounded">admin</code>
+                    <span className="block bg-gray-100 p-2 mt-1 rounded">Provided by your administrator</span>
                   </div>
                   <div>
                     <span className="text-gray-600">Password:</span>
@@ -159,7 +158,7 @@ export default function AdminAccessGuide() {
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
                     <span className="text-gray-600">Username:</span>
-                    <code className="block bg-gray-100 p-2 mt-1 rounded">ahmed</code>
+                    <span className="block bg-gray-100 p-2 mt-1 rounded">Provided by your administrator</span>
                   </div>
                   <div>
                     <span className="text-gray-600">Password:</span>
@@ -198,7 +197,7 @@ export default function AdminAccessGuide() {
               <div className="text-2xl mb-2">Activity</div>
               <h4 className="font-semibold text-green-900">Activity Management</h4>
               <p className="text-sm text-green-700 mt-1">
-                Create and manage tourism activities with pricing
+                Superadmins create and manage activities and pricing
               </p>
             </div>
             <div className="text-center p-4 bg-purple-50 rounded-lg">
@@ -227,7 +226,7 @@ export default function AdminAccessGuide() {
               </div>
               <div>
                 <h4 className="font-semibold text-green-900">Access Admin Login</h4>
-                <p className="text-sm text-green-700">Go to /admin/login and use the credentials above</p>
+                <p className="text-sm text-green-700">Go to /admin/login and use credentials provided by your administrator</p>
               </div>
             </div>
             <div className="flex items-start">
@@ -236,7 +235,7 @@ export default function AdminAccessGuide() {
               </div>
               <div>
                 <h4 className="font-semibold text-green-900">Navigate Dashboard</h4>
-                <p className="text-sm text-green-700">Explore the admin dashboard to manage bookings and activities</p>
+                <p className="text-sm text-green-700">Use the operations dashboard features allowed for your role</p>
               </div>
             </div>
             <div className="flex items-start">
@@ -245,7 +244,7 @@ export default function AdminAccessGuide() {
               </div>
               <div>
                 <h4 className="font-semibold text-green-900">Start Managing</h4>
-                <p className="text-sm text-green-700">Begin processing bookings and managing tourism activities</p>
+                <p className="text-sm text-green-700">Process bookings; superadmins can also manage tourism activities</p>
               </div>
             </div>
           </div>

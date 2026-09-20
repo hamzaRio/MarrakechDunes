@@ -1,10 +1,10 @@
-import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
+import AdminRoute from "@/components/admin-route";
 import { 
   LineChart, 
   Line, 
@@ -27,7 +27,6 @@ import {
   TrendingUp, 
   Users, 
   Activity, 
-  Calendar,
   Download,
   RefreshCw
 } from "lucide-react";
@@ -35,30 +34,31 @@ import {
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
 
 export default function BusinessIntelligenceDashboard() {
-  const [timeRange, setTimeRange] = useState('30d');
-
-  const { data: revenueData, isLoading: revenueLoading } = useQuery({
-    queryKey: ['/bi/revenue', timeRange],
+  const { data: revenueData } = useQuery({
+    queryKey: ['/bi/revenue'],
     queryFn: async () => {
       const response = await api.get('/bi/revenue');
       return response.data;
     },
+    enabled: false,
   });
 
-  const { data: customerData, isLoading: customerLoading } = useQuery({
-    queryKey: ['/bi/customers', timeRange],
+  const { data: customerData } = useQuery({
+    queryKey: ['/bi/customers'],
     queryFn: async () => {
       const response = await api.get('/bi/customers');
       return response.data;
     },
+    enabled: false,
   });
 
-  const { data: operationsData, isLoading: operationsLoading } = useQuery({
-    queryKey: ['/bi/operations', timeRange],
+  const { data: operationsData } = useQuery({
+    queryKey: ['/bi/operations'],
     queryFn: async () => {
       const response = await api.get('/bi/operations');
       return response.data;
     },
+    enabled: false,
   });
 
   const handleExportCSV = () => {
@@ -72,7 +72,8 @@ export default function BusinessIntelligenceDashboard() {
   };
 
   return (
-    <div className="space-y-6">
+    <AdminRoute requireSuperAdmin>
+      <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Business Intelligence</h1>
@@ -213,7 +214,7 @@ export default function BusinessIntelligenceDashboard() {
                       fill="#8884d8"
                       dataKey="count"
                     >
-                      {(customerData?.segments || []).map((entry: any, index: number) => (
+                      {(customerData?.segments || []).map((_: any, index: number) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
@@ -285,7 +286,7 @@ export default function BusinessIntelligenceDashboard() {
                       fill="#8884d8"
                       dataKey="count"
                     >
-                      {(operationsData?.cancellationReasons || []).map((entry: any, index: number) => (
+                      {(operationsData?.cancellationReasons || []).map((_: any, index: number) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
@@ -314,6 +315,7 @@ export default function BusinessIntelligenceDashboard() {
           </Card>
         </TabsContent>
       </Tabs>
-    </div>
+      </div>
+    </AdminRoute>
   );
 }

@@ -5,7 +5,10 @@
     "reviews": "Reviews",
     "contact": "Contact",
     "admin": "Admin",
-    "adminDashboard": "Admin Dashboard",
+    "adminDashboard": "Dashboard",
+    "operationsDashboard": "Operations Dashboard",
+    "executiveDashboard": "Executive Dashboard",
+    "staffSpace": "Staff area",
     "booking": "Booking"
   },
   "hero": {

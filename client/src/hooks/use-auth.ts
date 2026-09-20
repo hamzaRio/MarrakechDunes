@@ -20,7 +20,7 @@ export function useAuth() {
   // Enhanced authentication with better error handling
   const { data, isLoading, error, refetch } = useQuery<AuthUserResponse | null>({
     queryKey: ["/auth/user"],
-    enabled: isAdminRoute && !isLoginPage, // Only check authentication on admin routes, not on login page
+    enabled: !isLoginPage,
     retry: (failureCount, error: any) => {
       // Don't retry on 401/403 errors
       if (error?.response?.status === 401 || error?.response?.status === 403) {
@@ -31,8 +31,8 @@ export function useAuth() {
     },
     staleTime: 2 * 60 * 1000, // 2 minutes cache - longer to prevent loops
     gcTime: 5 * 60 * 1000, // 5 minutes garbage collection
-    refetchOnMount: isAdminRoute && !isLoginPage, // Only refetch on mount for admin routes, not login
-    refetchOnWindowFocus: isAdminRoute && !isLoginPage, // Only refetch on focus for admin routes, not login
+    refetchOnMount: !isLoginPage,
+    refetchOnWindowFocus: !isLoginPage,
     refetchInterval: false, // Disable automatic refetch to prevent loops
   });
 

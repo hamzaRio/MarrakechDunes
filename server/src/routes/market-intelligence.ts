@@ -2,6 +2,7 @@ import express, { Request, Response } from 'express';
 import axios from 'axios';
 import { z } from 'zod';
 import { searchGYG } from '../providers/gyg.js';
+import { requireSuperAdmin } from '../middleware/admin-auth.js';
 
 const router = express.Router();
 
@@ -58,7 +59,7 @@ const marketSearchSchema = z.object({
  * Debug GetYourGuide API
  * GET /api/market/debug/gyg?q=desert&city=marrakech
  */
-router.get('/debug/gyg', async (req: Request, res: Response) => {
+router.get('/debug/gyg', requireSuperAdmin, async (req: Request, res: Response) => {
   const query = typeof req.query.q === 'string' ? req.query.q : 'desert';
   const city = typeof req.query.city === 'string' ? req.query.city : 'marrakech';
   
@@ -235,7 +236,7 @@ router.get('/search', async (req: Request, res: Response) => {
  * Get Competitive Pricing Strategy
  * GET /api/market/pricing-strategy?activity=desert+tour&ourPrice=500
  */
-router.get('/pricing-strategy', async (req: Request, res: Response) => {
+router.get('/pricing-strategy', requireSuperAdmin, async (req: Request, res: Response) => {
   try {
     const { activity, ourPrice } = req.query;
     
@@ -274,7 +275,7 @@ router.get('/pricing-strategy', async (req: Request, res: Response) => {
  * Add Activity from Market Intelligence
  * POST /api/market/add-activity
  */
-router.post('/add-activity', async (req: Request, res: Response) => {
+router.post('/add-activity', requireSuperAdmin, async (req: Request, res: Response) => {
   try {
     const { 
       competitorActivity, 

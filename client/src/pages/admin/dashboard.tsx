@@ -44,6 +44,7 @@ interface BookingWithActivity extends BookingType {
 
 function AdminDashboardContent() {
   const { user, isLoading: authLoading, isAuthRejected } = useAuth();
+  const isSuperAdmin = user?.role === 'superadmin';
   // const { t } = useLanguage();
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -509,11 +510,11 @@ function AdminDashboardContent() {
                     Retour à l'Accueil
                   </Button>
                 </Link>
-                {user?.role === 'superadmin' && (
+                {isSuperAdmin && (
                   <Link href="/admin/ceo">
                     <Button className="bg-gradient-to-r from-yellow-400 to-yellow-600 hover:from-yellow-500 hover:to-yellow-700 text-black font-semibold">
                       <Crown className="h-4 w-4 mr-2" />
-                      CEO Dashboard
+                      Tableau de Bord Direction
                     </Button>
                   </Link>
                 )}
@@ -596,13 +597,13 @@ function AdminDashboardContent() {
                   </div>
 
           <Tabs defaultValue="bookings" className="space-y-6">
-            <TabsList className={`grid w-full ${user?.role === 'superadmin' ? 'grid-cols-7' : 'grid-cols-5'} bg-white border-2 border-gray-200`}>
+            <TabsList className={`grid w-full ${isSuperAdmin ? 'grid-cols-7' : 'grid-cols-5'} bg-white border-2 border-gray-200`}>
               <TabsTrigger value="bookings" className="data-[state=active]:bg-moroccan-blue data-[state=active]:text-white">📋 Réservations</TabsTrigger>
               <TabsTrigger value="activities" className="data-[state=active]:bg-moroccan-blue data-[state=active]:text-white">🎯 Activités</TabsTrigger>
               <TabsTrigger value="gyg-reference" className="data-[state=active]:bg-moroccan-blue data-[state=active]:text-white">🔍 Référence GYG</TabsTrigger>
               <TabsTrigger value="whatsapp" className="data-[state=active]:bg-moroccan-blue data-[state=active]:text-white">💬 WhatsApp</TabsTrigger>
               <TabsTrigger value="reports" className="data-[state=active]:bg-moroccan-blue data-[state=active]:text-white">📊 Rapports</TabsTrigger>
-              {user?.role === 'superadmin' && (
+              {isSuperAdmin && (
                 <>
                   <TabsTrigger value="admin-management" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white">👥 Admins</TabsTrigger>
                   <TabsTrigger value="audit" className="data-[state=active]:bg-purple-600 data-[state=active]:text-white">🔒 Audit</TabsTrigger>
@@ -615,15 +616,18 @@ function AdminDashboardContent() {
                 bookings={bookings}
                 onExportBookings={handleExportBookings}
                 onExportBookingsPDF={handleExportBookingsPDF}
+                canDeleteBookings={isSuperAdmin}
               />
             </TabsContent>
             <TabsContent value="activities" className="space-y-4">
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
-                  <CardTitle>Activity Management & Pricing</CardTitle>
-                  <div className="flex gap-2">
-                    <SimpleActivityForm mode="create" />
-                  </div>
+                  <CardTitle>{isSuperAdmin ? 'Activity Management & Pricing' : 'Activities'}</CardTitle>
+                  {isSuperAdmin ? (
+                    <div className="flex gap-2">
+                      <SimpleActivityForm mode="create" />
+                    </div>
+                  ) : null}
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-6">
@@ -671,54 +675,59 @@ function AdminDashboardContent() {
                           </div>
                         </div>
 
-                        {/* Seasonal Pricing */}
-                        <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
-                          <h4 className="font-semibold text-moroccan-blue mb-3">Seasonal Pricing Strategy</h4>
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                            <div className="bg-white p-3 rounded border">
-                              <div className="text-sm font-medium text-blue-700">Low Season</div>
-                              <div className="text-lg font-bold text-blue-600">{Math.round(Number(activity.price) * 0.85)} MAD</div>
-                              <div className="text-xs text-gray-600">Nov-Feb (-15%)</div>
-                            </div>
-                            <div className="bg-white p-3 rounded border border-green-300">
-                              <div className="text-sm font-medium text-green-700">Regular Season</div>
-                              <div className="text-lg font-bold text-green-600">{activity.price} MAD</div>
-                              <div className="text-xs text-gray-600">Mar-May, Sep-Oct</div>
-                            </div>
-                            <div className="bg-white p-3 rounded border">
-                              <div className="text-sm font-medium text-red-700">High Season</div>
-                              <div className="text-lg font-bold text-red-600">{Math.round(Number(activity.price) * 1.25)} MAD</div>
-                              <div className="text-xs text-gray-600">Jun-Aug (+25%)</div>
+                        {isSuperAdmin ? (
+                          <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
+                            <h4 className="font-semibold text-moroccan-blue mb-3">Seasonal Pricing Strategy</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                              <div className="bg-white p-3 rounded border">
+                                <div className="text-sm font-medium text-blue-700">Low Season</div>
+                                <div className="text-lg font-bold text-blue-600">{Math.round(Number(activity.price) * 0.85)} MAD</div>
+                                <div className="text-xs text-gray-600">Nov-Feb (-15%)</div>
+                              </div>
+                              <div className="bg-white p-3 rounded border border-green-300">
+                                <div className="text-sm font-medium text-green-700">Regular Season</div>
+                                <div className="text-lg font-bold text-green-600">{activity.price} MAD</div>
+                                <div className="text-xs text-gray-600">Mar-May, Sep-Oct</div>
+                              </div>
+                              <div className="bg-white p-3 rounded border">
+                                <div className="text-sm font-medium text-red-700">High Season</div>
+                                <div className="text-lg font-bold text-red-600">{Math.round(Number(activity.price) * 1.25)} MAD</div>
+                                <div className="text-xs text-gray-600">Jun-Aug (+25%)</div>
+                              </div>
                             </div>
                           </div>
-                        </div>
+                        ) : null}
 
                         <div className="flex gap-2">
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            onClick={() => handleEditPricing(activity)}
-                          >
-                            <Settings className="w-4 h-4 mr-1" />
-                            Edit Pricing
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            onClick={() => handleUpdateGetYourGuidePrice(activity, false)}
-                            title="Mise à jour rapide depuis la base de données"
-                          >
-                            Update GYG Price (DB)
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            onClick={() => handleUpdateGetYourGuidePrice(activity, true)}
-                            title="Scraping en temps réel du site GetYourGuide (plus lent mais plus précis)"
-                            className="bg-blue-50 hover:bg-blue-100"
-                          >
-                            🔄 Scrape Live GYG
-                          </Button>
+                          {isSuperAdmin ? (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleEditPricing(activity)}
+                              >
+                                <Settings className="w-4 h-4 mr-1" />
+                                Edit Pricing
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleUpdateGetYourGuidePrice(activity, false)}
+                                title="Mise à jour rapide depuis la base de données"
+                              >
+                                Update GYG Price (DB)
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleUpdateGetYourGuidePrice(activity, true)}
+                                title="Scraping en temps réel du site GetYourGuide (plus lent mais plus précis)"
+                                className="bg-blue-50 hover:bg-blue-100"
+                              >
+                                🔄 Scrape Live GYG
+                              </Button>
+                            </>
+                          ) : null}
                           <Button 
                             size="sm" 
                             variant="outline"
@@ -726,15 +735,17 @@ function AdminDashboardContent() {
                           >
                             View Bookings
                           </Button>
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            onClick={() => handleDeleteActivity(activity._id || activity.id || '', activity.name)}
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
-                          >
-                            <Trash2 className="w-4 h-4 mr-1" />
-                            Delete
-                          </Button>
+                          {isSuperAdmin ? (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleDeleteActivity(activity._id || activity.id || '', activity.name)}
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                            >
+                              <Trash2 className="w-4 h-4 mr-1" />
+                              Delete
+                            </Button>
+                          ) : null}
                         </div>
                       </div>
                     ))}
@@ -967,7 +978,7 @@ function AdminDashboardContent() {
               <CashBookingReminders bookings={bookings} />
             </TabsContent>
 
-            {user?.role === 'superadmin' && (
+            {isSuperAdmin && (
               <TabsContent value="audit" className="space-y-4">
                 <Card>
                   <CardHeader>
@@ -992,35 +1003,32 @@ function AdminDashboardContent() {
               </TabsContent>
             )}
 
-            {/* Performance Analytics Tab */}
-            <TabsContent value="performance" className="space-y-4">
-              <PerformanceMonitor />
-            </TabsContent>
-
-            {/* User Analytics Tab */}
-            <TabsContent value="users" className="space-y-4">
-              <UserAnalytics />
-            </TabsContent>
-
-            {/* Business Metrics Tab */}
-            <TabsContent value="business" className="space-y-4">
-              <BusinessMetrics />
-            </TabsContent>
-
-            {/* CEO Operations Tab */}
-            <TabsContent value="ceo-operations" className="space-y-4">
-              <CEOOperationsDashboard />
-            </TabsContent>
+            {isSuperAdmin && (
+              <>
+                <TabsContent value="performance" className="space-y-4">
+                  <PerformanceMonitor />
+                </TabsContent>
+                <TabsContent value="users" className="space-y-4">
+                  <UserAnalytics />
+                </TabsContent>
+                <TabsContent value="business" className="space-y-4">
+                  <BusinessMetrics />
+                </TabsContent>
+                <TabsContent value="ceo-operations" className="space-y-4">
+                  <CEOOperationsDashboard />
+                </TabsContent>
+              </>
+            )}
 
             {/* Admin Management Tab */}
-            {user?.role === 'superadmin' && (
+            {isSuperAdmin && (
               <TabsContent value="admin-management" className="space-y-4">
                 <AdminManagement />
               </TabsContent>
             )}
 
             {/* System Health Tab */}
-            {user?.role === 'superadmin' && (
+            {isSuperAdmin && (
               <TabsContent value="system" className="space-y-4">
                 <SystemHealth />
               </TabsContent>

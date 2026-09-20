@@ -104,7 +104,6 @@ axios.interceptors.response.use(
           status: error.response?.status,
           path: currentPath,
           isAdminRoute,
-          isPublicRoute,
           error: error.response?.data
         });
       }
@@ -236,6 +235,9 @@ export async function apiFetch(url: string, options?: {
       text: async () => JSON.stringify(response.data),
       blob: async () => new Blob([JSON.stringify(response.data)]),
       arrayBuffer: async () => new ArrayBuffer(0),
+      formData: async () => {
+        throw new Error('Response.formData() not implemented');
+      },
       clone: () => {
         throw new Error('Response.clone() not implemented');
       },
@@ -268,6 +270,9 @@ export async function apiFetch(url: string, options?: {
         text: async () => JSON.stringify({ error: 'Network error - CORS or connection failed', message: error.message }),
         blob: async () => new Blob([JSON.stringify({ error: 'Network error', message: error.message })]),
         arrayBuffer: async () => new ArrayBuffer(0),
+        formData: async () => {
+          throw new Error('Response.formData() not implemented');
+        },
         clone: () => {
           throw new Error('Response.clone() not implemented');
         },
@@ -290,6 +295,9 @@ export async function apiFetch(url: string, options?: {
         text: async () => JSON.stringify(error.response.data),
         blob: async () => new Blob([JSON.stringify(error.response.data)]),
         arrayBuffer: async () => new ArrayBuffer(0),
+        formData: async () => {
+          throw new Error('Response.formData() not implemented');
+        },
         clone: () => {
           throw new Error('Response.clone() not implemented');
         },

@@ -8,6 +8,7 @@ import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
 import { autoResponseService } from '../services/auto-response-service.js';
 import { freeNotificationQueue } from '../services/free-notification-queue.js';
+import { requireAdmin, requireSuperAdmin } from '../middleware/admin-auth.js';
 
 const router = Router();
 
@@ -61,7 +62,7 @@ router.post('/incoming', async (req: Request, res: Response) => {
  * GET /api/auto-response/messages
  * Get message history (admin only)
  */
-router.get('/messages', async (req: Request, res: Response) => {
+router.get('/messages', requireAdmin, async (req: Request, res: Response) => {
   try {
     const { phone, limit } = req.query;
     const limitNum = limit ? parseInt(limit as string) : 50;
@@ -91,7 +92,7 @@ router.get('/messages', async (req: Request, res: Response) => {
  * POST /api/auto-response/test
  * Test auto-response with a sample message
  */
-router.post('/test', async (req: Request, res: Response) => {
+router.post('/test', requireSuperAdmin, async (req: Request, res: Response) => {
   try {
     const { message, phone } = req.body;
     

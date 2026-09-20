@@ -5,7 +5,7 @@ import { GYGFetcher, GYGActivity } from '../utils/gygFetcher.js';
 import { MoroccoActivityFetcher, MoroccoActivity } from '../utils/moroccoActivityFetcher.js';
 import { MoroccoDatabase, MoroccoActivityData } from '../utils/moroccoDatabase.js';
 import GYGCache from '../models/GYGCache.js';
-import { requireAdmin } from '../middleware/admin-auth.js';
+import { requireAdmin, requireSuperAdmin } from '../middleware/admin-auth.js';
 
 const router = Router();
 
@@ -426,7 +426,7 @@ router.get('/search', async (req: Request, res: Response) => {
  * Test GetYourGuide API connection
  * GET /api/gyg/test
  */
-router.get('/test', async (req: Request, res: Response) => {
+router.get('/test', requireSuperAdmin, async (req: Request, res: Response) => {
   try {
     console.log('[GYG] Testing GetYourGuide API connection...');
     
@@ -459,7 +459,7 @@ router.get('/test', async (req: Request, res: Response) => {
  * Get ALL GetYourGuide activities for admin dashboard
  * GET /api/gyg/activities
  */
-router.get('/activities', async (req: Request, res: Response) => {
+router.get('/activities', requireAdmin, async (req: Request, res: Response) => {
   try {
     console.log('[GYG] Fetching ALL GetYourGuide activities for admin...');
     
@@ -604,7 +604,7 @@ router.get('/activities', async (req: Request, res: Response) => {
  * DELETE /api/gyg/cache/clear - Clear all cache
  * DELETE /api/gyg/cache/clear?query=... - Clear specific query cache
  */
-router.get('/cache/stats', async (req: Request, res: Response) => {
+router.get('/cache/stats', requireSuperAdmin, async (req: Request, res: Response) => {
   try {
     const totalEntries = await GYGCache.countDocuments();
     const activeEntries = await GYGCache.countDocuments({ expiresAt: { $gt: new Date() } });
@@ -668,7 +668,7 @@ router.get('/cache/stats', async (req: Request, res: Response) => {
   }
 });
 
-router.delete('/cache/clear', requireAdmin, async (req: Request, res: Response) => {
+router.delete('/cache/clear', requireSuperAdmin, async (req: Request, res: Response) => {
   try {
     const { query } = req.query;
     
@@ -706,7 +706,7 @@ router.delete('/cache/clear', requireAdmin, async (req: Request, res: Response) 
  * Simple test route for debugging
  * GET /api/gyg/debug
  */
-router.get('/debug', requireAdmin, async (req: Request, res: Response) => {
+router.get('/debug', requireSuperAdmin, async (req: Request, res: Response) => {
   try {
     console.log('[GYG] Debug route called');
     

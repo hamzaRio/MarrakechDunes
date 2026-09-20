@@ -5,7 +5,10 @@
     "reviews": "Avis",
     "contact": "Contact",
     "admin": "Admin",
-    "adminDashboard": "Tableau de Bord Admin",
+    "adminDashboard": "Tableau de bord",
+    "operationsDashboard": "Tableau de bord opérations",
+    "executiveDashboard": "Tableau de bord direction",
+    "staffSpace": "Espace équipe",
     "booking": "Réservation"
   },
   "hero": {
@@ -168,7 +171,7 @@
     "searchActivities": "Rechercher des activités...",
     "allActivities": "Toutes les Activités",
     "adminManagement": "Gestion des Administrateurs",
-    "ceoOperations": "Opérations CEO",
+    "ceoOperations": "Opérations exécutives",
     "superadmin": "Super Administrateur",
     "admin": "Administrateur",
     "fullSystemAccess": "Accès complet au système",

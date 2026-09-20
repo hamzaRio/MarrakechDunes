@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import emailService from '../utils/emailService.js';
+import { requireAdmin } from '../middleware/admin-auth.js';
 
 const router = Router();
 
@@ -16,9 +17,9 @@ const emailNotificationSchema = z.object({
 /**
  * POST /api/notifications/email/send
  * Send email notification to customer
- * CSRF excluded for this route
+ * Requires an authenticated staff session and the normal CSRF token.
  */
-router.post('/email/send', async (req, res) => {
+router.post('/email/send', requireAdmin, async (req, res) => {
   const startTime = Date.now();
   
   try {
@@ -139,7 +140,7 @@ router.post('/unsubscribe', async (req, res) => {
  * POST /api/notifications/email/booking-confirmation
  * Send booking confirmation email
  */
-router.post('/email/booking-confirmation', async (req, res) => {
+router.post('/email/booking-confirmation', requireAdmin, async (req, res) => {
   try {
     const bookingConfirmationSchema = z.object({
       customerEmail: z.string().email(),

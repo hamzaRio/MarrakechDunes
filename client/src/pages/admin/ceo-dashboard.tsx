@@ -45,10 +45,10 @@ export default function CEODashboard() {
           <div className="max-w-7xl mx-auto px-6 py-4">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-3xl font-bold text-moroccan-blue">👑 Tableau de Bord CEO</h1>
+                <h1 className="text-3xl font-bold text-moroccan-blue">👑 Tableau de Bord Direction</h1>
                 <p className="text-gray-600">Bienvenue, {user?.username} 👋</p>
                 <p className="text-sm text-gray-500 mt-1">
-                  Tableau de bord opérationnel pour la direction - Analyse approfondie des performances et de la stratégie
+                  Tableau de bord exécutif réservé aux superadministrateurs
                 </p>
               </div>
               <div className="flex gap-3">

@@ -1,5 +1,6 @@
 import express from 'express';
 import { z } from 'zod';
+import { requireSuperAdmin } from '../middleware/admin-auth.js';
 // Placeholder functions for deleted services
 const searchExternalActivities = async (query: string, city?: string, provider: string = 'all', limit: number = 20, live: boolean = false) => {
   // Mock implementation - return empty results
@@ -78,7 +79,7 @@ const schema = z.object({
   limit: z.coerce.number().min(1).max(50).optional().default(20)
 });
 
-router.get('/suggest', async (req, res) => {
+router.get('/suggest', requireSuperAdmin, async (req, res) => {
   try {
     // Use safeParse to avoid throwing
     const validationResult = schema.safeParse(req.query);
@@ -106,7 +107,7 @@ router.get('/suggest', async (req, res) => {
 });
 
 // UTF-8 test endpoint
-router.get('/debug/utf8', (req, res) => {
+router.get('/debug/utf8', requireSuperAdmin, (req, res) => {
   const testData = {
     french: 'montgolfière',
     arabic: 'مراكش',
@@ -125,7 +126,7 @@ router.get('/debug/utf8', (req, res) => {
 });
 
 // Debug route for GYG connection testing
-router.get('/debug/gyg', async (req, res) => {
+router.get('/debug/gyg', requireSuperAdmin, async (req, res) => {
   try {
     const query = sanitizeString(req.query.query) || 'agafay';
     const city = sanitizeString(req.query.city) || 'Marrakech';

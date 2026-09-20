@@ -1,7 +1,5 @@
-import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
@@ -12,7 +10,6 @@ import {
   Calendar, 
   DollarSign, 
   Activity, 
-  Download, 
   FileText, 
   BarChart3,
   Target,
@@ -20,9 +17,7 @@ import {
   CheckCircle,
   Clock,
   Star,
-  MapPin,
-  Phone,
-  Mail
+  MapPin
 } from "lucide-react";
 
 interface OperationsData {
@@ -55,7 +50,6 @@ interface OperationsData {
 
 export default function CEOOperationsDashboard() {
   const { toast } = useToast();
-  const [selectedTimeRange, setSelectedTimeRange] = useState('30d');
 
   // Fetch operations data
   const { data: operationsData, isLoading } = useQuery<OperationsData>({
@@ -158,8 +152,8 @@ export default function CEOOperationsDashboard() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Tableau de Bord Opérationnel CEO</h2>
-          <p className="text-gray-600">Analyse approfondie des performances et intelligence opérationnelle</p>
+          <h2 className="text-2xl font-bold text-gray-900">Tableau de Bord Exécutif</h2>
+          <p className="text-gray-600">Synthèse des performances opérationnelles pour la direction</p>
         </div>
         <div className="flex gap-2">
           <Button onClick={handleExportBookingsPDF} variant="outline" size="sm">
@@ -233,7 +227,7 @@ export default function CEOOperationsDashboard() {
         <TabsList>
           <TabsTrigger value="performance">Performance Activités</TabsTrigger>
           <TabsTrigger value="trends">Tendances Mensuelles</TabsTrigger>
-          <TabsTrigger value="insights">Analyses Stratégiques</TabsTrigger>
+          <TabsTrigger value="insights">Suggestions Générales</TabsTrigger>
         </TabsList>
 
         <TabsContent value="performance" className="space-y-4">
@@ -295,12 +289,15 @@ export default function CEOOperationsDashboard() {
         </TabsContent>
 
         <TabsContent value="insights" className="space-y-4">
+          <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+            Ces suggestions sont des repères généraux. Elles ne sont pas calculées à partir des métriques affichées.
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Target className="h-5 w-5" />
-                  Analyses Stratégiques
+                  Repères Généraux
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -325,7 +322,7 @@ export default function CEOOperationsDashboard() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <AlertTriangle className="h-5 w-5" />
-                  Recommandations
+                  Pistes d'Action Générales
                 </CardTitle>
               </CardHeader>
               <CardContent>

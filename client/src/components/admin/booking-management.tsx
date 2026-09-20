@@ -30,6 +30,7 @@ interface BookingManagementProps {
   bookings: AdminBooking[];
   onExportBookings: () => void;
   onExportBookingsPDF: () => void;
+  canDeleteBookings: boolean;
 }
 
 const bookingIdOf = (booking: AdminBooking): string => booking._id || booking.id || "";
@@ -38,6 +39,7 @@ export default function BookingManagement({
   bookings,
   onExportBookings,
   onExportBookingsPDF,
+  canDeleteBookings,
 }: BookingManagementProps) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -172,7 +174,7 @@ export default function BookingManagement({
   };
 
   const confirmDeleteBooking = async () => {
-    if (!bookingToDelete || mutationInFlight.current) return;
+    if (!canDeleteBookings || !bookingToDelete || mutationInFlight.current) return;
 
     mutationInFlight.current = true;
     setIsDeleting(true);
@@ -254,7 +256,7 @@ export default function BookingManagement({
   };
 
   const handleBulkDelete = async () => {
-    if (selectedBookings.size === 0 || mutationInFlight.current) return;
+    if (!canDeleteBookings || selectedBookings.size === 0 || mutationInFlight.current) return;
 
     mutationInFlight.current = true;
     setIsDeleting(true);
@@ -493,10 +495,12 @@ export default function BookingManagement({
                   <Download className="mr-1 h-4 w-4" />
                   Exporter
                 </Button>
-                <Button disabled={isBusy} size="sm" variant="destructive" onClick={() => setBulkDeleteDialogOpen(true)}>
-                  <Trash2 className="mr-1 h-4 w-4" />
-                  Supprimer
-                </Button>
+                {canDeleteBookings ? (
+                  <Button disabled={isBusy} size="sm" variant="destructive" onClick={() => setBulkDeleteDialogOpen(true)}>
+                    <Trash2 className="mr-1 h-4 w-4" />
+                    Supprimer
+                  </Button>
+                ) : null}
                 <Button disabled={isBusy} size="sm" variant="ghost" onClick={() => setSelectedBookings(new Set())}>
                   <X className="h-4 w-4" />
                   <span className="sr-only">Effacer la sélection</span>
@@ -556,6 +560,7 @@ export default function BookingManagement({
                     onContact={() => handleContactCustomer(booking.customerPhone)}
                     onWhatsApp={() => handleSendWhatsApp(booking)}
                     onDelete={() => setBookingToDelete(booking)}
+                    canDelete={canDeleteBookings}
                   />
                 );
               })}
@@ -585,7 +590,7 @@ export default function BookingManagement({
         />
       ) : null}
 
-      <AlertDialog open={Boolean(bookingToDelete)} onOpenChange={(open) => !open && setBookingToDelete(null)}>
+      <AlertDialog open={canDeleteBookings && Boolean(bookingToDelete)} onOpenChange={(open) => !open && setBookingToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
@@ -607,7 +612,7 @@ export default function BookingManagement({
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
+      <AlertDialog open={canDeleteBookings && bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>

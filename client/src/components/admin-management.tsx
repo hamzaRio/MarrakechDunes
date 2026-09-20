@@ -83,7 +83,9 @@ export default function AdminManagement() {
   const handleExportBookings = async () => {
     try {
       const apiBaseUrl = import.meta.env.VITE_API_URL || '/api';
-      const response = await fetch(`${apiBaseUrl}/admin/export/bookings`);
+      const response = await fetch(`${apiBaseUrl}/admin/export/bookings`, {
+        credentials: 'include',
+      });
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -108,39 +110,6 @@ export default function AdminManagement() {
       toast({
         title: "Error",
         description: "Failed to export bookings",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleExportAuditLogs = async () => {
-    try {
-      const apiBaseUrl = import.meta.env.VITE_API_URL || '/api';
-      const response = await fetch(`${apiBaseUrl}/admin/export/audit-logs`);
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'audit-logs.csv';
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-      
-      toast({
-        title: "Export Successful",
-        description: "Audit logs exported as CSV",
-      });
-    } catch (error) {
-      console.error('Audit Logs CSV Export Error:', error);
-      toast({
-        title: "Error",
-        description: "Failed to export audit logs",
         variant: "destructive",
       });
     }
@@ -172,16 +141,12 @@ export default function AdminManagement() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Admin Management</h2>
-          <p className="text-gray-600">Manage admin users and export reports</p>
+          <p className="text-gray-600">Manage admin users and export bookings</p>
         </div>
         <div className="flex gap-2">
           <Button onClick={handleExportBookings} variant="outline" size="sm">
             <Download className="h-4 w-4 mr-2" />
             Export Bookings
-          </Button>
-          <Button onClick={handleExportAuditLogs} variant="outline" size="sm">
-            <Download className="h-4 w-4 mr-2" />
-            Export Audit Logs
           </Button>
         </div>
       </div>

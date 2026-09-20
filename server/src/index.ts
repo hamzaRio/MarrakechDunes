@@ -6,6 +6,7 @@ import "@sentry/tracing";
 import pino from 'pino';
 import { validateProductionEnvironment, getSecurityRecommendations } from './production-validator.js';
 import { config as serverEnv } from './env.js';
+import { requireSuperAdmin } from './middleware/admin-auth.js';
 
 // Fix UTF-8 console encoding for emojis and French characters
 process.stdout.setEncoding("utf8");
@@ -695,8 +696,8 @@ app.use((req, res, next) => {
   // Routes are now mounted directly above, no need for registerRoutes
   const server = app;
 
-  // Test notification endpoint (NO AUTH REQUIRED - added after all routes)
-  app.post("/api/test/notifications", async (req, res) => {
+  // Test notification endpoint (superadmin only)
+  app.post("/api/test/notifications", requireSuperAdmin, async (req, res) => {
     const { testType = 'email' } = req.body;
     
     try {
@@ -799,7 +800,7 @@ app.use((req, res, next) => {
   });
 
   // Monitoring endpoints
-  app.get('/api/monitoring/errors', (req, res) => {
+  app.get('/api/monitoring/errors', requireSuperAdmin, (req, res) => {
     const errorStats = errorMonitoring.getErrorStats();
     res.json({
       errorStats,
@@ -807,7 +808,7 @@ app.use((req, res, next) => {
     });
   });
 
-  app.get('/api/monitoring/performance', (req, res) => {
+  app.get('/api/monitoring/performance', requireSuperAdmin, (req, res) => {
     const performanceStats = errorMonitoring.getPerformanceStats();
     res.json({
       performance: performanceStats,
@@ -816,7 +817,7 @@ app.use((req, res, next) => {
   });
 
   // System health monitoring
-  app.get('/api/monitoring/health', (req, res) => {
+  app.get('/api/monitoring/health', requireSuperAdmin, (req, res) => {
     const memoryUsage = process.memoryUsage();
     const cpuUsage = process.cpuUsage();
     

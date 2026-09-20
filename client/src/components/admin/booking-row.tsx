@@ -30,6 +30,7 @@ interface BookingRowProps {
   onContact: () => void;
   onWhatsApp: () => void;
   onDelete: () => void;
+  canDelete: boolean;
 }
 
 const BOOKING_STATUSES: BookingLifecycleStatus[] = ["PENDING", "CONFIRMED", "COMPLETED", "CANCELLED"];
@@ -77,6 +78,7 @@ export default function BookingRow({
   onContact,
   onWhatsApp,
   onDelete,
+  canDelete,
 }: BookingRowProps) {
   const normalizedStatus = normalizeBookingStatus(booking.status);
   const { paymentStatus: normalizedPaymentStatus, totalAmount, paidAmount, remainingAmount } = getBookingPaymentSummary(booking);
@@ -190,11 +192,15 @@ export default function BookingRow({
                 <Phone className="h-4 w-4" />
                 Contacter
               </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem disabled={isBusy} className="text-red-600 focus:text-red-700" onSelect={onDelete}>
-                <Trash2 className="h-4 w-4" />
-                Supprimer
-              </DropdownMenuItem>
+              {canDelete ? (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem disabled={isBusy} className="text-red-600 focus:text-red-700" onSelect={onDelete}>
+                    <Trash2 className="h-4 w-4" />
+                    Supprimer
+                  </DropdownMenuItem>
+                </>
+              ) : null}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

@@ -1,5 +1,6 @@
 import { Router, type Request, type Response } from 'express';
 import { ObjectStorageService } from '../objectStorage.js';
+import { requireSuperAdmin } from '../middleware/admin-auth.js';
 
 const router = Router();
 const objectStorage = new ObjectStorageService();
@@ -8,7 +9,7 @@ const objectStorage = new ObjectStorageService();
  * POST /api/objects/upload
  * Get a signed URL for file upload
  */
-router.post('/objects/upload', async (req: Request, res: Response) => {
+router.post('/objects/upload', requireSuperAdmin, async (req: Request, res: Response) => {
   try {
     const uploadURL = await objectStorage.getObjectEntityUploadURL();
     return res.status(200).json({

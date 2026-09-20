@@ -1,6 +1,6 @@
 import { Router, type Request, type Response } from 'express';
 import { storage } from '../storage.js';
-import { requireAdmin } from '../middleware/admin-auth.js';
+import { requireAdmin, requireSuperAdmin } from '../middleware/admin-auth.js';
 
 const router = Router();
 const BOOKING_STATUSES = ['PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED'] as const;
@@ -191,7 +191,7 @@ Thank you for choosing MarrakechDunes! 🏜️`.trim();
  * DELETE /api/admin/bookings/:id
  * Delete booking (admin only)
  */
-router.delete('/bookings/:id', async (req: Request, res: Response) => {
+router.delete('/bookings/:id', requireSuperAdmin, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     
@@ -263,7 +263,7 @@ router.get('/activities', async (req: Request, res: Response) => {
  * POST /api/admin/activities
  * Create new activity (admin only)
  */
-router.post('/activities', async (req: Request, res: Response) => {
+router.post('/activities', requireSuperAdmin, async (req: Request, res: Response) => {
   try {
     const activityData = req.body;
     const activity = await storage.createActivity(activityData);
@@ -281,7 +281,7 @@ router.post('/activities', async (req: Request, res: Response) => {
  * PUT /api/admin/activities/:id
  * Update activity (admin only)
  */
-router.put('/activities/:id', async (req: Request, res: Response) => {
+router.put('/activities/:id', requireSuperAdmin, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const activityData = req.body;
@@ -306,7 +306,7 @@ router.put('/activities/:id', async (req: Request, res: Response) => {
  * PATCH /api/admin/activities/:id
  * Partial update activity (admin only)
  */
-router.patch('/activities/:id', async (req: Request, res: Response) => {
+router.patch('/activities/:id', requireSuperAdmin, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const activityData = req.body;
@@ -331,7 +331,7 @@ router.patch('/activities/:id', async (req: Request, res: Response) => {
  * DELETE /api/admin/activities/:id
  * Delete activity (admin only)
  */
-router.delete('/activities/:id', async (req: Request, res: Response) => {
+router.delete('/activities/:id', requireSuperAdmin, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     
@@ -372,7 +372,7 @@ router.delete('/activities/:id', async (req: Request, res: Response) => {
  * POST /api/admin/activities/:id/image
  * Upload activity image (admin only)
  */
-router.post('/activities/:id/image', async (req: Request, res: Response) => {
+router.post('/activities/:id/image', requireSuperAdmin, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { imageUrl } = req.body;
@@ -708,7 +708,7 @@ router.get('/export/bookings/pdf', async (req: Request, res: Response) => {
  * GET /api/admin/revenue-summary
  * Get optimized revenue summary with aggregation (admin only)
  */
-router.get('/revenue-summary', async (req: Request, res: Response) => {
+router.get('/revenue-summary', requireSuperAdmin, async (req: Request, res: Response) => {
   try {
     const startDate = req.query.startDate ? new Date(req.query.startDate as string) : undefined;
     const endDate = req.query.endDate ? new Date(req.query.endDate as string) : undefined;
@@ -730,7 +730,7 @@ router.get('/revenue-summary', async (req: Request, res: Response) => {
  * GET /api/admin/operations-report
  * Get operations report (admin only)
  */
-router.get('/operations-report', async (req: Request, res: Response) => {
+router.get('/operations-report', requireSuperAdmin, async (req: Request, res: Response) => {
   try {
     const report = await storage.generateOperationsReport();
     return res.status(200).json(report);
@@ -747,7 +747,7 @@ router.get('/operations-report', async (req: Request, res: Response) => {
  * GET /api/admin/export/operations-report/pdf
  * Export operations report to PDF (admin only)
  */
-router.get('/export/operations-report/pdf', async (req: Request, res: Response) => {
+router.get('/export/operations-report/pdf', requireSuperAdmin, async (req: Request, res: Response) => {
   try {
     const reportData = await storage.generateOperationsReport();
     const pdf = await storage.exportOperationsReportToPDF(reportData);
@@ -832,7 +832,7 @@ router.post('/notifications/:id/mark-sent', async (req: Request, res: Response) 
  * GET /api/admin/audit-logs
  * Get audit logs (admin/superadmin only)
  */
-router.get('/audit-logs', async (req: Request, res: Response) => {
+router.get('/audit-logs', requireSuperAdmin, async (req: Request, res: Response) => {
   try {
     const auditLogs = await storage.getAuditLogs();
     return res.status(200).json(auditLogs);

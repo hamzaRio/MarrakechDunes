@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Mountain, Menu, MapPin, Phone, Globe, LogOut, User, Languages } from "lucide-react";
+import { Mountain, Menu, MapPin, Phone, Globe, LogOut, User } from "lucide-react";
 import { useLanguage } from "@/hooks/use-language";
 import { useAuth } from "@/hooks/use-auth";
 import { logout } from "@/lib/api";
@@ -24,10 +24,9 @@ export default function Navbar() {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   
-  // Only show admin elements if properly authenticated and on admin routes
-  const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
-  const isAdminRoute = currentPath.startsWith('/admin') || currentPath.startsWith('/admin/');
-  const isAdminAuthenticated = isAdminRoute && isAuthenticated && user && (user.role === 'admin' || user.role === 'superadmin');
+  const isStaffAuthenticated = !authLoading && isAuthenticated &&
+    (user?.role === 'admin' || user?.role === 'superadmin');
+  const isSuperAdmin = user?.role === 'superadmin';
 
   const handleLogout = async () => {
     try {
@@ -86,13 +85,7 @@ export default function Navbar() {
     { href: "/activities", label: t('nav.activities') },
     { href: "/booking", label: t('nav.booking') },
     { href: "/reviews", label: t('nav.reviews') },
-    { href: "/admin/login", label: t('nav.admin') },
   ];
-
-  // Add admin dashboard link if user is properly authenticated (not loading)
-  if (!authLoading && isAdminAuthenticated) {
-    navItems.push({ href: "/admin/dashboard", label: t('nav.adminDashboard') });
-  }
 
   return (
     <nav className="bg-white shadow-lg sticky top-0 z-50 border-b border-gray-200">
@@ -140,8 +133,8 @@ export default function Navbar() {
               </DropdownMenuContent>
             </DropdownMenu>
             
-            {/* User Menu for authenticated users */}
-            {!authLoading && isAdminAuthenticated && (
+            {/* Staff access stays separate from public tourism navigation. */}
+            {isStaffAuthenticated ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="sm" className="flex items-center space-x-2 hover:bg-gray-100 transition-colors">
@@ -153,16 +146,30 @@ export default function Navbar() {
                   <DropdownMenuItem asChild>
                     <Link href="/admin/dashboard" className="flex items-center w-full px-3 py-2 hover:bg-gray-50 transition-colors">
                       <User className="h-4 w-4 mr-2 text-gray-600" />
-                      <span className="text-sm">{t('nav.adminDashboard')}</span>
+                      <span className="text-sm">{isSuperAdmin ? t('nav.operationsDashboard') : t('nav.adminDashboard')}</span>
                     </Link>
                   </DropdownMenuItem>
+                  {isSuperAdmin && (
+                    <DropdownMenuItem asChild>
+                      <Link href="/admin/ceo" className="flex items-center w-full px-3 py-2 hover:bg-gray-50 transition-colors">
+                        <User className="h-4 w-4 mr-2 text-gray-600" />
+                        <span className="text-sm">{t('nav.executiveDashboard')}</span>
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem onClick={handleLogout} className="flex items-center text-red-600 hover:text-red-700 hover:bg-red-50 px-3 py-2 transition-colors">
                     <LogOut className="h-4 w-4 mr-2" />
                     <span className="text-sm">{t('admin.logout')}</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-            )}
+            ) : !authLoading ? (
+              <Link href="/admin/login">
+                <span className="text-sm text-gray-500 hover:text-moroccan-red transition-colors cursor-pointer">
+                  {t('nav.staffSpace')}
+                </span>
+              </Link>
+            ) : null}
           </div>
 
           {/* Mobile Navigation Trigger */}
@@ -193,8 +200,7 @@ export default function Navbar() {
                       </div>
                     </Link>
                   ))}
-                  {/* Only show admin access if user is authenticated and has admin role */}
-                  {user && (user.role === 'admin' || user.role === 'superadmin') && (
+                  {isStaffAuthenticated ? (
                     <div className="border-t pt-4 mt-4 space-y-2">
                       <div className="text-sm text-gray-600 mb-2">
                         Logged in as: <span className="font-semibold">{displayName}</span>
@@ -204,9 +210,19 @@ export default function Navbar() {
                           className="text-lg hover:text-moroccan-red transition-colors cursor-pointer p-2 rounded"
                           onClick={() => setIsOpen(false)}
                         >
-                          {t('admin.adminAccess')}
+                          {isSuperAdmin ? t('nav.operationsDashboard') : t('nav.adminDashboard')}
                         </div>
                       </Link>
+                      {isSuperAdmin && (
+                        <Link href="/admin/ceo">
+                          <div
+                            className="text-lg hover:text-moroccan-red transition-colors cursor-pointer p-2 rounded"
+                            onClick={() => setIsOpen(false)}
+                          >
+                            {t('nav.executiveDashboard')}
+                          </div>
+                        </Link>
+                      )}
                       <div
                         className="text-lg hover:text-red-600 transition-colors cursor-pointer p-2 rounded flex items-center"
                         onClick={() => {
@@ -218,7 +234,18 @@ export default function Navbar() {
                         {t('admin.logout')}
                       </div>
                     </div>
-                  )}
+                  ) : !authLoading ? (
+                    <div className="border-t pt-4 mt-4">
+                      <Link href="/admin/login">
+                        <div
+                          className="text-sm text-gray-500 hover:text-moroccan-red transition-colors cursor-pointer p-2 rounded"
+                          onClick={() => setIsOpen(false)}
+                        >
+                          {t('nav.staffSpace')}
+                        </div>
+                      </Link>
+                    </div>
+                  ) : null}
 
                   {/* Contact Info */}
                   <div className="border-t pt-4 mt-4 space-y-3">
