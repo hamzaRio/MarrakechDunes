@@ -1,3 +1,5 @@
+import type { ValidationState, ManualOverrideDecision } from './gyg-matching.js';
+
 export type GYGTrustSource =
   | 'LIVE_VERIFIED'
   | 'CACHED_VERIFIED'
@@ -6,6 +8,12 @@ export type GYGTrustSource =
   | 'GENERATED_FALLBACK'
   | 'ESTIMATED'
   | 'LEGACY_UNVERIFIED';
+
+export interface GYGManualOverride {
+  decision: ManualOverrideDecision;
+  overriddenBy: string;
+  overriddenAt: string | Date;
+}
 
 export interface NormalizedGYGOffer {
   id: string;
@@ -30,7 +38,13 @@ export interface NormalizedGYGOffer {
   expiresAt: Date | null;
   matchScore: number | null;
   matchReasons: string[];
-  validationState: 'UNVALIDATED' | 'SOURCE_VALIDATED' | 'MATCH_VALIDATED';
+  // Commercial-comparability state. `null` means this offer was never run
+  // through comparability matching (e.g. generic/aggregate competitor
+  // listings that aren't compared against one specific activity) — it is
+  // NOT a rejection, and is treated permissively by isEligibleForVerifiedMetrics
+  // for backward compatibility with routes that predate Phase 3D-1 matching.
+  validationState: ValidationState | null;
+  manualOverride: GYGManualOverride | null;
 }
 
 const canonicalSources = new Set<GYGTrustSource>([
@@ -43,12 +57,36 @@ const canonicalSources = new Set<GYGTrustSource>([
   'LEGACY_UNVERIFIED',
 ]);
 
+const canonicalValidationStates = new Set<ValidationState>([
+  'STRONG_MATCH',
+  'LIKELY_MATCH',
+  'WEAK_MATCH',
+  'REJECTED_MATCH',
+  'NEEDS_REVIEW',
+]);
+
 function normalizeSourceType(value: unknown): GYGTrustSource {
   if (canonicalSources.has(value as GYGTrustSource)) {
     return value as GYGTrustSource;
   }
 
   return 'LEGACY_UNVERIFIED';
+}
+
+function normalizeValidationState(value: unknown): ValidationState | null {
+  if (value == null) return null;
+  return canonicalValidationStates.has(value as ValidationState) ? (value as ValidationState) : null;
+}
+
+function normalizeManualOverride(value: unknown): GYGManualOverride | null {
+  if (!value || typeof value !== 'object') return null;
+  const candidate = value as Record<string, any>;
+  if (candidate.decision !== 'ACCEPTED' && candidate.decision !== 'REJECTED') return null;
+  return {
+    decision: candidate.decision,
+    overriddenBy: String(candidate.overriddenBy ?? 'unknown'),
+    overriddenAt: candidate.overriddenAt ?? null,
+  };
 }
 
 export const trustMetadata = (sourceType: GYGTrustSource, stale = false) => ({
@@ -81,12 +119,36 @@ export function normalizeGYGOffer(value: Record<string, any>, defaults: Partial<
     expiresAt: defaults.expiresAt ?? value.expiresAt ?? null,
     matchScore: value.matchScore == null ? null : Number(value.matchScore),
     matchReasons: Array.isArray(value.matchReasons) ? value.matchReasons : [],
-    validationState: value.validationState ?? 'UNVALIDATED',
+    validationState: normalizeValidationState(value.validationState ?? defaults.validationState),
+    manualOverride: normalizeManualOverride(value.manualOverride ?? defaults.manualOverride),
   };
 }
 
+/**
+ * An offer counts toward verified market metrics only when:
+ *  1. Its DATA SOURCE is trusted (verified, not stale, has a real price) — and
+ *  2. It is either commercially comparable to our activity (STRONG_MATCH /
+ *     LIKELY_MATCH), or a superadmin has explicitly accepted it, and it has
+ *     not been explicitly rejected.
+ *
+ * `validationState === null` means comparability was never evaluated for
+ * this offer (it isn't tied to one specific activity, e.g. broad
+ * competitor/market listings) — those are treated permissively so this
+ * change doesn't regress metrics that predate Phase 3D-1's per-activity
+ * matching and were never in scope for it.
+ */
+export function isEligibleForVerifiedMetrics(offer: NormalizedGYGOffer): boolean {
+  if (!offer.verified || offer.stale || !(offer.price > 0)) return false;
+
+  if (offer.manualOverride?.decision === 'REJECTED') return false;
+  if (offer.manualOverride?.decision === 'ACCEPTED') return true;
+
+  if (offer.validationState === null) return true;
+  return offer.validationState === 'STRONG_MATCH' || offer.validationState === 'LIKELY_MATCH';
+}
+
 export function calculateVerifiedMetrics(offers: NormalizedGYGOffer[]) {
-  const prices = offers.filter((offer) => offer.verified && !offer.stale && offer.price > 0).map((offer) => offer.price).sort((a, b) => a - b);
+  const prices = offers.filter(isEligibleForVerifiedMetrics).map((offer) => offer.price).sort((a, b) => a - b);
   const count = prices.length;
   const median = count === 0 ? null : count % 2 ? prices[(count - 1) / 2] : (prices[count / 2 - 1] + prices[count / 2]) / 2;
   return {

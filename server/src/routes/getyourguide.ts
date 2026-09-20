@@ -9,6 +9,7 @@ import { requireAdmin, requireSuperAdmin } from '../middleware/admin-auth.js';
 import { calculateVerifiedMetrics, normalizeGYGOffer, type GYGTrustSource } from '../services/gyg-comparison.js';
 import { consumeGYGRateLimit } from '../services/gyg-rate-limits.js';
 import { gygRequestKey, gygResilience, isGYGServiceUnavailable } from '../services/gyg-resilience.js';
+import { rankCandidateMatches, type MatchableActivity } from '../services/gyg-matching.js';
 
 const router = Router();
 
@@ -45,6 +46,62 @@ const comparisonResponse = (offers: Record<string, any>[], sourceType: GYGTrustS
 };
 
 const circuitIsOpen = () => gygResilience.getDiagnostics().circuitState === 'OPEN';
+
+/**
+ * Load any superadmin ACCEPT/REJECT decisions recorded for this activity,
+ * keyed by candidate id, so they can be re-attached to freshly-scraped
+ * offers. This lookup never mutates the automatic matchScore/validationState
+ * computed for the current run — it only overlays a human decision on top,
+ * so a manual override survives cache expiry and rematching untouched.
+ */
+async function loadMatchOverrides(ourActivityId: string): Promise<Map<string, { decision: string; overriddenBy: string; overriddenAt: Date }>> {
+  if (!ourActivityId) return new Map();
+  try {
+    const { default: GYGMatchOverride } = await import('../models/GYGMatchOverride.js');
+    const docs = await GYGMatchOverride.find({ ourActivityId }).lean();
+    const map = new Map<string, { decision: string; overriddenBy: string; overriddenAt: Date }>();
+    for (const doc of docs as any[]) {
+      map.set(String(doc.matchedExternalId), {
+        decision: doc.decision,
+        overriddenBy: doc.overriddenBy,
+        overriddenAt: doc.overriddenAt,
+      });
+    }
+    return map;
+  } catch (err: any) {
+    console.warn('[GYG Matching] Failed to load match overrides:', err?.message);
+    return new Map();
+  }
+}
+
+/**
+ * Score raw GYG candidates against one of our activities for commercial
+ * comparability, and overlay any persisted manual override. Offers are
+ * returned best-match-first; matchScore/matchReasons/validationState/
+ * manualOverride are read through by normalizeGYGOffer.
+ */
+async function attachMatchingToOffers(myActivity: any, rawOffers: any[]): Promise<any[]> {
+  if (rawOffers.length === 0) return rawOffers;
+
+  const ourActivityId = String(myActivity._id || myActivity.id || '');
+  const ourActivityForMatching: MatchableActivity = {
+    name: myActivity.name,
+    description: myActivity.description,
+    category: myActivity.category,
+    duration: myActivity.duration,
+    location: myActivity.location,
+  };
+
+  const overridesById = await loadMatchOverrides(ourActivityId);
+  const ranked = rankCandidateMatches(ourActivityForMatching, rawOffers);
+
+  return ranked.map((offer) => ({
+    ...offer,
+    ourActivityId,
+    matchedExternalId: String(offer.id),
+    manualOverride: overridesById.get(String(offer.id)) ?? null,
+  }));
+}
 
 const sendGYGUnavailable = (res: Response, error?: any) => {
   const diagnostics = gygResilience.getDiagnostics();
@@ -163,6 +220,7 @@ router.get('/search', requireAdmin, requireSuperAdminForLiveRefresh, async (req:
               }
               
               if (gygMatches.length > 0) {
+                const scoredMatches = await attachMatchingToOffers(myActivity, gygMatches);
                 results.push({
                   myActivity: {
                     id: myActivity._id || myActivity.id,
@@ -170,7 +228,7 @@ router.get('/search', requireAdmin, requireSuperAdminForLiveRefresh, async (req:
                     price: myActivity.price,
                     category: myActivity.category
                   },
-                gygMatches: comparisonResponse(gygMatches, 'LIVE_VERIFIED', new Date(), null).offers,
+                gygMatches: comparisonResponse(scoredMatches, 'LIVE_VERIFIED', new Date(), null).offers,
                 });
               }
             } catch (activityError) {
@@ -228,6 +286,7 @@ router.get('/search', requireAdmin, requireSuperAdminForLiveRefresh, async (req:
             gygMatches = [];
           }
           
+          const scoredMatches = await attachMatchingToOffers(matchingActivity, gygMatches);
           return res.json([{
             myActivity: {
               id: matchingActivity._id || matchingActivity.id,
@@ -235,7 +294,7 @@ router.get('/search', requireAdmin, requireSuperAdminForLiveRefresh, async (req:
               price: matchingActivity.price,
               category: matchingActivity.category
             },
-            gygMatches: comparisonResponse(gygMatches, 'LIVE_VERIFIED', new Date(), null).offers,
+            gygMatches: comparisonResponse(scoredMatches, 'LIVE_VERIFIED', new Date(), null).offers,
           }]);
         }
       } catch (dbError: any) {

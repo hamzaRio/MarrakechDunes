@@ -4,6 +4,7 @@ import { requireAdmin, requireSuperAdmin } from '../middleware/admin-auth.js';
 import { normalizeGYGOffer, type GYGTrustSource } from '../services/gyg-comparison.js';
 import { consumeGYGRateLimit } from '../services/gyg-rate-limits.js';
 import { gygRequestKey, gygResilience, isGYGServiceUnavailable } from '../services/gyg-resilience.js';
+import { rankCandidateMatches, isComparableValidationState, type MatchableActivity, type ManualOverrideDecision } from '../services/gyg-matching.js';
 
 const router = Router();
 const BOOKING_STATUSES = ['PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED'] as const;
@@ -453,13 +454,42 @@ router.get('/activities/:id/getyourguide-price', requireSuperAdminForForceScrape
       let bestMatch: any = null;
       let gygPrice: number | null = null;
       let sourceType: GYGTrustSource = 'CURATED_REFERENCE';
-      
-      if (moroccoActivities.length > 0 && !forceLiveScrape) {
-        bestMatch = moroccoActivities[0];
-        gygPrice = bestMatch.price || bestMatch.gygPrice || null;
+
+      const ourActivityForMatching: MatchableActivity = {
+        name: activity.name,
+        description: activity.description,
+        category: activity.category,
+        duration: activity.duration,
+        location: activity.location,
+      };
+
+      // Rank ALL curated candidates for commercial comparability (title,
+      // location, activity type, duration, inclusions) instead of blindly
+      // taking the first search hit — a keyword/title hit is not proof that
+      // the candidate is actually a comparable product.
+      const rankedCurated = moroccoActivities.length > 0
+        ? rankCandidateMatches(ourActivityForMatching, moroccoActivities.map((a: any) => ({
+            id: a.id,
+            title: a.title,
+            duration: a.duration,
+            location: a.location,
+            price: a.price || a.gygPrice || null,
+            currency: a.currency,
+            rating: a.rating,
+            reviewCount: a.reviewCount,
+            link: a.link,
+          })))
+        : [];
+
+      if (!forceLiveScrape) {
+        const bestCurated = rankedCurated[0];
+        if (bestCurated && isComparableValidationState(bestCurated.validationState) && bestCurated.price) {
+          bestMatch = bestCurated;
+          gygPrice = bestCurated.price;
+        }
       }
 
-      // If force live scrape requested OR no match found, scrape GetYourGuide website
+      // If force live scrape requested OR no comparable match found, scrape GetYourGuide website
       if (forceLiveScrape || (!bestMatch || !gygPrice)) {
         if (!consumeGYGRateLimit(req, res, forceLiveScrape ? 'forceRefresh' : 'normalSearch')) return;
         console.log(`[ADMIN] Scraping GetYourGuide for: "${activity.name}" (forceScrape=${forceLiveScrape})`);
@@ -468,42 +498,45 @@ router.get('/activities/:id/getyourguide-price', requireSuperAdminForForceScrape
             gygRequestKey('activity', id),
             () => GYGFetcher.searchActivities(activity.name),
           );
-          
-          if (scrapedActivities && scrapedActivities.length > 0) {
-            // Find best match by title similarity
-            const activityNameLower = activity.name.toLowerCase();
-            const scoredActivities = scrapedActivities.map(a => {
-              const titleLower = a.title.toLowerCase();
-              let score = 0;
-              
-              // Exact match
-              if (titleLower === activityNameLower) score = 100;
-              // Contains all keywords
-              else if (activityNameLower.split(' ').every(word => titleLower.includes(word))) score = 80;
-              // Contains main keywords
-              else if (titleLower.includes('balloon') && activityNameLower.includes('balloon')) score = 70;
-              else if (titleLower.includes(activityNameLower.split(' ')[0])) score = 50;
-              
-              return { activity: a, score };
-            });
 
-            scoredActivities.sort((a, b) => b.score - a.score);
-            const bestScraped = scoredActivities[0];
-            
-            if (bestScraped && bestScraped.score > 40 && bestScraped.activity.price > 0) {
+          if (scrapedActivities && scrapedActivities.length > 0) {
+            // Rank by commercial comparability, not by title-equality,
+            // "contains all keywords", or a hardcoded "balloon" special case.
+            const rankedScraped = rankCandidateMatches(ourActivityForMatching, scrapedActivities.map((a) => ({
+              id: a.id,
+              title: a.title,
+              duration: a.duration,
+              location: a.location,
+              price: a.price,
+              currency: a.currency,
+              rating: a.rating,
+              reviewCount: a.reviewCount,
+              link: a.link,
+            })));
+            const bestScraped = rankedScraped[0];
+
+            if (bestScraped && isComparableValidationState(bestScraped.validationState) && bestScraped.price > 0) {
               bestMatch = {
-                title: bestScraped.activity.title,
-                price: bestScraped.activity.price,
-                gygPrice: bestScraped.activity.price,
-                currency: bestScraped.activity.currency || 'MAD',
-                rating: bestScraped.activity.rating || 0,
-                reviewCount: bestScraped.activity.reviewCount || 0,
-                link: bestScraped.activity.link,
-                url: bestScraped.activity.link
+                id: bestScraped.id,
+                title: bestScraped.title,
+                price: bestScraped.price,
+                gygPrice: bestScraped.price,
+                currency: bestScraped.currency || 'MAD',
+                rating: bestScraped.rating || 0,
+                reviewCount: bestScraped.reviewCount || 0,
+                link: bestScraped.link,
+                url: bestScraped.link,
+                duration: bestScraped.duration,
+                location: bestScraped.location,
+                matchScore: bestScraped.matchScore,
+                matchReasons: bestScraped.matchReasons,
+                validationState: bestScraped.validationState,
               };
-              gygPrice = bestScraped.activity.price;
+              gygPrice = bestScraped.price;
               sourceType = 'LIVE_VERIFIED';
-              console.log(`[ADMIN] Found GYG price via scraping: ${gygPrice} MAD for "${bestMatch.title}"`);
+              console.log(`[ADMIN] Found comparable GYG price via scraping: ${gygPrice} MAD for "${bestMatch.title}" (matchScore=${bestScraped.matchScore}, state=${bestScraped.validationState})`);
+            } else if (bestScraped) {
+              console.log(`[ADMIN] Best scraped candidate "${bestScraped.title}" was not commercially comparable (matchScore=${bestScraped.matchScore}, state=${bestScraped.validationState}) — ignoring`);
             }
           }
         } catch (scrapeError: any) {
@@ -527,12 +560,16 @@ router.get('/activities/:id/getyourguide-price', requireSuperAdminForForceScrape
           reviewCount: bestMatch.reviewCount,
           duration: bestMatch.duration,
           location: bestMatch.location,
+          matchScore: bestMatch.matchScore,
+          matchReasons: bestMatch.matchReasons,
+          validationState: bestMatch.validationState,
         }, { sourceType, fetchedAt });
 
         // A numeric price is written to Activity only when this route itself
-        // obtained a live, verified source. Curated and estimated values stay
-        // response-only references.
-        if (comparison.sourceType === 'LIVE_VERIFIED') {
+        // obtained a live, verified source AND the match is commercially
+        // comparable — never for a curated reference, an estimate, or a
+        // verified-but-poorly-matched candidate.
+        if (comparison.sourceType === 'LIVE_VERIFIED' && isComparableValidationState(comparison.validationState)) {
           await storage.updateActivityGetYourGuidePrice(id, comparison.price);
         }
 
@@ -551,19 +588,20 @@ router.get('/activities/:id/getyourguide-price', requireSuperAdminForForceScrape
             rating: bestMatch.rating || 0,
             reviewCount: bestMatch.reviewCount || 0
           },
-          suggestions: moroccoActivities.length > 0
-            ? moroccoActivities.slice(0, 3).map(a => normalizeGYGOffer({
-                id: a.id,
-                title: a.title,
-                price: a.price || a.gygPrice,
-                currency: a.currency || 'MAD',
-                url: a.link,
-                rating: a.rating,
-                reviewCount: a.reviewCount,
-                duration: a.duration,
-                location: a.location,
-              }, { sourceType: 'CURATED_REFERENCE', fetchedAt }))
-            : []
+          suggestions: rankedCurated.slice(0, 3).map((a) => normalizeGYGOffer({
+            id: a.id,
+            title: a.title,
+            price: a.price,
+            currency: a.currency || 'MAD',
+            url: a.link,
+            rating: a.rating,
+            reviewCount: a.reviewCount,
+            duration: a.duration,
+            location: a.location,
+            matchScore: a.matchScore,
+            matchReasons: a.matchReasons,
+            validationState: a.validationState,
+          }, { sourceType: 'CURATED_REFERENCE', fetchedAt }))
           });
       } else {
         // No results found, return estimated price (14% higher)
@@ -919,6 +957,78 @@ router.get('/audit-logs', requireSuperAdmin, async (req: Request, res: Response)
     return res.status(500).json({
       status: 'error',
       message: 'Failed to fetch audit logs'
+    });
+  }
+});
+
+/**
+ * POST /api/admin/gyg-matches/override
+ * Superadmin-only: manually ACCEPT or REJECT a specific (our activity, GYG
+ * candidate) comparability decision. Persisted independently of the
+ * ephemeral GYG cache so automatic rematching never silently overwrites it.
+ * This does not build the final comparison workspace UI (Phase 3D-2) — it is
+ * the minimal control needed to validate the override mechanism.
+ */
+router.post('/gyg-matches/override', requireSuperAdmin, async (req: Request, res: Response) => {
+  try {
+    const { ourActivityId, matchedExternalId, decision, note, automaticValidationState, automaticMatchScore } = req.body || {};
+
+    if (!ourActivityId || typeof ourActivityId !== 'string') {
+      return res.status(400).json({ status: 'error', message: 'ourActivityId is required' });
+    }
+    if (!matchedExternalId || typeof matchedExternalId !== 'string') {
+      return res.status(400).json({ status: 'error', message: 'matchedExternalId is required' });
+    }
+    const normalizedDecision: ManualOverrideDecision | null =
+      decision === 'ACCEPTED' || decision === 'REJECTED' ? decision : null;
+    if (!normalizedDecision) {
+      return res.status(400).json({ status: 'error', message: 'decision must be ACCEPTED or REJECTED' });
+    }
+
+    const activity = await storage.getActivity(ourActivityId);
+    if (!activity) {
+      return res.status(404).json({ status: 'error', message: 'Activity not found' });
+    }
+
+    const userId = (req.session as any).userId;
+    const role = (req.session as any).role;
+    const actingUser = userId ? await storage.getUser(userId) : null;
+    const overriddenBy = actingUser?.username || 'superadmin';
+
+    const { default: GYGMatchOverride } = await import('../models/GYGMatchOverride.js');
+    const override = await GYGMatchOverride.findOneAndUpdate(
+      { ourActivityId, matchedExternalId },
+      {
+        ourActivityId,
+        matchedExternalId,
+        decision: normalizedDecision,
+        overriddenBy,
+        overriddenByRole: role || 'superadmin',
+        overriddenAt: new Date(),
+        automaticValidationState: typeof automaticValidationState === 'string' ? automaticValidationState : undefined,
+        automaticMatchScore: typeof automaticMatchScore === 'number' ? automaticMatchScore : undefined,
+        note: typeof note === 'string' ? note.slice(0, 500) : undefined,
+      },
+      { upsert: true, new: true },
+    );
+
+    console.log(`[ADMIN] GYG match override: activity=${ourActivityId} candidate=${matchedExternalId} decision=${normalizedDecision} by=${overriddenBy}`);
+
+    return res.status(200).json({
+      status: 'success',
+      override: {
+        ourActivityId: String(override.ourActivityId),
+        matchedExternalId: override.matchedExternalId,
+        decision: override.decision,
+        overriddenBy: override.overriddenBy,
+        overriddenAt: override.overriddenAt,
+      },
+    });
+  } catch (error) {
+    console.error('[ADMIN] Error saving GYG match override:', error);
+    return res.status(500).json({
+      status: 'error',
+      message: 'Failed to save match override'
     });
   }
 });

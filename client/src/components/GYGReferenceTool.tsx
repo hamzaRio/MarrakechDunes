@@ -4,12 +4,20 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { useAuth } from '@/hooks/use-auth';
 
 interface GYGReferenceToolProps {
   onActivitySelect?: (activity: any) => void;
+}
+
+type GYGValidationState = 'STRONG_MATCH' | 'LIKELY_MATCH' | 'WEAK_MATCH' | 'REJECTED_MATCH' | 'NEEDS_REVIEW';
+
+interface GYGManualOverride {
+  decision: 'ACCEPTED' | 'REJECTED';
+  overriddenBy: string;
+  overriddenAt: string | null;
 }
 
 interface GYGActivityResult {
@@ -30,7 +38,12 @@ interface GYGActivityResult {
   expiresAt: string | null;
   matchScore: number | null;
   matchReasons: string[];
-  validationState: 'UNVALIDATED' | 'SOURCE_VALIDATED' | 'MATCH_VALIDATED';
+  // null = comparability was never evaluated for this offer (e.g. a plain
+  // keyword search not tied to one of our activities).
+  validationState: GYGValidationState | null;
+  ourActivityId?: string | null;
+  matchedExternalId?: string | null;
+  manualOverride?: GYGManualOverride | null;
 }
 
 interface GYGSearchResponse {
@@ -56,6 +69,22 @@ const trustLabel: Record<GYGActivityResult['sourceType'], string> = {
   GENERATED_FALLBACK: 'Generated fallback',
   ESTIMATED: 'Estimated',
   LEGACY_UNVERIFIED: 'Legacy / unverified',
+};
+
+const validationStateLabel: Record<GYGValidationState, string> = {
+  STRONG_MATCH: 'Correspondance forte',
+  LIKELY_MATCH: 'Correspondance probable',
+  WEAK_MATCH: 'Correspondance faible',
+  REJECTED_MATCH: 'Non comparable',
+  NEEDS_REVIEW: 'À vérifier',
+};
+
+const validationStateBadgeClass: Record<GYGValidationState, string> = {
+  STRONG_MATCH: 'bg-green-600 text-white',
+  LIKELY_MATCH: 'bg-green-100 text-green-800',
+  WEAK_MATCH: 'bg-amber-100 text-amber-800',
+  REJECTED_MATCH: 'bg-red-100 text-red-800',
+  NEEDS_REVIEW: 'bg-purple-100 text-purple-800',
 };
 
 const formatFetchedAt = (fetchedAt: string | null) => fetchedAt
@@ -89,6 +118,26 @@ const POPULAR_SEARCHES = [
 export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolProps) {
   const { user } = useAuth();
   const canForceLiveRefresh = user?.role === 'superadmin';
+  const queryClient = useQueryClient();
+
+  // Superadmin-only: minimal ACCEPT/REJECT control for Phase 3D-1. Does not
+  // build the final comparison workspace — just persists the decision and
+  // refreshes the match list so the override is visible immediately.
+  const matchOverrideMutation = useMutation({
+    mutationFn: async (payload: {
+      ourActivityId: string;
+      matchedExternalId: string;
+      decision: 'ACCEPTED' | 'REJECTED';
+      automaticValidationState?: string | null;
+      automaticMatchScore?: number | null;
+    }) => {
+      const response = await api.post('/admin/gyg-matches/override', payload);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['gyg-search-my-activities'] });
+    },
+  });
   const [searchQuery, setSearchQuery] = useState('');
   const [activeSearch, setActiveSearch] = useState<string>('');
   const [forceLiveScrape, setForceLiveScrape] = useState(false);
@@ -697,7 +746,66 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
                                 {formatFetchedAt(gygActivity.fetchedAt) && (
                                   <p className="mb-2 text-xs text-slate-500">Vérifié le: {formatFetchedAt(gygActivity.fetchedAt)}</p>
                                 )}
-                                
+
+                                {/* Comparability match state (Phase 3D-1) — separate from source
+                                    trust above: a verified offer can still be a poor comparable. */}
+                                {gygActivity.validationState && (
+                                  <div className="mb-2">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <Badge className={validationStateBadgeClass[gygActivity.validationState]}>
+                                        {validationStateLabel[gygActivity.validationState]}
+                                        {typeof gygActivity.matchScore === 'number' ? ` (${gygActivity.matchScore})` : ''}
+                                      </Badge>
+                                      {gygActivity.manualOverride && (
+                                        <Badge variant="outline" className="text-[10px]">
+                                          {gygActivity.manualOverride.decision === 'ACCEPTED' ? 'Validé manuellement' : 'Rejeté manuellement'}
+                                        </Badge>
+                                      )}
+                                    </div>
+                                    {gygActivity.matchReasons && gygActivity.matchReasons.length > 0 && (
+                                      <ul className="mt-1 text-[11px] text-gray-500 list-disc list-inside space-y-0.5">
+                                        {gygActivity.matchReasons.slice(0, 3).map((reason, idx) => (
+                                          <li key={idx}>{reason}</li>
+                                        ))}
+                                      </ul>
+                                    )}
+                                    {canForceLiveRefresh && gygActivity.ourActivityId && gygActivity.matchedExternalId && (
+                                      <div className="mt-2 flex gap-1" onClick={(e) => e.stopPropagation()}>
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          disabled={matchOverrideMutation.isPending}
+                                          className="h-6 px-2 text-[11px] border-green-300 text-green-700 hover:bg-green-50"
+                                          onClick={() => matchOverrideMutation.mutate({
+                                            ourActivityId: gygActivity.ourActivityId!,
+                                            matchedExternalId: gygActivity.matchedExternalId!,
+                                            decision: 'ACCEPTED',
+                                            automaticValidationState: gygActivity.validationState,
+                                            automaticMatchScore: gygActivity.matchScore,
+                                          })}
+                                        >
+                                          Accepter
+                                        </Button>
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          disabled={matchOverrideMutation.isPending}
+                                          className="h-6 px-2 text-[11px] border-red-300 text-red-700 hover:bg-red-50"
+                                          onClick={() => matchOverrideMutation.mutate({
+                                            ourActivityId: gygActivity.ourActivityId!,
+                                            matchedExternalId: gygActivity.matchedExternalId!,
+                                            decision: 'REJECTED',
+                                            automaticValidationState: gygActivity.validationState,
+                                            automaticMatchScore: gygActivity.matchScore,
+                                          })}
+                                        >
+                                          Rejeter
+                                        </Button>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+
                                 <div className="space-y-2 mb-3">
                                   {gygActivity.rating && (
                                     <div className="flex items-center gap-1 text-xs text-gray-600">
