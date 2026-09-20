@@ -62,6 +62,18 @@ const formatFetchedAt = (fetchedAt: string | null) => fetchedAt
   ? new Intl.DateTimeFormat('fr-MA', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(fetchedAt))
   : null;
 
+const getGYGErrorMessage = (error: unknown) => {
+  const response = (error as any)?.response;
+  const retryAfter = response?.data?.retryAfter;
+  if (response?.status === 429 || response?.data?.code === 'GYG_RATE_LIMITED') {
+    return `Trop de requêtes GetYourGuide. Réessayez${retryAfter ? ` dans ${retryAfter} secondes` : ' dans quelques instants'}.`;
+  }
+  if (response?.status === 503 || response?.data?.code === 'GYG_CIRCUIT_OPEN') {
+    return `Le service GetYourGuide est temporairement indisponible. Réessayez${retryAfter ? ` dans ${retryAfter} secondes` : ' plus tard'}.`;
+  }
+  return 'Impossible de récupérer les activités. Vérifiez le terme de recherche ou réessayez plus tard.';
+};
+
 // Popular Morocco activities for quick search
 const POPULAR_SEARCHES = [
   { name: 'Hot Air Balloon', query: 'Montgolfière (Hot Air Balloon)', icon: '🎈' },
@@ -444,9 +456,14 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
           {error && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-800">
               <p className="font-semibold mb-1">Erreur de recherche</p>
-              <p className="text-sm">
-                Impossible de récupérer les activités. Vérifiez le terme de recherche ou réessayez plus tard.
-              </p>
+              <p className="text-sm">{getGYGErrorMessage(error)}</p>
+            </div>
+          )}
+
+          {!error && searchResults?.metadata.stale && (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-amber-800">
+              <p className="font-semibold mb-1">Données vérifiées mais expirées</p>
+              <p className="text-sm">GetYourGuide est temporairement indisponible. Ces résultats proviennent du dernier cache vérifié.</p>
             </div>
           )}
 
@@ -603,9 +620,7 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
           {errorMyActivities && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-800">
               <p className="font-semibold mb-1">Erreur de recherche</p>
-              <p className="text-sm">
-                Impossible de récupérer vos activités ou les correspondances GetYourGuide.
-              </p>
+              <p className="text-sm">{getGYGErrorMessage(errorMyActivities)}</p>
             </div>
           )}
 

@@ -72,6 +72,7 @@ export async function testConnection(activity?: any): Promise<GYGResponse> {
         status: 'error',
         error: error.response.data?.errorMessage || error.response.data?.errorCode || 'API request failed',
         message: 'GetYourGuide API connection failed',
+        details: { status: error.response.status },
       };
     }
     

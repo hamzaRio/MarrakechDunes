@@ -7,6 +7,8 @@ import { MoroccoDatabase, MoroccoActivityData } from '../utils/moroccoDatabase.j
 import GYGCache from '../models/GYGCache.js';
 import { requireAdmin, requireSuperAdmin } from '../middleware/admin-auth.js';
 import { calculateVerifiedMetrics, normalizeGYGOffer, type GYGTrustSource } from '../services/gyg-comparison.js';
+import { consumeGYGRateLimit } from '../services/gyg-rate-limits.js';
+import { gygRequestKey, gygResilience, isGYGServiceUnavailable } from '../services/gyg-resilience.js';
 
 const router = Router();
 
@@ -40,6 +42,24 @@ const comparisonResponse = (offers: Record<string, any>[], sourceType: GYGTrustS
     metadata: { sourceType, verified: normalizedOffers[0]?.verified ?? false, stale: normalizedOffers[0]?.stale ?? false, fetchedAt, expiresAt },
     metrics: calculateVerifiedMetrics(normalizedOffers),
   };
+};
+
+const circuitIsOpen = () => gygResilience.getDiagnostics().circuitState === 'OPEN';
+
+const sendGYGUnavailable = (res: Response, error?: any) => {
+  const diagnostics = gygResilience.getDiagnostics();
+  const retryAfter = error?.retryAfterMs
+    ? Math.max(1, Math.ceil(error.retryAfterMs / 1000))
+    : diagnostics.nextProbeAt
+      ? Math.max(1, Math.ceil((new Date(diagnostics.nextProbeAt).getTime() - Date.now()) / 1000))
+      : 30;
+  res.setHeader('Retry-After', String(retryAfter));
+  return res.status(503).json({
+    status: 'error',
+    code: error?.code ?? 'GYG_UPSTREAM_UNAVAILABLE',
+    message: 'GetYourGuide live data is temporarily unavailable. Please try again later.',
+    retryAfter,
+  });
 };
 
 // Set UTF-8 encoding for all responses
@@ -89,6 +109,10 @@ interface GetYourGuideActivity {
 router.get('/search', requireAdmin, requireSuperAdminForLiveRefresh, async (req: Request, res: Response) => {
   try {
     const { q, forceRefresh, useMyActivities } = req.query;
+    if (!consumeGYGRateLimit(req, res, 'cachedRead')) return;
+
+    const liveRefreshRequested = isTrueQueryValue(forceRefresh) || isTrueQueryValue(useMyActivities);
+    if (liveRefreshRequested && !consumeGYGRateLimit(req, res, 'forceRefresh')) return;
     
     // If useMyActivities is true, search based on your own activities
     if (useMyActivities === 'true') {
@@ -112,7 +136,10 @@ router.get('/search', requireAdmin, requireSuperAdminForLiveRefresh, async (req:
               // Try live scraping from GetYourGuide ONLY
               try {
                 console.log(`[GYG Comparison] Scraping GetYourGuide for "${myActivity.name}"...`);
-                const scraped = await GYGFetcher.searchActivities(myActivity.name);
+                const scraped = await gygResilience.run(
+                  gygRequestKey('activity', myActivity._id || myActivity.id || myActivity.name),
+                  () => GYGFetcher.searchActivities(myActivity.name),
+                );
                 if (scraped.length > 0) {
                   gygMatches = scraped.map((a: GYGActivity) => ({
                     id: a.id,
@@ -129,6 +156,7 @@ router.get('/search', requireAdmin, requireSuperAdminForLiveRefresh, async (req:
                   console.log(`[GYG Comparison] Found ${gygMatches.length} matches for "${myActivity.name}"`);
                 }
               } catch (scrapeError: any) {
+                if (isGYGServiceUnavailable(scrapeError) || circuitIsOpen()) throw scrapeError;
                 // Scraping failed - log and continue without matches
                 console.warn(`[GYG Comparison] Scraping failed for "${myActivity.name}":`, scrapeError.message);
                 // Don't use MoroccoDatabase as fallback - user wants real GYG data
@@ -176,7 +204,10 @@ router.get('/search', requireAdmin, requireSuperAdminForLiveRefresh, async (req:
           // Try live scraping from GetYourGuide ONLY
           try {
             console.log(`[GYG Comparison] Scraping GetYourGuide for "${matchingActivity.name}"...`);
-            const scraped = await GYGFetcher.searchActivities(matchingActivity.name);
+            const scraped = await gygResilience.run(
+              gygRequestKey('activity', matchingActivity._id || matchingActivity.id || matchingActivity.name),
+              () => GYGFetcher.searchActivities(matchingActivity.name),
+            );
             gygMatches = scraped.map((a: GYGActivity) => ({
               id: a.id,
               title: a.title,
@@ -191,6 +222,7 @@ router.get('/search', requireAdmin, requireSuperAdminForLiveRefresh, async (req:
             }));
             console.log(`[GYG Comparison] Found ${gygMatches.length} matches for "${matchingActivity.name}"`);
           } catch (scrapeError: any) {
+            if (isGYGServiceUnavailable(scrapeError) || circuitIsOpen()) throw scrapeError;
             console.warn(`[GYG Comparison] Scraping failed for "${matchingActivity.name}":`, scrapeError.message);
             // Return empty matches - don't use mock data
             gygMatches = [];
@@ -208,6 +240,9 @@ router.get('/search', requireAdmin, requireSuperAdminForLiveRefresh, async (req:
         }
       } catch (dbError: any) {
         console.error('[GYG Search] Error accessing your activities:', dbError);
+        if (isGYGServiceUnavailable(dbError) || circuitIsOpen()) {
+          return sendGYGUnavailable(res, dbError);
+        }
         return res.status(500).json({
           error: 'Failed to access your activities database'
         });
@@ -260,7 +295,10 @@ router.get('/search', requireAdmin, requireSuperAdminForLiveRefresh, async (req:
         // Force refresh: ONLY scrape from GetYourGuide website - show actual website results
         console.log(`[GYG Search] Query="${query}" | Force refresh - scraping GetYourGuide website ONLY (no database fallback)...`);
         try {
-          activities = await GYGFetcher.searchActivities(query);
+          activities = await gygResilience.run(
+            gygRequestKey('search', normalizedQuery),
+            () => GYGFetcher.searchActivities(query),
+          );
           source = 'getyourguide-scraped';
           console.log(`[GYG Search] Query="${query}" | ✅ Scraped ${activities.length} activities from GetYourGuide website`);
           
@@ -273,7 +311,7 @@ router.get('/search', requireAdmin, requireSuperAdminForLiveRefresh, async (req:
           console.error(`[GYG Search] Query="${query}" | NOT using database fallback - user wants real website results`);
           // DON'T fallback to database - user wants real website results
           // Re-throw error to be caught by outer catch block
-          throw new Error(`Failed to scrape GetYourGuide: ${scrapeError.message}`);
+          throw scrapeError;
         }
       } else {
         // Normal flow: Try database first, then scrape if needed
@@ -284,13 +322,16 @@ router.get('/search', requireAdmin, requireSuperAdminForLiveRefresh, async (req:
         
         if (moroccoActivities.length === 0) {
             console.log(`[Morocco Database] Query="${query}" | No results found, scraping GetYourGuide...`);
+            if (!consumeGYGRateLimit(req, res, 'normalSearch')) return;
             try {
-              activities = await GYGFetcher.searchActivities(query);
+              activities = await gygResilience.run(
+                gygRequestKey('search', normalizedQuery),
+                () => GYGFetcher.searchActivities(query),
+              );
               source = 'getyourguide-scraped';
             } catch (scrapeError: any) {
               console.error(`[GYG Search] Query="${query}" | Scraping failed:`, scrapeError.message);
-          activities = GYGFetcher.generateFallbackActivities(query);
-          source = 'fallback';
+              throw scrapeError;
             }
         } else {
           // Convert MoroccoActivityData to GYGActivity format
@@ -312,14 +353,17 @@ router.get('/search', requireAdmin, requireSuperAdminForLiveRefresh, async (req:
       } catch (databaseError: any) {
         console.error(`[Morocco Database] Query="${query}" | Database search failed:`, databaseError.message);
           console.log(`[Morocco Database] Query="${query}" | Falling back to live scraper`);
+        if (!consumeGYGRateLimit(req, res, 'normalSearch')) return;
         
         try {
-          activities = await GYGFetcher.searchActivities(query);
+          activities = await gygResilience.run(
+            gygRequestKey('search', normalizedQuery),
+            () => GYGFetcher.searchActivities(query),
+          );
             source = 'getyourguide-scraped';
         } catch (originalError: any) {
             console.error(`[GYG Search] Query="${query}" | Scraping failed:`, originalError.message);
-          activities = GYGFetcher.generateFallbackActivities(query);
-          source = 'fallback';
+          throw originalError;
           }
         }
       }
@@ -383,17 +427,8 @@ router.get('/search', requireAdmin, requireSuperAdminForLiveRefresh, async (req:
     } catch (fetchError: any) {
       console.error(`[GYG Morocco Search] Live fetch failed for "${query}":`, fetchError.message);
       
-      // If forceRefresh was requested, DON'T use fallback - return error
-      if (shouldForceRefresh) {
-        console.error(`[GYG Morocco Search] Query="${query}" | Force refresh requested but scraping failed - returning error (NO fallback)`);
-        return res.status(500).json({
-          error: 'Failed to scrape GetYourGuide website',
-          message: fetchError.message,
-          hint: 'The GetYourGuide website may be temporarily unavailable. Try again in a few moments.'
-        });
-      }
-      
-      // Try to return cached results even if expired (only for non-forceRefresh)
+      // A previously verified response remains useful as explicitly stale data,
+      // including when a force refresh cannot run because the circuit is open.
       try {
         const expiredCache = await GYGCache.findOne({ normalizedQuery: normalizedQuery });
         if (expiredCache && expiredCache.verified && expiredCache.sourceType === 'LIVE_VERIFIED' && expiredCache.results.length > 0) {
@@ -403,6 +438,16 @@ router.get('/search', requireAdmin, requireSuperAdminForLiveRefresh, async (req:
         }
       } catch (cacheError: any) {
         console.warn(`[GYG Morocco Search] Failed to get expired cache for "${query}":`, cacheError.message);
+      }
+
+      // Force refresh never falls back to generated or curated data.
+      if (shouldForceRefresh) {
+        console.error(`[GYG Morocco Search] Query="${query}" | Force refresh failed - returning unavailable (NO generated fallback)`);
+        return sendGYGUnavailable(res, fetchError);
+      }
+
+      if (isGYGServiceUnavailable(fetchError) || circuitIsOpen()) {
+        return sendGYGUnavailable(res, fetchError);
       }
 
       // Final fallback with enhanced logging (only for non-forceRefresh)
@@ -445,9 +490,25 @@ router.get('/search', requireAdmin, requireSuperAdminForLiveRefresh, async (req:
  */
 router.get('/test', requireSuperAdmin, async (req: Request, res: Response) => {
   try {
+    if (!consumeGYGRateLimit(req, res, 'adminAction')) return;
+    if (!consumeGYGRateLimit(req, res, 'forceRefresh')) return;
     console.log('[GYG] Testing GetYourGuide API connection...');
     
-    const result = await testConnection();
+    const result = await gygResilience.run(gygRequestKey('connection-test', 'supplier-api'), async () => {
+      if (!process.env.GYG_SUPPLIER_USER || !process.env.GYG_SUPPLIER_PASS) {
+        const configurationError = new Error('GetYourGuide provider is not configured.') as Error & { code?: string };
+        configurationError.code = 'GYG_CONFIGURATION';
+        throw configurationError;
+      }
+      const connectionResult = await testConnection();
+      if (connectionResult.status !== 'ok') {
+        const upstreamError = new Error(connectionResult.message || 'GetYourGuide API connection failed') as Error & { code?: string; statusCode?: number };
+        upstreamError.code = 'GYG_UPSTREAM_FAILURE';
+        upstreamError.statusCode = connectionResult.details?.status;
+        throw upstreamError;
+      }
+      return connectionResult;
+    });
     
     if (result.status === 'ok') {
       res.json({
@@ -464,6 +525,9 @@ router.get('/test', requireSuperAdmin, async (req: Request, res: Response) => {
     }
   } catch (error: any) {
     console.error('[GYG] Test route error:', error.message);
+    if (isGYGServiceUnavailable(error) || circuitIsOpen()) {
+      return sendGYGUnavailable(res, error);
+    }
     res.status(500).json({
       status: 'error',
       error: error.message,
@@ -478,6 +542,7 @@ router.get('/test', requireSuperAdmin, async (req: Request, res: Response) => {
  */
 router.get('/activities', requireAdmin, async (req: Request, res: Response) => {
   try {
+    if (!consumeGYGRateLimit(req, res, 'cachedRead')) return;
     console.log('[GYG] Fetching ALL GetYourGuide activities for admin...');
     
     // Check cache first
@@ -502,11 +567,21 @@ router.get('/activities', requireAdmin, async (req: Request, res: Response) => {
         message: 'Superadmin access is required to refresh GetYourGuide activities.'
       });
     }
+
+    if (!consumeGYGRateLimit(req, res, 'forceRefresh')) return;
     
     // Validate credentials
     if (!process.env.GYG_SUPPLIER_USER || !process.env.GYG_SUPPLIER_PASS) {
       console.log('[ERROR] GetYourGuide credentials not configured');
-      return res.status(503).json({ error: 'GetYourGuide provider is not configured.' });
+      try {
+        await gygResilience.run(gygRequestKey('supplier-configuration', 'credentials'), async () => {
+          const configurationError = new Error('GetYourGuide provider is not configured.') as Error & { code?: string };
+          configurationError.code = 'GYG_CONFIGURATION';
+          throw configurationError;
+        });
+      } catch (configurationError) {
+        return sendGYGUnavailable(res, configurationError);
+      }
     }
     
     let activities: any[] = [];
@@ -520,16 +595,19 @@ router.get('/activities', requireAdmin, async (req: Request, res: Response) => {
       
       for (const destination of destinations) {
         try {
-          const response = await axios.get(`${process.env.GYG_SUPPLIER_BASE}/tours?location=${destination}`, {
-            auth: {
-              username: process.env.GYG_SUPPLIER_USER!,
-              password: process.env.GYG_SUPPLIER_PASS!,
-            },
-            headers: { 
-              Accept: "application/json" 
-            },
-            timeout: 10000
-          });
+          const response = await gygResilience.run(
+            gygRequestKey('supplier-destination', destination),
+            () => axios.get(`${process.env.GYG_SUPPLIER_BASE}/tours?location=${destination}`, {
+              auth: {
+                username: process.env.GYG_SUPPLIER_USER!,
+                password: process.env.GYG_SUPPLIER_PASS!,
+              },
+              headers: {
+                Accept: "application/json"
+              },
+              timeout: 10000
+            }),
+          );
           
           if (response.data && response.data.tours && Array.isArray(response.data.tours)) {
             const destinationActivities = response.data.tours.map((tour: any) => {
@@ -559,12 +637,24 @@ router.get('/activities', requireAdmin, async (req: Request, res: Response) => {
           }
         } catch (destError: any) {
           console.log(`[GYG] Failed to fetch activities for ${destination}:`, destError.message);
+          if (isGYGServiceUnavailable(destError) || circuitIsOpen()) break;
           // Continue with other destinations
         }
       }
       
       // If no real data, use comprehensive fallback
       if (activities.length === 0) {
+        if (circuitIsOpen()) {
+          if (cached?.data?.metadata?.verified && (cached.data?.offers?.length ?? 0) > 0) {
+            return res.json(comparisonResponse(
+              cached.data.offers,
+              'STALE_VERIFIED',
+              cached.data.metadata.fetchedAt ?? null,
+              cached.data.metadata.expiresAt ?? null,
+            ));
+          }
+          return sendGYGUnavailable(res);
+        }
         console.log('[GYG] Using comprehensive fallback data for all activities');
         sourceType = 'GENERATED_FALLBACK';
         activities = [
@@ -606,6 +696,18 @@ router.get('/activities', requireAdmin, async (req: Request, res: Response) => {
       console.log('[SUCCESS] GetYourGuide all activities:', activities.length, 'activities');
     } catch (apiError: any) {
       console.error('[ERROR] GetYourGuide API call failed:', apiError.message);
+
+      if (isGYGServiceUnavailable(apiError) || circuitIsOpen()) {
+        if (cached?.data?.metadata?.verified && (cached.data?.offers?.length ?? 0) > 0) {
+          return res.json(comparisonResponse(
+            cached.data.offers,
+            'STALE_VERIFIED',
+            cached.data.metadata.fetchedAt ?? null,
+            cached.data.metadata.expiresAt ?? null,
+          ));
+        }
+        return sendGYGUnavailable(res, apiError);
+      }
       
       // Use fallback data
       console.log('[GYG] Using comprehensive fallback data');
@@ -642,6 +744,7 @@ router.get('/activities', requireAdmin, async (req: Request, res: Response) => {
  */
 router.get('/cache/stats', requireSuperAdmin, async (req: Request, res: Response) => {
   try {
+    if (!consumeGYGRateLimit(req, res, 'adminAction')) return;
     const totalEntries = await GYGCache.countDocuments();
     const activeEntries = await GYGCache.countDocuments({ expiresAt: { $gt: new Date() } });
     const expiredEntries = totalEntries - activeEntries;
@@ -692,6 +795,7 @@ router.get('/cache/stats', requireSuperAdmin, async (req: Request, res: Response
           searchTime: entry.searchTime
         }))
       },
+      resilience: gygResilience.getDiagnostics(),
       timestamp: new Date().toISOString()
     });
   } catch (error: any) {
@@ -706,6 +810,7 @@ router.get('/cache/stats', requireSuperAdmin, async (req: Request, res: Response
 
 router.delete('/cache/clear', requireSuperAdmin, async (req: Request, res: Response) => {
   try {
+    if (!consumeGYGRateLimit(req, res, 'adminAction')) return;
     const { query } = req.query;
     
     if (query && typeof query === 'string') {
@@ -744,11 +849,12 @@ router.delete('/cache/clear', requireSuperAdmin, async (req: Request, res: Respo
  */
 router.get('/debug', requireSuperAdmin, async (req: Request, res: Response) => {
   try {
+    if (!consumeGYGRateLimit(req, res, 'adminAction')) return;
     console.log('[GYG] Debug route called');
     
     // Test environment variables
     const envCheck = {
-      GYG_SUPPLIER_BASE: process.env.GYG_SUPPLIER_BASE,
+      GYG_SUPPLIER_BASE: process.env.GYG_SUPPLIER_BASE ? 'SET' : 'NOT SET',
       GYG_SUPPLIER_USER: process.env.GYG_SUPPLIER_USER ? 'SET' : 'NOT SET',
       GYG_SUPPLIER_PASS: process.env.GYG_SUPPLIER_PASS ? 'SET' : 'NOT SET',
       GYG_ENABLE_LIVE_SEARCH: process.env.GYG_ENABLE_LIVE_SEARCH
@@ -760,6 +866,7 @@ router.get('/debug', requireSuperAdmin, async (req: Request, res: Response) => {
       status: 'success',
       message: 'GetYourGuide debug route working',
       environment: envCheck,
+      resilience: gygResilience.getDiagnostics(),
       timestamp: new Date().toISOString()
     });
   } catch (error: any) {

@@ -2,6 +2,8 @@ import { Router, type NextFunction, type Request, type Response } from 'express'
 import { storage } from '../storage.js';
 import { requireAdmin, requireSuperAdmin } from '../middleware/admin-auth.js';
 import { normalizeGYGOffer, type GYGTrustSource } from '../services/gyg-comparison.js';
+import { consumeGYGRateLimit } from '../services/gyg-rate-limits.js';
+import { gygRequestKey, gygResilience, isGYGServiceUnavailable } from '../services/gyg-resilience.js';
 
 const router = Router();
 const BOOKING_STATUSES = ['PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED'] as const;
@@ -429,6 +431,7 @@ router.post('/activities/:id/image', requireSuperAdmin, async (req: Request, res
  */
 router.get('/activities/:id/getyourguide-price', requireSuperAdminForForceScrape, async (req: Request, res: Response) => {
   try {
+    if (!consumeGYGRateLimit(req, res, 'cachedRead')) return;
     const { id } = req.params;
     const activity = await storage.getActivity(id);
     
@@ -458,15 +461,13 @@ router.get('/activities/:id/getyourguide-price', requireSuperAdminForForceScrape
 
       // If force live scrape requested OR no match found, scrape GetYourGuide website
       if (forceLiveScrape || (!bestMatch || !gygPrice)) {
+        if (!consumeGYGRateLimit(req, res, forceLiveScrape ? 'forceRefresh' : 'normalSearch')) return;
         console.log(`[ADMIN] Scraping GetYourGuide for: "${activity.name}" (forceScrape=${forceLiveScrape})`);
         try {
-          // Use Promise.race to timeout after 5 seconds
-          const scrapePromise = GYGFetcher.searchActivities(activity.name);
-          const timeoutPromise = new Promise<never>((_, reject) => {
-            setTimeout(() => reject(new Error('Scrape timeout')), 5000);
-          });
-
-          const scrapedActivities = await Promise.race([scrapePromise, timeoutPromise]);
+          const scrapedActivities = await gygResilience.run(
+            gygRequestKey('activity', id),
+            () => GYGFetcher.searchActivities(activity.name),
+          );
           
           if (scrapedActivities && scrapedActivities.length > 0) {
             // Find best match by title similarity
@@ -507,6 +508,9 @@ router.get('/activities/:id/getyourguide-price', requireSuperAdminForForceScrape
           }
         } catch (scrapeError: any) {
           console.warn(`[ADMIN] Live scraping failed: ${scrapeError.message}`);
+          if (isGYGServiceUnavailable(scrapeError) || gygResilience.getDiagnostics().circuitState === 'OPEN') {
+            throw scrapeError;
+          }
           // Continue with database result or fallback
         }
       }
@@ -582,8 +586,23 @@ router.get('/activities/:id/getyourguide-price', requireSuperAdminForForceScrape
           message: 'No matching activity found on GetYourGuide. Using estimated price.'
         });
       }
-    } catch (searchError) {
+    } catch (searchError: any) {
       console.error('[ADMIN] GYG search error:', searchError);
+      if (isGYGServiceUnavailable(searchError) || gygResilience.getDiagnostics().circuitState === 'OPEN') {
+        const diagnostics = gygResilience.getDiagnostics();
+        const retryAfter = searchError?.retryAfterMs
+          ? Math.max(1, Math.ceil(searchError.retryAfterMs / 1000))
+          : diagnostics.nextProbeAt
+            ? Math.max(1, Math.ceil((new Date(diagnostics.nextProbeAt).getTime() - Date.now()) / 1000))
+            : 30;
+        res.setHeader('Retry-After', String(retryAfter));
+        return res.status(503).json({
+          status: 'error',
+          code: searchError?.code ?? 'GYG_UPSTREAM_UNAVAILABLE',
+          message: 'GetYourGuide live data is temporarily unavailable. Please try again later.',
+          retryAfter,
+        });
+      }
       // Fallback to estimated price
       const estimatedPrice = Math.round(Number(activity.price) * 1.14);
       const fetchedAt = new Date();

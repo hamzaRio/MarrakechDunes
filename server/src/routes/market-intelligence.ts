@@ -4,6 +4,8 @@ import { z } from 'zod';
 import { searchGYG } from '../providers/gyg.js';
 import { requireAdmin, requireSuperAdmin } from '../middleware/admin-auth.js';
 import { calculateVerifiedMetrics, normalizeGYGOffer, type GYGTrustSource } from '../services/gyg-comparison.js';
+import { consumeGYGRateLimit } from '../services/gyg-rate-limits.js';
+import { gygRequestKey, gygResilience } from '../services/gyg-resilience.js';
 
 const router = express.Router();
 
@@ -93,11 +95,28 @@ const marketSearchSchema = z.object({
 router.get('/debug/gyg', requireSuperAdmin, async (req: Request, res: Response) => {
   const query = typeof req.query.q === 'string' ? req.query.q : 'desert';
   const city = typeof req.query.city === 'string' ? req.query.city : 'marrakech';
+  if (!consumeGYGRateLimit(req, res, 'adminAction')) return;
   
   try {
     const searchInput = { query, city };
     const liveSearchEnabled = process.env.GYG_ENABLE_LIVE_SEARCH === 'true';
-    const gygResponse = await searchGYG(searchInput, { dryRun: !liveSearchEnabled });
+    if (liveSearchEnabled && !consumeGYGRateLimit(req, res, 'forceRefresh')) return;
+    const gygResponse = liveSearchEnabled
+      ? await gygResilience.run(gygRequestKey('market-debug', `${query}:${city}`), async () => {
+          if (!process.env.GYG_SUPPLIER_BASE || !process.env.GYG_SUPPLIER_USER || !process.env.GYG_SUPPLIER_PASS) {
+            const configurationError = new Error('GetYourGuide provider is not configured') as Error & { code?: string };
+            configurationError.code = 'GYG_CONFIGURATION';
+            throw configurationError;
+          }
+          const liveResponse = await searchGYG(searchInput, { dryRun: false });
+          if (liveResponse.sourceType !== 'LIVE_VERIFIED') {
+            const upstreamError = new Error('GetYourGuide did not return verified live data') as Error & { code?: string };
+            upstreamError.code = 'GYG_UPSTREAM_INVALID';
+            throw upstreamError;
+          }
+          return liveResponse;
+        })
+      : await searchGYG(searchInput, { dryRun: true });
     const comparison = normalizedGYGResponse(gygResponse.sampleNormalizedShape, gygResponse.sourceType);
     
     return res.json({
@@ -110,6 +129,7 @@ router.get('/debug/gyg', requireSuperAdmin, async (req: Request, res: Response) 
        verified: comparison.metadata.verified,
        resultCount: comparison.offers.length,
        sampleResults: comparison.offers.slice(0, 3),
+      resilience: gygResilience.getDiagnostics(),
       credentials: {
         hasBase: !!process.env.GYG_SUPPLIER_BASE,
         hasUser: !!process.env.GYG_SUPPLIER_USER,
@@ -117,9 +137,19 @@ router.get('/debug/gyg', requireSuperAdmin, async (req: Request, res: Response) 
       }
     });
   } catch (error: any) {
-    return res.json({
+    const diagnostics = gygResilience.getDiagnostics();
+    const retryAfter = error?.retryAfterMs
+      ? Math.max(1, Math.ceil(error.retryAfterMs / 1000))
+      : diagnostics.nextProbeAt
+        ? Math.max(1, Math.ceil((new Date(diagnostics.nextProbeAt).getTime() - Date.now()) / 1000))
+        : 30;
+    res.setHeader('Retry-After', String(retryAfter));
+    return res.status(503).json({
       status: 'error',
+      code: error?.code ?? 'GYG_UPSTREAM_UNAVAILABLE',
       message: error.message,
+      retryAfter,
+      resilience: diagnostics,
       liveSearchEnabled: process.env.GYG_ENABLE_LIVE_SEARCH === 'true',
       credentials: {
         hasBase: !!process.env.GYG_SUPPLIER_BASE,
@@ -138,6 +168,7 @@ router.get('/search', requireAdmin, requireSuperAdminForLiveRefresh, async (req:
   const provider = typeof req.query.provider === 'string' ? req.query.provider.toLowerCase() : undefined;
 
   if (provider === 'gyg') {
+    if (!consumeGYGRateLimit(req, res, 'cachedRead')) return;
     const query = typeof req.query.q === 'string' ? req.query.q : '';
     const city = typeof req.query.city === 'string' ? req.query.city : undefined;
     const page = typeof req.query.page === 'string' ? Number(req.query.page) :
@@ -173,17 +204,9 @@ router.get('/search', requireAdmin, requireSuperAdminForLiveRefresh, async (req:
   }
 
   try {
-    const { q, location, category, maxPrice, minRating, provider } = marketSearchSchema.parse(req.query);
+    const { q, location, category, maxPrice, minRating } = marketSearchSchema.parse(req.query);
     
     console.log(`[Market Intelligence] Searching for: "${q}" in ${location}`);
-    
-    // Handle GYG provider specifically
-    if (provider === 'gyg') {
-      const { searchGYG } = await import('../providers/gyg.js');
-      const dryRun = process.env.GYG_ENABLE_LIVE_SEARCH !== 'true';
-      const result = await searchGYG({ query: q, city: location }, { dryRun });
-      return res.json(result);
-    }
     
     // Search multiple competitor sources
     const normalizedQuery = {
@@ -212,11 +235,33 @@ router.get('/search', requireAdmin, requireSuperAdminForLiveRefresh, async (req:
 
     console.log(`[Market Intelligence] Searching for: "${searchQuery}" in ${searchLocation}`);
 
+    if (!consumeGYGRateLimit(req, res, 'normalSearch')) return;
+
     const [getyourguideResults, viatorResults, tripadvisorResults] = await Promise.allSettled([
-      searchGetYourGuide(searchQuery, searchLocation),
+      gygResilience.run(
+        gygRequestKey('market-search', `${searchQuery}:${searchLocation}`),
+        () => searchGetYourGuide(searchQuery, searchLocation),
+      ),
       searchViator(searchQuery, searchLocation),
       searchTripAdvisor(searchQuery, searchLocation)
     ]);
+
+    if (getyourguideResults.status === 'rejected' && gygResilience.getDiagnostics().circuitState === 'OPEN') {
+      const error = getyourguideResults.reason;
+      const diagnostics = gygResilience.getDiagnostics();
+      const retryAfter = error?.retryAfterMs
+        ? Math.max(1, Math.ceil(error.retryAfterMs / 1000))
+        : diagnostics.nextProbeAt
+          ? Math.max(1, Math.ceil((new Date(diagnostics.nextProbeAt).getTime() - Date.now()) / 1000))
+          : 30;
+      res.setHeader('Retry-After', String(retryAfter));
+      return res.status(503).json({
+        status: 'error',
+        code: error?.code ?? 'GYG_UPSTREAM_UNAVAILABLE',
+        message: 'GetYourGuide live data is temporarily unavailable. Please try again later.',
+        retryAfter,
+      });
+    }
 
     const allActivities: CompetitorActivity[] = [];
 
@@ -367,7 +412,7 @@ router.post('/add-activity', requireSuperAdmin, async (req: Request, res: Respon
 
 async function searchGetYourGuide(query: string, location: string): Promise<CompetitorActivity[]> {
   try {
-    const response = await axios.get(`https://www.getyourguide.com/s/${location}`, {
+    await axios.get(`https://www.getyourguide.com/s/${location}`, {
       params: { q: query },
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
@@ -383,7 +428,7 @@ async function searchGetYourGuide(query: string, location: string): Promise<Comp
     return activities;
   } catch (error) {
     console.error('[GetYourGuide Search] Error:', error);
-    return [];
+    throw error;
   }
 }
 

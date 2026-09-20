@@ -1,6 +1,7 @@
 import express from 'express';
 import { z } from 'zod';
 import { requireSuperAdmin } from '../middleware/admin-auth.js';
+import { consumeGYGRateLimit } from '../services/gyg-rate-limits.js';
 // Placeholder functions for deleted services
 const searchExternalActivities = async (query: string, city?: string, provider: string = 'all', limit: number = 20, live: boolean = false) => {
   // Mock implementation - return empty results
@@ -128,30 +129,16 @@ router.get('/debug/utf8', requireSuperAdmin, (req, res) => {
 // Debug route for GYG connection testing
 router.get('/debug/gyg', requireSuperAdmin, async (req, res) => {
   try {
+    if (!consumeGYGRateLimit(req, res, 'adminAction')) return;
     const query = sanitizeString(req.query.query) || 'agafay';
     const city = sanitizeString(req.query.city) || 'Marrakech';
     const live = boolFromQuery(req.query.live);
     
     const searchQuery = city ? `${query} ${city}`.trim() : query;
-    const baseURL = process.env.GYG_SUPPLIER_BASE || 'https://supplier-api.getyourguide.com/1';
-    
     // Mock GYG service for debugging
     const fetchProducts = async (query: string) => {
       // Mock implementation - return empty results
       return [];
-    };
-    
-    const requestDetails = {
-      url: `${baseURL}/products`,
-      params: {
-        search: searchQuery
-        // Only use search query - let GYG handle all defaults
-      },
-      headers: {
-        'Accept': 'application/json; charset=utf-8',
-        'Accept-Charset': 'utf-8',
-        'User-Agent': 'MarrakechDunes/1.0'
-      }
     };
     
     try {
@@ -162,7 +149,7 @@ router.get('/debug/gyg', requireSuperAdmin, async (req, res) => {
         upstreamStatus: 200,
         count: results.length,
         sampleTitle: 'No activities found (mock implementation)',
-        request: requestDetails,
+        liveRequested: live,
         timestamp: new Date().toISOString()
       });
     } catch (gygError: any) {
@@ -171,7 +158,7 @@ router.get('/debug/gyg', requireSuperAdmin, async (req, res) => {
         code: gygError.code || 'GYG_ERROR',
         upstreamStatus: gygError.statusCode,
         upstreamBody: gygError.upstreamBody?.substring(0, 200) || gygError.message?.substring(0, 200) || 'No details',
-        request: requestDetails,
+        liveRequested: live,
         timestamp: new Date().toISOString()
       });
     }
