@@ -96,14 +96,18 @@ export interface BookingType {
   updatedAt: Date;
 }
 
-export type BookingStatus = 
-  | 'PENDING' 
-  | 'CONFIRMED' 
-  | 'PAID' 
-  | 'IN_PROGRESS' 
-  | 'COMPLETED' 
-  | 'CANCELLED' 
-  | 'NO_SHOW';
+// Phase 4 correction pass §3: the product has exactly four booking lifecycle
+// states. This type previously also listed PAID, IN_PROGRESS and NO_SHOW,
+// none of which were ever actually assigned to a real booking anywhere in
+// the codebase (confirmed by repository-wide search) - they were leftover
+// from an earlier, unimplemented design. Payment state is tracked
+// separately (see BookingType.paymentStatus: 'unpaid' | 'deposit_paid' |
+// 'fully_paid') and must never be modeled as a booking lifecycle state.
+export type BookingStatus =
+  | 'PENDING'
+  | 'CONFIRMED'
+  | 'COMPLETED'
+  | 'CANCELLED';
 
 export type CancellationReason = 
   | 'WEATHER' 
@@ -260,7 +264,7 @@ export const insertBookingSchema = z.object({
   numberOfPeople: z.number().min(1),
   preferredDate: z.date(),
   participantNames: z.array(z.string()).optional(),
-  status: z.enum(['PENDING', 'CONFIRMED', 'PAID', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'NO_SHOW', 'REJECTED']).default('PENDING'),
+  status: z.enum(['PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED']).default('PENDING'),
   totalAmount: z.string().min(1),
   notes: z.string().optional(),
   paymentStatus: z.enum(['unpaid', 'deposit_paid', 'fully_paid']).default('unpaid'),
@@ -289,7 +293,7 @@ export const insertBookingSchema = z.object({
   refundStatus: z.enum(['none', 'partial', 'full']).optional(),
   // Audit trail
   statusHistory: z.array(z.object({
-    status: z.enum(['PENDING', 'CONFIRMED', 'PAID', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'NO_SHOW', 'REJECTED']),
+    status: z.enum(['PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED']),
     changedBy: z.string(),
     changedAt: z.date(),
     reason: z.string().optional()
@@ -316,8 +320,8 @@ export const insertReviewSchema = z.object({
 
 // New validation schemas
 export const statusTransitionSchema = z.object({
-  from: z.enum(['PENDING', 'CONFIRMED', 'PAID', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'NO_SHOW']),
-  to: z.enum(['PENDING', 'CONFIRMED', 'PAID', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED', 'NO_SHOW']),
+  from: z.enum(['PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED']),
+  to: z.enum(['PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED']),
   reason: z.string().optional()
 });
 

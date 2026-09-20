@@ -1627,6 +1627,46 @@ class MongoStorage implements IStorage {
 
     return bookings.map(booking => this.transformDocument(booking));
   }
+
+  /**
+   * Phase 4 §3 / correction pass §1: bookings for a single activity, on a
+   * single calendar date, that actually occupy a capacity seat — used by
+   * POST /api/bookings to enforce capacity server-side.
+   *
+   * A booking occupies a seat only once it is CONFIRMED (or COMPLETED,
+   * which is simply what a CONFIRMED booking becomes after the activity
+   * happens on that same date). PENDING bookings are still a request, not
+   * an accepted reservation, so a pile of PENDING requests must never block
+   * a new request from being accepted — capacity is enforced against real,
+   * accepted demand, not speculative demand. CANCELLED bookings never
+   * occupy a seat.
+   *
+   * Day boundaries are computed in UTC rather than server-local time:
+   * preferredDate is stored from a client-submitted 'YYYY-MM-DD' string,
+   * which JavaScript parses as UTC midnight, so comparing with
+   * server-local-time day boundaries could silently shift the compared
+   * window by a day depending on the server's timezone.
+   *
+   * Kept intentionally small and separate from getBookingsByDate (which is
+   * unused/unmounted and queries across all activities) so this new,
+   * security-relevant query path is easy to audit on its own.
+   */
+  async getBookingsForActivityOnDate(activityId: string, date: Date): Promise<BookingType[]> {
+    const startOfDayUTC = new Date(Date.UTC(
+      date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), 0, 0, 0, 0
+    ));
+    const endOfDayUTC = new Date(Date.UTC(
+      date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), 23, 59, 59, 999
+    ));
+
+    const bookings = await Booking.find({
+      activityId,
+      preferredDate: { $gte: startOfDayUTC, $lte: endOfDayUTC },
+      status: { $in: ['CONFIRMED', 'COMPLETED'] },
+    });
+
+    return bookings.map(booking => this.transformDocument(booking));
+  }
 }
 
 export const storage = new MongoStorage();

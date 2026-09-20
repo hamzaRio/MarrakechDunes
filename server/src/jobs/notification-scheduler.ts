@@ -100,8 +100,13 @@ class NotificationScheduler {
     now: Date
   ): BookingWithActivity[] {
     return bookings.filter(booking => {
-      // Only send reminders for confirmed bookings
-      if (booking.status !== 'CONFIRMED' && booking.status !== 'PAID') {
+      // Only send reminders for confirmed bookings. (The 'PAID' status
+      // referenced here previously doesn't exist in the canonical
+      // PENDING/CONFIRMED/COMPLETED/CANCELLED vocabulary - see Phase 4
+      // correction pass §3 - and no booking was ever actually assigned
+      // that value, so this narrows to the check that was already the
+      // only one that could ever match.)
+      if (booking.status !== 'CONFIRMED') {
         return false;
       }
       

@@ -49,49 +49,18 @@ router.post('/request-otp', async (req: Request, res: Response) => {
  * Customer portal login with OTP
  */
 router.post('/login', async (req: Request, res: Response) => {
-  try {
-    const { phone, otp } = req.body;
-    if (!phone || !otp) {
-      return res.status(400).json({
-        status: 'error',
-        message: 'Phone and OTP are required'
-      });
-    }
-
-    // OTP verification disabled (Twilio removed)
-    // For now, allow login without OTP verification (development mode)
-    // In production, you should implement an alternative authentication method
-    
-    // Find bookings to confirm customer exists
-    const bookings = await storage.getBookings();
-    const customerBookings = bookings.filter(b => b.customerPhone === phone);
-    
-    if (customerBookings.length === 0) {
-      return res.status(404).json({
-        status: 'error',
-        message: 'No bookings found for this phone number'
-      });
-    }
-
-    // Set session for customer portal
-    if (req.session) {
-      (req.session as any).portalPhone = phone;
-      (req.session as any).portalAuthenticated = true;
-    }
-
-    return res.status(200).json({
-      status: 'success',
-      message: 'Login successful (OTP verification disabled)',
-      phone,
-      bookingsCount: customerBookings.length
-    });
-  } catch (error) {
-    console.error('[PORTAL] Error logging in:', error);
-    return res.status(500).json({
-      status: 'error',
-      message: 'Failed to login'
-    });
-  }
+  // Phase 4 §9 SECURITY FIX: OTP verification was never actually implemented
+  // here (the OTP value was accepted but never checked), so this endpoint
+  // previously authenticated anyone who knew a customer's phone number as
+  // that customer, unlocking their booking list plus reschedule/cancel
+  // actions. Rather than allow login without OTP, the customer portal login
+  // is disabled until secure OTP verification exists, matching the
+  // request-otp endpoint above. Public booking creation is unaffected: it
+  // never requires portal login.
+  return res.status(501).json({
+    status: 'error',
+    message: 'Customer portal login is currently unavailable. Please contact us via WhatsApp for booking changes.'
+  });
 });
 
 /**

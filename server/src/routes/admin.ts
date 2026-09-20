@@ -9,6 +9,17 @@ import { rankCandidateMatches, isComparableValidationState, type MatchableActivi
 const router = Router();
 const BOOKING_STATUSES = ['PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED'] as const;
 
+// Phase 4 §5: allowed lifecycle transitions for admin-driven status changes.
+// Booking status and payment status are independent (Phase 4 non-negotiable
+// invariant) — this map only constrains status->status moves and never
+// touches payment fields.
+const ADMIN_ALLOWED_TRANSITIONS: Record<(typeof BOOKING_STATUSES)[number], readonly string[]> = {
+  PENDING: ['CONFIRMED', 'CANCELLED'],
+  CONFIRMED: ['COMPLETED', 'CANCELLED'],
+  COMPLETED: [],
+  CANCELLED: [],
+};
+
 const normalizePaymentMethod = (paymentMethod: unknown): 'cash' | 'cash_deposit' | null => {
   switch (String(paymentMethod ?? '').trim().toUpperCase()) {
     case 'CASH':
@@ -117,8 +128,28 @@ router.patch('/bookings/:id/status', async (req: Request, res: Response) => {
     
     // Get booking before update to check if status is changing to confirmed
     const booking = await storage.getBooking(id);
-    const wasConfirmed = String(booking?.status || '').toUpperCase() === 'CONFIRMED';
-    
+    if (!booking) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'Booking not found'
+      });
+    }
+    const currentStatus = String(booking.status || '').toUpperCase();
+    const wasConfirmed = currentStatus === 'CONFIRMED';
+
+    // Phase 4 §5: reject lifecycle jumps that skip the normal flow
+    // (e.g. COMPLETED -> PENDING, or CANCELLED -> anything). A no-op
+    // (same status) is allowed through without consulting the map.
+    if (currentStatus !== normalizedStatus) {
+      const allowedNext = ADMIN_ALLOWED_TRANSITIONS[currentStatus as (typeof BOOKING_STATUSES)[number]] ?? [];
+      if (!allowedNext.includes(normalizedStatus)) {
+        return res.status(400).json({
+          status: 'error',
+          message: `Cannot change booking from ${currentStatus} to ${normalizedStatus}.`
+        });
+      }
+    }
+
     const updatedBooking = await storage.updateBookingStatus(id, normalizedStatus);
     if (!updatedBooking) {
       return res.status(404).json({
@@ -152,8 +183,6 @@ People: ${booking.numberOfPeople}
 Total: ${total}${deposit ? `\nDeposit Required: ${deposit}` : ''}
 
 Payment: ${booking.depositAmount ? 'Deposit required before activity' : 'Cash on arrival'}
-
-We'll send you a reminder 24 hours before your activity!
 
 Thank you for choosing MarrakechDunes! 🏜️`.trim();
 
@@ -688,11 +717,29 @@ const handleBookingPayment = async (req: Request, res: Response) => {
       });
     }
 
-    const total = Number(booking.totalAmount) ?? 0;
+    const rawTotal = Number(booking.totalAmount);
+    const total = Number.isFinite(rawTotal) ? rawTotal : 0;
+
+    // Phase 4 §7: paidAmount cannot be negative or non-finite (NaN, Infinity).
+    // This mirrors the finite/non-negative check already applied below to
+    // depositAmount — previously only depositAmount was validated here.
+    if (paidAmount !== undefined) {
+      const numericPaidAmount = Number(paidAmount);
+      if (!Number.isFinite(numericPaidAmount) || numericPaidAmount < 0) {
+        return res.status(400).json({
+          status: 'error',
+          message: 'Invalid paid amount'
+        });
+      }
+    }
+
     const newPaid = paidAmount !== undefined ? Math.min(total, Number(paidAmount)) : (Number(booking.paidAmount) || 0);
-    
-    // Use provided paymentStatus or calculate it
-    let status: 'unpaid' | 'deposit_paid' | 'fully_paid' = paymentStatus || 'unpaid';
+
+    // Phase 4 §8/§16: paymentStatus must stay within the canonical
+    // unpaid/deposit_paid/fully_paid vocabulary — an arbitrary client-supplied
+    // string is never trusted directly.
+    const VALID_PAYMENT_STATUSES = ['unpaid', 'deposit_paid', 'fully_paid'] as const;
+    let status: 'unpaid' | 'deposit_paid' | 'fully_paid' = 'unpaid';
     if (paidAmount !== undefined) {
       if (newPaid <= 0) status = 'unpaid';
       else if (newPaid < total) {
@@ -700,6 +747,17 @@ const handleBookingPayment = async (req: Request, res: Response) => {
       } else {
         status = 'fully_paid';
       }
+    } else if (paymentStatus !== undefined) {
+      const normalizedPaymentStatus = String(paymentStatus);
+      if (!(VALID_PAYMENT_STATUSES as readonly string[]).includes(normalizedPaymentStatus)) {
+        return res.status(400).json({
+          status: 'error',
+          message: 'Invalid payment status'
+        });
+      }
+      status = normalizedPaymentStatus as 'unpaid' | 'deposit_paid' | 'fully_paid';
+    } else {
+      status = (booking.paymentStatus as 'unpaid' | 'deposit_paid' | 'fully_paid') || 'unpaid';
     }
 
     // Normalize supported client/legacy values to the canonical stored values.

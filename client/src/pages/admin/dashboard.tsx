@@ -144,17 +144,23 @@ function AdminDashboardContent() {
     refetchOnMount: false, // Don't refetch on component mount if data exists
   });
 
-  // Fix: Calculate real revenue from all bookings (regardless of status)
-  // Include all bookings that have a totalAmount > 0
-  // Filter out bookings with deleted activities for revenue calculation
-  // Add null check to prevent TypeError when accessing b.activity
-  // Apply reports date range filter if set
-  const revenueBookings = bookings.filter(b => {
-    // Check if booking has valid activity and totalAmount
-    if (!b.activity) return false;
-    if (Number(b.totalAmount) <= 0) return false;
-    
-    // Apply reports date range filter
+  // Phase 4 §8 + correction pass §2: financial metrics use precise
+  // definitions instead of a single "Revenus Totaux" figure that silently
+  // included unpaid PENDING bookings:
+  //   - Gross Booking Value: total value of non-cancelled bookings
+  //   - Collected Payments: sum of amounts actually recorded as paid
+  //     (paidAmount) - see note below on why CANCELLED is NOT excluded here
+  //   - Outstanding Amount: remaining unpaid balance on non-cancelled bookings
+  //
+  // There is no refund ledger/state in this system yet, so CANCELLED must
+  // never be treated as if it implies the paid money disappeared. A
+  // cancelled booking that already had paidAmount=300 recorded keeps
+  // counting toward Collected Payments; only Gross Booking Value and
+  // Outstanding (which describe *booking* value, not cash already in hand)
+  // exclude cancelled bookings. If/when a real refund model exists, this is
+  // where a "Refunded" figure would be subtracted from Collected Payments -
+  // documented here as a future enhancement, not implemented in this pass.
+  const withinReportsDateRange = (b: any) => {
     if (reportsDateRange.from || reportsDateRange.to) {
       const bookingDate = new Date(b.preferredDate);
       if (reportsDateRange.from && bookingDate < reportsDateRange.from) return false;
@@ -164,10 +170,24 @@ function AdminDashboardContent() {
         if (bookingDate > toDate) return false;
       }
     }
-    
     return true;
+  };
+  // Any booking with a valid activity/totalAmount, regardless of status -
+  // the base set for Collected Payments (cancellation must not erase an
+  // already-recorded payment).
+  const bookingsWithValue = bookings.filter(b => {
+    if (!b.activity) return false;
+    if (Number(b.totalAmount) <= 0) return false;
+    return withinReportsDateRange(b);
   });
-  const totalRevenue = revenueBookings.reduce((sum, b) => sum + (Number(b.totalAmount) || 0), 0);
+  // Same set, excluding CANCELLED - used for Gross Booking Value and
+  // Outstanding Amount, and for the "details" breakdown list below.
+  const eligibleBookings = bookingsWithValue.filter(b => String(b.status || '').toUpperCase() !== 'CANCELLED');
+  // Kept as an alias so the "details" list below reads naturally; identical to eligibleBookings.
+  const revenueBookings = eligibleBookings;
+  const grossBookingValue = eligibleBookings.reduce((sum, b) => sum + (Number(b.totalAmount) || 0), 0);
+  const collectedPayments = bookingsWithValue.reduce((sum, b) => sum + (Number(b.paidAmount) || 0), 0);
+  const outstandingAmount = eligibleBookings.reduce((sum, b) => sum + Math.max(0, (Number(b.totalAmount) || 0) - (Number(b.paidAmount) || 0)), 0);
   
   // Filter bookings for reports based on date range
   const reportsFilteredBookings = bookings.filter(b => {
@@ -194,14 +214,16 @@ function AdminDashboardContent() {
   if (import.meta.env.DEV) {
     console.log('[REVENUE DEBUG]', {
       totalBookings: bookings.length,
-      revenueBookings: revenueBookings.length,
+      eligibleBookings: eligibleBookings.length,
       allBookingsData: bookings.map(b => ({
         id: b._id,
         status: b.status,
         totalAmount: b.totalAmount,
         paidAmount: b.paidAmount
       })),
-      calculatedRevenue: totalRevenue
+      grossBookingValue,
+      collectedPayments,
+      outstandingAmount
     });
   }
 
@@ -526,16 +548,19 @@ function AdminDashboardContent() {
                     <Card className="bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-200 shadow-lg hover:shadow-xl transition-shadow">
                       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium text-green-700 flex items-center gap-2">
-                          💰 Revenus Totaux
+                          💰 Revenus Encaissés
                         </CardTitle>
                         <TrendingUp className="h-4 w-4 text-green-600" />
                       </CardHeader>
                       <CardContent>
                         <div className="text-2xl font-bold text-green-900">
-                          {totalRevenue.toLocaleString()} MAD
+                          {collectedPayments.toLocaleString()} MAD
                         </div>
                         <p className="text-xs text-green-600 mt-1">
-                          Chiffre d'affaires ({revenueBookings.length} réservation{revenueBookings.length !== 1 ? 's' : ''})
+                          Montant réellement encaissé, y compris sur réservations annulées ({bookingsWithValue.length} réservation{bookingsWithValue.length !== 1 ? 's' : ''})
+                        </p>
+                        <p className="text-xs text-green-700 mt-1">
+                          Valeur brute des réservations (hors annulées) : {grossBookingValue.toLocaleString()} MAD · Reste à encaisser : {outstandingAmount.toLocaleString()} MAD
                         </p>
                         {revenueBookings.length > 0 && (
                           <details className="mt-3 text-xs">
@@ -547,7 +572,7 @@ function AdminDashboardContent() {
                                 <div key={b.id || b._id} className="bg-white/50 p-2 rounded border border-green-200">
                                   <div className="font-medium">{b.customerName}</div>
                                   <div className="text-green-600">{b.activity?.name || 'Activité supprimée'}</div>
-                                  <div className="text-green-700 font-semibold">{b.totalAmount} MAD - {b.status}</div>
+                                  <div className="text-green-700 font-semibold">{b.totalAmount} MAD payé {b.paidAmount ?? 0} MAD - {b.status}</div>
                                 </div>
                               ))}
                             </div>
@@ -868,14 +893,16 @@ function AdminDashboardContent() {
                 <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-200">
                   <CardHeader>
                     <CardTitle className="text-blue-700 flex items-center gap-2">
-                      📈 Revenus Totaux
+                      📈 Revenus Encaissés
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="text-3xl font-bold text-blue-900">
-                      {totalRevenue.toLocaleString()} MAD
+                      {collectedPayments.toLocaleString()} MAD
                     </div>
-                    <p className="text-sm text-blue-600 mt-1">Chiffre d'affaires total</p>
+                    <p className="text-sm text-blue-600 mt-1">
+                      Valeur brute (hors annulées) : {grossBookingValue.toLocaleString()} MAD · Reste à encaisser : {outstandingAmount.toLocaleString()} MAD
+                    </p>
                   </CardContent>
                 </Card>
 
