@@ -70,10 +70,7 @@ export default function BookingDetailsModal({
   const { paymentStatus, totalAmount, paidAmount, remainingAmount, depositAmount, paymentMethod, progress } = getBookingPaymentSummary(booking);
   const bookingDate = getBookingDate(booking.preferredDate);
   const activityPrice = Number(booking.activity?.price) || 0;
-  const competitorPrice = Number(booking.activity?.getyourguidePrice) || (activityPrice ? activityPrice + 200 : 0);
-  const customerSavings = activityPrice
-    ? Math.max(0, (competitorPrice - activityPrice) * booking.numberOfPeople)
-    : 0;
+  const marketReferencePrice = Number(booking.activity?.getyourguidePrice) || 0;
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -215,7 +212,7 @@ export default function BookingDetailsModal({
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-lg text-gray-900">
                 <DollarSign className="h-5 w-5 text-moroccan-blue" />
-                Pricing / GetYourGuide comparison
+                Référence de marché interne
               </CardTitle>
             </CardHeader>
             <CardContent className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-3">
@@ -225,14 +222,14 @@ export default function BookingDetailsModal({
                 <div className="text-xs text-gray-500">Par personne</div>
               </div>
               <div className="rounded-lg border-2 border-orange-200 bg-white p-3">
-                <div className="font-medium text-orange-700">GetYourGuide</div>
-                <div className="text-lg font-bold text-orange-600">{competitorPrice ? competitorPrice.toLocaleString() : "N/A"} MAD</div>
-                <div className="text-xs text-gray-500">Prix concurrent</div>
+                <div className="font-medium text-orange-700">Référence enregistrée</div>
+                <div className="text-lg font-bold text-orange-600">{marketReferencePrice ? marketReferencePrice.toLocaleString() : "N/A"} MAD</div>
+                <div className="text-xs text-gray-500">Provenance à confirmer</div>
               </div>
               <div className="rounded-lg border-2 border-blue-200 bg-white p-3">
-                <div className="font-medium text-blue-700">Économies Client</div>
-                <div className="text-lg font-bold text-blue-600">{activityPrice ? customerSavings.toLocaleString() : "N/A"} MAD</div>
-                <div className="text-xs text-gray-500">Économies totales</div>
+                <div className="font-medium text-blue-700">Comparaison</div>
+                <div className="text-lg font-bold text-blue-600">À vérifier</div>
+                <div className="text-xs text-gray-500">Aucune décision tarifaire automatique</div>
               </div>
             </CardContent>
           </Card>

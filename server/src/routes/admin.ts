@@ -1,4 +1,4 @@
-import { Router, type Request, type Response } from 'express';
+import { Router, type NextFunction, type Request, type Response } from 'express';
 import { storage } from '../storage.js';
 import { requireAdmin, requireSuperAdmin } from '../middleware/admin-auth.js';
 
@@ -19,6 +19,14 @@ const normalizePaymentMethod = (paymentMethod: unknown): 'cash' | 'cash_deposit'
 
 // Apply admin authentication middleware to all routes
 router.use(requireAdmin);
+
+const requireSuperAdminForForceScrape = (req: Request, res: Response, next: NextFunction) => {
+  if (req.query.forceScrape !== 'true') {
+    return next();
+  }
+
+  return requireSuperAdmin(req, res, next);
+};
 
 /**
  * GET /api/admin/bookings
@@ -418,7 +426,7 @@ router.post('/activities/:id/image', requireSuperAdmin, async (req: Request, res
  * GET /api/admin/activities/:id/getyourguide-price
  * Get GetYourGuide price for activity (admin only)
  */
-router.get('/activities/:id/getyourguide-price', async (req: Request, res: Response) => {
+router.get('/activities/:id/getyourguide-price', requireSuperAdminForForceScrape, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const activity = await storage.getActivity(id);

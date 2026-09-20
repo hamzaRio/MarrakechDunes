@@ -138,16 +138,6 @@ export default function ActivityCard({ activity, showDescription = false }: Acti
 
           </div>
 
-          {isAdmin && (
-
-            <div className="text-xs bg-green-600 bg-opacity-90 px-2 py-1 rounded-full mt-1">
-
-              Save {((activity.getyourguidePrice || Number(activity.price) + 150) - Number(activity.price))} MAD vs GetYourGuide
-
-            </div>
-
-          )}
-
         </div>
 
       </div>
@@ -240,17 +230,19 @@ export default function ActivityCard({ activity, showDescription = false }: Acti
 
               <div>
 
-                <div className="text-orange-700 font-medium">GetYourGuide</div>
+                <div className="text-orange-700 font-medium">Market reference</div>
 
-                <div className="text-lg font-bold text-orange-600">{activity.getyourguidePrice || (Number(activity.price) + 150)} MAD</div>
+                <div className="text-lg font-bold text-orange-600">{activity.getyourguidePrice ? `${activity.getyourguidePrice} MAD` : 'N/A'}</div>
+
+                <div className="text-xs text-gray-500">Stored source requires verification</div>
 
               </div>
 
             </div>
 
-            <div className="text-center mt-2 text-xs text-green-600 font-medium">
+            <div className="text-center mt-2 text-xs text-gray-500 font-medium">
 
-              You Save: {((activity.getyourguidePrice || Number(activity.price) + 150) - Number(activity.price))} MAD per person
+              Market references are informational only.
 
             </div>
 

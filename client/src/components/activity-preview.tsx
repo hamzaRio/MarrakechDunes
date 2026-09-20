@@ -260,22 +260,6 @@ export default function ActivityPreview({ activity, isOpen, onClose, onBookNow }
                 <ActivityRating activityId={activity.id || activity._id} />
               </div>
 
-              {/* Price Comparison */}
-              {/* Price comparison section */}
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h4 className="font-semibold text-moroccan-blue mb-3">Price Comparison</h4>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-white p-3 rounded border">
-                    <div className="text-green-700 font-medium">Our Price</div>
-                    <div className="text-lg font-bold text-green-600">{activity.price} MAD</div>
-                  </div>
-                  <div className="bg-white p-3 rounded border">
-                    <div className="text-orange-700 font-medium">GetYourGuide</div>
-                    <div className="text-lg font-bold text-orange-600">{activity.getyourguidePrice || parseInt(activity.price) + 150} MAD</div>
-                  </div>
-                </div>
-              </div>
-
               {/* Final Book Now Button */}
               <Button 
                 className="w-full bg-moroccan-red hover:bg-red-600 text-white font-bold py-4 text-lg transition-all duration-300 transform hover:scale-105"

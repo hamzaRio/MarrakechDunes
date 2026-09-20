@@ -36,9 +36,9 @@ export interface GYGResponse {
 export async function testConnection(activity?: any): Promise<GYGResponse> {
   try {
     console.log('[GYG] Testing connection to GetYourGuide API...');
-    console.log('[GYG] Using credentials:', {
-      user: GYG_SUPPLIER_USER,
-      base: GYG_SUPPLIER_BASE
+    console.log('[GYG] Supplier connection is configured:', {
+      hasUser: Boolean(GYG_SUPPLIER_USER),
+      hasPassword: Boolean(GYG_SUPPLIER_PASS)
     });
 
     // Simple GET request to test basic connectivity and authentication
@@ -59,7 +59,6 @@ export async function testConnection(activity?: any): Promise<GYGResponse> {
 
     return {
       status: 'ok',
-      response: response.data,
       message: 'GetYourGuide API connection successful'
     };
   } catch (error: any) {
@@ -67,14 +66,12 @@ export async function testConnection(activity?: any): Promise<GYGResponse> {
     
     if (error.response) {
       console.error('[GYG] API Error Status:', error.response.status);
-      console.error('[GYG] API Error Data:', error.response.data);
-      console.error('[GYG] API Error Headers:', error.response.headers);
+      console.error('[GYG] API error response received');
       
       return {
         status: 'error',
         error: error.response.data?.errorMessage || error.response.data?.errorCode || 'API request failed',
         message: 'GetYourGuide API connection failed',
-        details: error.response.data
       };
     }
     

@@ -1,11 +1,12 @@
 import { useState, KeyboardEvent } from 'react';
-import { ExternalLink, Globe, Search, Sparkles, Loader2, Star, MapPin, Clock, DollarSign } from 'lucide-react';
+import { ExternalLink, Globe, Search, Sparkles, Loader2, Star, MapPin, Clock } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
+import { useAuth } from '@/hooks/use-auth';
 
 interface GYGReferenceToolProps {
   onActivitySelect?: (activity: any) => void;
@@ -25,6 +26,8 @@ interface GYGActivityResult {
   reviewCount?: number | null;
   location?: string | null;
   category?: string | null;
+  sourceType?: 'getyourguide-scraped' | 'curated-database' | 'fallback';
+  verified?: boolean;
 }
 
 interface MyActivityWithGYG {
@@ -50,6 +53,8 @@ const POPULAR_SEARCHES = [
 ];
 
 export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolProps) {
+  const { user } = useAuth();
+  const canForceLiveRefresh = user?.role === 'superadmin';
   const [searchQuery, setSearchQuery] = useState('');
   const [activeSearch, setActiveSearch] = useState<string>('');
   const [forceLiveScrape, setForceLiveScrape] = useState(false);
@@ -64,16 +69,15 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
     }
   });
 
-  // Fetch activities from GetYourGuide API (regular search)
-  // Always use forceRefresh=true to get real-time results from GetYourGuide website
+  // Normal staff searches are cache-first. Live refresh is a Superadmin action.
   const { data: searchResults, isLoading, error } = useQuery<GYGActivityResult[]>({
-    queryKey: ['gyg-search', activeSearch, searchMode],
+    queryKey: ['gyg-search', activeSearch, searchMode, forceLiveScrape],
     enabled: activeSearch.length >= 3 && searchMode === 'gyg',
     queryFn: async () => {
       const response = await api.get('/gyg/search', {
         params: {
           q: activeSearch,
-          forceRefresh: 'true', // Always fetch fresh from GetYourGuide website
+          forceRefresh: forceLiveScrape && canForceLiveRefresh ? 'true' : 'false',
           useMyActivities: 'false'
         }
       });
@@ -85,7 +89,7 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
   // Fetch activities based on YOUR database activities
   const { data: myActivitiesResults, isLoading: isLoadingMyActivities, error: errorMyActivities } = useQuery<MyActivityWithGYG[]>({
     queryKey: ['gyg-search-my-activities', activeSearch, forceLiveScrape],
-    enabled: searchMode === 'my-activities',
+    enabled: searchMode === 'my-activities' && canForceLiveRefresh,
     queryFn: async () => {
       const response = await api.get('/gyg/search', {
         params: {
@@ -120,7 +124,7 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
     }
     
     setActiveSearch(searchTerm);
-    setForceLiveScrape(useLiveScrape);
+    setForceLiveScrape(useLiveScrape && canForceLiveRefresh);
     
     // Save to recent searches
     if (searchTerm && searchTerm !== 'morocco activities') {
@@ -199,19 +203,21 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
           >
             🔍 Recherche GetYourGuide
           </button>
-          <button
-            onClick={() => {
-              setSearchMode('my-activities');
-              setActiveSearch('all');
-            }}
-            className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-              searchMode === 'my-activities'
-                ? 'bg-green-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            📋 Mes Activités vs GetYourGuide
-          </button>
+          {canForceLiveRefresh ? (
+            <button
+              onClick={() => {
+                setSearchMode('my-activities');
+                setActiveSearch('all');
+              }}
+              className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                searchMode === 'my-activities'
+                  ? 'bg-green-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              📋 Mes Activités vs GetYourGuide
+            </button>
+          ) : null}
         </div>
 
         {/* Search Input */}
@@ -251,15 +257,17 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
                   </>
                 )}
               </Button>
-              <Button
-                onClick={() => handleFetchActivities(undefined, true)}
-                disabled={!searchQuery.trim() || searchQuery.trim().length < 3}
-                variant="outline"
-                className="bg-purple-50 hover:bg-purple-100 border-purple-300 text-purple-700 px-4 h-11"
-                title="Forcer le scraping en temps réel (ignorer le cache)"
-              >
-                🔄 Force Live
-              </Button>
+              {canForceLiveRefresh ? (
+                <Button
+                  onClick={() => handleFetchActivities(undefined, true)}
+                  disabled={!searchQuery.trim() || searchQuery.trim().length < 3}
+                  variant="outline"
+                  className="bg-purple-50 hover:bg-purple-100 border-purple-300 text-purple-700 px-4 h-11"
+                  title="Forcer le scraping en temps réel (ignorer le cache)"
+                >
+                  🔄 Force Live
+                </Button>
+              ) : null}
               <Button
                 onClick={() => handleFetchActivities(undefined, false, true)}
                 disabled={!searchQuery.trim() || searchQuery.trim().length < 3}
@@ -414,7 +422,7 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
             <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-800">
               <p className="font-semibold mb-1">Erreur de recherche</p>
               <p className="text-sm">
-                Impossible de récupérer les activités. Essayez de cliquer sur "🔄 Live" pour forcer le scraping en temps réel.
+                Impossible de récupérer les activités. Vérifiez le terme de recherche ou réessayez plus tard.
               </p>
             </div>
           )}
@@ -423,7 +431,7 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
             <div className="text-center py-12 text-gray-500">
               <p className="mb-2">Aucun résultat trouvé pour "{activeSearch}"</p>
               <p className="text-sm">
-                Essayez un autre terme de recherche ou cliquez sur "🔄 Live" pour forcer le scraping en temps réel.
+                Essayez un autre terme de recherche.
               </p>
             </div>
           )}
@@ -467,7 +475,9 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
                           }}
                         />
                         <div className="absolute top-2 right-2">
-                          <Badge className="bg-blue-600 text-white">GetYourGuide</Badge>
+                          <Badge className={activity.verified ? 'bg-blue-600 text-white' : 'bg-slate-600 text-white'}>
+                            {activity.verified ? 'GetYourGuide vérifié' : 'Référence non vérifiée'}
+                          </Badge>
                         </div>
                       </div>
                     )}
@@ -475,6 +485,9 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
                       <h5 className="font-semibold text-gray-900 mb-2 line-clamp-2 h-12">
                         {activity.title}
                       </h5>
+                      <p className={`mb-2 text-xs ${activity.verified ? 'text-green-700' : 'text-slate-500'}`}>
+                        {activity.verified ? 'Source GetYourGuide vérifiée en direct' : 'Référence interne — provenance non vérifiée'}
+                      </p>
                       
                       <div className="space-y-2 mb-3">
                         {activity.rating && (
@@ -513,7 +526,7 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
                           </div>
                           {activity.suggestedPrice && (
                             <p className="text-xs text-gray-500 mt-1">
-                              Prix suggéré: {activity.suggestedPrice} {activity.currency}
+                              Référence indicative: {activity.suggestedPrice} {activity.currency}
                             </p>
                           )}
                         </div>
@@ -703,7 +716,7 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
       {/* Info Tip */}
       <div className="bg-blue-100 border border-blue-200 rounded-lg p-4">
         <p className="text-sm text-blue-800">
-          💡 <strong>Astuce:</strong> Utilisez "Chercher ici" pour voir les résultats directement dans le tableau de bord, ou "🔄 Live" pour un scraping en temps réel depuis GetYourGuide (plus lent mais plus précis).
+          💡 <strong>Astuce:</strong> Les recherches normales utilisent les références disponibles. Le rafraîchissement en direct est réservé aux Superadmins.
         </p>
       </div>
     </div>

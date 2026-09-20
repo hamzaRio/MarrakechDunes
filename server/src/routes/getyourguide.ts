@@ -1,4 +1,4 @@
-import { Router, Request, Response } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import axios from 'axios';
 import { testConnection } from '../utils/gyg.js';
 import { GYGFetcher, GYGActivity } from '../utils/gygFetcher.js';
@@ -8,6 +8,18 @@ import GYGCache from '../models/GYGCache.js';
 import { requireAdmin, requireSuperAdmin } from '../middleware/admin-auth.js';
 
 const router = Router();
+
+const isTrueQueryValue = (value: unknown) =>
+  value === 'true' || value === '1' || value === true;
+
+const requireSuperAdminForLiveRefresh = (req: Request, res: Response, next: NextFunction) => {
+  const requiresLiveRefresh = isTrueQueryValue(req.query.forceRefresh) || isTrueQueryValue(req.query.useMyActivities);
+  if (!requiresLiveRefresh) {
+    return next();
+  }
+
+  return requireSuperAdmin(req, res, next);
+};
 
 // In-memory cache for GetYourGuide API responses
 const cache = new Map<string, { data: any; timestamp: number }>();
@@ -57,7 +69,7 @@ interface GetYourGuideActivity {
  * 2. Search GetYourGuide for each activity to find similar ones
  * 3. Return Morocco-based matches
  */
-router.get('/search', async (req: Request, res: Response) => {
+router.get('/search', requireAdmin, requireSuperAdminForLiveRefresh, async (req: Request, res: Response) => {
   try {
     const { q, forceRefresh, useMyActivities } = req.query;
     
@@ -87,7 +99,7 @@ router.get('/search', async (req: Request, res: Response) => {
                 if (scraped.length > 0) {
                   gygMatches = scraped.map((a: GYGActivity) => {
                     const price = a.price || 0;
-                    return {
+                  return {
                       id: a.id,
                       title: a.title,
                       gygPrice: price,
@@ -96,8 +108,10 @@ router.get('/search', async (req: Request, res: Response) => {
                       rating: a.rating,
                       reviewCount: a.reviewCount,
                       image: a.image,
-                      duration: a.duration,
-                      location: a.location
+                    duration: a.duration,
+                    location: a.location,
+                    sourceType: 'getyourguide-scraped',
+                    verified: true
                     };
                   });
                   console.log(`[GYG Comparison] Found ${gygMatches.length} matches for "${myActivity.name}"`);
@@ -167,7 +181,9 @@ router.get('/search', async (req: Request, res: Response) => {
                 image: a.image,
                 duration: a.duration,
                 location: a.location,
-                suggestedPrice: calculateSuggestedPrice(price, a.currency || 'MAD')
+                suggestedPrice: calculateSuggestedPrice(price, a.currency || 'MAD'),
+                sourceType: 'getyourguide-scraped',
+                verified: true
               };
             });
             console.log(`[GYG Comparison] Found ${gygMatches.length} matches for "${matchingActivity.name}"`);
@@ -315,7 +331,9 @@ router.get('/search', async (req: Request, res: Response) => {
         duration: activity.duration || null,
         rating: activity.rating,
         reviewCount: activity.reviewCount,
-        location: activity.location || null
+        location: activity.location || null,
+        sourceType: source,
+        verified: source === 'getyourguide-scraped'
       }));
 
       // Save to MongoDB cache with enhanced metadata
@@ -384,7 +402,9 @@ router.get('/search', async (req: Request, res: Response) => {
         duration: activity.duration || null,
         rating: activity.rating,
         reviewCount: activity.reviewCount,
-        location: activity.location || null
+        location: activity.location || null,
+        sourceType: 'fallback',
+        verified: false
       }));
 
       // Cache fallback results
@@ -470,13 +490,18 @@ router.get('/activities', requireAdmin, async (req: Request, res: Response) => {
       console.log('[GYG] Returning cached all activities');
       return res.json(cached.data);
     }
+
+    if ((req.session as any).role !== 'superadmin') {
+      return res.status(403).json({
+        status: 'error',
+        message: 'Superadmin access is required to refresh GetYourGuide activities.'
+      });
+    }
     
     // Validate credentials
     if (!process.env.GYG_SUPPLIER_USER || !process.env.GYG_SUPPLIER_PASS) {
       console.log('[ERROR] GetYourGuide credentials not configured');
-      return res.status(400).json({ 
-        error: 'GetYourGuide credentials not configured. Please set GYG_SUPPLIER_USER and GYG_SUPPLIER_PASS in environment variables.' 
-      });
+      return res.status(503).json({ error: 'GetYourGuide provider is not configured.' });
     }
     
     let activities: any[] = [];

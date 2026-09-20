@@ -13,6 +13,8 @@ export interface MarketItem {
   last_checked_at: string;
 }
 
+export type GYGSourceType = 'live-verified' | 'curated-static' | 'generated-fallback';
+
 export interface GYGSearchRequest {
   method: 'GET';
   url: string;
@@ -74,19 +76,18 @@ export function normalizeGYGProduct(p: any): MarketItem {
 export async function searchGYG(
   input: { query: string; city?: string; page?: number; perPage?: number }, 
   options: { dryRun?: boolean } = {}
-): Promise<{ dryRun: boolean; request: GYGSearchRequest; sampleNormalizedShape: MarketItem[] }> {
+): Promise<{ dryRun: boolean; sourceType: GYGSourceType; verified: boolean; sampleNormalizedShape: MarketItem[] }> {
   const dryRun = options.dryRun || process.env.GYG_SEARCH_DRYRUN === 'true' || process.env.GYG_ENABLE_LIVE_SEARCH !== 'true';
   
   if (dryRun) {
     // Return diverse Morocco activities based on search query
-    const request = buildGYGSearchRequest(input);
-    
     // Generate diverse activities based on search query
     const activities = generateMoroccoActivities(input.query, input.city);
     
     return {
       dryRun: true,
-      request,
+      sourceType: 'curated-static',
+      verified: false,
       sampleNormalizedShape: activities
     };
   }
@@ -108,7 +109,8 @@ export async function searchGYG(
       const activities = generateMoroccoActivities(input.query, input.city);
       return {
         dryRun: false,
-        request,
+        sourceType: 'generated-fallback',
+        verified: false,
         sampleNormalizedShape: activities
       };
     }
@@ -123,6 +125,8 @@ export async function searchGYG(
     
     // Handle GetYourGuide Supplier API response format
     let activities: MarketItem[] = [];
+    let sourceType: GYGSourceType = 'live-verified';
+    let verified = true;
     
     if (data.products && Array.isArray(data.products)) {
       // Standard GetYourGuide Supplier API response
@@ -138,24 +142,27 @@ export async function searchGYG(
       console.log(`[GYG] Found ${activities.length} products from results format`);
     } else {
       console.warn('[GYG] Unexpected API response format:', Object.keys(data));
-      console.log('[GYG] Full response sample:', JSON.stringify(data, null, 2).substring(0, 500));
       // Fallback to mock data if API format is unexpected
       activities = generateMoroccoActivities(input.query, input.city);
+      sourceType = 'generated-fallback';
+      verified = false;
     }
     
     return {
       dryRun: false,
-      request,
+      sourceType,
+      verified,
       sampleNormalizedShape: activities
     };
     
   } catch (error) {
-    console.warn(`[GYG] Live search failed:`, error);
+    console.warn('[GYG] Live search failed:', error instanceof Error ? error.message : 'Unknown upstream error');
     // Fallback to mock data on error
     const activities = generateMoroccoActivities(input.query, input.city);
     return {
       dryRun: false,
-      request: buildGYGSearchRequest(input),
+      sourceType: 'generated-fallback',
+      verified: false,
       sampleNormalizedShape: activities
     };
   }

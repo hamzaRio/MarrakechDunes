@@ -420,8 +420,9 @@ function AdminDashboardContent() {
         const source = priceResponse.data.source || 'api';
         const activityMatch = priceResponse.data.activity;
         
-        if (gygPrice) {
-          // Update the activity with the real GetYourGuide price
+        if (gygPrice && source === 'getyourguide-scraped') {
+          // Only verified live scrape results may be persisted until the
+          // provenance-aware comparison model is available.
           const updateResponse = await api.patch(`/admin/activities/${activity._id || activity.id}`, {
             getyourguidePrice: gygPrice
           });
@@ -433,7 +434,7 @@ function AdminDashboardContent() {
             const sourceMessage = source === 'estimated' 
               ? 'Prix estimé'
               : source === 'curated-database'
-                ? 'Prix vérifié GetYourGuide (base de données)'
+                ? 'Référence interne non vérifiée (base de données)'
                 : source === 'getyourguide-scraped'
                   ? 'Prix GetYourGuide (scraping en temps réel)'
                   : 'Prix GetYourGuide';
@@ -456,6 +457,11 @@ function AdminDashboardContent() {
               });
             }
           }
+        } else if (gygPrice) {
+          toast({
+            title: 'Référence non enregistrée',
+            description: 'Seuls les résultats GetYourGuide vérifiés en direct peuvent être enregistrés.',
+          });
         } else {
           throw new Error('Prix GetYourGuide non trouvé');
         }
@@ -656,21 +662,19 @@ function AdminDashboardContent() {
                               <div className="text-xs text-gray-600">Current Rate</div>
                             </div>
                             <div className="bg-white p-3 rounded border">
-                              <div className="text-sm font-medium text-orange-700">GetYourGuide</div>
-                              <div className="text-xl font-bold text-orange-600">{activity.getyourguidePrice || (Number(activity.price) + 150)} MAD</div>
-                              <div className="text-xs text-red-600">
-                                +{Math.round(((activity.getyourguidePrice || (Number(activity.price) + 150)) - Number(activity.price)) / Number(activity.price) * 100)}% higher
-                              </div>
+                              <div className="text-sm font-medium text-orange-700">Market reference</div>
+                              <div className="text-xl font-bold text-orange-600">{activity.getyourguidePrice ? `${activity.getyourguidePrice} MAD` : 'N/A'}</div>
+                              <div className="text-xs text-gray-600">Stored source requires verification</div>
                             </div>
                             <div className="bg-white p-3 rounded border">
-                              <div className="text-sm font-medium text-blue-700">Profit Margin</div>
-                              <div className="text-xl font-bold text-blue-600">{((activity.getyourguidePrice || (Number(activity.price) + 150)) - Number(activity.price))} MAD</div>
-                              <div className="text-xs text-green-600">Per booking</div>
+                              <div className="text-sm font-medium text-blue-700">Pricing decision</div>
+                              <div className="text-lg font-bold text-blue-600">Superadmin</div>
+                              <div className="text-xs text-gray-600">No automatic market recommendation</div>
                             </div>
                             <div className="bg-white p-3 rounded border">
-                              <div className="text-sm font-medium text-purple-700">Market Position</div>
-                              <div className="text-lg font-bold text-purple-600">Competitive</div>
-                              <div className="text-xs text-gray-600">Below market</div>
+                              <div className="text-sm font-medium text-purple-700">Market position</div>
+                              <div className="text-lg font-bold text-purple-600">To verify</div>
+                              <div className="text-xs text-gray-600">Requires comparable verified offers</div>
                             </div>
                           </div>
                         </div>

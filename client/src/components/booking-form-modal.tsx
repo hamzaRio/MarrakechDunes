@@ -31,7 +31,6 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { useLanguage } from "@/hooks/use-language";
-import { apiRequest } from "@/lib/queryClient";
 import { apiFetch } from "@/lib/api";
 import { Plus, Calendar, Users } from "lucide-react";
 
@@ -56,8 +55,6 @@ interface BookingFormModalProps {
 
 export default function BookingFormModal({ 
   trigger, 
-  isOpen = false, 
-  onClose, 
   activities: passedActivities 
 }: BookingFormModalProps) {
   const [open, setOpen] = useState(false);
@@ -71,8 +68,6 @@ export default function BookingFormModal({
   });
 
   const activities = passedActivities || fetchedActivities || [];
-  const isControlled = isOpen !== undefined && onClose !== undefined;
-  const modalOpen = isControlled ? isOpen : open;
 
   const form = useForm<BookingFormData>({
     resolver: zodResolver(createBookingFormSchema(t)),
@@ -326,31 +321,6 @@ export default function BookingFormModal({
 
             {selectedActivity && (
               <div className="space-y-4">
-                {/* Price Comparison Section */}
-                <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                  <h4 className="font-semibold text-moroccan-blue mb-3 flex items-center gap-2">
-                    <span>💰</span>
-                    Price Comparison Analysis
-                  </h4>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                    <div className="bg-white p-3 rounded border">
-                      <div className="font-medium text-green-700 mb-1">Our Price</div>
-                      <div className="text-xl font-bold text-green-600">{selectedActivity.price} MAD</div>
-                      <div className="text-xs text-gray-600">Best Value</div>
-                    </div>
-                    <div className="bg-white p-3 rounded border">
-                      <div className="font-medium text-orange-700 mb-1">GetYourGuide</div>
-                      <div className="text-xl font-bold text-orange-600">{selectedActivity.getyourguidePrice || selectedActivity.price + 150} MAD</div>
-                      <div className="text-xs text-red-600">+{Math.round(((selectedActivity.getyourguidePrice || selectedActivity.price + 150) - selectedActivity.price) / selectedActivity.price * 100)}% more</div>
-                    </div>
-                    <div className="bg-white p-3 rounded border">
-                      <div className="font-medium text-blue-700 mb-1">You Save</div>
-                      <div className="text-xl font-bold text-blue-600">{((selectedActivity.getyourguidePrice || selectedActivity.price + 150) - selectedActivity.price)} MAD</div>
-                      <div className="text-xs text-green-600">Per person</div>
-                    </div>
-                  </div>
-                </div>
-
                 {/* Seasonal Pricing */}
                 <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
                   <h4 className="font-semibold text-moroccan-blue mb-3 flex items-center gap-2">
@@ -395,10 +365,6 @@ export default function BookingFormModal({
                     <div className="flex justify-between border-t pt-2 font-semibold text-moroccan-blue">
                       <span>Total Amount:</span>
                       <span>{totalAmount.toLocaleString()} MAD</span>
-                    </div>
-                    <div className="flex justify-between text-xs text-green-600">
-                      <span>Total Savings vs GetYourGuide:</span>
-                      <span>{(((selectedActivity.getyourguidePrice || selectedActivity.price + 150) - selectedActivity.price) * numberOfPeople).toLocaleString()} MAD</span>
                     </div>
                   </div>
                 </div>

@@ -81,14 +81,6 @@ export default function MobileActivityCard({ activity, onBook }: MobileActivityC
             <span className="text-sm text-gray-500">par personne</span>
           </div>
           
-          {activity.getyourguidePrice && (
-            <div className="text-right">
-              <div className="text-sm text-gray-500">GetYourGuide</div>
-              <div className="text-lg font-semibold text-orange-600">
-                {Number(activity.getyourguidePrice).toLocaleString()} MAD
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Action Buttons */}

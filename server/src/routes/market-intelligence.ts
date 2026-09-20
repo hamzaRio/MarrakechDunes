@@ -2,9 +2,20 @@ import express, { Request, Response } from 'express';
 import axios from 'axios';
 import { z } from 'zod';
 import { searchGYG } from '../providers/gyg.js';
-import { requireSuperAdmin } from '../middleware/admin-auth.js';
+import { requireAdmin, requireSuperAdmin } from '../middleware/admin-auth.js';
 
 const router = express.Router();
+
+const isTrueQueryValue = (value: unknown) =>
+  value === 'true' || value === '1' || value === true;
+
+const requireSuperAdminForLiveRefresh = (req: Request, res: Response, next: express.NextFunction) => {
+  if (!isTrueQueryValue(req.query.forceRefresh) && !isTrueQueryValue(req.query.live)) {
+    return next();
+  }
+
+  return requireSuperAdmin(req, res, next);
+};
 
 // Market Intelligence Types
 interface CompetitorActivity {
@@ -74,6 +85,8 @@ router.get('/debug/gyg', requireSuperAdmin, async (req: Request, res: Response) 
       query,
       city,
       dryRun: gygResponse.dryRun,
+      sourceType: gygResponse.sourceType,
+      verified: gygResponse.verified,
       resultCount: gygResponse.sampleNormalizedShape.length,
       sampleResults: gygResponse.sampleNormalizedShape.slice(0, 3),
       credentials: {
@@ -100,7 +113,7 @@ router.get('/debug/gyg', requireSuperAdmin, async (req: Request, res: Response) 
  * Market Intelligence Search
  * GET /api/market/search?q=desert+tour&location=Marrakech
  */
-router.get('/search', async (req: Request, res: Response) => {
+router.get('/search', requireAdmin, requireSuperAdminForLiveRefresh, async (req: Request, res: Response) => {
   const provider = typeof req.query.provider === 'string' ? req.query.provider.toLowerCase() : undefined;
 
   if (provider === 'gyg') {
@@ -132,7 +145,10 @@ router.get('/search', async (req: Request, res: Response) => {
       provider: 'gyg',
       liveSearchEnabled: false,
       message: 'GetYourGuide reference search - returning local suggestions only.',
-      ...gygResponse,
+      dryRun: gygResponse.dryRun,
+      sourceType: gygResponse.sourceType,
+      verified: gygResponse.verified,
+      results: gygResponse.sampleNormalizedShape,
     });
   }
 

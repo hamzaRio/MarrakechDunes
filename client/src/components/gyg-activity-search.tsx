@@ -50,9 +50,9 @@ export const GYGActivitySearch: React.FC<GYGSearchProps> = ({ onActivitySelect }
       setActivities(result.activities);
       setApiStatus(getGetYourGuideAPIStatus());
       
-      // Show warning if using mock data
+      // Browser-side provider access is intentionally disabled.
       if (!apiStatus.available) {
-        console.warn('ℹ️ Mode données de test activé. Pour utiliser les vraies données GetYourGuide, configurez VITE_GETYOURGUIDE_API_KEY.');
+        console.warn('ℹ️ Les comparaisons GetYourGuide passent par l’API staff protégée.');
       }
     } catch (err) {
       setError('Échec de la recherche. Veuillez réessayer.');
@@ -85,7 +85,7 @@ export const GYGActivitySearch: React.FC<GYGSearchProps> = ({ onActivitySelect }
             ) : (
               <div className="flex items-center text-orange-600">
                 <WifiOff className="h-4 w-4 mr-1" />
-                Données de Test
+                API staff protégée
               </div>
             )}
           </div>
