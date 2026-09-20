@@ -1033,5 +1033,43 @@ router.post('/gyg-matches/override', requireSuperAdmin, async (req: Request, res
   }
 });
 
+/**
+ * DELETE /api/admin/gyg-matches/override
+ * Superadmin-only (Phase 3D-2 §7): remove one manual ACCEPT/REJECT decision
+ * so the automatic scorer becomes authoritative again for that (activity,
+ * candidate) pair. Deletes only the single matching GYGMatchOverride
+ * document — it never touches GYGCache, trust/provenance fields, or any
+ * other override.
+ */
+router.delete('/gyg-matches/override', requireSuperAdmin, async (req: Request, res: Response) => {
+  try {
+    const ourActivityId = typeof req.body?.ourActivityId === 'string' ? req.body.ourActivityId : req.query.ourActivityId;
+    const matchedExternalId = typeof req.body?.matchedExternalId === 'string' ? req.body.matchedExternalId : req.query.matchedExternalId;
+
+    if (!ourActivityId || typeof ourActivityId !== 'string') {
+      return res.status(400).json({ status: 'error', message: 'ourActivityId is required' });
+    }
+    if (!matchedExternalId || typeof matchedExternalId !== 'string') {
+      return res.status(400).json({ status: 'error', message: 'matchedExternalId is required' });
+    }
+
+    const { default: GYGMatchOverride } = await import('../models/GYGMatchOverride.js');
+    const result = await GYGMatchOverride.deleteOne({ ourActivityId, matchedExternalId });
+
+    console.log(`[ADMIN] GYG match override cleared: activity=${ourActivityId} candidate=${matchedExternalId} deleted=${result.deletedCount}`);
+
+    return res.status(200).json({
+      status: 'success',
+      cleared: result.deletedCount > 0,
+    });
+  } catch (error) {
+    console.error('[ADMIN] Error clearing GYG match override:', error);
+    return res.status(500).json({
+      status: 'error',
+      message: 'Failed to clear match override'
+    });
+  }
+});
+
 export default router;
 

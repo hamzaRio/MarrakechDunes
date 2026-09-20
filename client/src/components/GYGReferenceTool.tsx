@@ -1,18 +1,27 @@
-import { useState, KeyboardEvent } from 'react';
-import { ExternalLink, Globe, Search, Sparkles, Loader2, Star, MapPin, Clock } from 'lucide-react';
+import { useMemo, useState, KeyboardEvent } from 'react';
+import {
+  ExternalLink, Globe, Search, Sparkles, Loader2, Star, MapPin, Clock,
+  ChevronDown, ChevronUp, RefreshCw,
+} from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { useAuth } from '@/hooks/use-auth';
+import { useToast } from '@/hooks/use-toast';
 
 interface GYGReferenceToolProps {
   onActivitySelect?: (activity: any) => void;
 }
 
 type GYGValidationState = 'STRONG_MATCH' | 'LIKELY_MATCH' | 'WEAK_MATCH' | 'REJECTED_MATCH' | 'NEEDS_REVIEW';
+type GYGTrustSource = 'LIVE_VERIFIED' | 'CACHED_VERIFIED' | 'STALE_VERIFIED' | 'CURATED_REFERENCE' | 'GENERATED_FALLBACK' | 'ESTIMATED' | 'LEGACY_UNVERIFIED';
 
 interface GYGManualOverride {
   decision: 'ACCEPTED' | 'REJECTED';
@@ -31,15 +40,14 @@ interface GYGActivityResult {
   rating?: number | null;
   reviewCount?: number | null;
   location?: string | null;
-  sourceType: 'LIVE_VERIFIED' | 'CACHED_VERIFIED' | 'STALE_VERIFIED' | 'CURATED_REFERENCE' | 'GENERATED_FALLBACK' | 'ESTIMATED' | 'LEGACY_UNVERIFIED';
+  sourceType: GYGTrustSource;
   verified: boolean;
   stale: boolean;
   fetchedAt: string | null;
   expiresAt: string | null;
   matchScore: number | null;
   matchReasons: string[];
-  // null = comparability was never evaluated for this offer (e.g. a plain
-  // keyword search not tied to one of our activities).
+  // null = comparability was never evaluated for this offer.
   validationState: GYGValidationState | null;
   ourActivityId?: string | null;
   matchedExternalId?: string | null;
@@ -51,17 +59,32 @@ interface GYGSearchResponse {
   metadata: { sourceType: string; verified: boolean; stale: boolean; fetchedAt: string | null; expiresAt: string | null };
 }
 
-interface MyActivityWithGYG {
-  myActivity: {
-    id: string;
-    name: string;
-    price: string | number;
-    category?: string;
-  };
-  gygMatches: GYGActivityResult[];
+interface GYGMetrics {
+  lowestVerifiedPrice: number | null;
+  medianVerifiedPrice: number | null;
+  averageVerifiedPrice: number | null;
+  verifiedOfferCount: number;
 }
 
-const trustLabel: Record<GYGActivityResult['sourceType'], string> = {
+interface ActivityComparisonRow {
+  myActivity: { id: string; name: string; price: string | number; category?: string };
+  gygMatches: GYGActivityResult[];
+  metrics: GYGMetrics;
+  dataStatus: 'fresh' | 'stale' | 'none' | 'unavailable';
+  message?: string;
+}
+
+interface EnrichedRow extends ActivityComparisonRow {
+  ourPrice: number;
+  diff: { mad: number; percent: number } | null;
+  bestOffer: GYGActivityResult | null;
+  needsReview: boolean;
+  lastChecked: string | null;
+}
+
+// Phase 3D-2 §5 — trust labels (source of the data). Kept separate from
+// match-quality labels: a "Live verified" offer can still be a "Weak match".
+const trustLabel: Record<GYGTrustSource, string> = {
   LIVE_VERIFIED: 'Live verified',
   CACHED_VERIFIED: 'Cached verified',
   STALE_VERIFIED: 'Stale verified',
@@ -71,12 +94,23 @@ const trustLabel: Record<GYGActivityResult['sourceType'], string> = {
   LEGACY_UNVERIFIED: 'Legacy / unverified',
 };
 
+const trustBadgeClass: Record<GYGTrustSource, string> = {
+  LIVE_VERIFIED: 'bg-blue-600 text-white',
+  CACHED_VERIFIED: 'bg-blue-100 text-blue-800',
+  STALE_VERIFIED: 'bg-amber-100 text-amber-800',
+  CURATED_REFERENCE: 'bg-slate-100 text-slate-700',
+  GENERATED_FALLBACK: 'bg-slate-100 text-slate-700',
+  ESTIMATED: 'bg-slate-100 text-slate-700',
+  LEGACY_UNVERIFIED: 'bg-gray-100 text-gray-600',
+};
+
+// Phase 3D-2 §6 — canonical match-quality labels.
 const validationStateLabel: Record<GYGValidationState, string> = {
-  STRONG_MATCH: 'Correspondance forte',
-  LIKELY_MATCH: 'Correspondance probable',
-  WEAK_MATCH: 'Correspondance faible',
-  REJECTED_MATCH: 'Non comparable',
-  NEEDS_REVIEW: 'À vérifier',
+  STRONG_MATCH: 'Strong match',
+  LIKELY_MATCH: 'Likely match',
+  WEAK_MATCH: 'Weak match',
+  REJECTED_MATCH: 'Rejected',
+  NEEDS_REVIEW: 'Needs review',
 };
 
 const validationStateBadgeClass: Record<GYGValidationState, string> = {
@@ -88,9 +122,10 @@ const validationStateBadgeClass: Record<GYGValidationState, string> = {
 };
 
 const formatFetchedAt = (fetchedAt: string | null) => fetchedAt
-  ? new Intl.DateTimeFormat('fr-MA', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(fetchedAt))
+  ? new Intl.DateTimeFormat('en-GB', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(fetchedAt))
   : null;
 
+// Secondary manual-search tool (French, unchanged from before this phase).
 const getGYGErrorMessage = (error: unknown) => {
   const response = (error as any)?.response;
   const retryAfter = response?.data?.retryAfter;
@@ -103,7 +138,69 @@ const getGYGErrorMessage = (error: unknown) => {
   return 'Impossible de récupérer les activités. Vérifiez le terme de recherche ou réessayez plus tard.';
 };
 
-// Popular Morocco activities for quick search
+// Primary workspace (English, per Phase 3D-2 spec wording) — Phase 3D-2 §10
+// exact degraded-state copy.
+const getWorkspaceErrorMessage = (error: unknown): string => {
+  const response = (error as any)?.response;
+  if (response?.status === 429 || response?.data?.code === 'GYG_RATE_LIMITED') {
+    return 'Too many GetYourGuide requests. Please try again later.';
+  }
+  if (response?.status === 503 || response?.data?.code === 'GYG_CIRCUIT_OPEN' || response?.data?.code === 'GYG_UPSTREAM_UNAVAILABLE') {
+    return 'Live GetYourGuide data is temporarily unavailable.';
+  }
+  return 'Something went wrong loading market comparison data.';
+};
+
+const formatMAD = (value: number) => `${Math.round(value)} MAD`;
+
+function computeDifference(ourPrice: number, median: number | null): { mad: number; percent: number } | null {
+  if (median == null || median <= 0 || !(ourPrice > 0)) return null;
+  const mad = ourPrice - median;
+  const percent = (mad / median) * 100;
+  return { mad, percent };
+}
+
+// Neutral, direction-explicit wording — never "better"/"worse", never a
+// price-change recommendation (Phase 3D-2 §3).
+function formatDiffMAD(diff: { mad: number }): string {
+  if (diff.mad === 0) return 'At market';
+  return `${Math.round(Math.abs(diff.mad))} MAD ${diff.mad > 0 ? 'above market' : 'below market'}`;
+}
+function formatDiffPercent(diff: { percent: number }): string {
+  if (diff.percent === 0) return '0%';
+  return `${Math.abs(diff.percent).toFixed(1)}% ${diff.percent > 0 ? 'above market' : 'below market'}`;
+}
+
+function MatchBadge({ state, score }: { state: GYGValidationState; score: number | null }) {
+  return (
+    <Badge className={validationStateBadgeClass[state]}>
+      {validationStateLabel[state]}{typeof score === 'number' ? ` · ${score}/100` : ''}
+    </Badge>
+  );
+}
+
+function DataStatusBadge({ row }: { row: EnrichedRow }) {
+  if (row.dataStatus === 'unavailable') {
+    return <Badge className="bg-red-100 text-red-700">Unavailable</Badge>;
+  }
+  const source = row.bestOffer?.sourceType;
+  if (!source) {
+    return <Badge variant="outline" className="text-gray-500 border-gray-300">Never checked</Badge>;
+  }
+  return <Badge className={trustBadgeClass[source]}>{trustLabel[source]}</Badge>;
+}
+
+const FILTERS: Array<{ value: 'all' | 'below' | 'above' | 'needs-review' | 'no-data'; label: string }> = [
+  { value: 'all', label: 'All' },
+  { value: 'below', label: 'Below market' },
+  { value: 'above', label: 'Above market' },
+  { value: 'needs-review', label: 'Needs review' },
+  { value: 'no-data', label: 'No verified market data' },
+];
+
+type SortKey = 'activity' | 'ourPrice' | 'median' | 'difference' | 'lastChecked';
+
+// Popular Morocco activities for quick search (secondary tool)
 const POPULAR_SEARCHES = [
   { name: 'Hot Air Balloon', query: 'Montgolfière (Hot Air Balloon)', icon: '🎈' },
   { name: 'Desert Tour', query: 'Sahara Desert Tour', icon: '🏜️' },
@@ -119,10 +216,75 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
   const { user } = useAuth();
   const canForceLiveRefresh = user?.role === 'superadmin';
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
-  // Superadmin-only: minimal ACCEPT/REJECT control for Phase 3D-1. Does not
-  // build the final comparison workspace — just persists the decision and
-  // refreshes the match list so the override is visible immediately.
+  // ------------------------------------------------------------------
+  // Primary: market comparison workspace (Phase 3D-2). Cache-first: this
+  // read never triggers a live GetYourGuide request (forceRefresh is always
+  // 'false' here) — safe to run on every page load/mount.
+  // ------------------------------------------------------------------
+  const workspaceQuery = useQuery<ActivityComparisonRow[]>({
+    queryKey: ['gyg-workspace-summary'],
+    queryFn: async () => {
+      const response = await api.get('/gyg/search', {
+        params: { q: 'all', useMyActivities: 'true', forceRefresh: 'false' },
+      });
+      return response.data || [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const [filter, setFilter] = useState<'all' | 'below' | 'above' | 'needs-review' | 'no-data'>('all');
+  const [sortBy, setSortBy] = useState<SortKey>('activity');
+  const [selectedActivityId, setSelectedActivityId] = useState<string | null>(null);
+
+  const enrichedRows: EnrichedRow[] = useMemo(() => {
+    const rows = workspaceQuery.data ?? [];
+    return rows.map((row) => {
+      const ourPrice = Number(row.myActivity.price) || 0;
+      const diff = computeDifference(ourPrice, row.metrics.medianVerifiedPrice);
+      const bestOffer = row.gygMatches[0] ?? null;
+      const needsReview = row.gygMatches.some((offer) => offer.validationState === 'NEEDS_REVIEW' && !offer.manualOverride);
+      return {
+        ...row,
+        ourPrice,
+        diff,
+        bestOffer,
+        needsReview,
+        lastChecked: bestOffer?.fetchedAt ?? null,
+      };
+    });
+  }, [workspaceQuery.data]);
+
+  const needsReviewCount = useMemo(() => enrichedRows.filter((r) => r.needsReview).length, [enrichedRows]);
+
+  const filteredSortedRows = useMemo(() => {
+    const filtered = enrichedRows.filter((row) => {
+      switch (filter) {
+        case 'below': return !!row.diff && row.diff.mad < 0;
+        case 'above': return !!row.diff && row.diff.mad > 0;
+        case 'needs-review': return row.needsReview;
+        case 'no-data': return row.metrics.medianVerifiedPrice == null;
+        default: return true;
+      }
+    });
+    const sorted = [...filtered].sort((a, b) => {
+      switch (sortBy) {
+        case 'ourPrice': return a.ourPrice - b.ourPrice;
+        case 'median': return (a.metrics.medianVerifiedPrice ?? Number.POSITIVE_INFINITY) - (b.metrics.medianVerifiedPrice ?? Number.POSITIVE_INFINITY);
+        case 'difference': return (a.diff?.mad ?? 0) - (b.diff?.mad ?? 0);
+        case 'lastChecked': return new Date(a.lastChecked ?? 0).getTime() - new Date(b.lastChecked ?? 0).getTime();
+        default: return a.myActivity.name.localeCompare(b.myActivity.name);
+      }
+    });
+    return sorted;
+  }, [enrichedRows, filter, sortBy]);
+
+  const selectedRow = enrichedRows.find((r) => r.myActivity.id === selectedActivityId) ?? null;
+
+  // Superadmin-only actions. The server independently enforces requireSuperAdmin
+  // on all three endpoints, so hiding these controls from Admin is a UX
+  // convenience, not the security boundary itself.
   const matchOverrideMutation = useMutation({
     mutationFn: async (payload: {
       ourActivityId: string;
@@ -130,20 +292,52 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
       decision: 'ACCEPTED' | 'REJECTED';
       automaticValidationState?: string | null;
       automaticMatchScore?: number | null;
-    }) => {
-      const response = await api.post('/admin/gyg-matches/override', payload);
-      return response.data;
-    },
+    }) => (await api.post('/admin/gyg-matches/override', payload)).data,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['gyg-search-my-activities'] });
+      queryClient.invalidateQueries({ queryKey: ['gyg-workspace-summary'] });
+      toast({ title: 'Decision saved' });
     },
+    onError: (error) => toast({ title: 'Could not save decision', description: getWorkspaceErrorMessage(error), variant: 'destructive' }),
   });
+
+  const clearOverrideMutation = useMutation({
+    mutationFn: async (payload: { ourActivityId: string; matchedExternalId: string }) =>
+      (await api.delete('/admin/gyg-matches/override', { data: payload })).data,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['gyg-workspace-summary'] });
+      toast({ title: 'Manual override cleared — automatic scoring is authoritative again' });
+    },
+    onError: (error) => toast({ title: 'Could not clear override', description: getWorkspaceErrorMessage(error), variant: 'destructive' }),
+  });
+
+  const forceRefreshMutation = useMutation({
+    mutationFn: async (activityId: string) => {
+      const response = await api.get('/gyg/search', {
+        params: { useMyActivities: 'true', activityId, forceRefresh: 'true' },
+      });
+      return response.data as ActivityComparisonRow[];
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['gyg-workspace-summary'] });
+      const result = Array.isArray(data) ? data[0] : null;
+      if (result?.message) {
+        toast({ title: result.dataStatus === 'stale' ? 'Using cached data' : 'Notice', description: result.message });
+      } else {
+        toast({ title: 'Live refresh complete' });
+      }
+    },
+    onError: (error) => toast({ title: 'Live refresh failed', description: getWorkspaceErrorMessage(error), variant: 'destructive' }),
+  });
+
+  // ------------------------------------------------------------------
+  // Secondary: manual GetYourGuide search (unchanged behavior, kept as a
+  // de-emphasized secondary tool — Phase 3D-2 §12).
+  // ------------------------------------------------------------------
+  const [showManualSearch, setShowManualSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeSearch, setActiveSearch] = useState<string>('');
   const [forceLiveScrape, setForceLiveScrape] = useState(false);
-  const [searchMode, setSearchMode] = useState<'gyg' | 'my-activities'>('gyg');
   const [recentSearches, setRecentSearches] = useState<string[]>(() => {
-    // Load recent searches from localStorage
     try {
       const stored = localStorage.getItem('gyg-recent-searches');
       return stored ? JSON.parse(stored) : [];
@@ -152,107 +346,69 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
     }
   });
 
-  // Normal staff searches are cache-first. Live refresh is a Superadmin action.
   const { data: searchResults, isLoading, error } = useQuery<GYGSearchResponse>({
-    queryKey: ['gyg-search', activeSearch, searchMode, forceLiveScrape],
-    enabled: activeSearch.length >= 3 && searchMode === 'gyg',
+    queryKey: ['gyg-search', activeSearch, forceLiveScrape],
+    enabled: activeSearch.length >= 3,
     queryFn: async () => {
       const response = await api.get('/gyg/search', {
         params: {
           q: activeSearch,
           forceRefresh: forceLiveScrape && canForceLiveRefresh ? 'true' : 'false',
-          useMyActivities: 'false'
-        }
+          useMyActivities: 'false',
+        },
       });
       return response.data;
     },
-    staleTime: 0, // Don't cache - always get fresh results
+    staleTime: 0,
   });
   const searchOffers = searchResults?.offers ?? [];
 
-  // Fetch activities based on YOUR database activities
-  const { data: myActivitiesResults, isLoading: isLoadingMyActivities, error: errorMyActivities } = useQuery<MyActivityWithGYG[]>({
-    queryKey: ['gyg-search-my-activities', activeSearch, forceLiveScrape],
-    enabled: searchMode === 'my-activities' && canForceLiveRefresh,
-    queryFn: async () => {
-      const response = await api.get('/gyg/search', {
-        params: {
-          q: activeSearch || 'all',
-          forceRefresh: forceLiveScrape ? 'true' : 'false',
-          useMyActivities: 'true'
-        }
-      });
-      return response.data || [];
-    },
-    staleTime: 5 * 60 * 1000,
-  });
-
-  // Generate GetYourGuide search URL
   const getGYGSearchUrl = (query: string) => {
     const moroccoQuery = query.trim() || 'morocco activities';
     return `https://www.getyourguide.com/s/?q=${encodeURIComponent(moroccoQuery)}&searchSource=3`;
   };
 
-  // Fetch activities from GetYourGuide (live search in dashboard)
   const handleFetchActivities = (query?: string, useLiveScrape: boolean = false, redirectToWebsite: boolean = false) => {
     const searchTerm = query || searchQuery.trim();
-    if (!searchTerm || searchTerm.length < 3) {
-      return;
-    }
-    
-    // If redirect is requested, open GetYourGuide immediately
+    if (!searchTerm || searchTerm.length < 3) return;
+
     if (redirectToWebsite) {
-      const gygUrl = getGYGSearchUrl(searchTerm);
-      window.open(gygUrl, '_blank', 'noopener,noreferrer');
+      window.open(getGYGSearchUrl(searchTerm), '_blank', 'noopener,noreferrer');
       return;
     }
-    
+
     setActiveSearch(searchTerm);
     setForceLiveScrape(useLiveScrape && canForceLiveRefresh);
-    
-    // Save to recent searches
+
     if (searchTerm && searchTerm !== 'morocco activities') {
-      const updated = [searchTerm, ...recentSearches.filter(s => s !== searchTerm)].slice(0, 5);
+      const updated = [searchTerm, ...recentSearches.filter((s) => s !== searchTerm)].slice(0, 5);
       setRecentSearches(updated);
       localStorage.setItem('gyg-recent-searches', JSON.stringify(updated));
     }
   };
 
-  // Open GetYourGuide website with search (external link)
   const handleGYGSearch = (query?: string) => {
     const searchTerm = query || searchQuery.trim() || 'morocco activities';
     const gygUrl = getGYGSearchUrl(searchTerm);
-    console.log('[GYG-REF] Opening GetYourGuide with search:', searchTerm);
-    
-    // Save to recent searches
+
     if (searchTerm && searchTerm !== 'morocco activities') {
-      const updated = [searchTerm, ...recentSearches.filter(s => s !== searchTerm)].slice(0, 5);
+      const updated = [searchTerm, ...recentSearches.filter((s) => s !== searchTerm)].slice(0, 5);
       setRecentSearches(updated);
       localStorage.setItem('gyg-recent-searches', JSON.stringify(updated));
     }
-    
+
     window.open(gygUrl, '_blank', 'noopener,noreferrer');
-    
-    if (onActivitySelect) {
-      onActivitySelect({ query: searchTerm, url: gygUrl });
-    }
+    if (onActivitySelect) onActivitySelect({ query: searchTerm, url: gygUrl });
   };
 
-  // Open GetYourGuide Morocco page
   const handleGYGMorocco = () => {
-    const gygUrl = 'https://www.getyourguide.com/morocco-l191/';
-    console.log('[GYG-REF] Opening GetYourGuide Morocco page');
-    window.open(gygUrl, '_blank', 'noopener,noreferrer');
+    window.open('https://www.getyourguide.com/morocco-l191/', '_blank', 'noopener,noreferrer');
   };
 
-  // Handle Enter key press
   const handleKeyPress = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      handleFetchActivities();
-    }
+    if (e.key === 'Enter') handleFetchActivities();
   };
 
-  // Clear recent searches
   const clearRecentSearches = () => {
     setRecentSearches([]);
     localStorage.removeItem('gyg-recent-searches');
@@ -260,614 +416,602 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
 
   return (
     <div className="space-y-6">
-      {/* Main Search Section */}
-      <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <Search className="w-6 h-6 text-blue-600" />
-          <h3 className="text-xl font-semibold text-blue-800">Rechercher sur GetYourGuide</h3>
-        </div>
-        
-        <p className="text-sm text-blue-700 mb-6">
-          Recherchez des activités sur GetYourGuide pour comparer les prix et obtenir des idées de tarification pour vos propres activités.
-        </p>
-
-        {/* Search Mode Toggle */}
-        <div className="flex gap-2 mb-4 p-2 bg-white rounded-lg border border-gray-200">
-          <button
-            onClick={() => {
-              setSearchMode('gyg');
-              setActiveSearch('');
-              setSearchQuery('');
-            }}
-            className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-              searchMode === 'gyg'
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            🔍 Recherche GetYourGuide
-          </button>
-          {canForceLiveRefresh ? (
-            <button
-              onClick={() => {
-                setSearchMode('my-activities');
-                setActiveSearch('all');
-              }}
-              className={`flex-1 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                searchMode === 'my-activities'
-                  ? 'bg-green-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              📋 Mes Activités vs GetYourGuide
-            </button>
-          ) : null}
-        </div>
-
-        {/* Search Input */}
-        <div className="flex gap-2 mb-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <Input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder={
-                searchMode === 'my-activities'
-                  ? "Rechercher une activité spécifique (ou laisser vide pour toutes)..."
-                  : "Ex: Hot Air Balloon, Desert Tour, Cooking Class..."
-              }
-              className="pl-10 h-11 bg-white"
-              disabled={searchMode === 'my-activities' && activeSearch === 'all'}
-            />
+      {/* ============================================================ */}
+      {/* PRIMARY: Market Comparison Workspace                          */}
+      {/* ============================================================ */}
+      <div className="space-y-4">
+        <div className="flex items-start justify-between flex-wrap gap-2">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900">GetYourGuide Market Comparison</h3>
+            <p className="text-sm text-gray-500">
+              Internal market intelligence for MarrakechDunes activities. Uses cached comparison data —
+              opening this workspace never sends live requests to GetYourGuide.
+            </p>
           </div>
-          {searchMode === 'gyg' && (
-            <>
-              <Button
-                onClick={() => handleFetchActivities()}
-                disabled={!searchQuery.trim() || searchQuery.trim().length < 3}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-6 h-11"
-              >
-                {isLoading && activeSearch === searchQuery ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Scraping GetYourGuide...
-                  </>
-                ) : (
-                  <>
-                    <Search className="w-4 h-4 mr-2" />
-                    Chercher ici
-                  </>
-                )}
-              </Button>
-              {canForceLiveRefresh ? (
-                <Button
-                  onClick={() => handleFetchActivities(undefined, true)}
-                  disabled={!searchQuery.trim() || searchQuery.trim().length < 3}
-                  variant="outline"
-                  className="bg-purple-50 hover:bg-purple-100 border-purple-300 text-purple-700 px-4 h-11"
-                  title="Forcer le scraping en temps réel (ignorer le cache)"
-                >
-                  🔄 Force Live
-                </Button>
-              ) : null}
-              <Button
-                onClick={() => handleFetchActivities(undefined, false, true)}
-                disabled={!searchQuery.trim() || searchQuery.trim().length < 3}
-                variant="outline"
-                className="bg-green-50 hover:bg-green-100 border-green-300 text-green-700 px-4 h-11"
-                title="Ouvrir GetYourGuide dans un nouvel onglet avec cette recherche"
-              >
-                <ExternalLink className="w-4 h-4 mr-1" />
-                Ouvrir GYG
-              </Button>
-            </>
-          )}
-          {searchMode === 'my-activities' && (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => workspaceQuery.refetch()}
+            disabled={workspaceQuery.isFetching}
+          >
+            <RefreshCw className={`w-4 h-4 mr-1 ${workspaceQuery.isFetching ? 'animate-spin' : ''}`} />
+            Reload cached data
+          </Button>
+        </div>
+
+        {workspaceQuery.isError && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
+            {getWorkspaceErrorMessage(workspaceQuery.error)}
+          </div>
+        )}
+
+        <div className="flex flex-wrap items-center gap-2">
+          {FILTERS.map((f) => (
             <Button
-              onClick={() => {
-                if (searchQuery.trim().length >= 3) {
-                  setActiveSearch(searchQuery.trim());
-                } else {
-                  setActiveSearch('all');
-                }
-              }}
-              disabled={searchMode === 'my-activities' && activeSearch === 'all' && !searchQuery.trim()}
-              className="bg-green-600 hover:bg-green-700 text-white px-6 h-11"
+              key={f.value}
+              size="sm"
+              variant={filter === f.value ? 'default' : 'outline'}
+              className="h-7 text-xs"
+              onClick={() => setFilter(f.value)}
             >
-              {isLoadingMyActivities ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Recherche...
-                </>
-              ) : (
-                <>
-                  <Search className="w-4 h-4 mr-2" />
-                  Comparer
-                </>
+              {f.label}
+              {f.value === 'needs-review' && needsReviewCount > 0 && (
+                <Badge className="ml-1.5 bg-purple-600 text-white h-4 min-w-4 px-1 text-[10px]">{needsReviewCount}</Badge>
               )}
             </Button>
-          )}
-          <Button
-            onClick={() => handleGYGSearch()}
-            variant="outline"
-            className="bg-white hover:bg-gray-50 border-gray-300 px-4 h-11"
-            title="Ouvrir GetYourGuide dans un nouvel onglet"
-          >
-            <ExternalLink className="w-4 h-4" />
-          </Button>
-        </div>
-
-        {/* Quick Actions */}
-        <div className="flex gap-2">
-          <Button
-            onClick={handleGYGMorocco}
-            variant="outline"
-            className="bg-white hover:bg-green-50 border-green-300"
-          >
-            <Globe className="w-4 h-4 mr-2" />
-            🇲🇦 Voir Maroc
-          </Button>
-          <Button
-            onClick={() => handleGYGSearch('morocco activities')}
-            variant="outline"
-            className="bg-white hover:bg-indigo-50"
-          >
-            <Sparkles className="w-4 h-4 mr-2" />
-            Toutes les activités
-          </Button>
-        </div>
-      </div>
-
-      {/* Popular Searches */}
-      <div className="bg-white border border-gray-200 rounded-lg p-6">
-        <h4 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-          <Sparkles className="w-5 h-5 text-purple-600" />
-          Recherches populaires
-        </h4>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {POPULAR_SEARCHES.map((item, index) => (
-            <button
-              key={index}
-              onClick={() => {
-                setSearchQuery(item.query);
-                handleFetchActivities(item.query);
-              }}
-              className="flex flex-col items-center justify-center p-4 border border-gray-200 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition-all group"
-              title={`Rechercher "${item.query}" sur GetYourGuide`}
-            >
-              <span className="text-2xl mb-2 group-hover:scale-110 transition-transform">
-                {item.icon}
-              </span>
-              <span className="text-sm font-medium text-gray-700 group-hover:text-blue-700">
-                {item.name}
-              </span>
-            </button>
           ))}
+          <div className="ml-auto flex items-center gap-2">
+            <span className="text-xs text-gray-500">Sort by</span>
+            <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortKey)}>
+              <SelectTrigger className="h-7 text-xs w-[150px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="activity">Activity</SelectItem>
+                <SelectItem value="ourPrice">Our price</SelectItem>
+                <SelectItem value="median">Market median</SelectItem>
+                <SelectItem value="difference">Difference</SelectItem>
+                <SelectItem value="lastChecked">Last checked</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
+
+        {workspaceQuery.isLoading && (
+          <div className="flex items-center justify-center py-10 text-gray-500 text-sm">
+            <Loader2 className="w-5 h-5 animate-spin mr-2" /> Loading cached comparison data…
+          </div>
+        )}
+
+        {!workspaceQuery.isLoading && !workspaceQuery.isError && filteredSortedRows.length === 0 && (
+          <div className="text-center py-10 text-sm text-gray-500">No activities match this filter.</div>
+        )}
+
+        {filteredSortedRows.length > 0 && (
+          <>
+            {/* Desktop table */}
+            <div className="hidden md:block border rounded-lg overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Activity</TableHead>
+                    <TableHead>Our Price</TableHead>
+                    <TableHead>Verified GYG Median</TableHead>
+                    <TableHead>Difference</TableHead>
+                    <TableHead>% Difference</TableHead>
+                    <TableHead>Verified Comparable Offers</TableHead>
+                    <TableHead>Match Status</TableHead>
+                    <TableHead>Data Status</TableHead>
+                    <TableHead>Last Checked</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredSortedRows.map((row) => (
+                    <TableRow
+                      key={row.myActivity.id}
+                      className="cursor-pointer"
+                      onClick={() => setSelectedActivityId(row.myActivity.id)}
+                    >
+                      <TableCell className="font-medium">{row.myActivity.name}</TableCell>
+                      <TableCell>{formatMAD(row.ourPrice)}</TableCell>
+                      <TableCell>
+                        {row.metrics.medianVerifiedPrice != null
+                          ? formatMAD(row.metrics.medianVerifiedPrice)
+                          : <span className="text-gray-400 text-xs">No verified comparable market price</span>}
+                      </TableCell>
+                      <TableCell className="text-sm">{row.diff ? formatDiffMAD(row.diff) : '—'}</TableCell>
+                      <TableCell className="text-sm">{row.diff ? formatDiffPercent(row.diff) : '—'}</TableCell>
+                      <TableCell>{row.metrics.verifiedOfferCount}</TableCell>
+                      <TableCell>
+                        {row.bestOffer?.validationState
+                          ? <MatchBadge state={row.bestOffer.validationState} score={row.bestOffer.matchScore} />
+                          : <span className="text-gray-400 text-xs">—</span>}
+                      </TableCell>
+                      <TableCell><DataStatusBadge row={row} /></TableCell>
+                      <TableCell className="text-xs text-gray-500">{formatFetchedAt(row.lastChecked) ?? 'Never'}</TableCell>
+                      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                        <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => setSelectedActivityId(row.myActivity.id)}>
+                          Details
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+
+            {/* Mobile cards */}
+            <div className="md:hidden space-y-3">
+              {filteredSortedRows.map((row) => (
+                <Card key={row.myActivity.id} className="cursor-pointer" onClick={() => setSelectedActivityId(row.myActivity.id)}>
+                  <CardContent className="p-4 space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-semibold text-sm">{row.myActivity.name}</span>
+                      <DataStatusBadge row={row} />
+                    </div>
+                    <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-gray-600">
+                      <div>Our price: <span className="font-medium text-gray-900">{formatMAD(row.ourPrice)}</span></div>
+                      <div>Offers: <span className="font-medium text-gray-900">{row.metrics.verifiedOfferCount}</span></div>
+                      <div>Median: <span className="font-medium text-gray-900">{row.metrics.medianVerifiedPrice != null ? formatMAD(row.metrics.medianVerifiedPrice) : '—'}</span></div>
+                      <div>{row.diff ? formatDiffPercent(row.diff) : ''}</div>
+                    </div>
+                    {row.diff && <div className="text-xs text-gray-600">{formatDiffMAD(row.diff)}</div>}
+                    {row.metrics.medianVerifiedPrice == null && (
+                      <p className="text-[11px] text-gray-400">No verified comparable market price</p>
+                    )}
+                    {row.bestOffer?.validationState && (
+                      <MatchBadge state={row.bestOffer.validationState} score={row.bestOffer.matchScore} />
+                    )}
+                    <p className="text-[11px] text-gray-400">Last checked: {formatFetchedAt(row.lastChecked) ?? 'Never'}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </>
+        )}
       </div>
 
-      {/* Recent Searches */}
-      {recentSearches.length > 0 && (
-        <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h4 className="text-lg font-semibold text-gray-800">Recherches récentes</h4>
-            <Button
-              onClick={clearRecentSearches}
-              variant="ghost"
-              size="sm"
-              className="text-gray-500 hover:text-gray-700"
-            >
-              Effacer
-            </Button>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {recentSearches.map((search, index) => (
-              <button
-                key={index}
-                onClick={() => {
-                  setSearchQuery(search);
-                  handleFetchActivities(search);
-                }}
-                className="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:border-blue-400 hover:bg-blue-50 text-sm text-gray-700 hover:text-blue-700 transition-colors"
-              >
-                {search}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Search Results - Regular GYG Search */}
-      {activeSearch && searchMode === 'gyg' && (
-        <div className="bg-white border border-gray-200 rounded-lg p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h4 className="text-lg font-semibold text-gray-800">
-              Résultats GetYourGuide pour "{activeSearch}"
-            </h4>
-            {searchResults && (
-              <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-                {searchOffers.length} activité{searchOffers.length > 1 ? 's' : ''}
-              </Badge>
-            )}
-          </div>
-
-          {isLoading && (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-8 h-8 animate-spin text-blue-600 mr-3" />
-              <span className="text-gray-600">
-                Scraping en temps réel depuis GetYourGuide... Cela peut prendre 5-10 secondes...
-              </span>
-            </div>
-          )}
-
-          {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-800">
-              <p className="font-semibold mb-1">Erreur de recherche</p>
-              <p className="text-sm">{getGYGErrorMessage(error)}</p>
-            </div>
-          )}
-
-          {!error && searchResults?.metadata.stale && (
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-amber-800">
-              <p className="font-semibold mb-1">Données vérifiées mais expirées</p>
-              <p className="text-sm">GetYourGuide est temporairement indisponible. Ces résultats proviennent du dernier cache vérifié.</p>
-            </div>
-          )}
-
-          {!isLoading && !error && searchResults && searchOffers.length === 0 && (
-            <div className="text-center py-12 text-gray-500">
-              <p className="mb-2">Aucun résultat trouvé pour "{activeSearch}"</p>
-              <p className="text-sm">
-                Essayez un autre terme de recherche.
-              </p>
-            </div>
-          )}
-
-          {!isLoading && !error && searchResults && searchOffers.length > 0 && (
+      {/* Details drawer */}
+      <Sheet open={!!selectedActivityId} onOpenChange={(open) => !open && setSelectedActivityId(null)}>
+        <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
+          {selectedRow && (
             <>
-              <div className="mb-4 flex items-center justify-between bg-blue-50 p-3 rounded-lg border border-blue-200">
-                <div className="flex items-center gap-2">
-                  <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-                    {searchOffers.length} résultat{searchOffers.length > 1 ? 's' : ''} trouvé{searchOffers.length > 1 ? 's' : ''}
-                  </Badge>
-                  <span className="text-sm text-gray-600">
-                    Cliquez sur une carte pour voir sur GetYourGuide
-                  </span>
-                </div>
-                <Button
-                  onClick={() => handleGYGSearch(activeSearch)}
-                  variant="outline"
-                  size="sm"
-                  className="bg-green-50 hover:bg-green-100 border-green-300 text-green-700"
-                >
-                  <ExternalLink className="w-4 h-4 mr-2" />
-                  Voir tous sur GetYourGuide
-                </Button>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {searchOffers.map((activity) => (
-                  <Card
-                    key={activity.id}
-                    className="hover:shadow-lg transition-shadow cursor-pointer overflow-hidden"
-                    onClick={() => activity.url && window.open(activity.url, '_blank', 'noopener,noreferrer')}
-                  >
-                    {activity.image && (
-                      <div className="relative h-40 bg-gray-200 overflow-hidden">
-                        <img
-                          src={activity.image}
-                          alt={activity.title}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).style.display = 'none';
-                          }}
-                        />
-                        <div className="absolute top-2 right-2">
-                          <Badge className={activity.verified ? (activity.stale ? 'bg-amber-600 text-white' : 'bg-blue-600 text-white') : 'bg-slate-600 text-white'}>
-                            {trustLabel[activity.sourceType]}
-                          </Badge>
-                        </div>
-                      </div>
+              <SheetHeader>
+                <SheetTitle>{selectedRow.myActivity.name}</SheetTitle>
+                <SheetDescription asChild>
+                  <div className="space-y-1 text-sm text-gray-600">
+                    <div>Our price: <span className="font-medium text-gray-900">{formatMAD(selectedRow.ourPrice)}</span></div>
+                    <div>
+                      Verified market median:{' '}
+                      <span className="font-medium text-gray-900">
+                        {selectedRow.metrics.medianVerifiedPrice != null ? formatMAD(selectedRow.metrics.medianVerifiedPrice) : 'No verified comparable market price'}
+                      </span>
+                    </div>
+                    {selectedRow.diff && (
+                      <div>Difference: <span className="font-medium text-gray-900">{formatDiffMAD(selectedRow.diff)} ({formatDiffPercent(selectedRow.diff)})</span></div>
                     )}
-                    <CardContent className="p-4">
-                      <h5 className="font-semibold text-gray-900 mb-2 line-clamp-2 h-12">
-                        {activity.title}
-                      </h5>
-                      <p className={`mb-2 text-xs ${activity.verified ? (activity.stale ? 'text-amber-700' : 'text-green-700') : 'text-slate-500'}`}>
-                        {activity.stale
-                          ? 'Résultat vérifié expiré — ne pas utiliser comme prix actuel.'
-                          : activity.verified
-                            ? 'Source GetYourGuide vérifiée.'
-                            : 'Référence non vérifiée — ne pas utiliser comme prix de marché vérifié.'}
-                      </p>
-                      {formatFetchedAt(activity.fetchedAt) && (
-                        <p className="mb-2 text-xs text-slate-500">Vérifié le: {formatFetchedAt(activity.fetchedAt)}</p>
-                      )}
-                      
-                      <div className="space-y-2 mb-3">
-                        {activity.rating && (
-                          <div className="flex items-center gap-1 text-sm text-gray-600">
-                            <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                            <span className="font-medium">{activity.rating}</span>
-                            {activity.reviewCount && (
-                              <span className="text-gray-500">({activity.reviewCount.toLocaleString()} avis)</span>
-                            )}
-                          </div>
+                    <div>Last checked: {formatFetchedAt(selectedRow.lastChecked) ?? 'Never'}</div>
+                  </div>
+                </SheetDescription>
+              </SheetHeader>
+
+              <div className="mt-4 flex items-center justify-between">
+                <h4 className="text-sm font-semibold text-gray-700">
+                  Comparable GetYourGuide offers ({selectedRow.gygMatches.length})
+                </h4>
+                {canForceLiveRefresh && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-xs"
+                    disabled={forceRefreshMutation.isPending}
+                    onClick={() => forceRefreshMutation.mutate(selectedRow.myActivity.id)}
+                  >
+                    <RefreshCw className={`w-3 h-3 mr-1 ${forceRefreshMutation.isPending ? 'animate-spin' : ''}`} />
+                    Force Live Refresh
+                  </Button>
+                )}
+              </div>
+
+              {selectedRow.message && (
+                <div className="mt-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded p-2">
+                  {selectedRow.message}
+                </div>
+              )}
+
+              {selectedRow.gygMatches.length === 0 && !selectedRow.message && (
+                <p className="mt-3 text-sm text-gray-500">No verified comparable GetYourGuide offers are currently available.</p>
+              )}
+
+              <div className="mt-3 space-y-3">
+                {selectedRow.gygMatches.map((offer) => (
+                  <Card key={offer.id} className="overflow-hidden">
+                    <CardContent className="p-4 space-y-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <h5 className="font-semibold text-sm text-gray-900">{offer.title}</h5>
+                        {offer.url && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-xs shrink-0"
+                            onClick={() => window.open(offer.url!, '_blank', 'noopener,noreferrer')}
+                          >
+                            <ExternalLink className="w-3 h-3 mr-1" /> Open on GetYourGuide
+                          </Button>
                         )}
-                        
-                        <div className="flex items-center gap-4 text-sm text-gray-600">
-                          {activity.duration && (
-                            <div className="flex items-center gap-1">
-                              <Clock className="w-4 h-4" />
-                              <span>{activity.duration}</span>
-                            </div>
-                          )}
-                          {activity.location && (
-                            <div className="flex items-center gap-1">
-                              <MapPin className="w-4 h-4" />
-                              <span className="truncate">{activity.location}</span>
-                            </div>
-                          )}
-                        </div>
                       </div>
 
-                      <div className="flex items-center justify-between pt-3 border-t border-gray-200">
-                        <div>
-                          <div className="flex items-baseline gap-2">
-                            <span className="text-2xl font-bold text-blue-600">
-                              {activity.price} {activity.currency}
-                            </span>
-                            <span className="text-xs text-gray-500">per person</span>
-                          </div>
-                        </div>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (activity.url) window.open(activity.url, '_blank', 'noopener,noreferrer');
-                          }}
-                          className="border-blue-300 text-blue-600 hover:bg-blue-50"
-                        >
-                          <ExternalLink className="w-3 h-3 mr-1" />
-                          Voir
-                        </Button>
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-lg font-bold text-blue-600">{offer.price} {offer.currency}</span>
+                        {typeof offer.rating === 'number' && (
+                          <span className="flex items-center gap-1 text-xs text-gray-600">
+                            <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" /> {offer.rating}
+                            {typeof offer.reviewCount === 'number' && <span>({offer.reviewCount.toLocaleString()} reviews)</span>}
+                          </span>
+                        )}
                       </div>
+
+                      <div className="flex items-center gap-3 text-xs text-gray-600">
+                        {offer.duration && <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{offer.duration}</span>}
+                        {offer.location && <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{offer.location}</span>}
+                      </div>
+
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Badge className={trustBadgeClass[offer.sourceType]}>{trustLabel[offer.sourceType]}</Badge>
+                        {offer.validationState && <MatchBadge state={offer.validationState} score={offer.matchScore} />}
+                        {offer.manualOverride && (
+                          <Badge variant="outline" className="text-[10px]">
+                            Manual: {offer.manualOverride.decision === 'ACCEPTED' ? 'Accepted' : 'Rejected'}
+                          </Badge>
+                        )}
+                        {!offer.manualOverride && <Badge variant="outline" className="text-[10px] text-gray-500">Automatic</Badge>}
+                      </div>
+
+                      {offer.matchReasons.length > 0 && (
+                        <ul className="text-[11px] text-gray-500 list-disc list-inside space-y-0.5">
+                          {offer.matchReasons.map((reason, idx) => <li key={idx}>{reason}</li>)}
+                        </ul>
+                      )}
+
+                      {formatFetchedAt(offer.fetchedAt) && (
+                        <p className="text-[11px] text-slate-500">Checked: {formatFetchedAt(offer.fetchedAt)}</p>
+                      )}
+
+                      {/* Superadmin-only override controls (§7). Admin sees the
+                          state above, read-only — no buttons rendered for Admin.
+                          The server enforces this independently (requireSuperAdmin
+                          on both endpoints), so this is a convenience, not the
+                          security boundary. */}
+                      {canForceLiveRefresh && offer.ourActivityId && offer.matchedExternalId && (
+                        <div className="flex gap-1 pt-1">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={matchOverrideMutation.isPending}
+                            className="h-6 px-2 text-[11px] border-green-300 text-green-700 hover:bg-green-50"
+                            onClick={() => matchOverrideMutation.mutate({
+                              ourActivityId: offer.ourActivityId!,
+                              matchedExternalId: offer.matchedExternalId!,
+                              decision: 'ACCEPTED',
+                              automaticValidationState: offer.validationState,
+                              automaticMatchScore: offer.matchScore,
+                            })}
+                          >
+                            Accept
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={matchOverrideMutation.isPending}
+                            className="h-6 px-2 text-[11px] border-red-300 text-red-700 hover:bg-red-50"
+                            onClick={() => matchOverrideMutation.mutate({
+                              ourActivityId: offer.ourActivityId!,
+                              matchedExternalId: offer.matchedExternalId!,
+                              decision: 'REJECTED',
+                              automaticValidationState: offer.validationState,
+                              automaticMatchScore: offer.matchScore,
+                            })}
+                          >
+                            Reject
+                          </Button>
+                          {offer.manualOverride && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              disabled={clearOverrideMutation.isPending}
+                              className="h-6 px-2 text-[11px] text-gray-500 hover:text-gray-700"
+                              onClick={() => clearOverrideMutation.mutate({
+                                ourActivityId: offer.ourActivityId!,
+                                matchedExternalId: offer.matchedExternalId!,
+                              })}
+                            >
+                              Clear override
+                            </Button>
+                          )}
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 ))}
               </div>
             </>
           )}
-        </div>
-      )}
+        </SheetContent>
+      </Sheet>
 
-      {/* Search Results - My Activities vs GetYourGuide */}
-      {searchMode === 'my-activities' && (
-        <div className="bg-white border border-gray-200 rounded-lg p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h4 className="text-lg font-semibold text-gray-800">
-              Comparaison: Mes Activités vs GetYourGuide
-            </h4>
-            {myActivitiesResults && (
-              <Badge variant="secondary" className="bg-green-100 text-green-800">
-                {myActivitiesResults.length} activité{myActivitiesResults.length > 1 ? 's' : ''} avec correspondances
-              </Badge>
-            )}
-          </div>
+      <Separator />
 
-          {isLoadingMyActivities && (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-8 h-8 animate-spin text-green-600 mr-3" />
-              <span className="text-gray-600">
-                Recherche des correspondances GetYourGuide pour vos activités...
-              </span>
-            </div>
-          )}
+      {/* ============================================================ */}
+      {/* SECONDARY: manual GetYourGuide search (Phase 3D-2 §12)         */}
+      {/* ============================================================ */}
+      <div>
+        <button
+          onClick={() => setShowManualSearch((v) => !v)}
+          className="flex items-center gap-1 text-sm font-medium text-gray-600 hover:text-gray-800"
+        >
+          {showManualSearch ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          Secondary tool: manual GetYourGuide search
+        </button>
 
-          {errorMyActivities && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-800">
-              <p className="font-semibold mb-1">Erreur de recherche</p>
-              <p className="text-sm">{getGYGErrorMessage(errorMyActivities)}</p>
-            </div>
-          )}
+        {showManualSearch && (
+          <div className="mt-4 space-y-6">
+            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <Search className="w-6 h-6 text-blue-600" />
+                <h3 className="text-xl font-semibold text-blue-800">Rechercher sur GetYourGuide</h3>
+              </div>
 
-          {!isLoadingMyActivities && !errorMyActivities && myActivitiesResults && myActivitiesResults.length === 0 && (
-            <div className="text-center py-12 text-gray-500">
-              <p className="mb-2">Aucune correspondance trouvée sur GetYourGuide</p>
-              <p className="text-sm">
-                Vos activités ne correspondent à aucune activité trouvée sur GetYourGuide pour le moment.
+              <p className="text-sm text-blue-700 mb-6">
+                Recherchez des activités sur GetYourGuide pour comparer les prix et obtenir des idées de tarification pour vos propres activités.
               </p>
+
+              <div className="flex gap-2 mb-4">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <Input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyPress={handleKeyPress}
+                    placeholder="Ex: Hot Air Balloon, Desert Tour, Cooking Class..."
+                    className="pl-10 h-11 bg-white"
+                  />
+                </div>
+                <Button
+                  onClick={() => handleFetchActivities()}
+                  disabled={!searchQuery.trim() || searchQuery.trim().length < 3}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-6 h-11"
+                >
+                  {isLoading && activeSearch === searchQuery ? (
+                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Scraping GetYourGuide...</>
+                  ) : (
+                    <><Search className="w-4 h-4 mr-2" />Chercher ici</>
+                  )}
+                </Button>
+                {canForceLiveRefresh ? (
+                  <Button
+                    onClick={() => handleFetchActivities(undefined, true)}
+                    disabled={!searchQuery.trim() || searchQuery.trim().length < 3}
+                    variant="outline"
+                    className="bg-purple-50 hover:bg-purple-100 border-purple-300 text-purple-700 px-4 h-11"
+                    title="Forcer le scraping en temps réel (ignorer le cache)"
+                  >
+                    🔄 Force Live
+                  </Button>
+                ) : null}
+                <Button
+                  onClick={() => handleFetchActivities(undefined, false, true)}
+                  disabled={!searchQuery.trim() || searchQuery.trim().length < 3}
+                  variant="outline"
+                  className="bg-green-50 hover:bg-green-100 border-green-300 text-green-700 px-4 h-11"
+                  title="Ouvrir GetYourGuide dans un nouvel onglet avec cette recherche"
+                >
+                  <ExternalLink className="w-4 h-4 mr-1" />
+                  Ouvrir GYG
+                </Button>
+                <Button
+                  onClick={() => handleGYGSearch()}
+                  variant="outline"
+                  className="bg-white hover:bg-gray-50 border-gray-300 px-4 h-11"
+                  title="Ouvrir GetYourGuide dans un nouvel onglet"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                </Button>
+              </div>
+
+              <div className="flex gap-2">
+                <Button onClick={handleGYGMorocco} variant="outline" className="bg-white hover:bg-green-50 border-green-300">
+                  <Globe className="w-4 h-4 mr-2" />
+                  🇲🇦 Voir Maroc
+                </Button>
+                <Button onClick={() => handleGYGSearch('morocco activities')} variant="outline" className="bg-white hover:bg-indigo-50">
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  Toutes les activités
+                </Button>
+              </div>
             </div>
-          )}
 
-          {!isLoadingMyActivities && !errorMyActivities && myActivitiesResults && myActivitiesResults.length > 0 && (
-            <div className="space-y-6">
-              {myActivitiesResults.map((item) => (
-                <Card key={item.myActivity.id} className="border-2 border-green-200">
-                  <CardContent className="p-6">
-                    {/* Your Activity */}
-                    <div className="mb-4 pb-4 border-b border-gray-200">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h5 className="text-lg font-bold text-gray-900 mb-1">
-                            {item.myActivity.name}
-                          </h5>
-                          <div className="flex items-center gap-4 text-sm text-gray-600">
-                            {item.myActivity.category && (
-                              <Badge variant="outline">{item.myActivity.category}</Badge>
-                            )}
-                            <span className="font-semibold text-green-600">
-                              Votre prix: {item.myActivity.price} MAD
-                            </span>
-                          </div>
-                        </div>
+            <div className="bg-white border border-gray-200 rounded-lg p-6">
+              <h4 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-purple-600" />
+                Recherches populaires
+              </h4>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {POPULAR_SEARCHES.map((item, index) => (
+                  <button
+                    key={index}
+                    onClick={() => { setSearchQuery(item.query); handleFetchActivities(item.query); }}
+                    className="flex flex-col items-center justify-center p-4 border border-gray-200 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition-all group"
+                    title={`Rechercher "${item.query}" sur GetYourGuide`}
+                  >
+                    <span className="text-2xl mb-2 group-hover:scale-110 transition-transform">{item.icon}</span>
+                    <span className="text-sm font-medium text-gray-700 group-hover:text-blue-700">{item.name}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {recentSearches.length > 0 && (
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="text-lg font-semibold text-gray-800">Recherches récentes</h4>
+                  <Button onClick={clearRecentSearches} variant="ghost" size="sm" className="text-gray-500 hover:text-gray-700">
+                    Effacer
+                  </Button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {recentSearches.map((search, index) => (
+                    <button
+                      key={index}
+                      onClick={() => { setSearchQuery(search); handleFetchActivities(search); }}
+                      className="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:border-blue-400 hover:bg-blue-50 text-sm text-gray-700 hover:text-blue-700 transition-colors"
+                    >
+                      {search}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {activeSearch && (
+              <div className="bg-white border border-gray-200 rounded-lg p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="text-lg font-semibold text-gray-800">Résultats GetYourGuide pour "{activeSearch}"</h4>
+                  {searchResults && (
+                    <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                      {searchOffers.length} activité{searchOffers.length > 1 ? 's' : ''}
+                    </Badge>
+                  )}
+                </div>
+
+                {isLoading && (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="w-8 h-8 animate-spin text-blue-600 mr-3" />
+                    <span className="text-gray-600">Scraping en temps réel depuis GetYourGuide... Cela peut prendre 5-10 secondes...</span>
+                  </div>
+                )}
+
+                {error && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-800">
+                    <p className="font-semibold mb-1">Erreur de recherche</p>
+                    <p className="text-sm">{getGYGErrorMessage(error)}</p>
+                  </div>
+                )}
+
+                {!error && searchResults?.metadata.stale && (
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-amber-800">
+                    <p className="font-semibold mb-1">Données vérifiées mais expirées</p>
+                    <p className="text-sm">GetYourGuide est temporairement indisponible. Ces résultats proviennent du dernier cache vérifié.</p>
+                  </div>
+                )}
+
+                {!isLoading && !error && searchResults && searchOffers.length === 0 && (
+                  <div className="text-center py-12 text-gray-500">
+                    <p className="mb-2">Aucun résultat trouvé pour "{activeSearch}"</p>
+                    <p className="text-sm">Essayez un autre terme de recherche.</p>
+                  </div>
+                )}
+
+                {!isLoading && !error && searchResults && searchOffers.length > 0 && (
+                  <>
+                    <div className="mb-4 flex items-center justify-between bg-blue-50 p-3 rounded-lg border border-blue-200">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                          {searchOffers.length} résultat{searchOffers.length > 1 ? 's' : ''} trouvé{searchOffers.length > 1 ? 's' : ''}
+                        </Badge>
+                        <span className="text-sm text-gray-600">Cliquez sur une carte pour voir sur GetYourGuide</span>
                       </div>
+                      <Button
+                        onClick={() => handleGYGSearch(activeSearch)}
+                        variant="outline"
+                        size="sm"
+                        className="bg-green-50 hover:bg-green-100 border-green-300 text-green-700"
+                      >
+                        <ExternalLink className="w-4 h-4 mr-2" />
+                        Voir tous sur GetYourGuide
+                      </Button>
                     </div>
-
-                    {/* GetYourGuide Matches */}
-                    <div>
-                      <h6 className="text-sm font-semibold text-gray-700 mb-3">
-                        Correspondances GetYourGuide ({item.gygMatches.length})
-                      </h6>
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {item.gygMatches.map((gygActivity) => {
-                          const myPrice = Number(item.myActivity.price);
-                          const gygPrice = gygActivity.price;
-                          const priceDiff = myPrice - gygPrice;
-                          const priceDiffPercent = gygPrice > 0 ? Math.round((priceDiff / gygPrice) * 100) : 0;
-
-                          return (
-                            <Card
-                              key={gygActivity.id}
-                              className="hover:shadow-md transition-shadow cursor-pointer overflow-hidden border-blue-200"
-                              onClick={() => gygActivity.url && window.open(gygActivity.url, '_blank', 'noopener,noreferrer')}
-                            >
-                              {gygActivity.image && (
-                                <div className="relative h-32 bg-gray-200 overflow-hidden">
-                                  <img
-                                    src={gygActivity.image}
-                                    alt={gygActivity.title}
-                                    className="w-full h-full object-cover"
-                                    onError={(e) => {
-                                      (e.target as HTMLImageElement).style.display = 'none';
-                                    }}
-                                  />
-                                  <Badge className={gygActivity.stale ? 'absolute top-2 right-2 bg-amber-600 text-white' : 'absolute top-2 right-2 bg-blue-600 text-white'}>
-                                    {trustLabel[gygActivity.sourceType]}
-                                  </Badge>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {searchOffers.map((activity) => (
+                        <Card
+                          key={activity.id}
+                          className="hover:shadow-lg transition-shadow cursor-pointer overflow-hidden"
+                          onClick={() => activity.url && window.open(activity.url, '_blank', 'noopener,noreferrer')}
+                        >
+                          {activity.image && (
+                            <div className="relative h-40 bg-gray-200 overflow-hidden">
+                              <img
+                                src={activity.image}
+                                alt={activity.title}
+                                className="w-full h-full object-cover"
+                                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                              />
+                              <div className="absolute top-2 right-2">
+                                <Badge className={activity.verified ? (activity.stale ? 'bg-amber-600 text-white' : 'bg-blue-600 text-white') : 'bg-slate-600 text-white'}>
+                                  {trustLabel[activity.sourceType]}
+                                </Badge>
+                              </div>
+                            </div>
+                          )}
+                          <CardContent className="p-4">
+                            <h5 className="font-semibold text-gray-900 mb-2 line-clamp-2 h-12">{activity.title}</h5>
+                            <p className={`mb-2 text-xs ${activity.verified ? (activity.stale ? 'text-amber-700' : 'text-green-700') : 'text-slate-500'}`}>
+                              {activity.stale
+                                ? 'Résultat vérifié expiré — ne pas utiliser comme prix actuel.'
+                                : activity.verified
+                                  ? 'Source GetYourGuide vérifiée.'
+                                  : 'Référence non vérifiée — ne pas utiliser comme prix de marché vérifié.'}
+                            </p>
+                            {formatFetchedAt(activity.fetchedAt) && (
+                              <p className="mb-2 text-xs text-slate-500">Vérifié le: {formatFetchedAt(activity.fetchedAt)}</p>
+                            )}
+                            <div className="space-y-2 mb-3">
+                              {activity.rating && (
+                                <div className="flex items-center gap-1 text-sm text-gray-600">
+                                  <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                                  <span className="font-medium">{activity.rating}</span>
+                                  {activity.reviewCount && <span className="text-gray-500">({activity.reviewCount.toLocaleString()} avis)</span>}
                                 </div>
                               )}
-                              <CardContent className="p-4">
-                                <h6 className="font-semibold text-sm text-gray-900 mb-2 line-clamp-2 h-10">
-                                  {gygActivity.title}
-                                </h6>
-                                {formatFetchedAt(gygActivity.fetchedAt) && (
-                                  <p className="mb-2 text-xs text-slate-500">Vérifié le: {formatFetchedAt(gygActivity.fetchedAt)}</p>
+                              <div className="flex items-center gap-4 text-sm text-gray-600">
+                                {activity.duration && (
+                                  <div className="flex items-center gap-1"><Clock className="w-4 h-4" /><span>{activity.duration}</span></div>
                                 )}
-
-                                {/* Comparability match state (Phase 3D-1) — separate from source
-                                    trust above: a verified offer can still be a poor comparable. */}
-                                {gygActivity.validationState && (
-                                  <div className="mb-2">
-                                    <div className="flex items-center gap-2 flex-wrap">
-                                      <Badge className={validationStateBadgeClass[gygActivity.validationState]}>
-                                        {validationStateLabel[gygActivity.validationState]}
-                                        {typeof gygActivity.matchScore === 'number' ? ` (${gygActivity.matchScore})` : ''}
-                                      </Badge>
-                                      {gygActivity.manualOverride && (
-                                        <Badge variant="outline" className="text-[10px]">
-                                          {gygActivity.manualOverride.decision === 'ACCEPTED' ? 'Validé manuellement' : 'Rejeté manuellement'}
-                                        </Badge>
-                                      )}
-                                    </div>
-                                    {gygActivity.matchReasons && gygActivity.matchReasons.length > 0 && (
-                                      <ul className="mt-1 text-[11px] text-gray-500 list-disc list-inside space-y-0.5">
-                                        {gygActivity.matchReasons.slice(0, 3).map((reason, idx) => (
-                                          <li key={idx}>{reason}</li>
-                                        ))}
-                                      </ul>
-                                    )}
-                                    {canForceLiveRefresh && gygActivity.ourActivityId && gygActivity.matchedExternalId && (
-                                      <div className="mt-2 flex gap-1" onClick={(e) => e.stopPropagation()}>
-                                        <Button
-                                          size="sm"
-                                          variant="outline"
-                                          disabled={matchOverrideMutation.isPending}
-                                          className="h-6 px-2 text-[11px] border-green-300 text-green-700 hover:bg-green-50"
-                                          onClick={() => matchOverrideMutation.mutate({
-                                            ourActivityId: gygActivity.ourActivityId!,
-                                            matchedExternalId: gygActivity.matchedExternalId!,
-                                            decision: 'ACCEPTED',
-                                            automaticValidationState: gygActivity.validationState,
-                                            automaticMatchScore: gygActivity.matchScore,
-                                          })}
-                                        >
-                                          Accepter
-                                        </Button>
-                                        <Button
-                                          size="sm"
-                                          variant="outline"
-                                          disabled={matchOverrideMutation.isPending}
-                                          className="h-6 px-2 text-[11px] border-red-300 text-red-700 hover:bg-red-50"
-                                          onClick={() => matchOverrideMutation.mutate({
-                                            ourActivityId: gygActivity.ourActivityId!,
-                                            matchedExternalId: gygActivity.matchedExternalId!,
-                                            decision: 'REJECTED',
-                                            automaticValidationState: gygActivity.validationState,
-                                            automaticMatchScore: gygActivity.matchScore,
-                                          })}
-                                        >
-                                          Rejeter
-                                        </Button>
-                                      </div>
-                                    )}
-                                  </div>
+                                {activity.location && (
+                                  <div className="flex items-center gap-1"><MapPin className="w-4 h-4" /><span className="truncate">{activity.location}</span></div>
                                 )}
-
-                                <div className="space-y-2 mb-3">
-                                  {gygActivity.rating && (
-                                    <div className="flex items-center gap-1 text-xs text-gray-600">
-                                      <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
-                                      <span>{gygActivity.rating}</span>
-                                      {gygActivity.reviewCount && (
-                                        <span>({gygActivity.reviewCount.toLocaleString()})</span>
-                                      )}
-                                    </div>
-                                  )}
-                                </div>
-
-                                <div className="pt-3 border-t border-gray-200">
-                                  <div className="flex items-baseline gap-2 mb-1">
-                                    <span className="text-xl font-bold text-blue-600">
-                                      {gygPrice} {gygActivity.currency}
-                                    </span>
-                                  </div>
-                                  <div className="flex items-center justify-between">
-                                    <div className="text-xs">
-                                      {priceDiff !== 0 && (
-                                        <span className={`font-medium ${
-                                          priceDiff > 0 ? 'text-red-600' : 'text-green-600'
-                                        }`}>
-                                          {priceDiff > 0 ? '+' : ''}{priceDiff} MAD ({priceDiffPercent > 0 ? '+' : ''}{priceDiffPercent}%)
-                                        </span>
-                                      )}
-                                      {priceDiff === 0 && (
-                                        <span className="text-gray-500">Même prix</span>
-                                      )}
-                                    </div>
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        if (gygActivity.url) window.open(gygActivity.url, '_blank', 'noopener,noreferrer');
-                                      }}
-                                      className="h-7 text-xs border-blue-300 text-blue-600 hover:bg-blue-50"
-                                    >
-                                      Voir
-                                    </Button>
-                                  </div>
-                                </div>
-                              </CardContent>
-                            </Card>
-                          );
-                        })}
-                      </div>
+                              </div>
+                            </div>
+                            <div className="flex items-center justify-between pt-3 border-t border-gray-200">
+                              <div className="flex items-baseline gap-2">
+                                <span className="text-2xl font-bold text-blue-600">{activity.price} {activity.currency}</span>
+                                <span className="text-xs text-gray-500">per person</span>
+                              </div>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={(e) => { e.stopPropagation(); if (activity.url) window.open(activity.url, '_blank', 'noopener,noreferrer'); }}
+                                className="border-blue-300 text-blue-600 hover:bg-blue-50"
+                              >
+                                <ExternalLink className="w-3 h-3 mr-1" />
+                                Voir
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* Info Tip */}
       <div className="bg-blue-100 border border-blue-200 rounded-lg p-4">
         <p className="text-sm text-blue-800">
-          💡 <strong>Astuce:</strong> Les recherches normales utilisent les références disponibles. Le rafraîchissement en direct est réservé aux Superadmins.
+          💡 <strong>Astuce:</strong> Le tableau de comparaison utilise des données mises en cache. Le rafraîchissement en direct (par activité) est réservé aux Superadmins.
         </p>
       </div>
     </div>

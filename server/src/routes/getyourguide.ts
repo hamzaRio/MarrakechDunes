@@ -16,9 +16,13 @@ const router = Router();
 const isTrueQueryValue = (value: unknown) =>
   value === 'true' || value === '1' || value === true;
 
+// Phase 3D-2: viewing the cache-first my-activities comparison workspace is
+// an Admin-level action; only an explicit live scrape (forceRefresh=true) is
+// Superadmin-only. Gating on useMyActivities alone (the old behavior) made
+// the whole workspace Superadmin-only, which contradicts "Admin may view the
+// comparison workspace but cannot force live refresh."
 const requireSuperAdminForLiveRefresh = (req: Request, res: Response, next: NextFunction) => {
-  const requiresLiveRefresh = isTrueQueryValue(req.query.forceRefresh) || isTrueQueryValue(req.query.useMyActivities);
-  if (!requiresLiveRefresh) {
+  if (!isTrueQueryValue(req.query.forceRefresh)) {
     return next();
   }
 
@@ -103,6 +107,173 @@ async function attachMatchingToOffers(myActivity: any, rawOffers: any[]): Promis
   }));
 }
 
+// Phase 3D-2 cache-first comparison storage. Reuses the existing GYGCache
+// model (no new collection) keyed by a namespaced pseudo-query so it never
+// collides with a real search term, and never bypasses its TTL index.
+const ACTIVITY_COMPARISON_TTL_MS = 24 * 60 * 60 * 1000;
+const activityCacheKey = (ourActivityId: string) => `activity:${ourActivityId}`;
+
+async function loadCachedComparison(ourActivityId: string): Promise<{ offers: any[]; fetchedAt: Date | null; expiresAt: Date | null; fresh: boolean } | null> {
+  if (!ourActivityId) return null;
+  try {
+    const doc = await GYGCache.findOne({ normalizedQuery: activityCacheKey(ourActivityId) });
+    if (!doc || !Array.isArray(doc.results) || doc.results.length === 0) return null;
+    const expiresAt = doc.expiresAt ?? null;
+    return {
+      offers: doc.results,
+      fetchedAt: doc.fetchedAt ?? doc.lastFetched ?? null,
+      expiresAt,
+      fresh: !!expiresAt && expiresAt.getTime() > Date.now(),
+    };
+  } catch (err: any) {
+    console.warn('[GYG Comparison] Failed to load cached comparison:', err?.message);
+    return null;
+  }
+}
+
+async function saveCachedComparison(ourActivityId: string, activityName: string, offers: any[], fetchedAt: Date): Promise<void> {
+  if (!ourActivityId) return;
+  try {
+    const expiresAt = new Date(fetchedAt.getTime() + ACTIVITY_COMPARISON_TTL_MS);
+    await GYGCache.findOneAndUpdate(
+      { normalizedQuery: activityCacheKey(ourActivityId) },
+      {
+        query: activityName,
+        normalizedQuery: activityCacheKey(ourActivityId),
+        results: offers,
+        source: 'getyourguide-scraped',
+        ourActivityId,
+        sourceType: 'LIVE_VERIFIED',
+        verified: true,
+        stale: false,
+        fetchedAt,
+        resultCount: offers.length,
+        searchTime: 0,
+        lastFetched: fetchedAt,
+        expiresAt,
+      },
+      { upsert: true, new: true },
+    );
+  } catch (err: any) {
+    console.warn('[GYG Comparison] Failed to cache comparison:', err?.message);
+  }
+}
+
+async function withOverridesReattached(ourActivityId: string, offers: any[]): Promise<any[]> {
+  const overridesById = await loadMatchOverrides(ourActivityId);
+  return offers.map((offer: any) => ({
+    ...offer,
+    manualOverride: overridesById.get(String(offer.matchedExternalId ?? offer.id)) ?? null,
+  }));
+}
+
+interface ActivityComparisonResult {
+  gygMatches: any[];
+  metrics: ReturnType<typeof calculateVerifiedMetrics>;
+  dataStatus: 'fresh' | 'stale' | 'none' | 'unavailable';
+  message?: string;
+}
+
+/**
+ * Cache-first, per-activity comparison (Phase 3D-2 §9). A normal read never
+ * calls GetYourGuide — it only ever reads GYGCache. Only forceRefresh=true
+ * (Superadmin-gated at the route) performs a live, resilience-protected
+ * scrape, and a failed live scrape falls back to the last verified cache
+ * entry re-labeled STALE_VERIFIED, exactly like the generic /search route.
+ */
+async function getActivityComparison(myActivity: any, forceRefresh: boolean): Promise<ActivityComparisonResult> {
+  const ourActivityId = String(myActivity._id || myActivity.id || '');
+  const cached = await loadCachedComparison(ourActivityId);
+
+  if (!forceRefresh) {
+    if (cached && cached.fresh) {
+      const offers = await withOverridesReattached(ourActivityId, cached.offers);
+      const comparison = comparisonResponse(offers, 'CACHED_VERIFIED', cached.fetchedAt, cached.expiresAt);
+      return { gygMatches: comparison.offers, metrics: comparison.metrics, dataStatus: 'fresh' };
+    }
+    if (cached) {
+      // Expired but present: show it as stale rather than silently scraping.
+      const offers = await withOverridesReattached(ourActivityId, cached.offers);
+      const comparison = comparisonResponse(offers, 'STALE_VERIFIED', cached.fetchedAt, cached.expiresAt);
+      return { gygMatches: comparison.offers, metrics: comparison.metrics, dataStatus: 'stale' };
+    }
+    return {
+      gygMatches: [],
+      metrics: calculateVerifiedMetrics([]),
+      dataStatus: 'none',
+      message: 'No verified comparable GetYourGuide offers are currently available.',
+    };
+  }
+
+  // forceRefresh === true from here on (Superadmin-only, rate-limited,
+  // single-flight and circuit-breaker protected via gygResilience.run).
+  try {
+    console.log(`[GYG Comparison] Force live refresh for "${myActivity.name}"...`);
+    const scraped = await gygResilience.run(
+      gygRequestKey('activity', ourActivityId || myActivity.name),
+      () => GYGFetcher.searchActivities(myActivity.name),
+    );
+
+    if (scraped.length > 0) {
+      const rawOffers = scraped.map((a: GYGActivity) => ({
+        id: a.id,
+        title: a.title,
+        price: a.price || 0,
+        currency: a.currency || 'MAD',
+        url: a.link,
+        rating: a.rating,
+        reviewCount: a.reviewCount,
+        image: a.image,
+        duration: a.duration,
+        location: a.location,
+      }));
+      const scoredMatches = await attachMatchingToOffers(myActivity, rawOffers);
+      const fetchedAt = new Date();
+      const comparison = comparisonResponse(scoredMatches, 'LIVE_VERIFIED', fetchedAt, new Date(fetchedAt.getTime() + ACTIVITY_COMPARISON_TTL_MS));
+      await saveCachedComparison(ourActivityId, myActivity.name, comparison.offers, fetchedAt);
+      return { gygMatches: comparison.offers, metrics: comparison.metrics, dataStatus: 'fresh' };
+    }
+
+    if (cached) {
+      const offers = await withOverridesReattached(ourActivityId, cached.offers);
+      const comparison = comparisonResponse(offers, 'STALE_VERIFIED', cached.fetchedAt, cached.expiresAt);
+      return { gygMatches: comparison.offers, metrics: comparison.metrics, dataStatus: 'stale' };
+    }
+    return {
+      gygMatches: [],
+      metrics: calculateVerifiedMetrics([]),
+      dataStatus: 'none',
+      message: 'No verified comparable GetYourGuide offers are currently available.',
+    };
+  } catch (scrapeError: any) {
+    console.warn(`[GYG Comparison] Force live refresh failed for "${myActivity.name}":`, scrapeError.message);
+    if (cached) {
+      const offers = await withOverridesReattached(ourActivityId, cached.offers);
+      const comparison = comparisonResponse(offers, 'STALE_VERIFIED', cached.fetchedAt, cached.expiresAt);
+      return {
+        gygMatches: comparison.offers,
+        metrics: comparison.metrics,
+        dataStatus: 'stale',
+        message: 'Using previously verified GetYourGuide data. Live refresh is temporarily unavailable.',
+      };
+    }
+    if (isGYGServiceUnavailable(scrapeError) || circuitIsOpen()) {
+      return {
+        gygMatches: [],
+        metrics: calculateVerifiedMetrics([]),
+        dataStatus: 'unavailable',
+        message: 'Live GetYourGuide data is temporarily unavailable.',
+      };
+    }
+    return {
+      gygMatches: [],
+      metrics: calculateVerifiedMetrics([]),
+      dataStatus: 'unavailable',
+      message: 'Live GetYourGuide data is temporarily unavailable.',
+    };
+  }
+}
+
 const sendGYGUnavailable = (res: Response, error?: any) => {
   const diagnostics = gygResilience.getDiagnostics();
   const retryAfter = error?.retryAfterMs
@@ -165,128 +336,77 @@ interface GetYourGuideActivity {
  */
 router.get('/search', requireAdmin, requireSuperAdminForLiveRefresh, async (req: Request, res: Response) => {
   try {
-    const { q, forceRefresh, useMyActivities } = req.query;
+    const { q, forceRefresh, useMyActivities, activityId } = req.query;
     if (!consumeGYGRateLimit(req, res, 'cachedRead')) return;
 
-    const liveRefreshRequested = isTrueQueryValue(forceRefresh) || isTrueQueryValue(useMyActivities);
+    // Only an ACTUAL live scrape consumes the forceRefresh budget. A
+    // cache-first my-activities read (the normal workspace page load) never
+    // calls GetYourGuide, so it must not spend the same limited quota as a
+    // real live refresh — that was a real bug in the pre-3D-2 rate-limit
+    // accounting (useMyActivities alone used to consume this bucket).
+    const liveRefreshRequested = isTrueQueryValue(forceRefresh);
     if (liveRefreshRequested && !consumeGYGRateLimit(req, res, 'forceRefresh')) return;
-    
-    // If useMyActivities is true, search based on your own activities
+
+    // If useMyActivities is true, this is the Phase 3D-2 market-comparison
+    // workspace: cache-first, and only ever calls GetYourGuide when
+    // forceRefresh=true (Superadmin-gated by requireSuperAdminForLiveRefresh
+    // above, and rate-limited/circuit-protected via getActivityComparison).
     if (useMyActivities === 'true') {
       try {
         const { storage } = await import('../storage.js');
         const myActivities = await storage.getActivities();
-        
-        if (!q || q === '' || q === 'all') {
-          // Return all activities from your database with their GYG matches
-          const results: any[] = [];
-          
-          for (const myActivity of myActivities) {
-            try {
-              const { MoroccoDatabase } = await import('../utils/moroccoDatabase.js');
-              const { GYGFetcher } = await import('../utils/gygFetcher.js');
-              
-              // Search GYG for this activity
-              let gygMatches: any[] = [];
-              
-              // For comparison mode, SKIP MoroccoDatabase (mock data)
-              // Try live scraping from GetYourGuide ONLY
-              try {
-                console.log(`[GYG Comparison] Scraping GetYourGuide for "${myActivity.name}"...`);
-                const scraped = await gygResilience.run(
-                  gygRequestKey('activity', myActivity._id || myActivity.id || myActivity.name),
-                  () => GYGFetcher.searchActivities(myActivity.name),
-                );
-                if (scraped.length > 0) {
-                  gygMatches = scraped.map((a: GYGActivity) => ({
-                    id: a.id,
-                    title: a.title,
-                    price: a.price || 0,
-                    currency: a.currency || 'MAD',
-                    url: a.link,
-                    rating: a.rating,
-                    reviewCount: a.reviewCount,
-                    image: a.image,
-                    duration: a.duration,
-                    location: a.location,
-                  }));
-                  console.log(`[GYG Comparison] Found ${gygMatches.length} matches for "${myActivity.name}"`);
-                }
-              } catch (scrapeError: any) {
-                if (isGYGServiceUnavailable(scrapeError) || circuitIsOpen()) throw scrapeError;
-                // Scraping failed - log and continue without matches
-                console.warn(`[GYG Comparison] Scraping failed for "${myActivity.name}":`, scrapeError.message);
-                // Don't use MoroccoDatabase as fallback - user wants real GYG data
-              }
-              
-              if (gygMatches.length > 0) {
-                const scoredMatches = await attachMatchingToOffers(myActivity, gygMatches);
-                results.push({
-                  myActivity: {
-                    id: myActivity._id || myActivity.id,
-                    name: myActivity.name,
-                    price: myActivity.price,
-                    category: myActivity.category
-                  },
-                gygMatches: comparisonResponse(scoredMatches, 'LIVE_VERIFIED', new Date(), null).offers,
-                });
-              }
-            } catch (activityError) {
-              // Skip this activity if search fails
-              console.warn(`[GYG Search] Failed to search for "${myActivity.name}":`, activityError);
-            }
-          }
-          
+        const wantsForceRefresh = isTrueQueryValue(forceRefresh);
+        const targetActivityId = typeof activityId === 'string' && activityId ? activityId : null;
+
+        if (!targetActivityId && (!q || q === '' || q === 'all')) {
+          // Bulk summary for every activity — ONE request, cache-only reads,
+          // safe to call on every page load. Every activity gets a row, even
+          // with no cached data yet, so staff can see what hasn't been
+          // checked rather than have it silently disappear.
+          const results = await Promise.all(myActivities.map(async (myActivity: any) => {
+            const comparison = await getActivityComparison(myActivity, false);
+            return {
+              myActivity: {
+                id: myActivity._id || myActivity.id,
+                name: myActivity.name,
+                price: myActivity.price,
+                category: myActivity.category,
+              },
+              gygMatches: comparison.gygMatches,
+              metrics: comparison.metrics,
+              dataStatus: comparison.dataStatus,
+              message: comparison.message,
+            };
+          }));
+
           return res.json(results);
         } else {
-          // Search for a specific activity from your database
-          const myActivities = await storage.getActivities();
-          const matchingActivity = myActivities.find((a: any) => 
-            a.name.toLowerCase().includes((q as string).toLowerCase()) ||
-            (q as string).toLowerCase().includes(a.name.toLowerCase())
-          );
-          
+          // Single-activity lookup, used by the details drawer and by
+          // Force Live Refresh. Prefer an exact id match (activityId) over
+          // fuzzy name matching (q) so a refresh action always targets the
+          // intended activity.
+          const matchingActivity = targetActivityId
+            ? myActivities.find((a: any) => String(a._id || a.id) === targetActivityId)
+            : myActivities.find((a: any) =>
+                a.name.toLowerCase().includes((q as string).toLowerCase()) ||
+                (q as string).toLowerCase().includes(a.name.toLowerCase())
+              );
+
           if (!matchingActivity) {
             return res.status(404).json({
-              error: `Activity "${q}" not found in your database`
+              error: `Activity "${targetActivityId || q}" not found in your database`
             });
           }
-          
-          // Search GYG for this specific activity
-          const { MoroccoDatabase } = await import('../utils/moroccoDatabase.js');
-          const { GYGFetcher } = await import('../utils/gygFetcher.js');
-          
-          let gygMatches: any[] = [];
-          
-          // For comparison mode, SKIP MoroccoDatabase (mock data)
-          // Try live scraping from GetYourGuide ONLY
-          try {
-            console.log(`[GYG Comparison] Scraping GetYourGuide for "${matchingActivity.name}"...`);
-            const scraped = await gygResilience.run(
-              gygRequestKey('activity', matchingActivity._id || matchingActivity.id || matchingActivity.name),
-              () => GYGFetcher.searchActivities(matchingActivity.name),
-            );
-            gygMatches = scraped.map((a: GYGActivity) => ({
-              id: a.id,
-              title: a.title,
-              price: a.price || 0,
-              currency: a.currency || 'MAD',
-              url: a.link,
-              rating: a.rating,
-              reviewCount: a.reviewCount,
-              image: a.image,
-              duration: a.duration,
-              location: a.location,
-            }));
-            console.log(`[GYG Comparison] Found ${gygMatches.length} matches for "${matchingActivity.name}"`);
-          } catch (scrapeError: any) {
-            if (isGYGServiceUnavailable(scrapeError) || circuitIsOpen()) throw scrapeError;
-            console.warn(`[GYG Comparison] Scraping failed for "${matchingActivity.name}":`, scrapeError.message);
-            // Return empty matches - don't use mock data
-            gygMatches = [];
+
+          const comparison = await getActivityComparison(matchingActivity, wantsForceRefresh);
+
+          if (comparison.dataStatus === 'unavailable' && wantsForceRefresh) {
+            // A genuinely failed live refresh with nothing cached to fall
+            // back on is a 503, not a 200 with an empty match list — this
+            // mirrors the generic /search route's own unavailable handling.
+            return sendGYGUnavailable(res);
           }
-          
-          const scoredMatches = await attachMatchingToOffers(matchingActivity, gygMatches);
+
           return res.json([{
             myActivity: {
               id: matchingActivity._id || matchingActivity.id,
@@ -294,7 +414,10 @@ router.get('/search', requireAdmin, requireSuperAdminForLiveRefresh, async (req:
               price: matchingActivity.price,
               category: matchingActivity.category
             },
-            gygMatches: comparisonResponse(scoredMatches, 'LIVE_VERIFIED', new Date(), null).offers,
+            gygMatches: comparison.gygMatches,
+            metrics: comparison.metrics,
+            dataStatus: comparison.dataStatus,
+            message: comparison.message,
           }]);
         }
       } catch (dbError: any) {
@@ -307,7 +430,7 @@ router.get('/search', requireAdmin, requireSuperAdminForLiveRefresh, async (req:
         });
       }
     }
-    
+
     if (!q || typeof q !== 'string' || q.length < 3) {
       return res.status(400).json({
         error: 'Query parameter "q" is required and must be at least 3 characters long'
