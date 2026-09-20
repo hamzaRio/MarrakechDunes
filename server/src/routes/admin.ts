@@ -1,6 +1,7 @@
 import { Router, type NextFunction, type Request, type Response } from 'express';
 import { storage } from '../storage.js';
 import { requireAdmin, requireSuperAdmin } from '../middleware/admin-auth.js';
+import { normalizeGYGOffer, type GYGTrustSource } from '../services/gyg-comparison.js';
 
 const router = Router();
 const BOOKING_STATUSES = ['PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED'] as const;
@@ -273,7 +274,7 @@ router.get('/activities', async (req: Request, res: Response) => {
  */
 router.post('/activities', requireSuperAdmin, async (req: Request, res: Response) => {
   try {
-    const activityData = req.body;
+    const { getyourguidePrice: _ignoredGetYourGuidePrice, ...activityData } = req.body;
     const activity = await storage.createActivity(activityData);
     return res.status(201).json(activity);
   } catch (error) {
@@ -292,7 +293,7 @@ router.post('/activities', requireSuperAdmin, async (req: Request, res: Response
 router.put('/activities/:id', requireSuperAdmin, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const activityData = req.body;
+    const { getyourguidePrice: _ignoredGetYourGuidePrice, ...activityData } = req.body;
     const updatedActivity = await storage.updateActivity(id, activityData);
     if (!updatedActivity) {
       return res.status(404).json({
@@ -317,7 +318,7 @@ router.put('/activities/:id', requireSuperAdmin, async (req: Request, res: Respo
 router.patch('/activities/:id', requireSuperAdmin, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const activityData = req.body;
+    const { getyourguidePrice: _ignoredGetYourGuidePrice, ...activityData } = req.body;
     const updatedActivity = await storage.updateActivity(id, activityData);
     if (!updatedActivity) {
       return res.status(404).json({
@@ -448,7 +449,7 @@ router.get('/activities/:id/getyourguide-price', requireSuperAdminForForceScrape
       const moroccoActivities = MoroccoDatabase.searchActivities(activity.name);
       let bestMatch: any = null;
       let gygPrice: number | null = null;
-      let source = 'curated-database';
+      let sourceType: GYGTrustSource = 'CURATED_REFERENCE';
       
       if (moroccoActivities.length > 0 && !forceLiveScrape) {
         bestMatch = moroccoActivities[0];
@@ -500,7 +501,7 @@ router.get('/activities/:id/getyourguide-price', requireSuperAdminForForceScrape
                 url: bestScraped.activity.link
               };
               gygPrice = bestScraped.activity.price;
-              source = 'getyourguide-scraped';
+              sourceType = 'LIVE_VERIFIED';
               console.log(`[ADMIN] Found GYG price via scraping: ${gygPrice} MAD for "${bestMatch.title}"`);
             }
           }
@@ -511,33 +512,73 @@ router.get('/activities/:id/getyourguide-price', requireSuperAdminForForceScrape
       }
 
       if (bestMatch && gygPrice) {
-        return res.status(200).json({
-          status: 'success',
+        const fetchedAt = new Date();
+        const comparison = normalizeGYGOffer({
+          id: bestMatch.id,
+          title: bestMatch.title,
           price: gygPrice,
           currency: bestMatch.currency || 'MAD',
-          source: source,
+          url: bestMatch.link || bestMatch.url,
+          rating: bestMatch.rating,
+          reviewCount: bestMatch.reviewCount,
+          duration: bestMatch.duration,
+          location: bestMatch.location,
+        }, { sourceType, fetchedAt });
+
+        // A numeric price is written to Activity only when this route itself
+        // obtained a live, verified source. Curated and estimated values stay
+        // response-only references.
+        if (comparison.sourceType === 'LIVE_VERIFIED') {
+          await storage.updateActivityGetYourGuidePrice(id, comparison.price);
+        }
+
+        return res.status(200).json({
+          status: 'success',
+          price: comparison.price,
+          currency: comparison.currency,
+          sourceType: comparison.sourceType,
+          verified: comparison.verified,
+          stale: comparison.stale,
+          fetchedAt: comparison.fetchedAt,
+          comparison,
           activity: {
             title: bestMatch.title,
             url: bestMatch.link || bestMatch.url,
             rating: bestMatch.rating || 0,
             reviewCount: bestMatch.reviewCount || 0
           },
-          suggestions: moroccoActivities.length > 0 
-            ? moroccoActivities.slice(0, 3).map(a => ({
+          suggestions: moroccoActivities.length > 0
+            ? moroccoActivities.slice(0, 3).map(a => normalizeGYGOffer({
+                id: a.id,
                 title: a.title,
                 price: a.price || a.gygPrice,
-                url: a.link
-              }))
+                currency: a.currency || 'MAD',
+                url: a.link,
+                rating: a.rating,
+                reviewCount: a.reviewCount,
+                duration: a.duration,
+                location: a.location,
+              }, { sourceType: 'CURATED_REFERENCE', fetchedAt }))
             : []
-        });
+          });
       } else {
         // No results found, return estimated price (14% higher)
         const estimatedPrice = Math.round(Number(activity.price) * 1.14);
+        const fetchedAt = new Date();
         return res.status(200).json({
           status: 'success',
           price: estimatedPrice,
           currency: 'MAD',
-          source: 'estimated',
+          sourceType: 'ESTIMATED',
+          verified: false,
+          stale: false,
+          fetchedAt,
+          comparison: normalizeGYGOffer({
+            id: activity.id,
+            title: activity.name,
+            price: estimatedPrice,
+            currency: 'MAD',
+          }, { sourceType: 'ESTIMATED', fetchedAt }),
           message: 'No matching activity found on GetYourGuide. Using estimated price.'
         });
       }
@@ -545,11 +586,21 @@ router.get('/activities/:id/getyourguide-price', requireSuperAdminForForceScrape
       console.error('[ADMIN] GYG search error:', searchError);
       // Fallback to estimated price
       const estimatedPrice = Math.round(Number(activity.price) * 1.14);
+      const fetchedAt = new Date();
       return res.status(200).json({
         status: 'success',
         price: estimatedPrice,
         currency: 'MAD',
-        source: 'estimated',
+          sourceType: 'ESTIMATED',
+          verified: false,
+          stale: false,
+        fetchedAt,
+          comparison: normalizeGYGOffer({
+            id: activity.id,
+            title: activity.name,
+            price: estimatedPrice,
+            currency: 'MAD',
+        }, { sourceType: 'ESTIMATED', fetchedAt }),
         message: 'Could not search GetYourGuide. Using estimated price.'
       });
     }

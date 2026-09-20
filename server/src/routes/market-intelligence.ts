@@ -3,6 +3,7 @@ import axios from 'axios';
 import { z } from 'zod';
 import { searchGYG } from '../providers/gyg.js';
 import { requireAdmin, requireSuperAdmin } from '../middleware/admin-auth.js';
+import { calculateVerifiedMetrics, normalizeGYGOffer, type GYGTrustSource } from '../services/gyg-comparison.js';
 
 const router = express.Router();
 
@@ -15,6 +16,25 @@ const requireSuperAdminForLiveRefresh = (req: Request, res: Response, next: expr
   }
 
   return requireSuperAdmin(req, res, next);
+};
+
+const normalizedGYGResponse = (offers: Record<string, any>[], sourceType: GYGTrustSource) => {
+  const normalizedOffers = offers.map((offer) => normalizeGYGOffer(offer, {
+    sourceType,
+    fetchedAt: offer.last_checked_at ? new Date(offer.last_checked_at) : new Date(),
+  }));
+
+  return {
+    offers: normalizedOffers,
+    metadata: {
+      sourceType,
+      verified: normalizedOffers[0]?.verified ?? false,
+      stale: normalizedOffers[0]?.stale ?? false,
+      fetchedAt: normalizedOffers[0]?.fetchedAt ?? null,
+      expiresAt: null,
+    },
+    metrics: calculateVerifiedMetrics(normalizedOffers),
+  };
 };
 
 // Market Intelligence Types
@@ -78,6 +98,7 @@ router.get('/debug/gyg', requireSuperAdmin, async (req: Request, res: Response) 
     const searchInput = { query, city };
     const liveSearchEnabled = process.env.GYG_ENABLE_LIVE_SEARCH === 'true';
     const gygResponse = await searchGYG(searchInput, { dryRun: !liveSearchEnabled });
+    const comparison = normalizedGYGResponse(gygResponse.sampleNormalizedShape, gygResponse.sourceType);
     
     return res.json({
       status: 'success',
@@ -85,10 +106,10 @@ router.get('/debug/gyg', requireSuperAdmin, async (req: Request, res: Response) 
       query,
       city,
       dryRun: gygResponse.dryRun,
-      sourceType: gygResponse.sourceType,
-      verified: gygResponse.verified,
-      resultCount: gygResponse.sampleNormalizedShape.length,
-      sampleResults: gygResponse.sampleNormalizedShape.slice(0, 3),
+       sourceType: comparison.metadata.sourceType,
+       verified: comparison.metadata.verified,
+       resultCount: comparison.offers.length,
+       sampleResults: comparison.offers.slice(0, 3),
       credentials: {
         hasBase: !!process.env.GYG_SUPPLIER_BASE,
         hasUser: !!process.env.GYG_SUPPLIER_USER,
@@ -140,15 +161,14 @@ router.get('/search', requireAdmin, requireSuperAdminForLiveRefresh, async (req:
     // Always use dry-run mode for reference-only functionality
     // This ensures no live API calls to GetYourGuide
     const gygResponse = await searchGYG(searchInput, { dryRun: true });
+    const comparison = normalizedGYGResponse(gygResponse.sampleNormalizedShape, gygResponse.sourceType);
 
     return res.json({
       provider: 'gyg',
       liveSearchEnabled: false,
       message: 'GetYourGuide reference search - returning local suggestions only.',
       dryRun: gygResponse.dryRun,
-      sourceType: gygResponse.sourceType,
-      verified: gygResponse.verified,
-      results: gygResponse.sampleNormalizedShape,
+       ...comparison,
     });
   }
 

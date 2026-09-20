@@ -15,19 +15,27 @@ interface GYGReferenceToolProps {
 interface GYGActivityResult {
   id: string;
   title: string;
-  gygPrice: number;
-  suggestedPrice?: number;
+  price: number;
   currency: string;
   image?: string | null;
-  link: string;
-  description?: string | null;
+  url: string | null;
   duration?: string | null;
   rating?: number | null;
   reviewCount?: number | null;
   location?: string | null;
-  category?: string | null;
-  sourceType?: 'getyourguide-scraped' | 'curated-database' | 'fallback';
-  verified?: boolean;
+  sourceType: 'LIVE_VERIFIED' | 'CACHED_VERIFIED' | 'STALE_VERIFIED' | 'CURATED_REFERENCE' | 'GENERATED_FALLBACK' | 'ESTIMATED' | 'LEGACY_UNVERIFIED';
+  verified: boolean;
+  stale: boolean;
+  fetchedAt: string | null;
+  expiresAt: string | null;
+  matchScore: number | null;
+  matchReasons: string[];
+  validationState: 'UNVALIDATED' | 'SOURCE_VALIDATED' | 'MATCH_VALIDATED';
+}
+
+interface GYGSearchResponse {
+  offers: GYGActivityResult[];
+  metadata: { sourceType: string; verified: boolean; stale: boolean; fetchedAt: string | null; expiresAt: string | null };
 }
 
 interface MyActivityWithGYG {
@@ -39,6 +47,20 @@ interface MyActivityWithGYG {
   };
   gygMatches: GYGActivityResult[];
 }
+
+const trustLabel: Record<GYGActivityResult['sourceType'], string> = {
+  LIVE_VERIFIED: 'Live verified',
+  CACHED_VERIFIED: 'Cached verified',
+  STALE_VERIFIED: 'Stale verified',
+  CURATED_REFERENCE: 'Curated reference',
+  GENERATED_FALLBACK: 'Generated fallback',
+  ESTIMATED: 'Estimated',
+  LEGACY_UNVERIFIED: 'Legacy / unverified',
+};
+
+const formatFetchedAt = (fetchedAt: string | null) => fetchedAt
+  ? new Intl.DateTimeFormat('fr-MA', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(fetchedAt))
+  : null;
 
 // Popular Morocco activities for quick search
 const POPULAR_SEARCHES = [
@@ -70,7 +92,7 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
   });
 
   // Normal staff searches are cache-first. Live refresh is a Superadmin action.
-  const { data: searchResults, isLoading, error } = useQuery<GYGActivityResult[]>({
+  const { data: searchResults, isLoading, error } = useQuery<GYGSearchResponse>({
     queryKey: ['gyg-search', activeSearch, searchMode, forceLiveScrape],
     enabled: activeSearch.length >= 3 && searchMode === 'gyg',
     queryFn: async () => {
@@ -81,10 +103,11 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
           useMyActivities: 'false'
         }
       });
-      return response.data || [];
+      return response.data;
     },
     staleTime: 0, // Don't cache - always get fresh results
   });
+  const searchOffers = searchResults?.offers ?? [];
 
   // Fetch activities based on YOUR database activities
   const { data: myActivitiesResults, isLoading: isLoadingMyActivities, error: errorMyActivities } = useQuery<MyActivityWithGYG[]>({
@@ -404,7 +427,7 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
             </h4>
             {searchResults && (
               <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-                {searchResults.length} activité{searchResults.length > 1 ? 's' : ''}
+                {searchOffers.length} activité{searchOffers.length > 1 ? 's' : ''}
               </Badge>
             )}
           </div>
@@ -427,7 +450,7 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
             </div>
           )}
 
-          {!isLoading && !error && searchResults && searchResults.length === 0 && (
+          {!isLoading && !error && searchResults && searchOffers.length === 0 && (
             <div className="text-center py-12 text-gray-500">
               <p className="mb-2">Aucun résultat trouvé pour "{activeSearch}"</p>
               <p className="text-sm">
@@ -436,12 +459,12 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
             </div>
           )}
 
-          {!isLoading && !error && searchResults && searchResults.length > 0 && (
+          {!isLoading && !error && searchResults && searchOffers.length > 0 && (
             <>
               <div className="mb-4 flex items-center justify-between bg-blue-50 p-3 rounded-lg border border-blue-200">
                 <div className="flex items-center gap-2">
                   <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-                    {searchResults.length} résultat{searchResults.length > 1 ? 's' : ''} trouvé{searchResults.length > 1 ? 's' : ''}
+                    {searchOffers.length} résultat{searchOffers.length > 1 ? 's' : ''} trouvé{searchOffers.length > 1 ? 's' : ''}
                   </Badge>
                   <span className="text-sm text-gray-600">
                     Cliquez sur une carte pour voir sur GetYourGuide
@@ -458,11 +481,11 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
                 </Button>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {searchResults.map((activity) => (
+                {searchOffers.map((activity) => (
                   <Card
                     key={activity.id}
                     className="hover:shadow-lg transition-shadow cursor-pointer overflow-hidden"
-                    onClick={() => window.open(activity.link, '_blank', 'noopener,noreferrer')}
+                    onClick={() => activity.url && window.open(activity.url, '_blank', 'noopener,noreferrer')}
                   >
                     {activity.image && (
                       <div className="relative h-40 bg-gray-200 overflow-hidden">
@@ -475,8 +498,8 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
                           }}
                         />
                         <div className="absolute top-2 right-2">
-                          <Badge className={activity.verified ? 'bg-blue-600 text-white' : 'bg-slate-600 text-white'}>
-                            {activity.verified ? 'GetYourGuide vérifié' : 'Référence non vérifiée'}
+                          <Badge className={activity.verified ? (activity.stale ? 'bg-amber-600 text-white' : 'bg-blue-600 text-white') : 'bg-slate-600 text-white'}>
+                            {trustLabel[activity.sourceType]}
                           </Badge>
                         </div>
                       </div>
@@ -485,9 +508,16 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
                       <h5 className="font-semibold text-gray-900 mb-2 line-clamp-2 h-12">
                         {activity.title}
                       </h5>
-                      <p className={`mb-2 text-xs ${activity.verified ? 'text-green-700' : 'text-slate-500'}`}>
-                        {activity.verified ? 'Source GetYourGuide vérifiée en direct' : 'Référence interne — provenance non vérifiée'}
+                      <p className={`mb-2 text-xs ${activity.verified ? (activity.stale ? 'text-amber-700' : 'text-green-700') : 'text-slate-500'}`}>
+                        {activity.stale
+                          ? 'Résultat vérifié expiré — ne pas utiliser comme prix actuel.'
+                          : activity.verified
+                            ? 'Source GetYourGuide vérifiée.'
+                            : 'Référence non vérifiée — ne pas utiliser comme prix de marché vérifié.'}
                       </p>
+                      {formatFetchedAt(activity.fetchedAt) && (
+                        <p className="mb-2 text-xs text-slate-500">Vérifié le: {formatFetchedAt(activity.fetchedAt)}</p>
+                      )}
                       
                       <div className="space-y-2 mb-3">
                         {activity.rating && (
@@ -520,22 +550,17 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
                         <div>
                           <div className="flex items-baseline gap-2">
                             <span className="text-2xl font-bold text-blue-600">
-                              {activity.gygPrice} {activity.currency}
+                              {activity.price} {activity.currency}
                             </span>
                             <span className="text-xs text-gray-500">per person</span>
                           </div>
-                          {activity.suggestedPrice && (
-                            <p className="text-xs text-gray-500 mt-1">
-                              Référence indicative: {activity.suggestedPrice} {activity.currency}
-                            </p>
-                          )}
                         </div>
                         <Button
                           size="sm"
                           variant="outline"
                           onClick={(e) => {
                             e.stopPropagation();
-                            window.open(activity.link, '_blank', 'noopener,noreferrer');
+                            if (activity.url) window.open(activity.url, '_blank', 'noopener,noreferrer');
                           }}
                           className="border-blue-300 text-blue-600 hover:bg-blue-50"
                         >
@@ -625,7 +650,7 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {item.gygMatches.map((gygActivity) => {
                           const myPrice = Number(item.myActivity.price);
-                          const gygPrice = gygActivity.gygPrice;
+                          const gygPrice = gygActivity.price;
                           const priceDiff = myPrice - gygPrice;
                           const priceDiffPercent = gygPrice > 0 ? Math.round((priceDiff / gygPrice) * 100) : 0;
 
@@ -633,7 +658,7 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
                             <Card
                               key={gygActivity.id}
                               className="hover:shadow-md transition-shadow cursor-pointer overflow-hidden border-blue-200"
-                              onClick={() => window.open(gygActivity.link, '_blank', 'noopener,noreferrer')}
+                              onClick={() => gygActivity.url && window.open(gygActivity.url, '_blank', 'noopener,noreferrer')}
                             >
                               {gygActivity.image && (
                                 <div className="relative h-32 bg-gray-200 overflow-hidden">
@@ -645,8 +670,8 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
                                       (e.target as HTMLImageElement).style.display = 'none';
                                     }}
                                   />
-                                  <Badge className="absolute top-2 right-2 bg-blue-600 text-white">
-                                    GetYourGuide
+                                  <Badge className={gygActivity.stale ? 'absolute top-2 right-2 bg-amber-600 text-white' : 'absolute top-2 right-2 bg-blue-600 text-white'}>
+                                    {trustLabel[gygActivity.sourceType]}
                                   </Badge>
                                 </div>
                               )}
@@ -654,6 +679,9 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
                                 <h6 className="font-semibold text-sm text-gray-900 mb-2 line-clamp-2 h-10">
                                   {gygActivity.title}
                                 </h6>
+                                {formatFetchedAt(gygActivity.fetchedAt) && (
+                                  <p className="mb-2 text-xs text-slate-500">Vérifié le: {formatFetchedAt(gygActivity.fetchedAt)}</p>
+                                )}
                                 
                                 <div className="space-y-2 mb-3">
                                   {gygActivity.rating && (
@@ -691,7 +719,7 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
                                       variant="outline"
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        window.open(gygActivity.link, '_blank', 'noopener,noreferrer');
+                                        if (gygActivity.url) window.open(gygActivity.url, '_blank', 'noopener,noreferrer');
                                       }}
                                       className="h-7 text-xs border-blue-300 text-blue-600 hover:bg-blue-50"
                                     >

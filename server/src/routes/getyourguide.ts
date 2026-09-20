@@ -6,6 +6,7 @@ import { MoroccoActivityFetcher, MoroccoActivity } from '../utils/moroccoActivit
 import { MoroccoDatabase, MoroccoActivityData } from '../utils/moroccoDatabase.js';
 import GYGCache from '../models/GYGCache.js';
 import { requireAdmin, requireSuperAdmin } from '../middleware/admin-auth.js';
+import { calculateVerifiedMetrics, normalizeGYGOffer, type GYGTrustSource } from '../services/gyg-comparison.js';
 
 const router = Router();
 
@@ -24,6 +25,22 @@ const requireSuperAdminForLiveRefresh = (req: Request, res: Response, next: Next
 // In-memory cache for GetYourGuide API responses
 const cache = new Map<string, { data: any; timestamp: number }>();
 const CACHE_DURATION = 30 * 1000; // 30 seconds
+
+const trustSourceFor = (source: string): GYGTrustSource => {
+  if (source === 'getyourguide-scraped') return 'LIVE_VERIFIED';
+  if (source === 'curated-database') return 'CURATED_REFERENCE';
+  if (source === 'fallback') return 'GENERATED_FALLBACK';
+  return 'LEGACY_UNVERIFIED';
+};
+
+const comparisonResponse = (offers: Record<string, any>[], sourceType: GYGTrustSource, fetchedAt: Date | null, expiresAt: Date | null) => {
+  const normalizedOffers = offers.map((offer) => normalizeGYGOffer(offer, { sourceType, fetchedAt, expiresAt }));
+  return {
+    offers: normalizedOffers,
+    metadata: { sourceType, verified: normalizedOffers[0]?.verified ?? false, stale: normalizedOffers[0]?.stale ?? false, fetchedAt, expiresAt },
+    metrics: calculateVerifiedMetrics(normalizedOffers),
+  };
+};
 
 // Set UTF-8 encoding for all responses
 router.use((req, res, next) => {
@@ -97,23 +114,18 @@ router.get('/search', requireAdmin, requireSuperAdminForLiveRefresh, async (req:
                 console.log(`[GYG Comparison] Scraping GetYourGuide for "${myActivity.name}"...`);
                 const scraped = await GYGFetcher.searchActivities(myActivity.name);
                 if (scraped.length > 0) {
-                  gygMatches = scraped.map((a: GYGActivity) => {
-                    const price = a.price || 0;
-                  return {
-                      id: a.id,
-                      title: a.title,
-                      gygPrice: price,
-                      currency: a.currency || 'MAD',
-                      link: a.link,
-                      rating: a.rating,
-                      reviewCount: a.reviewCount,
-                      image: a.image,
+                  gygMatches = scraped.map((a: GYGActivity) => ({
+                    id: a.id,
+                    title: a.title,
+                    price: a.price || 0,
+                    currency: a.currency || 'MAD',
+                    url: a.link,
+                    rating: a.rating,
+                    reviewCount: a.reviewCount,
+                    image: a.image,
                     duration: a.duration,
                     location: a.location,
-                    sourceType: 'getyourguide-scraped',
-                    verified: true
-                    };
-                  });
+                  }));
                   console.log(`[GYG Comparison] Found ${gygMatches.length} matches for "${myActivity.name}"`);
                 }
               } catch (scrapeError: any) {
@@ -130,10 +142,7 @@ router.get('/search', requireAdmin, requireSuperAdminForLiveRefresh, async (req:
                     price: myActivity.price,
                     category: myActivity.category
                   },
-                gygMatches: gygMatches.map((a: any) => ({
-                  ...a,
-                  suggestedPrice: calculateSuggestedPrice(a.gygPrice || 0, a.currency || 'MAD')
-                }))
+                gygMatches: comparisonResponse(gygMatches, 'LIVE_VERIFIED', new Date(), null).offers,
                 });
               }
             } catch (activityError) {
@@ -168,24 +177,18 @@ router.get('/search', requireAdmin, requireSuperAdminForLiveRefresh, async (req:
           try {
             console.log(`[GYG Comparison] Scraping GetYourGuide for "${matchingActivity.name}"...`);
             const scraped = await GYGFetcher.searchActivities(matchingActivity.name);
-            gygMatches = scraped.map((a: GYGActivity) => {
-              const price = a.price || 0;
-              return {
-                id: a.id,
-                title: a.title,
-                gygPrice: price,
-                currency: a.currency || 'MAD',
-                link: a.link,
-                rating: a.rating,
-                reviewCount: a.reviewCount,
-                image: a.image,
-                duration: a.duration,
-                location: a.location,
-                suggestedPrice: calculateSuggestedPrice(price, a.currency || 'MAD'),
-                sourceType: 'getyourguide-scraped',
-                verified: true
-              };
-            });
+            gygMatches = scraped.map((a: GYGActivity) => ({
+              id: a.id,
+              title: a.title,
+              price: a.price || 0,
+              currency: a.currency || 'MAD',
+              url: a.link,
+              rating: a.rating,
+              reviewCount: a.reviewCount,
+              image: a.image,
+              duration: a.duration,
+              location: a.location,
+            }));
             console.log(`[GYG Comparison] Found ${gygMatches.length} matches for "${matchingActivity.name}"`);
           } catch (scrapeError: any) {
             console.warn(`[GYG Comparison] Scraping failed for "${matchingActivity.name}":`, scrapeError.message);
@@ -200,7 +203,7 @@ router.get('/search', requireAdmin, requireSuperAdminForLiveRefresh, async (req:
               price: matchingActivity.price,
               category: matchingActivity.category
             },
-            gygMatches: gygMatches
+            gygMatches: comparisonResponse(gygMatches, 'LIVE_VERIFIED', new Date(), null).offers,
           }]);
         }
       } catch (dbError: any) {
@@ -235,7 +238,10 @@ router.get('/search', requireAdmin, requireSuperAdminForLiveRefresh, async (req:
         if (cachedResult) {
           const searchTime = Date.now() - startTime;
           console.log(`[GYG Morocco Search] Query="${query}" | Source=cache | Results=${cachedResult.resultCount} | Time=${searchTime}ms`);
-          return res.json(cachedResult.results);
+          const sourceType = cachedResult.verified && cachedResult.sourceType === 'LIVE_VERIFIED'
+            ? 'CACHED_VERIFIED'
+            : 'LEGACY_UNVERIFIED';
+          return res.json(comparisonResponse(cachedResult.results, sourceType, cachedResult.fetchedAt ?? cachedResult.lastFetched ?? null, cachedResult.expiresAt ?? null));
         }
       } catch (cacheError: any) {
         console.warn(`[GYG Morocco Search] Cache lookup failed for "${query}":`, cacheError.message);
@@ -336,31 +342,43 @@ router.get('/search', requireAdmin, requireSuperAdminForLiveRefresh, async (req:
         verified: source === 'getyourguide-scraped'
       }));
 
-      // Save to MongoDB cache with enhanced metadata
-      try {
+      const sourceType = trustSourceFor(source);
+      const fetchedAt = new Date();
+      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      const comparison = comparisonResponse(transformedActivities, sourceType, fetchedAt, expiresAt);
+
+      // Only verified live offers populate the trusted cache. Unverified
+      // curated and fallback responses remain response-only references.
+      if (sourceType === 'LIVE_VERIFIED') {
+        try {
         const searchTime = Date.now() - startTime;
         await GYGCache.findOneAndUpdate(
           { normalizedQuery: normalizedQuery },
           {
             query: query,
             normalizedQuery: normalizedQuery,
-            results: transformedActivities,
+            results: comparison.offers,
             source: source,
+            sourceType,
+            verified: true,
+            stale: false,
+            fetchedAt,
             resultCount: transformedActivities.length,
             searchTime: searchTime,
-            lastFetched: new Date(),
-            expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
+            lastFetched: fetchedAt,
+            expiresAt
           },
           { upsert: true, new: true }
         );
-        console.log(`[GYG Morocco Search] Query="${query}" | Cached ${transformedActivities.length} results | Time=${searchTime}ms`);
-      } catch (cacheError: any) {
-        console.warn(`[GYG Morocco Search] Failed to cache results for "${query}":`, cacheError.message);
+          console.log(`[GYG Morocco Search] Query="${query}" | Cached ${transformedActivities.length} results | Time=${searchTime}ms`);
+        } catch (cacheError: any) {
+          console.warn(`[GYG Morocco Search] Failed to cache results for "${query}":`, cacheError.message);
+        }
       }
 
       const searchTime = Date.now() - startTime;
       console.log(`[GYG Morocco Search] Query="${query}" | Source=${source} | Results=${transformedActivities.length} | Time=${searchTime}ms`);
-      res.json(transformedActivities);
+      res.json(comparison);
 
     } catch (fetchError: any) {
       console.error(`[GYG Morocco Search] Live fetch failed for "${query}":`, fetchError.message);
@@ -378,10 +396,10 @@ router.get('/search', requireAdmin, requireSuperAdminForLiveRefresh, async (req:
       // Try to return cached results even if expired (only for non-forceRefresh)
       try {
         const expiredCache = await GYGCache.findOne({ normalizedQuery: normalizedQuery });
-        if (expiredCache && expiredCache.results.length > 0) {
+        if (expiredCache && expiredCache.verified && expiredCache.sourceType === 'LIVE_VERIFIED' && expiredCache.results.length > 0) {
           const searchTime = Date.now() - startTime;
           console.log(`[GYG Morocco Search] Query="${query}" | Source=expired-cache | Results=${expiredCache.resultCount} | Time=${searchTime}ms`);
-          return res.json(expiredCache.results);
+          return res.json(comparisonResponse(expiredCache.results, 'STALE_VERIFIED', expiredCache.fetchedAt ?? expiredCache.lastFetched ?? null, expiredCache.expiresAt ?? null));
         }
       } catch (cacheError: any) {
         console.warn(`[GYG Morocco Search] Failed to get expired cache for "${query}":`, cacheError.message);
@@ -407,30 +425,9 @@ router.get('/search', requireAdmin, requireSuperAdminForLiveRefresh, async (req:
         verified: false
       }));
 
-      // Cache fallback results
-      try {
-        const searchTime = Date.now() - startTime;
-        await GYGCache.findOneAndUpdate(
-          { normalizedQuery: normalizedQuery },
-          {
-            query: query,
-            normalizedQuery: normalizedQuery,
-            results: transformedFallback,
-            source: 'fallback',
-            resultCount: transformedFallback.length,
-            searchTime: searchTime,
-            lastFetched: new Date(),
-            expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
-          },
-          { upsert: true, new: true }
-        );
-      } catch (cacheError: any) {
-        console.warn(`[GYG Morocco Search] Failed to cache fallback for "${query}":`, cacheError.message);
-      }
-
       const searchTime = Date.now() - startTime;
       console.log(`[GYG Morocco Search] Query="${query}" | Source=emergency-fallback | Results=${transformedFallback.length} | Time=${searchTime}ms`);
-      res.json(transformedFallback);
+      res.json(comparisonResponse(transformedFallback, 'GENERATED_FALLBACK', new Date(), null));
     }
 
   } catch (error: any) {
@@ -488,7 +485,15 @@ router.get('/activities', requireAdmin, async (req: Request, res: Response) => {
     const cached = cache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
       console.log('[GYG] Returning cached all activities');
-      return res.json(cached.data);
+      const cachedSourceType = cached.data?.metadata?.sourceType === 'LIVE_VERIFIED'
+        ? 'CACHED_VERIFIED'
+        : cached.data?.metadata?.sourceType ?? 'LEGACY_UNVERIFIED';
+      return res.json(comparisonResponse(
+        cached.data?.offers ?? [],
+        cachedSourceType,
+        cached.data?.metadata?.fetchedAt ?? null,
+        cached.data?.metadata?.expiresAt ?? null,
+      ));
     }
 
     if ((req.session as any).role !== 'superadmin') {
@@ -505,6 +510,7 @@ router.get('/activities', requireAdmin, async (req: Request, res: Response) => {
     }
     
     let activities: any[] = [];
+    let sourceType: GYGTrustSource = 'LIVE_VERIFIED';
     
     try {
       console.log('[GYG] Calling GetYourGuide Partner API for all activities...');
@@ -560,6 +566,7 @@ router.get('/activities', requireAdmin, async (req: Request, res: Response) => {
       // If no real data, use comprehensive fallback
       if (activities.length === 0) {
         console.log('[GYG] Using comprehensive fallback data for all activities');
+        sourceType = 'GENERATED_FALLBACK';
         activities = [
           // Marrakech Activities
           { id: 'marrakech-1', title: 'Marrakech City Tour', gygPrice: 180, suggestedPrice: 162, currency: 'MAD', location: 'Marrakech', category: 'City Tour', duration: '4 hours', rating: 4.5, reviewCount: 120, description: 'Explore the Red City with our comprehensive tour' },
@@ -602,6 +609,7 @@ router.get('/activities', requireAdmin, async (req: Request, res: Response) => {
       
       // Use fallback data
       console.log('[GYG] Using comprehensive fallback data');
+      sourceType = 'GENERATED_FALLBACK';
       activities = [
         { id: 'marrakech-1', title: 'Marrakech City Tour', gygPrice: 180, suggestedPrice: 162, currency: 'MAD', location: 'Marrakech', category: 'City Tour', duration: '4 hours', rating: 4.5, reviewCount: 120, description: 'Explore the Red City' },
         { id: 'agadir-1', title: 'Agadir Beach Day', gygPrice: 150, suggestedPrice: 135, currency: 'MAD', location: 'Agadir', category: 'Beach', duration: '6 hours', rating: 4.2, reviewCount: 65, description: 'Relax on beautiful beaches' },
@@ -609,11 +617,14 @@ router.get('/activities', requireAdmin, async (req: Request, res: Response) => {
       ];
     }
     
-    // Cache the results
-    cache.set(cacheKey, { data: activities, timestamp: Date.now() });
+    const response = comparisonResponse(activities, sourceType, new Date(), null);
+
+    // Cache the normalized response so this active comparison route cannot
+    // later return its legacy provider-shaped records.
+    cache.set(cacheKey, { data: response, timestamp: Date.now() });
     
     console.log('[SUCCESS] Returning all GetYourGuide activities:', activities.length, 'activities');
-    res.json(activities);
+    res.json(response);
     
   } catch (error: any) {
     console.error('[ERROR] GetYourGuide all activities error:', error.message);

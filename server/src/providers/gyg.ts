@@ -1,3 +1,5 @@
+import type { GYGTrustSource } from '../services/gyg-comparison.js';
+
 export interface MarketItem {
   provider: 'GetYourGuide';
   id: string;
@@ -13,7 +15,7 @@ export interface MarketItem {
   last_checked_at: string;
 }
 
-export type GYGSourceType = 'live-verified' | 'curated-static' | 'generated-fallback';
+export type GYGSourceType = Extract<GYGTrustSource, 'LIVE_VERIFIED' | 'CURATED_REFERENCE' | 'GENERATED_FALLBACK'>;
 
 export interface GYGSearchRequest {
   method: 'GET';
@@ -86,7 +88,7 @@ export async function searchGYG(
     
     return {
       dryRun: true,
-      sourceType: 'curated-static',
+      sourceType: 'CURATED_REFERENCE',
       verified: false,
       sampleNormalizedShape: activities
     };
@@ -109,7 +111,7 @@ export async function searchGYG(
       const activities = generateMoroccoActivities(input.query, input.city);
       return {
         dryRun: false,
-        sourceType: 'generated-fallback',
+        sourceType: 'GENERATED_FALLBACK',
         verified: false,
         sampleNormalizedShape: activities
       };
@@ -125,7 +127,7 @@ export async function searchGYG(
     
     // Handle GetYourGuide Supplier API response format
     let activities: MarketItem[] = [];
-    let sourceType: GYGSourceType = 'live-verified';
+    let sourceType: GYGSourceType = 'LIVE_VERIFIED';
     let verified = true;
     
     if (data.products && Array.isArray(data.products)) {
@@ -144,7 +146,7 @@ export async function searchGYG(
       console.warn('[GYG] Unexpected API response format:', Object.keys(data));
       // Fallback to mock data if API format is unexpected
       activities = generateMoroccoActivities(input.query, input.city);
-      sourceType = 'generated-fallback';
+      sourceType = 'GENERATED_FALLBACK';
       verified = false;
     }
     
@@ -161,7 +163,7 @@ export async function searchGYG(
     const activities = generateMoroccoActivities(input.query, input.city);
     return {
       dryRun: false,
-      sourceType: 'generated-fallback',
+      sourceType: 'GENERATED_FALLBACK',
       verified: false,
       sampleNormalizedShape: activities
     };

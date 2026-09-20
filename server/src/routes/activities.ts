@@ -70,7 +70,7 @@ router.get('/:id/rating', async (req: Request, res: Response) => {
 router.patch('/:id', requireSuperAdmin, async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const activityData = req.body;
+    const { getyourguidePrice: _ignoredGetYourGuidePrice, ...activityData } = req.body;
     const updatedActivity = await storage.updateActivity(id, activityData);
     if (!updatedActivity) {
       return res.status(404).json({

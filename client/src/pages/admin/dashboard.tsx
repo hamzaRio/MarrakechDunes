@@ -416,46 +416,31 @@ function AdminDashboardContent() {
       });
       
       if (priceResponse.data && priceResponse.data.status === 'success') {
-        const gygPrice = priceResponse.data.price;
-        const source = priceResponse.data.source || 'api';
+        const comparison = priceResponse.data.comparison;
+        const gygPrice = comparison?.price ?? priceResponse.data.price;
+        const sourceType = comparison?.sourceType ?? priceResponse.data.sourceType ?? 'LEGACY_UNVERIFIED';
         const activityMatch = priceResponse.data.activity;
         
-        if (gygPrice && source === 'getyourguide-scraped') {
-          // Only verified live scrape results may be persisted until the
-          // provenance-aware comparison model is available.
-          const updateResponse = await api.patch(`/admin/activities/${activity._id || activity.id}`, {
-            getyourguidePrice: gygPrice
+        if (gygPrice && sourceType === 'LIVE_VERIFIED') {
+          // The server performs the verified persistence, so the client never
+          // turns a numeric reference into a GetYourGuide value on its own.
+          await queryClient.invalidateQueries({ queryKey: ["/admin/activities"] });
+
+          toast({
+            title: "Prix mis à jour",
+            description: activityMatch?.title
+              ? `Prix GetYourGuide vérifié: ${gygPrice} ${priceResponse.data.currency || 'MAD'} - ${activityMatch.title}`
+              : `Prix GetYourGuide vérifié: ${gygPrice} ${priceResponse.data.currency || 'MAD'}`,
           });
-          
-          if (updateResponse.data) {
-            // Invalidate and refetch activities
-            await queryClient.invalidateQueries({ queryKey: ["/admin/activities"] });
-            
-            const sourceMessage = source === 'estimated' 
-              ? 'Prix estimé'
-              : source === 'curated-database'
-                ? 'Référence interne non vérifiée (base de données)'
-                : source === 'getyourguide-scraped'
-                  ? 'Prix GetYourGuide (scraping en temps réel)'
-                  : 'Prix GetYourGuide';
-            
-            toast({
-              title: "Prix mis à jour",
-              description: activityMatch?.title
-                ? `${sourceMessage}: ${gygPrice} ${priceResponse.data.currency || 'MAD'} - ${activityMatch.title}`
-                : `${sourceMessage}: ${gygPrice} ${priceResponse.data.currency || 'MAD'}`,
+
+          if (activityMatch?.url) {
+            console.log('[GYG] Activity found on GetYourGuide:', {
+              title: activityMatch.title,
+              url: activityMatch.url,
+              price: gygPrice,
+              ourPrice: activity.price,
+              sourceType,
             });
-            
-            // Log link to GYG activity if found for verification
-            if (activityMatch?.url) {
-              console.log('[GYG] Activity found on GetYourGuide:', {
-                title: activityMatch.title,
-                url: activityMatch.url,
-                price: gygPrice,
-                ourPrice: activity.price,
-                source: source
-              });
-            }
           }
         } else if (gygPrice) {
           toast({
