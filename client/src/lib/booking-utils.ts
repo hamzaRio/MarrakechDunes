@@ -1,4 +1,41 @@
-import type { BookingStatus } from "marrakechdunes-shared/schema";
+import type { BookingStatus, BookingType } from "marrakechdunes-shared/schema";
+
+// Prefer the stored payment state. Amounts are a fallback only for legacy states.
+export function getBookingPaymentSummary(booking: Pick<BookingType,
+  'totalAmount' | 'paidAmount' | 'depositAmount' | 'paymentStatus' | 'paymentMethod'
+>) {
+  const amount = (value: unknown): number => {
+    const number = Number(value);
+    return Number.isFinite(number) ? number : 0;
+  };
+  const totalAmount = amount(booking.totalAmount);
+  const paidAmount = amount(booking.paidAmount);
+  const depositAmount = amount(booking.depositAmount);
+  const storedStatus = String(booking.paymentStatus || '').toLowerCase();
+  const paymentStatus: BookingType['paymentStatus'] =
+    storedStatus === 'unpaid' || storedStatus === 'deposit_paid' || storedStatus === 'fully_paid'
+      ? storedStatus
+      : paidAmount <= 0 ? 'unpaid' : paidAmount < totalAmount ? 'deposit_paid' : 'fully_paid';
+  const storedMethod = String(booking.paymentMethod || '').toLowerCase();
+  const paymentMethod = storedMethod === 'cash_deposit' || storedMethod === 'deposit'
+    ? 'cash_deposit' : 'cash';
+
+  return {
+    totalAmount,
+    paidAmount,
+    depositAmount,
+    remainingAmount: Math.max(0, totalAmount - paidAmount),
+    paymentStatus,
+    paymentMethod,
+    progress: totalAmount > 0 ? Math.min(100, Math.max(0, Math.round(paidAmount / totalAmount * 100))) : 0,
+  };
+}
+
+export function getBookingDate(value: Date | string | null | undefined): Date | null {
+  if (!value) return null;
+  const date = new Date(value);
+  return Number.isFinite(date.getTime()) ? date : null;
+}
 
 // Define valid status transitions
 const VALID_TRANSITIONS: Record<BookingStatus, BookingStatus[]> = {

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { api } from "@/lib/api";
+import { getBookingPaymentSummary } from "@/lib/booking-utils";
 import { 
   Banknote, 
   CheckCircle, 
@@ -51,15 +52,25 @@ const PAYMENT_TYPE_OPTIONS = [
 
 interface PaymentManagementProps {
   booking: BookingWithActivity;
+  trigger?: ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  dialogOnly?: boolean;
 }
 
-export default function PaymentManagement({ booking }: PaymentManagementProps) {
+export default function PaymentManagement({ booking, trigger, open, onOpenChange, dialogOnly = false }: PaymentManagementProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [isOpen, setIsOpen] = useState(false);
+  const payment = getBookingPaymentSummary(booking);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isOpen = open ?? internalOpen;
+  const setIsOpen = onOpenChange ?? setInternalOpen;
+  const compact = dialogOnly || Boolean(trigger);
   const [paymentAmount, setPaymentAmount] = useState<number>(0);
   const [paymentType, setPaymentType] = useState<'full' | 'deposit' | 'balance'>('full');
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(booking.paymentMethod || 'CASH');
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(
+    payment.paymentMethod === 'cash_deposit' ? 'DEPOSIT' : 'CASH'
+  );
 
   const updatePaymentMutation = useMutation({
     mutationFn: async (data: {
@@ -68,15 +79,13 @@ export default function PaymentManagement({ booking }: PaymentManagementProps) {
       paidAmount: number;
       paymentMethod: string;
       depositAmount?: number;
+      type?: 'DEPOSIT';
     }) => {
-      const response = await apiRequest(`/admin/bookings/${data.bookingId}/payment`, {
-        method: "PATCH",
-        body: JSON.stringify(data)
-      });
-      return response.json();
+      const response = await api.patch(`/admin/bookings/${data.bookingId}/payment`, data);
+      return response.data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/admin/bookings"] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["/admin/bookings"] });
       toast({
         title: "Paiement Mis à Jour",
         description: "Le statut de paiement a été mis à jour avec succès.",
@@ -97,12 +106,13 @@ export default function PaymentManagement({ booking }: PaymentManagementProps) {
     let newPaidAmount: number;
     let depositAmount: number | undefined;
 
-    const currentPaid = booking.paidAmount || 0;
+    if (updatePaymentMutation.isPending) return;
+    const currentPaid = payment.paidAmount;
 
     switch (paymentType) {
       case 'full':
         newPaymentStatus = 'fully_paid';
-        newPaidAmount = Number(booking.totalAmount);
+        newPaidAmount = payment.totalAmount;
         break;
       case 'deposit':
         newPaymentStatus = 'deposit_paid';
@@ -123,6 +133,9 @@ export default function PaymentManagement({ booking }: PaymentManagementProps) {
       paidAmount: newPaidAmount,
       paymentMethod: selectedPaymentMethod,
       depositAmount,
+      // The existing endpoint needs DEPOSIT for partial payments; full payment
+      // is determined by paidAmount reaching totalAmount, with no new type.
+      ...(paymentType === 'deposit' || newPaidAmount < payment.totalAmount ? { type: 'DEPOSIT' as const } : {}),
     });
   };
 
@@ -152,61 +165,62 @@ export default function PaymentManagement({ booking }: PaymentManagementProps) {
     }
   };
 
-  // Fix: Correct payment status calculation based on actual payment data
-  const currentPaid = booking.paidAmount || 0;
-  const totalAmount = Number(booking.totalAmount);
-  const remainingAmount = totalAmount - currentPaid;
-  
-  // Correct payment status logic
-  const getCorrectPaymentStatus = () => {
-    if (currentPaid <= 0) return 'unpaid';
-    if (currentPaid < totalAmount) return 'deposit_paid';
-    if (currentPaid >= totalAmount) return 'fully_paid';
-    return 'pending';
-  };
-  
-  const correctPaymentStatus = getCorrectPaymentStatus();
+  const { totalAmount, remainingAmount, depositAmount, paymentMethod } = payment;
+  const correctPaymentStatus = payment.paymentStatus;
   const isFullyPaid = correctPaymentStatus === 'fully_paid';
   const isDepositPaid = correctPaymentStatus === 'deposit_paid';
   
-  // Fix display logic for fully paid bookings
-  const displayPaidAmount = currentPaid;
-  const displayRemaining = Math.max(0, remainingAmount);
-  const displayProgress = totalAmount > 0 ? Math.round((currentPaid / totalAmount) * 100) : 0;
+  const displayPaidAmount = payment.paidAmount;
+  const displayRemaining = payment.remainingAmount;
+  const displayProgress = payment.progress;
+
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (updatePaymentMutation.isPending) return;
+    if (nextOpen) {
+      setPaymentType('full');
+      setPaymentAmount(0);
+      setSelectedPaymentMethod(paymentMethod === 'cash_deposit' ? 'DEPOSIT' : 'CASH');
+    }
+    setIsOpen(nextOpen);
+  };
 
   return (
-    <Card className="w-full">
-      <CardHeader className="pb-3">
+    <Card className={compact ? "w-auto border-0 bg-transparent shadow-none" : "w-full"}>
+      <CardHeader className={compact ? "hidden" : "pb-3"}>
         <CardTitle className="flex items-center gap-2 text-lg">
           <Receipt className="w-5 h-5 text-moroccan-blue" />
           {FR_LABELS.paymentManagement}
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className={compact ? "p-0" : "space-y-4"}>
         {/* Payment Status */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-medium">{FR_LABELS.status}:</span>
-            <Badge className={`${getPaymentStatusColor(correctPaymentStatus)} flex items-center gap-1`}>
-              {getPaymentStatusIcon(correctPaymentStatus)}
-              {correctPaymentStatus.replace('_', ' ').toUpperCase()}
-            </Badge>
-          </div>
-          <Dialog open={isOpen} onOpenChange={setIsOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline" size="sm" className="flex items-center gap-1">
-                <Edit className="w-4 h-4" />
-                {FR_LABELS.updatePayment}
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-md bg-white border-2 border-gray-300 shadow-xl">
+        <div className={compact ? "flex items-center" : "flex items-center justify-between"}>
+          {!compact ? (
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium">{FR_LABELS.status}:</span>
+              <Badge className={`${getPaymentStatusColor(correctPaymentStatus)} flex items-center gap-1`}>
+                {getPaymentStatusIcon(correctPaymentStatus)}
+                {correctPaymentStatus.replace('_', ' ').toUpperCase()}
+              </Badge>
+            </div>
+          ) : null}
+          <Dialog open={isOpen} onOpenChange={handleOpenChange}>
+            {!dialogOnly ? <DialogTrigger asChild>
+              {trigger || (
+                <Button variant="outline" size="sm" className="flex items-center gap-1">
+                  <Edit className="w-4 h-4" />
+                  {FR_LABELS.updatePayment}
+                </Button>
+              )}
+            </DialogTrigger> : null}
+            <DialogContent className="max-h-[90vh] max-w-md overflow-y-auto bg-white border-2 border-gray-300 shadow-xl">
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2">
                   <Banknote className="w-5 h-5" />
                   Mettre à Jour le Statut de Paiement
                 </DialogTitle>
                 <DialogDescription>
-                  Modifiez le statut de paiement et le montant payé pour cette réservation.
+                  {booking.customerName} — Modifiez le statut de paiement et le montant payé pour cette réservation.
                 </DialogDescription>
               </DialogHeader>
               
@@ -215,7 +229,7 @@ export default function PaymentManagement({ booking }: PaymentManagementProps) {
                   <div className="text-sm space-y-1">
                     <div className="flex justify-between">
                       <span>{FR_LABELS.totalAmount}:</span>
-                      <span className="font-medium">{booking.totalAmount} MAD</span>
+                      <span className="font-medium">{totalAmount} MAD</span>
                     </div>
                     <div className="flex justify-between">
                       <span>{FR_LABELS.paidAmount}:</span>
@@ -226,6 +240,11 @@ export default function PaymentManagement({ booking }: PaymentManagementProps) {
                       <span className="font-medium text-orange-600">{displayRemaining} MAD</span>
                     </div>
                   </div>
+                </div>
+
+                <div className="text-sm text-gray-600">
+                  {FR_LABELS.status}: {correctPaymentStatus.replace(/_/g, ' ').toUpperCase()}
+                  {depositAmount > 0 ? <div>Acompte enregistré: {depositAmount} MAD</div> : null}
                 </div>
 
                 <div className="space-y-3">
@@ -240,7 +259,7 @@ export default function PaymentManagement({ booking }: PaymentManagementProps) {
                           <SelectItem value="full">
                             <div className="flex items-center gap-2">
                               <CreditCard className="w-4 h-4" />
-                              Paiement Complet ({booking.totalAmount} MAD)
+                              Paiement Complet ({totalAmount} MAD)
                             </div>
                           </SelectItem>
                         )}
@@ -288,14 +307,14 @@ export default function PaymentManagement({ booking }: PaymentManagementProps) {
                         id="amount"
                         type="number"
                         min="1"
-                        max={paymentType === 'deposit' ? booking.totalAmount : remainingAmount}
+                        max={paymentType === 'deposit' ? totalAmount : remainingAmount}
                         value={paymentAmount}
                         onChange={(e) => setPaymentAmount(parseInt(e.target.value) || 0)}
                         placeholder={`Saisir le montant`}
                       />
                       {paymentType === 'deposit' && (
                         <p className="text-xs text-gray-500 mt-1">
-                          Recommandé: {Math.round(Number(booking.totalAmount) * 0.3)} MAD (30%)
+                          Recommandé: {Math.round(totalAmount * 0.3)} MAD (30%)
                         </p>
                       )}
                     </div>
@@ -305,7 +324,8 @@ export default function PaymentManagement({ booking }: PaymentManagementProps) {
                 <div className="flex gap-2 pt-4">
                   <Button
                     variant="outline"
-                    onClick={() => setIsOpen(false)}
+                    onClick={() => handleOpenChange(false)}
+                    disabled={updatePaymentMutation.isPending}
                     className="flex-1"
                   >
                     {FR_LABELS.cancel}
@@ -323,19 +343,21 @@ export default function PaymentManagement({ booking }: PaymentManagementProps) {
           </Dialog>
         </div>
 
-        <Separator />
+        {!compact ? (
+          <>
+            <Separator />
 
-        {/* Payment Details */}
-        <div className="grid grid-cols-2 gap-4 text-sm">
+            {/* Payment Details */}
+            <div className="grid grid-cols-2 gap-4 text-sm">
           <div className="space-y-2">
             <div className="flex justify-between">
               <span className="text-gray-600">{FR_LABELS.totalAmount}:</span>
-              <span className="font-medium">{booking.totalAmount} MAD</span>
+              <span className="font-medium">{totalAmount} MAD</span>
             </div>
             <div className="flex justify-between">
               <span className="text-gray-600">{FR_LABELS.paymentMethod}:</span>
               <span className="font-medium capitalize">
-                {booking.paymentMethod?.replace('_', ' ') || 'Cash'}
+                {paymentMethod.replace('_', ' ')}
               </span>
             </div>
           </div>
@@ -350,10 +372,10 @@ export default function PaymentManagement({ booking }: PaymentManagementProps) {
               <span className="font-medium text-orange-600">{displayRemaining} MAD</span>
             </div>
           </div>
-        </div>
+            </div>
 
-        {/* Payment Progress Bar */}
-        <div className="space-y-2">
+            {/* Payment Progress Bar */}
+            <div className="space-y-2">
           <div className="flex justify-between text-xs text-gray-600">
             <span>{FR_LABELS.paymentProgress}</span>
             <span>{displayProgress}%</span>
@@ -364,11 +386,11 @@ export default function PaymentManagement({ booking }: PaymentManagementProps) {
               style={{ width: `${displayProgress}%` }}
             />
           </div>
-        </div>
+            </div>
 
-        {/* Deposit Information */}
-        {booking.depositAmount && (
-          <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+            {/* Deposit Information */}
+            {depositAmount > 0 ? (
+              <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
             <div className="flex items-center gap-2 mb-2">
               <Calculator className="w-4 h-4 text-blue-600" />
               <span className="text-sm font-medium text-blue-800">Informations d'Acompte</span>
@@ -376,15 +398,17 @@ export default function PaymentManagement({ booking }: PaymentManagementProps) {
             <div className="text-xs text-blue-700 space-y-1">
               <div className="flex justify-between">
                 <span>Montant d'Acompte:</span>
-                <span className="font-medium">{booking.depositAmount} MAD</span>
+                <span className="font-medium">{depositAmount} MAD</span>
               </div>
               <div className="flex justify-between">
                 <span>Solde Dû:</span>
-                <span className="font-medium">{Number(booking.totalAmount) - Number(booking.depositAmount)} MAD</span>
+                <span className="font-medium">{remainingAmount} MAD</span>
               </div>
             </div>
-          </div>
-        )}
+              </div>
+            ) : null}
+          </>
+        ) : null}
       </CardContent>
     </Card>
   );

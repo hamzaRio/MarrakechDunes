@@ -1,17 +1,14 @@
 import { useState } from "react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Users, TrendingUp, Crown, MessageCircle, LogOut, Download, FileText, Mail, Settings, Home, Plus, Search, Trash2, Filter, X, CheckSquare, Square, Calendar as CalendarIcon } from "lucide-react";
+import { Users, TrendingUp, Crown, MessageCircle, LogOut, Download, FileText, Settings, Home, Search, Trash2, X, Calendar as CalendarIcon } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import AdminRoute from "@/components/admin-route";
 import { useAuth } from "@/hooks/use-auth";
@@ -20,7 +17,7 @@ import { Link } from "wouter";
 import { getActivityFallbackImage } from "@/lib/image-utils";
 import { ensureArray } from "@/lib/ensureArray";
 import { getAssetUrl } from "@/lib/utils";
-import PaymentManagement from "@/components/payment-management";
+import BookingManagement from "@/components/admin/booking-management";
 import { WhatsAppNotificationPanel } from "@/components/whatsapp-notification-panel";
 import FreeNotificationPanel from "@/components/free-notification-panel";
 import SimpleActivityForm from "@/components/simple-activity-form-v2";
@@ -28,7 +25,6 @@ import GYGReferenceTool from "@/components/GYGReferenceTool";
 // Removed BookingTest - was only for testing
 // Removed duplicate cash analytics dashboard import
 import CashBookingReminders from "@/components/cash-booking-reminders";
-import EmailModal from "@/components/EmailModal";
 import { apiFetch, logout, api } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import SEOHead from "@/components/seo-head";
@@ -38,7 +34,6 @@ import BusinessMetrics from "@/components/analytics/business-metrics";
 import SystemHealth from "@/components/analytics/system-health";
 import AdminManagement from "@/components/admin-management";
 import CEOOperationsDashboard from "@/components/ceo-operations-dashboard";
-import BookingDetailsModal from "@/components/booking-details-modal";
 // Removed duplicate market intelligence dashboard import
 
 import type { BookingType, ActivityType, AuditLogType } from "marrakechdunes-shared/schema";
@@ -91,25 +86,8 @@ function AdminDashboardContent() {
     );
   }
   
-  // Modal state for booking details
-  const [selectedBooking, setSelectedBooking] = useState<BookingWithActivity | null>(null);
-  const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
-  
-  // Delete confirmation dialog state
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [bookingToDelete, setBookingToDelete] = useState<{ id: string; name: string } | null>(null);
   const [deleteActivityDialogOpen, setDeleteActivityDialogOpen] = useState(false);
   const [activityToDelete, setActivityToDelete] = useState<{ id: string; name: string } | null>(null);
-  
-  // Search and filter state
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [paymentStatusFilter, setPaymentStatusFilter] = useState<string>("all");
-  const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date }>({});
-  const [selectedBookings, setSelectedBookings] = useState<Set<string>>(new Set());
-  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
-  const [bulkStatusUpdateDialogOpen, setBulkStatusUpdateDialogOpen] = useState(false);
-  const [bulkStatusToUpdate, setBulkStatusToUpdate] = useState<string>("");
   
   // Reports date range state
   const [reportsDateRange, setReportsDateRange] = useState<{ from?: Date; to?: Date }>({});
@@ -229,77 +207,6 @@ function AdminDashboardContent() {
   const pendingBookings = bookings.filter(b => String(b.status || '').toUpperCase() === 'PENDING').length;
   const confirmedBookings = bookings.filter(b => String(b.status || '').toUpperCase() === 'CONFIRMED').length;
 
-  // Admin booking management functions
-  const handleBookingStatusUpdate = async (bookingId: string, status: string) => {
-    try {
-      const res = await apiFetch(`/admin/bookings/${bookingId}/status`, {
-        method: 'PATCH',
-        body: JSON.stringify({ status })
-      });
-      if (!res.ok) {
-        throw new Error('Failed to update booking status');
-      }
-      // Refresh bookings data using React Query
-      await queryClient.invalidateQueries({ queryKey: ["/admin/bookings"] });
-      
-      // Show success message
-      toast({
-        title: "Statut Mis à Jour",
-        description: `Le statut de la réservation a été mis à jour avec succès.${status === 'CONFIRMED' ? ' Une notification a été envoyée au client.' : ''}`,
-      });
-    } catch (error) {
-      console.error('Failed to update booking status:', error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de mettre à jour le statut de la réservation",
-        variant: "destructive",
-      });
-    }
-  };
-
-  // Delete booking mutation
-  const deleteBookingMutation = useMutation({
-    mutationFn: async (bookingId: string) => {
-      const res = await apiFetch(`/admin/bookings/${bookingId}`, {
-        method: "DELETE"
-      });
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.message || 'Failed to delete booking');
-      }
-      return res;
-    },
-    onSuccess: async () => {
-      // Invalidate and refetch to ensure UI updates immediately
-      await queryClient.invalidateQueries({ queryKey: ["/admin/bookings"] });
-      await queryClient.refetchQueries({ queryKey: ["/admin/bookings"] });
-      toast({
-        title: "Réservation Supprimée",
-        description: "La réservation a été supprimée avec succès.",
-      });
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Échec de la Suppression",
-        description: error.message || "Erreur lors de la suppression de la réservation",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const handleDeleteBooking = (bookingId: string, customerName: string) => {
-    setBookingToDelete({ id: bookingId, name: customerName });
-    setDeleteDialogOpen(true);
-  };
-
-  const confirmDelete = () => {
-    if (bookingToDelete) {
-      deleteBookingMutation.mutate(bookingToDelete.id);
-      setDeleteDialogOpen(false);
-      setBookingToDelete(null);
-    }
-  };
-
   // Delete activity mutation
   const deleteActivityMutation = useMutation({
     mutationFn: async (activityId: string) => {
@@ -340,29 +247,6 @@ function AdminDashboardContent() {
       setDeleteActivityDialogOpen(false);
       setActivityToDelete(null);
     }
-  };
-
-  const handleContactCustomer = (phone: string) => {
-    window.open(`https://wa.me/${phone.replace(/[^0-9]/g, '')}`, '_blank');
-  };
-
-  const handleViewBookingDetails = (booking: BookingWithActivity) => {
-    setSelectedBooking(booking);
-    setIsBookingModalOpen(true);
-  };
-
-  const handleSendWhatsApp = (booking: BookingWithActivity) => {
-    if (!booking.activity) {
-      toast({
-        title: "Error",
-        description: "Activity information not available for this booking",
-        variant: "destructive",
-      });
-      return;
-    }
-    const message = `Hello ${booking.customerName}, regarding your booking for ${booking.activity.name} for ${booking.numberOfPeople} people. Status: ${booking.status}. Total: ${booking.totalAmount} MAD.`;
-    const phone = booking.customerPhone.replace(/[^0-9]/g, '');
-    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, '_blank');
   };
 
   const resolveActivityImage = (activity: ActivityType) => {
@@ -598,183 +482,6 @@ function AdminDashboardContent() {
     });
   };
 
-  // Filter bookings based on search and filters
-  const filteredBookings = bookings.filter((booking) => {
-    // Filter out bookings with deleted activities
-    if (!booking.activity) return false;
-
-    // Search filter (customer name, phone, activity name)
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      const matchesSearch = 
-        booking.customerName?.toLowerCase().includes(query) ||
-        booking.customerPhone?.toLowerCase().includes(query) ||
-        booking.activity?.name?.toLowerCase().includes(query);
-      if (!matchesSearch) return false;
-    }
-
-    // Status filter
-    if (statusFilter !== "all") {
-      if (booking.status?.toLowerCase() !== statusFilter.toLowerCase()) return false;
-    }
-
-    // Payment status filter
-    if (paymentStatusFilter !== "all") {
-      if (booking.paymentStatus !== paymentStatusFilter) return false;
-    }
-
-    // Date range filter
-    if (dateRange.from || dateRange.to) {
-      const bookingDate = new Date(booking.preferredDate);
-      if (dateRange.from && bookingDate < dateRange.from) return false;
-      if (dateRange.to) {
-        const toDate = new Date(dateRange.to);
-        toDate.setHours(23, 59, 59, 999); // Include entire end date
-        if (bookingDate > toDate) return false;
-      }
-    }
-
-    return true;
-  });
-
-  // Handle checkbox selection
-  const handleBookingSelect = (bookingId: string, checked: boolean) => {
-    const newSelected = new Set(selectedBookings);
-    if (checked) {
-      newSelected.add(bookingId);
-    } else {
-      newSelected.delete(bookingId);
-    }
-    setSelectedBookings(newSelected);
-  };
-
-  // Handle select all
-  const handleSelectAll = (checked: boolean) => {
-    if (checked) {
-      const allIds = new Set(filteredBookings.map(b => b._id || b.id || '').filter(Boolean));
-      setSelectedBookings(allIds);
-    } else {
-      setSelectedBookings(new Set());
-    }
-  };
-
-  // Bulk status update
-  const handleBulkStatusUpdate = async () => {
-    if (!bulkStatusToUpdate || selectedBookings.size === 0) return;
-
-    const selectedCount = selectedBookings.size;
-    const selectedIds = Array.from(selectedBookings);
-
-    try {
-      // Update each booking status
-      for (const id of selectedIds) {
-        await handleBookingStatusUpdate(id, bulkStatusToUpdate as any);
-      }
-      
-      setSelectedBookings(new Set());
-      setBulkStatusUpdateDialogOpen(false);
-      setBulkStatusToUpdate("");
-      
-      toast({
-        title: "Statuts Mis à Jour",
-        description: `${selectedCount} réservation(s) mise(s) à jour avec succès.`,
-      });
-    } catch (error) {
-      toast({
-        title: "Erreur",
-        description: "Impossible de mettre à jour les réservations",
-        variant: "destructive",
-      });
-    }
-  };
-
-  // Bulk delete
-  const handleBulkDelete = async () => {
-    if (selectedBookings.size === 0) return;
-
-    const selectedCount = selectedBookings.size;
-    const selectedIds = Array.from(selectedBookings);
-
-    try {
-      // Delete each booking
-      for (const id of selectedIds) {
-        await deleteBookingMutation.mutateAsync(id);
-      }
-      
-      setSelectedBookings(new Set());
-      setBulkDeleteDialogOpen(false);
-      
-      toast({
-        title: "Réservations Supprimées",
-        description: `${selectedCount} réservation(s) supprimée(s) avec succès.`,
-      });
-    } catch (error) {
-      toast({
-        title: "Erreur",
-        description: "Impossible de supprimer les réservations",
-        variant: "destructive",
-      });
-    }
-  };
-
-  // Bulk export
-  const handleBulkExport = async () => {
-    if (selectedBookings.size === 0) {
-      toast({
-        title: "Aucune sélection",
-        description: "Veuillez sélectionner au moins une réservation à exporter.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      const selectedBookingsData = filteredBookings.filter(b => 
-        selectedBookings.has(b._id || b.id || '')
-      );
-      
-      // Convert to CSV
-      const headers = ['Customer Name', 'Phone', 'Email', 'Activity', 'Date', 'People', 'Status', 'Total Amount', 'Payment Status'];
-      const rows = selectedBookingsData.map(b => [
-        b.customerName,
-        b.customerPhone,
-        b.customerEmail || '',
-        b.activity?.name || '',
-        new Date(b.preferredDate).toLocaleDateString(),
-        b.numberOfPeople,
-        b.status,
-        b.totalAmount,
-        b.paymentStatus
-      ]);
-      
-      const csvContent = [
-        headers.join(','),
-        ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
-      ].join('\n');
-      
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `bookings-selected-${new Date().toISOString().split('T')[0]}.csv`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
-      
-      toast({
-        title: "Export Réussi",
-        description: `${selectedBookings.size} réservation(s) exportée(s) avec succès.`,
-      });
-    } catch (error) {
-      toast({
-        title: "Erreur d'Export",
-        description: "Impossible d'exporter les réservations sélectionnées.",
-        variant: "destructive",
-      });
-    }
-  };
-
   return (
     <>
       <SEOHead 
@@ -783,18 +490,6 @@ function AdminDashboardContent() {
         keywords="admin, tableau de bord, MarrakechDunes, gestion réservations, activités"
       />
       {/* Force redeploy - v1.3.0 - Fixed auth loop and API calls after logout */}
-      
-      {/* Booking Details Modal */}
-      {selectedBooking && (
-        <BookingDetailsModal
-          booking={selectedBooking}
-          isOpen={isBookingModalOpen}
-          onClose={() => {
-            setIsBookingModalOpen(false);
-            setSelectedBooking(null);
-          }}
-        />
-      )}
       
       <div className="min-h-screen bg-gray-50 p-6">
         <div className="max-w-7xl mx-auto">
@@ -916,434 +611,12 @@ function AdminDashboardContent() {
             </TabsList>
 
             <TabsContent value="bookings" className="space-y-4">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-semibold text-moroccan-blue flex items-center gap-2">
-                  📋 Gestion des Réservations
-                </h2>
-                <div className="flex gap-2">
-                  <Button 
-                    onClick={handleExportBookings} 
-                    variant="outline" 
-                    size="sm"
-                    className="border-green-200 text-green-700 hover:bg-green-50"
-                  >
-                    <Download className="h-4 w-4 mr-2" />
-                    📊 Exporter CSV
-                  </Button>
-                  <Button 
-                    onClick={handleExportBookingsPDF} 
-                    variant="outline" 
-                    size="sm"
-                    className="border-blue-200 text-blue-700 hover:bg-blue-50"
-                  >
-                    <FileText className="h-4 w-4 mr-2" />
-                    📄 Exporter PDF
-                  </Button>
-                </div>
-              </div>
-
-              {/* Search and Filter Section */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Filter className="h-5 w-5" />
-                    Recherche et Filtres
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-                    {/* Search Bar */}
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                      <Input
-                        placeholder="Rechercher (nom, téléphone, activité)..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-10"
-                      />
-                    </div>
-
-                    {/* Status Filter */}
-                    <Select value={statusFilter} onValueChange={setStatusFilter}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Statut" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Tous les statuts</SelectItem>
-                        <SelectItem value="PENDING">Pending</SelectItem>
-                        <SelectItem value="CONFIRMED">Confirmed</SelectItem>
-                        <SelectItem value="COMPLETED">Completed</SelectItem>
-                        <SelectItem value="CANCELLED">Cancelled</SelectItem>
-                      </SelectContent>
-                    </Select>
-
-                    {/* Payment Status Filter */}
-                    <Select value={paymentStatusFilter} onValueChange={setPaymentStatusFilter}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Statut de paiement" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Tous les paiements</SelectItem>
-                        <SelectItem value="unpaid">Unpaid</SelectItem>
-                        <SelectItem value="deposit_paid">Deposit Paid</SelectItem>
-                        <SelectItem value="fully_paid">Fully Paid</SelectItem>
-                      </SelectContent>
-                    </Select>
-
-                    {/* Date Range Picker */}
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button variant="outline" className="w-full justify-start text-left font-normal">
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {dateRange.from ? (
-                            dateRange.to ? (
-                              <>
-                                {dateRange.from.toLocaleDateString()} - {dateRange.to.toLocaleDateString()}
-                              </>
-                            ) : (
-                              dateRange.from.toLocaleDateString()
-                            )
-                          ) : (
-                            <span>Période</span>
-                          )}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          initialFocus
-                          mode="range"
-                          defaultMonth={dateRange.from}
-                          selected={{ from: dateRange.from, to: dateRange.to }}
-                          onSelect={(range: any) => setDateRange({ from: range?.from, to: range?.to })}
-                          numberOfMonths={2}
-                        />
-                        {dateRange.from && (
-                          <div className="p-3 border-t flex justify-end gap-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setDateRange({})}
-                            >
-                              <X className="h-4 w-4 mr-1" />
-                              Effacer
-                            </Button>
-                          </div>
-                        )}
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-
-                  {/* Bulk Actions Bar */}
-                  {selectedBookings.size > 0 && (
-                    <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-200">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-blue-900">
-                          {selectedBookings.size} réservation(s) sélectionnée(s)
-                        </span>
-                      </div>
-                      <div className="flex gap-2">
-                        <Select value={bulkStatusToUpdate} onValueChange={setBulkStatusToUpdate}>
-                          <SelectTrigger className="w-40">
-                            <SelectValue placeholder="Changer statut" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="PENDING">Pending</SelectItem>
-                            <SelectItem value="CONFIRMED">Confirmed</SelectItem>
-                            <SelectItem value="COMPLETED">Completed</SelectItem>
-                            <SelectItem value="CANCELLED">Cancelled</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <Button
-                          size="sm"
-                          onClick={() => {
-                            if (bulkStatusToUpdate) {
-                              setBulkStatusUpdateDialogOpen(true);
-                            } else {
-                              toast({
-                                title: "Sélection requise",
-                                description: "Veuillez sélectionner un statut.",
-                                variant: "destructive",
-                              });
-                            }
-                          }}
-                          disabled={!bulkStatusToUpdate}
-                        >
-                          Mettre à jour
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={handleBulkExport}
-                        >
-                          <Download className="h-4 w-4 mr-1" />
-                          Exporter
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => setBulkDeleteDialogOpen(true)}
-                        >
-                          <Trash2 className="h-4 w-4 mr-1" />
-                          Supprimer
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => setSelectedBookings(new Set())}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>📋 Toutes les Réservations avec Analyse des Prix</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="mb-4 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Checkbox
-                        checked={selectedBookings.size > 0 && selectedBookings.size === filteredBookings.length}
-                        onCheckedChange={handleSelectAll}
-                      />
-                      <Label className="text-sm text-gray-600">
-                        Sélectionner tout ({filteredBookings.length} réservation(s))
-                      </Label>
-                    </div>
-                    {searchQuery || statusFilter !== "all" || paymentStatusFilter !== "all" || dateRange.from || dateRange.to ? (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setSearchQuery("");
-                          setStatusFilter("all");
-                          setPaymentStatusFilter("all");
-                          setDateRange({});
-                        }}
-                      >
-                        <X className="h-4 w-4 mr-1" />
-                        Réinitialiser les filtres
-                      </Button>
-                    ) : null}
-                  </div>
-                  <div className="space-y-6">
-                    {filteredBookings.length === 0 ? (
-                      <div className="text-center py-12">
-                        <p className="text-gray-500">Aucune réservation trouvée avec les filtres sélectionnés.</p>
-                        {(searchQuery || statusFilter !== "all" || paymentStatusFilter !== "all" || dateRange.from || dateRange.to) && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="mt-4"
-                            onClick={() => {
-                              setSearchQuery("");
-                              setStatusFilter("all");
-                              setPaymentStatusFilter("all");
-                              setDateRange({});
-                            }}
-                          >
-                            Réinitialiser les filtres
-                          </Button>
-                        )}
-                      </div>
-                    ) : (
-                      filteredBookings.map((booking, index) => {
-                        const bookingId = booking._id || booking.id || `booking-${index}`;
-                        const isSelected = selectedBookings.has(bookingId);
-                        return (
-                          <div key={bookingId} className={`border rounded-lg p-6 space-y-4 ${isSelected ? 'bg-blue-50 border-blue-300' : ''}`}>
-                            <div className="flex items-start justify-between">
-                              <div className="flex items-start gap-3 flex-1">
-                                <Checkbox
-                                  checked={isSelected}
-                                  onCheckedChange={(checked) => handleBookingSelect(bookingId, checked as boolean)}
-                                  className="mt-1"
-                                />
-                                <div className="flex-1">
-                                  <div className="flex items-center gap-4 mb-3">
-                                    <div>
-                                      <h3 className="font-semibold text-lg">{booking.customerName}</h3>
-                                      <p className="text-sm text-gray-600">{booking.activity?.name || 'Activity not found'}</p>
-                                      <p className="text-sm text-gray-500">{booking.customerPhone}</p>
-                                    </div>
-                                    <Badge variant={String(booking.status || '').toUpperCase() === 'PENDING' ? 'destructive' : String(booking.status || '').toUpperCase() === 'CONFIRMED' ? 'default' : 'secondary'}>
-                                      {booking.status}
-                                    </Badge>
-                                  </div>
-                                </div>
-                              </div>
-                          <div className="text-right">
-                            <div className="text-lg font-bold text-moroccan-blue">{booking.totalAmount} MAD</div>
-                            <div className="text-sm text-gray-500">{booking.numberOfPeople} people</div>
-                          </div>
-                        </div>
-
-                        {/* Analyse des Prix de Réservation */}
-                        <div className="bg-gradient-to-r from-blue-50 to-green-50 p-4 rounded-lg border border-blue-200">
-                          <h4 className="font-semibold text-moroccan-blue mb-3">📊 Analyse des Prix de Réservation</h4>
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                            <div className="bg-white p-4 rounded-lg border-2 border-green-200 shadow-sm">
-                              <div className="text-green-700 font-medium flex items-center gap-2">
-                                <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                                Notre Prix
-                              </div>
-                              <div className="text-xl font-bold text-green-600 mt-1">
-                                {booking.activity?.price ? Number(booking.activity.price).toLocaleString() : 'N/A'} MAD
-                              </div>
-                              <div className="text-xs text-gray-600">Par personne</div>
-                            </div>
-                            <div className="bg-white p-4 rounded-lg border-2 border-orange-200 shadow-sm">
-                              <div className="text-orange-700 font-medium flex items-center gap-2">
-                                <span className="w-2 h-2 bg-orange-500 rounded-full"></span>
-                                GetYourGuide
-                              </div>
-                              <div className="text-xl font-bold text-orange-600 mt-1">
-                                {booking.activity?.getyourguidePrice ? 
-                                  Number(booking.activity.getyourguidePrice).toLocaleString() : 
-                                  booking.activity?.price ? (Number(booking.activity.price) + 200).toLocaleString() : 'N/A'
-                                } MAD
-                              </div>
-                              <div className="text-xs text-red-600">Prix concurrent</div>
-                            </div>
-                            <div className="bg-white p-4 rounded-lg border-2 border-blue-200 shadow-sm">
-                              <div className="text-blue-700 font-medium flex items-center gap-2">
-                                <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                                Économies Client
-                              </div>
-                              <div className="text-xl font-bold text-blue-600 mt-1">
-                                {(() => {
-                                  if (!booking.activity?.price) return 'N/A';
-                                  const ourPrice = Number(booking.activity.price);
-                                  const competitorPrice = booking.activity.getyourguidePrice ? 
-                                    Number(booking.activity.getyourguidePrice) : 
-                                    ourPrice + 200;
-                                  const savings = (competitorPrice - ourPrice) * booking.numberOfPeople;
-                                  return savings > 0 ? savings.toLocaleString() : '0';
-                                })()} MAD
-                              </div>
-                              <div className="text-xs text-green-600">Économies totales</div>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Payment Management */}
-                        <PaymentManagement booking={booking} />
-
-                        <div className="flex gap-2 pt-4">
-                          {String(booking.status || '').toUpperCase() === 'PENDING' && (
-                            <>
-                              <Button 
-                                size="sm" 
-                                className="bg-green-600 hover:bg-green-700"
-                                onClick={() => handleBookingStatusUpdate(booking._id || booking.id || '', 'CONFIRMED')}
-                              >
-                                Confirm Booking
-                              </Button>
-                              <Button 
-                                size="sm" 
-                                variant="outline"
-                                onClick={() => handleContactCustomer(booking.customerPhone)}
-                              >
-                                Contact Customer
-                              </Button>
-                            </>
-                          )}
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            onClick={() => handleSendWhatsApp(booking)}
-                          >
-                            Send WhatsApp
-                          </Button>
-                          {booking.customerEmail && (
-                            <EmailModal
-                              customerEmail={booking.customerEmail}
-                              customerName={booking.customerName}
-                              bookingId={booking._id || booking.id || ''}
-                              trigger={
-                                <Button size="sm" variant="outline" className="flex items-center gap-1">
-                                  <Mail className="h-4 w-4" />
-                                  Email
-                                </Button>
-                              }
-                            />
-                          )}
-                          {(() => {
-                            // Detect test bookings for special deletion button
-                            const isTestBooking = 
-                              booking.customerName?.toLowerCase().includes('test') ||
-                              booking.customerName?.toLowerCase().includes('notification') ||
-                              booking.customerPhone === '+212600123456' ||
-                              booking.customerPhone === '212600123456';
-                            
-                            return (
-                              <Button
-                                variant="destructive"
-                                size="sm"
-                                onClick={() => handleDeleteBooking(booking._id || booking.id || '', booking.customerName)}
-                                title={isTestBooking ? "Supprimer cette réservation de test" : "Supprimer la réservation"}
-                                className={isTestBooking ? "bg-red-600 hover:bg-red-700" : ""}
-                              >
-                                {isTestBooking ? "🗑️ Supprimer Test" : "Delete"}
-                              </Button>
-                            );
-                          })()}
-                        </div>
-                      </div>
-                      );
-                    })
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Bulk Delete Confirmation Dialog */}
-              <AlertDialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Êtes-vous sûr de vouloir supprimer {selectedBookings.size} réservation(s) ? Cette action est irréversible.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Annuler</AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={handleBulkDelete}
-                      className="bg-red-600 hover:bg-red-700"
-                    >
-                      Supprimer
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-
-              {/* Bulk Status Update Confirmation Dialog */}
-              <AlertDialog open={bulkStatusUpdateDialogOpen} onOpenChange={setBulkStatusUpdateDialogOpen}>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Confirmer la mise à jour</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Êtes-vous sûr de vouloir mettre à jour {selectedBookings.size} réservation(s) au statut "{bulkStatusToUpdate}" ?
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Annuler</AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={handleBulkStatusUpdate}
-                      className="bg-green-600 hover:bg-green-700"
-                    >
-                      Confirmer
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+              <BookingManagement
+                bookings={bookings}
+                onExportBookings={handleExportBookings}
+                onExportBookingsPDF={handleExportBookingsPDF}
+              />
             </TabsContent>
-
             <TabsContent value="activities" className="space-y-4">
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
@@ -1798,33 +1071,6 @@ function AdminDashboardContent() {
           </div>
         </DialogContent>
       </Dialog>
-
-      {/* Delete Booking Confirmation Dialog */}
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirmer la suppression</AlertDialogTitle>
-            <AlertDialogDescription>
-              Êtes-vous sûr de vouloir supprimer la réservation de <strong>{bookingToDelete?.name}</strong> ? 
-              Cette action ne peut pas être annulée.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => {
-              setDeleteDialogOpen(false);
-              setBookingToDelete(null);
-            }}>
-              Annuler
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={confirmDelete}
-              className="bg-red-600 hover:bg-red-700 text-white"
-            >
-              Supprimer
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
       {/* Delete Activity Confirmation Dialog */}
       <AlertDialog open={deleteActivityDialogOpen} onOpenChange={setDeleteActivityDialogOpen}>
