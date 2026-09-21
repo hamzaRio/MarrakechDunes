@@ -5,6 +5,7 @@ import { GYGFetcher, GYGActivity } from '../utils/gygFetcher.js';
 import { MoroccoActivityFetcher, MoroccoActivity } from '../utils/moroccoActivityFetcher.js';
 import { MoroccoDatabase, MoroccoActivityData } from '../utils/moroccoDatabase.js';
 import GYGCache from '../models/GYGCache.js';
+import GYGComparable, { SUPPORTED_GYG_CURRENCIES, type SupportedGYGCurrency } from '../models/GYGComparable.js';
 import { requireAdmin, requireSuperAdmin } from '../middleware/admin-auth.js';
 import { calculateVerifiedMetrics, normalizeGYGOffer, type GYGTrustSource } from '../services/gyg-comparison.js';
 import { consumeGYGRateLimit } from '../services/gyg-rate-limits.js';
@@ -41,7 +42,11 @@ const trustSourceFor = (source: string): GYGTrustSource => {
 };
 
 const comparisonResponse = (offers: Record<string, any>[], sourceType: GYGTrustSource, fetchedAt: Date | null, expiresAt: Date | null) => {
-  const normalizedOffers = offers.map((offer) => normalizeGYGOffer(offer, { sourceType, fetchedAt, expiresAt }));
+  const normalizedOffers = offers.map((offer) => normalizeGYGOffer(offer, {
+    sourceType: offer.sourceType ?? sourceType,
+    fetchedAt: offer.fetchedAt ?? fetchedAt,
+    expiresAt: offer.expiresAt ?? expiresAt,
+  }));
   return {
     offers: normalizedOffers,
     metadata: { sourceType, verified: normalizedOffers[0]?.verified ?? false, stale: normalizedOffers[0]?.stale ?? false, fetchedAt, expiresAt },
@@ -167,6 +172,48 @@ async function withOverridesReattached(ourActivityId: string, offers: any[]): Pr
   }));
 }
 
+const normalizeGYGUrl = (value: unknown): string | null => {
+  if (typeof value !== 'string') return null;
+  try {
+    const url = new URL(value.trim());
+    const host = url.hostname.toLowerCase();
+    if (url.protocol !== 'https:' || !(host === 'getyourguide.com' || host.endsWith('.getyourguide.com'))) return null;
+    url.hash = '';
+    return url.toString().replace(/\/$/, '');
+  } catch {
+    return null;
+  }
+};
+
+async function loadManualComparables(ourActivityId: string): Promise<any[]> {
+  const records = await GYGComparable.find({ ourActivityId }).lean();
+  return records.map((record: any) => ({
+    id: `manual:${record._id}`,
+    ourActivityId,
+    matchedExternalId: `manual:${record._id}`,
+    matchedUrl: record.url,
+    url: record.url,
+    title: record.title,
+    price: Number(record.normalizedMadPrice) || 0,
+    currency: 'MAD',
+    originalPrice: record.price,
+    originalCurrency: record.currency,
+    normalizedMadPrice: record.normalizedMadPrice,
+    rating: record.rating,
+    reviewCount: record.reviewCount,
+    duration: record.duration,
+    sourceType: 'MANUAL_VERIFIED',
+    verified: true,
+    stale: false,
+    fetchedAt: record.verifiedAt,
+    expiresAt: null,
+    validationState: 'STRONG_MATCH',
+    matchReasons: Number(record.normalizedMadPrice) > 0 ? ['Manually verified comparable'] : ['Needs MAD normalization'],
+    manualComparableId: String(record._id),
+    notes: record.notes,
+  }));
+}
+
 interface ActivityComparisonResult {
   gygMatches: any[];
   metrics: ReturnType<typeof calculateVerifiedMetrics>;
@@ -184,18 +231,25 @@ interface ActivityComparisonResult {
 async function getActivityComparison(myActivity: any, forceRefresh: boolean): Promise<ActivityComparisonResult> {
   const ourActivityId = String(myActivity._id || myActivity.id || '');
   const cached = await loadCachedComparison(ourActivityId);
+  const manualOffers = await loadManualComparables(ourActivityId);
+
+  const withManualOffers = (offers: any[], sourceType: GYGTrustSource, fetchedAt: Date | null, expiresAt: Date | null) => {
+    const comparison = comparisonResponse([...manualOffers, ...offers], sourceType, fetchedAt, expiresAt);
+    return { gygMatches: comparison.offers, metrics: comparison.metrics };
+  };
 
   if (!forceRefresh) {
     if (cached && cached.fresh) {
       const offers = await withOverridesReattached(ourActivityId, cached.offers);
-      const comparison = comparisonResponse(offers, 'CACHED_VERIFIED', cached.fetchedAt, cached.expiresAt);
-      return { gygMatches: comparison.offers, metrics: comparison.metrics, dataStatus: 'fresh' };
+      return { ...withManualOffers(offers, 'CACHED_VERIFIED', cached.fetchedAt, cached.expiresAt), dataStatus: 'fresh' };
     }
     if (cached) {
       // Expired but present: show it as stale rather than silently scraping.
       const offers = await withOverridesReattached(ourActivityId, cached.offers);
-      const comparison = comparisonResponse(offers, 'STALE_VERIFIED', cached.fetchedAt, cached.expiresAt);
-      return { gygMatches: comparison.offers, metrics: comparison.metrics, dataStatus: 'stale' };
+      return { ...withManualOffers(offers, 'STALE_VERIFIED', cached.fetchedAt, cached.expiresAt), dataStatus: 'stale' };
+    }
+    if (manualOffers.length) {
+      return { ...withManualOffers([], 'MANUAL_VERIFIED', null, null), dataStatus: 'fresh' };
     }
     return {
       gygMatches: [],
@@ -229,19 +283,20 @@ async function getActivityComparison(myActivity: any, forceRefresh: boolean): Pr
       }));
       const scoredMatches = await attachMatchingToOffers(myActivity, rawOffers);
       const fetchedAt = new Date();
-      const comparison = comparisonResponse(scoredMatches, 'LIVE_VERIFIED', fetchedAt, new Date(fetchedAt.getTime() + ACTIVITY_COMPARISON_TTL_MS));
-      await saveCachedComparison(ourActivityId, myActivity.name, comparison.offers, fetchedAt);
+      const comparison = comparisonResponse([...manualOffers, ...scoredMatches], 'LIVE_VERIFIED', fetchedAt, new Date(fetchedAt.getTime() + ACTIVITY_COMPARISON_TTL_MS));
+      // Manual records live in their own collection. Persisting them in the
+      // scrape cache would duplicate them on the next merged read.
+      await saveCachedComparison(ourActivityId, myActivity.name, scoredMatches, fetchedAt);
       return { gygMatches: comparison.offers, metrics: comparison.metrics, dataStatus: 'fresh' };
     }
 
     if (cached) {
       const offers = await withOverridesReattached(ourActivityId, cached.offers);
-      const comparison = comparisonResponse(offers, 'STALE_VERIFIED', cached.fetchedAt, cached.expiresAt);
-      return { gygMatches: comparison.offers, metrics: comparison.metrics, dataStatus: 'stale' };
+      return { ...withManualOffers(offers, 'STALE_VERIFIED', cached.fetchedAt, cached.expiresAt), dataStatus: 'stale' };
     }
     return {
       gygMatches: [],
-      metrics: calculateVerifiedMetrics([]),
+      metrics: calculateVerifiedMetrics(manualOffers.map((offer) => normalizeGYGOffer(offer))),
       dataStatus: 'none',
       message: 'No verified comparable GetYourGuide offers are currently available.',
     };
@@ -249,7 +304,7 @@ async function getActivityComparison(myActivity: any, forceRefresh: boolean): Pr
     console.warn(`[GYG Comparison] Force live refresh failed for "${myActivity.name}":`, scrapeError.message);
     if (cached) {
       const offers = await withOverridesReattached(ourActivityId, cached.offers);
-      const comparison = comparisonResponse(offers, 'STALE_VERIFIED', cached.fetchedAt, cached.expiresAt);
+      const comparison = comparisonResponse([...manualOffers, ...offers], 'STALE_VERIFIED', cached.fetchedAt, cached.expiresAt);
       return {
         gygMatches: comparison.offers,
         metrics: comparison.metrics,
@@ -259,15 +314,15 @@ async function getActivityComparison(myActivity: any, forceRefresh: boolean): Pr
     }
     if (isGYGServiceUnavailable(scrapeError) || circuitIsOpen()) {
       return {
-        gygMatches: [],
-        metrics: calculateVerifiedMetrics([]),
+        gygMatches: manualOffers.map((offer) => normalizeGYGOffer(offer)),
+        metrics: calculateVerifiedMetrics(manualOffers.map((offer) => normalizeGYGOffer(offer))),
         dataStatus: 'unavailable',
         message: 'Live GetYourGuide data is temporarily unavailable.',
       };
     }
     return {
-      gygMatches: [],
-      metrics: calculateVerifiedMetrics([]),
+      gygMatches: manualOffers.map((offer) => normalizeGYGOffer(offer)),
+      metrics: calculateVerifiedMetrics(manualOffers.map((offer) => normalizeGYGOffer(offer))),
       dataStatus: 'unavailable',
       message: 'Live GetYourGuide data is temporarily unavailable.',
     };
@@ -294,6 +349,129 @@ const sendGYGUnavailable = (res: Response, error?: any) => {
 router.use((req, res, next) => {
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
   next();
+});
+
+// Manual, staff-verified comparables are the dependable fallback while the
+// public GetYourGuide source is unavailable. All writes are superadmin-only;
+// Admin can consume the resulting trusted comparison read model.
+router.get('/comparables', requireAdmin, async (req: Request, res: Response) => {
+  const activityId = typeof req.query.activityId === 'string' ? req.query.activityId : '';
+  if (!activityId) return res.status(400).json({ status: 'error', message: 'activityId is required' });
+  const offers = await loadManualComparables(activityId);
+  return res.json({ offers: offers.map((offer) => normalizeGYGOffer(offer)) });
+});
+
+router.post('/comparables', requireSuperAdmin, async (req: Request, res: Response) => {
+  const { activityId, url, title, price, currency, rating, reviewCount, duration, notes, normalizedMadPrice, conversionRate } = req.body ?? {};
+  const normalizedUrl = normalizeGYGUrl(url);
+  const normalizedCurrency = String(currency ?? '').toUpperCase() as SupportedGYGCurrency;
+  const numericPrice = Number(price);
+  const numericRating = rating == null || rating === '' ? null : Number(rating);
+  const numericReviewCount = reviewCount == null || reviewCount === '' ? null : Number(reviewCount);
+
+  if (!activityId || !normalizedUrl || typeof title !== 'string' || !title.trim()) {
+    return res.status(400).json({ status: 'error', message: 'A valid activity, GetYourGuide HTTPS URL and offer title are required.' });
+  }
+  if (!Number.isFinite(numericPrice) || numericPrice <= 0 || !SUPPORTED_GYG_CURRENCIES.includes(normalizedCurrency)) {
+    return res.status(400).json({ status: 'error', message: 'Price must be greater than zero and currency must be supported.' });
+  }
+  if (numericRating != null && (!Number.isFinite(numericRating) || numericRating < 0 || numericRating > 5)) {
+    return res.status(400).json({ status: 'error', message: 'Rating must be between 0 and 5.' });
+  }
+  if (numericReviewCount != null && (!Number.isInteger(numericReviewCount) || numericReviewCount < 0)) {
+    return res.status(400).json({ status: 'error', message: 'Review count must be a non-negative integer.' });
+  }
+  const providedNormalizedMadPrice = normalizedMadPrice === undefined || normalizedMadPrice === '' ? null : Number(normalizedMadPrice);
+  const providedRate = conversionRate === undefined || conversionRate === '' ? null : Number(conversionRate);
+  if (normalizedCurrency !== 'MAD' && ((providedNormalizedMadPrice == null) !== (providedRate == null) || (providedNormalizedMadPrice != null && (!Number.isFinite(providedNormalizedMadPrice) || providedNormalizedMadPrice <= 0 || !Number.isFinite(providedRate!) || providedRate! <= 0)))) return res.status(400).json({ status: 'error', message: 'Foreign currencies need both a positive MAD equivalent and manual conversion rate, or neither.' });
+
+  const { storage } = await import('../storage.js');
+  if (!await storage.getActivity(String(activityId))) return res.status(404).json({ status: 'error', message: 'Activity not found.' });
+
+  try {
+    const comparable = await GYGComparable.create({
+      ourActivityId: activityId,
+      url: normalizedUrl,
+      normalizedUrl,
+      title: title.trim(),
+      price: numericPrice,
+      currency: normalizedCurrency,
+      normalizedMadPrice: normalizedCurrency === 'MAD' ? numericPrice : providedNormalizedMadPrice,
+      conversionRate: normalizedCurrency === 'MAD' ? 1 : providedRate,
+      conversionRateSource: normalizedCurrency === 'MAD' ? 'identity' : (providedNormalizedMadPrice ? 'manual_operator' : null),
+      conversionRateVerifiedAt: normalizedCurrency === 'MAD' || providedNormalizedMadPrice ? new Date() : null,
+      rating: numericRating,
+      reviewCount: numericReviewCount,
+      duration: typeof duration === 'string' && duration.trim() ? duration.trim() : null,
+      notes: typeof notes === 'string' && notes.trim() ? notes.trim() : null,
+      createdBy: String((req.session as any).userId ?? 'superadmin'),
+      verifiedAt: new Date(),
+    });
+    return res.status(201).json({ comparable });
+  } catch (error: any) {
+    if (error?.code === 11000) return res.status(409).json({ status: 'error', message: 'This GetYourGuide URL is already recorded for the activity.' });
+    throw error;
+  }
+});
+
+router.patch('/comparables/:id', requireSuperAdmin, async (req: Request, res: Response) => {
+  const comparable = await GYGComparable.findById(req.params.id);
+  if (!comparable) return res.status(404).json({ status: 'error', message: 'Comparable not found.' });
+  const { url, title, price, currency, rating, reviewCount, duration, notes, normalizedMadPrice, conversionRate } = req.body ?? {};
+  if (url !== undefined) {
+    const normalizedUrl = normalizeGYGUrl(url);
+    if (!normalizedUrl) return res.status(400).json({ status: 'error', message: 'A valid GetYourGuide HTTPS URL is required.' });
+    comparable.url = normalizedUrl;
+    comparable.normalizedUrl = normalizedUrl;
+  }
+  if (title !== undefined) {
+    if (typeof title !== 'string' || !title.trim()) return res.status(400).json({ status: 'error', message: 'Offer title is required.' });
+    comparable.title = title.trim();
+  }
+  const normalizedCurrency = String(currency ?? comparable.currency).toUpperCase() as SupportedGYGCurrency;
+  const numericPrice = price === undefined ? Number(comparable.price) : Number(price);
+  if (!Number.isFinite(numericPrice) || numericPrice <= 0 || !SUPPORTED_GYG_CURRENCIES.includes(normalizedCurrency)) return res.status(400).json({ status: 'error', message: 'Price must be greater than zero and currency must be supported.' });
+  comparable.price = numericPrice;
+  comparable.currency = normalizedCurrency;
+  const providedNormalizedMadPrice = normalizedMadPrice === undefined || normalizedMadPrice === '' ? null : Number(normalizedMadPrice);
+  const providedRate = conversionRate === undefined || conversionRate === '' ? null : Number(conversionRate);
+  if (normalizedCurrency !== 'MAD' && ((providedNormalizedMadPrice == null) !== (providedRate == null) || (providedNormalizedMadPrice != null && (!Number.isFinite(providedNormalizedMadPrice) || providedNormalizedMadPrice <= 0 || !Number.isFinite(providedRate!) || providedRate! <= 0)))) return res.status(400).json({ status: 'error', message: 'Foreign currencies need both a positive MAD equivalent and manual conversion rate, or neither.' });
+  comparable.normalizedMadPrice = normalizedCurrency === 'MAD' ? numericPrice : providedNormalizedMadPrice;
+  comparable.conversionRate = normalizedCurrency === 'MAD' ? 1 : providedRate;
+  comparable.conversionRateSource = normalizedCurrency === 'MAD' ? 'identity' : (providedNormalizedMadPrice ? 'manual_operator' : null);
+  comparable.conversionRateVerifiedAt = normalizedCurrency === 'MAD' || providedNormalizedMadPrice ? new Date() : null;
+  if (rating !== undefined) {
+    const value = rating === '' || rating == null ? null : Number(rating);
+    if (value != null && (!Number.isFinite(value) || value < 0 || value > 5)) return res.status(400).json({ status: 'error', message: 'Rating must be between 0 and 5.' });
+    comparable.rating = value;
+  }
+  if (reviewCount !== undefined) {
+    const value = reviewCount === '' || reviewCount == null ? null : Number(reviewCount);
+    if (value != null && (!Number.isInteger(value) || value < 0)) return res.status(400).json({ status: 'error', message: 'Review count must be a non-negative integer.' });
+    comparable.reviewCount = value;
+  }
+  if (duration !== undefined) comparable.duration = typeof duration === 'string' && duration.trim() ? duration.trim() : null;
+  if (notes !== undefined) comparable.notes = typeof notes === 'string' && notes.trim() ? notes.trim() : null;
+  comparable.verifiedAt = new Date();
+  try {
+    await comparable.save();
+    return res.json({ comparable });
+  } catch (error: any) {
+    if (error?.code === 11000) return res.status(409).json({ status: 'error', message: 'This GetYourGuide URL is already recorded for the activity.' });
+    throw error;
+  }
+});
+
+router.post('/comparables/:id/reverify', requireSuperAdmin, async (req: Request, res: Response) => {
+  const comparable = await GYGComparable.findByIdAndUpdate(req.params.id, { verifiedAt: new Date() }, { new: true });
+  if (!comparable) return res.status(404).json({ status: 'error', message: 'Comparable not found.' });
+  return res.json({ comparable });
+});
+
+router.delete('/comparables/:id', requireSuperAdmin, async (req: Request, res: Response) => {
+  const comparable = await GYGComparable.findByIdAndDelete(req.params.id);
+  if (!comparable) return res.status(404).json({ status: 'error', message: 'Comparable not found.' });
+  return res.status(204).end();
 });
 
 /**

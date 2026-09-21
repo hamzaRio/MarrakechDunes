@@ -6,6 +6,7 @@
 import { storage } from '../storage.js';
 import { whatsappService } from '../whatsapp-service.js';
 import type { BookingWithActivity } from 'marrakechdunes-shared/schema';
+import { formatBookingDateOnly } from '../utils/booking-date.js';
 
 // Simple scheduler using setInterval (can be replaced with node-cron later)
 class NotificationScheduler {
@@ -58,10 +59,10 @@ class NotificationScheduler {
     try {
       const bookings = await storage.getBookings();
       const now = new Date();
-      
-      // Find bookings that need reminders
-      const bookings24h = this.getBookingsNeedingReminder(bookings, 24, now);
-      const bookings2h = this.getBookingsNeedingReminder(bookings, 2, now);
+      // Bookings carry a calendar date, not an appointment time. Queue one
+      // reminder for tomorrow instead of manufacturing 24h/2h precision.
+      const bookings24h = this.getBookingsNeedingReminder(bookings, 1, now);
+      const bookings2h: BookingWithActivity[] = [];
       
       console.log(`[SCHEDULER] Found ${bookings24h.length} bookings needing 24h reminders, ${bookings2h.length} needing 2h reminders`);
       
@@ -96,7 +97,7 @@ class NotificationScheduler {
    */
   private getBookingsNeedingReminder(
     bookings: BookingWithActivity[],
-    hoursBefore: number,
+    daysBefore: number,
     now: Date
   ): BookingWithActivity[] {
     return bookings.filter(booking => {
@@ -110,12 +111,10 @@ class NotificationScheduler {
         return false;
       }
       
-      const bookingDate = new Date(booking.preferredDate);
-      const timeDiff = bookingDate.getTime() - now.getTime();
-      const hoursUntil = timeDiff / (1000 * 60 * 60);
-      
-      // Check if booking is within the reminder window (hoursBefore to hoursBefore-1)
-      return hoursUntil > 0 && hoursUntil <= hoursBefore && hoursUntil > (hoursBefore - 1);
+      const dateOnly = new Date(booking.preferredDate);
+      const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Africa/Casablanca', year: 'numeric', month: '2-digit', day: '2-digit' }).format(now);
+      const todayUtc = new Date(`${today}T00:00:00.000Z`).getTime();
+      return (dateOnly.getTime() - todayUtc) / 86400000 === daysBefore;
     });
   }
 
@@ -130,16 +129,8 @@ class NotificationScheduler {
 
     // Use FREE notification queue (Twilio removed)
     const { freeNotificationQueue } = await import('../services/free-notification-queue.js');
-    const hoursBefore = type === '24h' ? 24 : 2;
     const activityName = booking.activity.name || 'Activity';
-    const date = new Date(booking.preferredDate).toLocaleDateString('en-US', { 
-      weekday: 'long', 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit'
-    });
+    const date = formatBookingDateOnly(new Date(booking.preferredDate));
 
     const paymentReminder = booking.paymentStatus === 'unpaid' 
       ? '\n💰 Remember to bring cash payment'
@@ -147,7 +138,7 @@ class NotificationScheduler {
       ? '\n💰 Balance payment due on arrival'
       : '\n✅ Payment received';
 
-    const message = `⏰ *Reminder: ${hoursBefore}h until your activity!*
+    const message = `⏰ *Reminder: Your activity is tomorrow!*
 
 *${activityName}*
 📅 ${date}

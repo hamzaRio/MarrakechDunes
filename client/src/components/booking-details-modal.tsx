@@ -1,4 +1,5 @@
 import EmailModal from "@/components/EmailModal";
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,6 +19,7 @@ import {
   Receipt,
   User,
   Users,
+  Copy,
 } from "lucide-react";
 import type { BookingWithActivity } from "marrakechdunes-shared/schema";
 
@@ -66,11 +68,19 @@ export default function BookingDetailsModal({
   onSendWhatsApp,
   onManagePayment,
 }: BookingDetailsModalProps) {
+  const [copied, setCopied] = useState(false);
   const bookingStatus = normalizeBookingStatus(booking.status);
   const { paymentStatus, totalAmount, paidAmount, remainingAmount, depositAmount, paymentMethod, progress } = getBookingPaymentSummary(booking);
   const bookingDate = getBookingDateOnly(booking.preferredDate);
   const activityPrice = Number(booking.activity?.price) || 0;
   const marketReferencePrice = Number(booking.activity?.getyourguidePrice) || 0;
+  const internalBookingId = String(booking._id || booking.id || '');
+  const bookingReference = internalBookingId ? internalBookingId.slice(-8).toUpperCase() : 'Unavailable';
+  const copyInternalId = async () => {
+    if (!internalBookingId) return;
+    await navigator.clipboard.writeText(internalBookingId);
+    setCopied(true);
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -99,6 +109,13 @@ export default function BookingDetailsModal({
                 <Badge className={paymentStatusClass(paymentStatus)}>
                   {paymentStatus.replace(/_/g, " ").toUpperCase()}
                 </Badge>
+              </div>
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm">
+                <div className="font-medium text-slate-700">Booking Reference: <span className="font-mono">{bookingReference}</span></div>
+                <div className="mt-2 flex items-center gap-2 text-xs text-slate-600">
+                  <span className="break-all">Internal Booking ID: <span className="font-mono">{internalBookingId}</span></span>
+                  <Button type="button" size="sm" variant="outline" className="h-7 shrink-0" onClick={copyInternalId}><Copy className="mr-1 h-3 w-3" />{copied ? 'Copied' : 'Copy'}</Button>
+                </div>
               </div>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                 <div className="rounded-lg border border-blue-100 bg-blue-50 p-3">

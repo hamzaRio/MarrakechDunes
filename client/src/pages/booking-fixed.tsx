@@ -183,6 +183,8 @@ export default function BookingFixed() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/bookings"] });
+      const createdBooking = (data as any)?.data ?? data;
+      const bookingId = String(createdBooking?._id ?? createdBooking?.id ?? '');
       
       // Store booking data for confirmation page
       const bookingData = {
@@ -192,6 +194,7 @@ export default function BookingFixed() {
         customerPhone: form.getValues('customerPhone'),
         customerEmail: form.getValues('customerEmail'),
         preferredDate: form.getValues('preferredDate'),
+        bookingReference: bookingId ? bookingId.slice(-8).toUpperCase() : undefined,
         paymentType: (data as any).paymentType || 'deposit',
         totalAmount: Number(currentActivity!.price) * form.getValues('numberOfPeople'),
         depositAmount: Math.round(Number(currentActivity!.price) * form.getValues('numberOfPeople') * 0.3),

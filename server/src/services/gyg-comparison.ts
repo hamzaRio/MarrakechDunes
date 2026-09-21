@@ -1,6 +1,7 @@
 import type { ValidationState, ManualOverrideDecision } from './gyg-matching.js';
 
 export type GYGTrustSource =
+  | 'MANUAL_VERIFIED'
   | 'LIVE_VERIFIED'
   | 'CACHED_VERIFIED'
   | 'STALE_VERIFIED'
@@ -25,6 +26,7 @@ export interface NormalizedGYGOffer {
   currency: string;
   originalPrice: number | null;
   originalCurrency: string | null;
+  normalizedMadPrice: number | null;
   rating: number | null;
   reviewCount: number | null;
   duration: string | null;
@@ -48,6 +50,7 @@ export interface NormalizedGYGOffer {
 }
 
 const canonicalSources = new Set<GYGTrustSource>([
+  'MANUAL_VERIFIED',
   'LIVE_VERIFIED',
   'CACHED_VERIFIED',
   'STALE_VERIFIED',
@@ -91,7 +94,7 @@ function normalizeManualOverride(value: unknown): GYGManualOverride | null {
 
 export const trustMetadata = (sourceType: GYGTrustSource, stale = false) => ({
   sourceType,
-  verified: sourceType === 'LIVE_VERIFIED' || sourceType === 'CACHED_VERIFIED' || sourceType === 'STALE_VERIFIED',
+  verified: sourceType === 'MANUAL_VERIFIED' || sourceType === 'LIVE_VERIFIED' || sourceType === 'CACHED_VERIFIED' || sourceType === 'STALE_VERIFIED',
   stale: sourceType === 'STALE_VERIFIED' || stale,
 });
 
@@ -108,6 +111,7 @@ export function normalizeGYGOffer(value: Record<string, any>, defaults: Partial<
     currency: String(value.currency ?? 'MAD'),
     originalPrice: value.originalPrice == null ? null : Number(value.originalPrice),
     originalCurrency: value.originalCurrency ?? null,
+    normalizedMadPrice: value.normalizedMadPrice == null ? null : Number(value.normalizedMadPrice),
     rating: value.rating == null ? null : Number(value.rating),
     reviewCount: value.reviewCount == null ? (value.reviews_count == null ? null : Number(value.reviews_count)) : Number(value.reviewCount),
     duration: value.duration ?? value.duration_text ?? null,

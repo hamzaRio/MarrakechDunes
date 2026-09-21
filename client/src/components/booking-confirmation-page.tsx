@@ -33,6 +33,7 @@ interface BookingConfirmationData {
   totalAmount: number;
   depositAmount: number;
   remainingAmount: number;
+  bookingReference?: string;
 }
 
 export default function BookingConfirmationPage() {
@@ -99,6 +100,12 @@ export default function BookingConfirmationPage() {
             </CardHeader>
             <CardContent className="p-8">
               {/* Activity Details */}
+              {bookingData.bookingReference && (
+                <div className="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-4 text-center">
+                  <p className="text-sm font-medium text-gray-700">Booking Reference</p>
+                  <p className="mt-1 font-mono text-xl font-bold tracking-wider text-moroccan-blue">{bookingData.bookingReference}</p>
+                </div>
+              )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
                 <div className="space-y-4">
                   <div className="flex items-center gap-3">

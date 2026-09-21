@@ -11,6 +11,7 @@ import { Separator } from '@/components/ui/separator';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { useAuth } from '@/hooks/use-auth';
@@ -21,7 +22,7 @@ interface GYGReferenceToolProps {
 }
 
 type GYGValidationState = 'STRONG_MATCH' | 'LIKELY_MATCH' | 'WEAK_MATCH' | 'REJECTED_MATCH' | 'NEEDS_REVIEW';
-type GYGTrustSource = 'LIVE_VERIFIED' | 'CACHED_VERIFIED' | 'STALE_VERIFIED' | 'CURATED_REFERENCE' | 'GENERATED_FALLBACK' | 'ESTIMATED' | 'LEGACY_UNVERIFIED';
+type GYGTrustSource = 'MANUAL_VERIFIED' | 'LIVE_VERIFIED' | 'CACHED_VERIFIED' | 'STALE_VERIFIED' | 'CURATED_REFERENCE' | 'GENERATED_FALLBACK' | 'ESTIMATED' | 'LEGACY_UNVERIFIED';
 
 interface GYGManualOverride {
   decision: 'ACCEPTED' | 'REJECTED';
@@ -52,6 +53,11 @@ interface GYGActivityResult {
   ourActivityId?: string | null;
   matchedExternalId?: string | null;
   manualOverride?: GYGManualOverride | null;
+  manualComparableId?: string;
+  originalPrice?: number | null;
+  originalCurrency?: string | null;
+  normalizedMadPrice?: number | null;
+  notes?: string | null;
 }
 
 interface GYGSearchResponse {
@@ -85,6 +91,7 @@ interface EnrichedRow extends ActivityComparisonRow {
 // Phase 3D-2 §5 — trust labels (source of the data). Kept separate from
 // match-quality labels: a "Live verified" offer can still be a "Weak match".
 const trustLabel: Record<GYGTrustSource, string> = {
+  MANUAL_VERIFIED: 'Manual verified',
   LIVE_VERIFIED: 'Live verified',
   CACHED_VERIFIED: 'Cached verified',
   STALE_VERIFIED: 'Stale verified',
@@ -95,6 +102,7 @@ const trustLabel: Record<GYGTrustSource, string> = {
 };
 
 const trustBadgeClass: Record<GYGTrustSource, string> = {
+  MANUAL_VERIFIED: 'bg-emerald-100 text-emerald-800',
   LIVE_VERIFIED: 'bg-blue-600 text-white',
   CACHED_VERIFIED: 'bg-blue-100 text-blue-800',
   STALE_VERIFIED: 'bg-amber-100 text-amber-800',
@@ -237,6 +245,9 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
   const [filter, setFilter] = useState<'all' | 'below' | 'above' | 'needs-review' | 'no-data'>('all');
   const [sortBy, setSortBy] = useState<SortKey>('activity');
   const [selectedActivityId, setSelectedActivityId] = useState<string | null>(null);
+  const [comparableDialogOpen, setComparableDialogOpen] = useState(false);
+  const [editingComparable, setEditingComparable] = useState<GYGActivityResult | null>(null);
+  const [comparableForm, setComparableForm] = useState({ url: '', title: '', price: '', currency: 'MAD', normalizedMadPrice: '', conversionRate: '', rating: '', reviewCount: '', duration: '', notes: '' });
 
   const enrichedRows: EnrichedRow[] = useMemo(() => {
     const rows = workspaceQuery.data ?? [];
@@ -328,6 +339,57 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
     },
     onError: (error) => toast({ title: 'Live refresh failed', description: getWorkspaceErrorMessage(error), variant: 'destructive' }),
   });
+
+  const comparableMutation = useMutation({
+    mutationFn: async () => {
+      if (!selectedRow) throw new Error('Select an activity first.');
+      const payload = {
+        activityId: selectedRow.myActivity.id,
+        url: comparableForm.url,
+        title: comparableForm.title,
+        price: Number(comparableForm.price),
+        currency: comparableForm.currency,
+        normalizedMadPrice: comparableForm.normalizedMadPrice === '' ? undefined : Number(comparableForm.normalizedMadPrice),
+        conversionRate: comparableForm.conversionRate === '' ? undefined : Number(comparableForm.conversionRate),
+        rating: comparableForm.rating === '' ? undefined : Number(comparableForm.rating),
+        reviewCount: comparableForm.reviewCount === '' ? undefined : Number(comparableForm.reviewCount),
+        duration: comparableForm.duration || undefined,
+        notes: comparableForm.notes || undefined,
+      };
+      if (editingComparable?.manualComparableId) {
+        return (await api.patch(`/gyg/comparables/${editingComparable.manualComparableId}`, payload)).data;
+      }
+      return (await api.post('/gyg/comparables', payload)).data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['gyg-workspace-summary'] });
+      setComparableDialogOpen(false);
+      setEditingComparable(null);
+      toast({ title: 'Verified comparable saved' });
+    },
+    onError: (error: any) => toast({ title: 'Could not save comparable', description: error?.response?.data?.message || 'Check the comparable details.', variant: 'destructive' }),
+  });
+
+  const reverifyComparableMutation = useMutation({
+    mutationFn: async (id: string) => (await api.post(`/gyg/comparables/${id}/reverify`)).data,
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['gyg-workspace-summary'] }); toast({ title: 'Comparable re-verified' }); },
+    onError: () => toast({ title: 'Could not re-verify comparable', variant: 'destructive' }),
+  });
+
+  const deleteComparableMutation = useMutation({
+    mutationFn: async (id: string) => api.delete(`/gyg/comparables/${id}`),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['gyg-workspace-summary'] }); toast({ title: 'Comparable removed' }); },
+    onError: () => toast({ title: 'Could not remove comparable', variant: 'destructive' }),
+  });
+
+  const openComparableDialog = (offer?: GYGActivityResult) => {
+    setEditingComparable(offer ?? null);
+    setComparableForm(offer ? {
+      url: offer.url || '', title: offer.title, price: String(offer.originalPrice ?? offer.price), currency: offer.originalCurrency ?? offer.currency,
+      normalizedMadPrice: offer.normalizedMadPrice == null ? '' : String(offer.normalizedMadPrice), conversionRate: '', rating: offer.rating == null ? '' : String(offer.rating), reviewCount: offer.reviewCount == null ? '' : String(offer.reviewCount), duration: offer.duration || '', notes: offer.notes || '',
+    } : { url: '', title: '', price: '', currency: 'MAD', normalizedMadPrice: '', conversionRate: '', rating: '', reviewCount: '', duration: '', notes: '' });
+    setComparableDialogOpen(true);
+  };
 
   // ------------------------------------------------------------------
   // Secondary: manual GetYourGuide search (unchanged behavior, kept as a
@@ -598,18 +660,10 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
                 <h4 className="text-sm font-semibold text-gray-700">
                   Comparable GetYourGuide offers ({selectedRow.gygMatches.length})
                 </h4>
-                {canForceLiveRefresh && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-7 text-xs"
-                    disabled={forceRefreshMutation.isPending}
-                    onClick={() => forceRefreshMutation.mutate(selectedRow.myActivity.id)}
-                  >
-                    <RefreshCw className={`w-3 h-3 mr-1 ${forceRefreshMutation.isPending ? 'animate-spin' : ''}`} />
-                    Force Live Refresh
-                  </Button>
-                )}
+                <div className="flex gap-2">
+                  {canForceLiveRefresh && <Button size="sm" className="h-7 text-xs" onClick={() => openComparableDialog()}>+ Add GYG Comparable</Button>}
+                  {canForceLiveRefresh && <Button size="sm" variant="outline" className="h-7 text-xs" disabled={forceRefreshMutation.isPending} onClick={() => forceRefreshMutation.mutate(selectedRow.myActivity.id)}><RefreshCw className={`w-3 h-3 mr-1 ${forceRefreshMutation.isPending ? 'animate-spin' : ''}`} />Try Live Source</Button>}
+                </div>
               </div>
 
               {selectedRow.message && (
@@ -641,7 +695,8 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
                       </div>
 
                       <div className="flex items-baseline gap-2">
-                        <span className="text-lg font-bold text-blue-600">{offer.price} {offer.currency}</span>
+                        <span className="text-lg font-bold text-blue-600">{offer.originalPrice ?? offer.price} {offer.originalCurrency ?? offer.currency}</span>
+                        {offer.originalCurrency && offer.originalCurrency !== 'MAD' && <span className="text-xs text-gray-500">({formatMAD(offer.price)})</span>}
                         {typeof offer.rating === 'number' && (
                           <span className="flex items-center gap-1 text-xs text-gray-600">
                             <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" /> {offer.rating}
@@ -674,6 +729,14 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
 
                       {formatFetchedAt(offer.fetchedAt) && (
                         <p className="text-[11px] text-slate-500">Checked: {formatFetchedAt(offer.fetchedAt)}</p>
+                      )}
+
+                      {canForceLiveRefresh && offer.manualComparableId && (
+                        <div className="flex gap-1 pt-1">
+                          <Button size="sm" variant="outline" className="h-6 px-2 text-[11px]" onClick={() => openComparableDialog(offer)}>Edit</Button>
+                          <Button size="sm" variant="outline" className="h-6 px-2 text-[11px]" disabled={reverifyComparableMutation.isPending} onClick={() => reverifyComparableMutation.mutate(offer.manualComparableId!)}>Re-verify</Button>
+                          <Button size="sm" variant="outline" className="h-6 px-2 text-[11px] text-red-700" disabled={deleteComparableMutation.isPending} onClick={() => deleteComparableMutation.mutate(offer.manualComparableId!)}>Remove</Button>
+                        </div>
                       )}
 
                       {/* Superadmin-only override controls (§7). Admin sees the
@@ -737,6 +800,22 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
           )}
         </SheetContent>
       </Sheet>
+
+      <Dialog open={comparableDialogOpen} onOpenChange={setComparableDialogOpen}>
+        <DialogContent className="max-w-lg bg-white">
+          <DialogHeader><DialogTitle>{editingComparable ? 'Edit GYG Comparable' : 'Add GYG Comparable'}</DialogTitle><DialogDescription>For: {selectedRow?.myActivity.name}. Manual entries are marked as verified by the staff member recording them.</DialogDescription></DialogHeader>
+          <div className="grid gap-3 py-2">
+            <Input aria-label="GetYourGuide URL" placeholder="https://www.getyourguide.com/..." value={comparableForm.url} onChange={(e) => setComparableForm({ ...comparableForm, url: e.target.value })} />
+            <Input aria-label="Offer title" placeholder="Offer title" value={comparableForm.title} onChange={(e) => setComparableForm({ ...comparableForm, title: e.target.value })} />
+            <div className="grid grid-cols-2 gap-2"><Input aria-label="Price" type="number" min="0" placeholder="Price" value={comparableForm.price} onChange={(e) => setComparableForm({ ...comparableForm, price: e.target.value })} /><Select value={comparableForm.currency} onValueChange={(currency) => setComparableForm({ ...comparableForm, currency })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="MAD">MAD</SelectItem><SelectItem value="EUR">EUR</SelectItem><SelectItem value="USD">USD</SelectItem><SelectItem value="GBP">GBP</SelectItem></SelectContent></Select></div>
+            {comparableForm.currency !== 'MAD' && <div className="grid grid-cols-2 gap-2"><Input aria-label="Normalized MAD price" type="number" min="0" placeholder="MAD equivalent (optional)" value={comparableForm.normalizedMadPrice} onChange={(e) => setComparableForm({ ...comparableForm, normalizedMadPrice: e.target.value })} /><Input aria-label="Manual conversion rate" type="number" min="0" step="0.0001" placeholder="Manual rate (optional)" value={comparableForm.conversionRate} onChange={(e) => setComparableForm({ ...comparableForm, conversionRate: e.target.value })} /></div>}
+            <div className="grid grid-cols-2 gap-2"><Input aria-label="Rating" type="number" min="0" max="5" step="0.1" placeholder="Rating (optional)" value={comparableForm.rating} onChange={(e) => setComparableForm({ ...comparableForm, rating: e.target.value })} /><Input aria-label="Review count" type="number" min="0" placeholder="Review count (optional)" value={comparableForm.reviewCount} onChange={(e) => setComparableForm({ ...comparableForm, reviewCount: e.target.value })} /></div>
+            <Input aria-label="Duration" placeholder="Duration (optional)" value={comparableForm.duration} onChange={(e) => setComparableForm({ ...comparableForm, duration: e.target.value })} />
+            <Input aria-label="Notes" placeholder="Notes (optional)" value={comparableForm.notes} onChange={(e) => setComparableForm({ ...comparableForm, notes: e.target.value })} />
+          </div>
+          <DialogFooter><Button variant="outline" onClick={() => setComparableDialogOpen(false)}>Cancel</Button><Button disabled={comparableMutation.isPending} onClick={() => comparableMutation.mutate()}>{editingComparable ? 'Save' : 'Add Comparable'}</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Separator />
 

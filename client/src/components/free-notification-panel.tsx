@@ -117,9 +117,9 @@ export default function FreeNotificationPanel() {
       case 'booking_confirmation':
         return 'Booking Confirmation';
       case 'reminder_24h':
-        return '24h Reminder';
+        return 'Tomorrow Reminder';
       case 'reminder_2h':
-        return '2h Reminder';
+        return 'Same-day Reminder';
       case 'payment_confirmation':
         return 'Payment Confirmed';
       case 'reschedule':
@@ -215,10 +215,10 @@ export default function FreeNotificationPanel() {
                   Confirmations ({stats?.byType.booking_confirmation || 0})
                 </TabsTrigger>
                 <TabsTrigger value="reminder_24h">
-                  24h ({stats?.byType.reminder_24h || 0})
+                  Tomorrow ({stats?.byType.reminder_24h || 0})
                 </TabsTrigger>
                 <TabsTrigger value="reminder_2h">
-                  2h ({stats?.byType.reminder_2h || 0})
+                  Same day ({stats?.byType.reminder_2h || 0})
                 </TabsTrigger>
                 <TabsTrigger value="auto_response">
                   Auto ({stats?.byType.auto_response || 0})
