@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ExternalLink, MessageCircle, Phone, Users } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { getBookingDateOnly } from '@/lib/booking-utils';
 
 interface WhatsAppContact {
   name: string;
@@ -49,8 +50,8 @@ export function WhatsAppNotificationPanel({
   const formatBookingMessage = (booking: any) => {
     if (!booking) return '';
     
-    const bookingDate = booking.preferredDate 
-      ? new Date(booking.preferredDate).toLocaleDateString('fr-FR')
+    const bookingDate = booking.preferredDate
+      ? getBookingDateOnly(booking.preferredDate)?.toLocaleDateString('fr-FR') || 'Non specifiee'
       : 'Non specifiee';
     const bookingTime = booking.preferredTime || 'Non specifiee';
     const totalAmount = `${booking.totalAmount} MAD`;
@@ -88,8 +89,8 @@ Contactez ${booking.customerName} au ${booking.customerPhone}`;
   const formatCustomerMessage = (booking: any) => {
     if (!booking) return '';
     
-    const bookingDate = booking.preferredDate 
-      ? new Date(booking.preferredDate).toLocaleDateString('fr-FR')
+    const bookingDate = booking.preferredDate
+      ? getBookingDateOnly(booking.preferredDate)?.toLocaleDateString('fr-FR') || 'A confirmer'
       : 'A confirmer';
     const bookingTime = booking.preferredTime || 'A confirmer';
     const totalAmount = `${booking.totalAmount} MAD`;

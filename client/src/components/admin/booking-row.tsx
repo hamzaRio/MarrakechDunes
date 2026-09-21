@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { getBookingDate, getBookingPaymentSummary, normalizeBookingStatus } from "@/lib/booking-utils";
+import { getBookingDateOnly, getBookingPaymentSummary, normalizeBookingStatus } from "@/lib/booking-utils";
 import { CalendarDays, Eye, MessageCircle, MoreHorizontal, Phone, Trash2, Users } from "lucide-react";
 import type { ActivityType, BookingType } from "marrakechdunes-shared/schema";
 
@@ -82,7 +82,7 @@ export default function BookingRow({
 }: BookingRowProps) {
   const normalizedStatus = normalizeBookingStatus(booking.status);
   const { paymentStatus: normalizedPaymentStatus, totalAmount, paidAmount, remainingAmount } = getBookingPaymentSummary(booking);
-  const bookingDate = getBookingDate(booking.preferredDate);
+  const bookingDate = getBookingDateOnly(booking.preferredDate);
   const statusSelectValue = BOOKING_STATUSES.includes(normalizedStatus as BookingLifecycleStatus)
     ? normalizedStatus
     : undefined;

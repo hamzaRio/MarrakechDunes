@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiFetch } from "@/lib/api";
+import { getBookingCalendarDayDistance, getBookingCalendarDayLabel, getBookingDateOnly } from "@/lib/booking-utils";
 import type { BookingType, ActivityType } from "marrakechdunes-shared/schema";
 
 interface BookingWithActivity extends BookingType {
@@ -32,12 +33,10 @@ export default function CashBookingReminders({ bookings }: CashBookingRemindersP
 
   // Filter bookings that need reminders
   const upcomingBookings = bookings.filter(booking => {
-    const bookingDate = new Date(booking.preferredDate);
-    const now = new Date();
-    const hoursUntil = (bookingDate.getTime() - now.getTime()) / (1000 * 60 * 60);
+    const daysUntil = getBookingCalendarDayDistance(booking.preferredDate);
     
-    // Show bookings within next 48 hours that are unpaid or deposit only
-    return hoursUntil > 0 && hoursUntil <= 48 && 
+    // Booking dates have no time-of-day, so use Casablanca calendar days.
+    return daysUntil !== null && daysUntil >= 0 && daysUntil <= 2 &&
            (booking.paymentStatus === 'unpaid' || booking.paymentStatus === 'deposit_paid');
   });
 
@@ -75,13 +74,10 @@ export default function CashBookingReminders({ bookings }: CashBookingRemindersP
   };
 
   const getUrgencyLevel = (booking: BookingWithActivity) => {
-    const bookingDate = new Date(booking.preferredDate);
-    const now = new Date();
-    const hoursUntil = (bookingDate.getTime() - now.getTime()) / (1000 * 60 * 60);
-    
-    if (hoursUntil <= 2) return { level: 'urgent', color: 'red', text: 'URGENT - Within 2 hours' };
-    if (hoursUntil <= 24) return { level: 'soon', color: 'yellow', text: 'Soon - Within 24 hours' };
-    return { level: 'upcoming', color: 'blue', text: 'Upcoming - Within 48 hours' };
+    const label = getBookingCalendarDayLabel(booking.preferredDate);
+    if (label === 'Today') return { level: 'urgent', text: label };
+    if (label === 'Tomorrow') return { level: 'soon', text: label };
+    return { level: 'upcoming', text: label };
   };
 
   if (upcomingBookings.length === 0) {
@@ -136,7 +132,7 @@ export default function CashBookingReminders({ bookings }: CashBookingRemindersP
                     <div className="flex items-center gap-4 text-sm text-gray-600">
                       <div className="flex items-center gap-1">
                         <Calendar className="w-4 h-4" />
-                        <span>{new Date(booking.preferredDate).toLocaleDateString()}</span>
+                        <span>{getBookingDateOnly(booking.preferredDate)?.toLocaleDateString() || 'Date unavailable'}</span>
                       </div>
                       <div className="flex items-center gap-1">
                         <Phone className="w-4 h-4" />

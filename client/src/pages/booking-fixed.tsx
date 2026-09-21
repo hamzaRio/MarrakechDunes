@@ -6,6 +6,7 @@ import { z } from "zod";
 import { ActivityType } from "marrakechdunes-shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { ensureArray } from "@/lib/ensureArray";
+import { formatLocalDateOnly, normalizeBookingDateOnlyInput } from "@/lib/booking-utils";
 import { useToast } from "@/hooks/use-toast";
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
@@ -97,7 +98,7 @@ export default function BookingFixed() {
       customerEmail: "",
       activityId: "",
       numberOfPeople: 1,
-      preferredDate: new Date().toISOString().split('T')[0],
+      preferredDate: formatLocalDateOnly(new Date()),
       participantNames: [""],
       notes: "",
     },
@@ -223,11 +224,7 @@ export default function BookingFixed() {
     // Ensure preferredDate is properly formatted as string
     const formattedData = {
       ...data,
-      preferredDate: typeof data.preferredDate === 'string' 
-        ? data.preferredDate
-        : (data.preferredDate as any) instanceof Date 
-        ? (data.preferredDate as Date).toISOString().split('T')[0]
-        : String(data.preferredDate)
+      preferredDate: normalizeBookingDateOnlyInput(data.preferredDate)
     };
     setPendingBookingData(formattedData);
     setShowPaymentConfirmation(true);
@@ -342,7 +339,7 @@ export default function BookingFixed() {
   // Handle date selection
   const handleDateSelect = (date: Date) => {
     setSelectedDate(date);
-    form.setValue("preferredDate", date.toISOString().split('T')[0]);
+    form.setValue("preferredDate", formatLocalDateOnly(date));
     setCurrentStep('details');
   };
 
@@ -841,7 +838,7 @@ export default function BookingFixed() {
                             className="w-full bg-moroccan-red hover:bg-red-600 text-white"
                             disabled={createBookingMutation.isPending}
                           >
-                            {createBookingMutation.isPending ? "Processing..." : "Confirm Booking"}
+                            {createBookingMutation.isPending ? "Processing..." : t('booking.submit')}
                           </Button>
                         </div>
                       )}

@@ -17,6 +17,7 @@ import { Link } from "wouter";
 import { getActivityFallbackImage } from "@/lib/image-utils";
 import { ensureArray } from "@/lib/ensureArray";
 import { getAssetUrl } from "@/lib/utils";
+import { getBookingDateOnly } from "@/lib/booking-utils";
 import BookingManagement from "@/components/admin/booking-management";
 import { WhatsAppNotificationPanel } from "@/components/whatsapp-notification-panel";
 import FreeNotificationPanel from "@/components/free-notification-panel";
@@ -162,7 +163,8 @@ function AdminDashboardContent() {
   // documented here as a future enhancement, not implemented in this pass.
   const withinReportsDateRange = (b: any) => {
     if (reportsDateRange.from || reportsDateRange.to) {
-      const bookingDate = new Date(b.preferredDate);
+      const bookingDate = getBookingDateOnly(b.preferredDate);
+      if (!bookingDate) return false;
       if (reportsDateRange.from && bookingDate < reportsDateRange.from) return false;
       if (reportsDateRange.to) {
         const toDate = new Date(reportsDateRange.to);
@@ -195,7 +197,8 @@ function AdminDashboardContent() {
     
     // Apply reports date range filter
     if (reportsDateRange.from || reportsDateRange.to) {
-      const bookingDate = new Date(b.preferredDate);
+      const bookingDate = getBookingDateOnly(b.preferredDate);
+      if (!bookingDate) return false;
       if (reportsDateRange.from && bookingDate < reportsDateRange.from) return false;
       if (reportsDateRange.to) {
         const toDate = new Date(reportsDateRange.to);

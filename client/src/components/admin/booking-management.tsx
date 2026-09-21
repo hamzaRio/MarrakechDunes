@@ -23,7 +23,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { apiFetch } from "@/lib/api";
-import { getBookingDate, getBookingPaymentSummary, normalizeBookingStatus } from "@/lib/booking-utils";
+import { getBookingDateOnly, getBookingPaymentSummary, normalizeBookingStatus } from "@/lib/booking-utils";
 import { Calendar as CalendarIcon, Download, FileText, Filter, Search, Trash2, X } from "lucide-react";
 
 interface BookingManagementProps {
@@ -82,7 +82,7 @@ export default function BookingManagement({
       }
 
       if (dateRange.from || dateRange.to) {
-        const bookingDate = getBookingDate(booking.preferredDate);
+        const bookingDate = getBookingDateOnly(booking.preferredDate);
         if (!bookingDate) return false;
         if (dateRange.from && bookingDate < dateRange.from) return false;
         if (dateRange.to) {
@@ -313,7 +313,7 @@ export default function BookingManagement({
       booking.customerPhone,
       booking.customerEmail || "",
       booking.activity?.name || "",
-      getBookingDate(booking.preferredDate)?.toLocaleDateString() || "Flexible",
+      getBookingDateOnly(booking.preferredDate)?.toLocaleDateString() || "Flexible",
       booking.numberOfPeople,
       normalizeBookingStatus(booking.status),
       getBookingPaymentSummary(booking).totalAmount,

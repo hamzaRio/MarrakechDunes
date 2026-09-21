@@ -1,5 +1,6 @@
 import express from 'express';
 import { storage } from '../storage.js';
+import { formatBookingDateOnly, isBookingDateInPast, parseBookingDateOnly } from '../utils/booking-date.js';
 // Twilio removed - using free notification queue only
 
 const router = express.Router();
@@ -49,14 +50,12 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ status: 'error', message: 'Number of people must be a whole number greater than 0.' });
     }
 
-    // --- preferredDate: valid, not obviously in the past -------------------------
-    const requestedDate = preferredDate ? new Date(preferredDate) : null;
-    if (!requestedDate || Number.isNaN(requestedDate.getTime())) {
+    // --- preferredDate: exact calendar day, stored at UTC midnight ---------------
+    const requestedDate = parseBookingDateOnly(preferredDate);
+    if (!requestedDate) {
       return res.status(400).json({ status: 'error', message: 'A valid date is required.' });
     }
-    const startOfToday = new Date();
-    startOfToday.setHours(0, 0, 0, 0);
-    if (requestedDate < startOfToday) {
+    if (isBookingDateInPast(requestedDate)) {
       return res.status(400).json({ status: 'error', message: 'The selected date has already passed. Please choose a future date.' });
     }
 
@@ -143,12 +142,7 @@ router.post('/', async (req, res) => {
     // Admin/Superadmin explicitly confirms it (Phase 4 §4).
     try {
       const activityName = activity.name || 'Activity';
-      const dateLabel = requestedDate.toLocaleDateString('en-US', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      });
+      const dateLabel = formatBookingDateOnly(requestedDate);
       const bookingRef = String(booking._id || booking.id || '');
 
       const { freeNotificationQueue } = await import('../services/free-notification-queue.js');

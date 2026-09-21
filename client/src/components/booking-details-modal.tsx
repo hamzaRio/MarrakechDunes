@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
-import { getBookingDate, getBookingPaymentSummary, normalizeBookingStatus } from "@/lib/booking-utils";
+import { getBookingDate, getBookingDateOnly, getBookingPaymentSummary, normalizeBookingStatus } from "@/lib/booking-utils";
 import {
   Calendar,
   Clock,
@@ -68,7 +68,7 @@ export default function BookingDetailsModal({
 }: BookingDetailsModalProps) {
   const bookingStatus = normalizeBookingStatus(booking.status);
   const { paymentStatus, totalAmount, paidAmount, remainingAmount, depositAmount, paymentMethod, progress } = getBookingPaymentSummary(booking);
-  const bookingDate = getBookingDate(booking.preferredDate);
+  const bookingDate = getBookingDateOnly(booking.preferredDate);
   const activityPrice = Number(booking.activity?.price) || 0;
   const marketReferencePrice = Number(booking.activity?.getyourguidePrice) || 0;
 

@@ -46,7 +46,7 @@ export default function CashPaymentConfirmation({
         <CardHeader className="text-center bg-moroccan-blue text-white">
           <CardTitle className="flex items-center justify-center gap-2">
             <Banknote className="w-6 h-6" />
-            Cash Payment Confirmation
+            Cash Payment Plan
           </CardTitle>
         </CardHeader>
         
@@ -204,11 +204,11 @@ export default function CashPaymentConfirmation({
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <div className="w-6 h-6 bg-moroccan-blue text-white text-xs rounded-full flex items-center justify-center">1</div>
-                <span className="text-sm">Booking confirmation sent via WhatsApp</span>
+                <span className="text-sm">Our team will review your request and contact you via WhatsApp</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-6 h-6 bg-moroccan-blue text-white text-xs rounded-full flex items-center justify-center">2</div>
-                <span className="text-sm">Meeting point and timing details shared</span>
+                <span className="text-sm">Meeting point and timing details shared after approval</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-6 h-6 bg-moroccan-blue text-white text-xs rounded-full flex items-center justify-center">3</div>
@@ -239,7 +239,7 @@ export default function CashPaymentConfirmation({
               {isConfirming ? (
                 <div className="flex items-center gap-2">
                   <Clock className="w-4 h-4 animate-spin" />
-                  Confirming...
+                  Submitting...
                 </div>
               ) : (
                 <div className="flex items-center gap-2">

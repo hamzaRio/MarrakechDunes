@@ -544,9 +544,9 @@ export default function ActivityDetail() {
                   <div className="bg-green-50 p-5 rounded-xl border border-green-200">
                     <div className="flex items-center gap-3 mb-2">
                       <CheckCircle2 className="h-5 w-5 text-green-600" />
-                      <span className="font-bold text-gray-900">Instant Confirmation</span>
+                      <span className="font-bold text-gray-900">Confirmation After Review</span>
                     </div>
-                    <p className="text-sm text-gray-600">Receive confirmation immediately after booking</p>
+                    <p className="text-sm text-gray-600">Our team checks availability and confirms your request with you via WhatsApp</p>
                   </div>
                   
                   <div className="space-y-3 pt-4 border-t">

@@ -67,8 +67,8 @@
     "preferredDate": "Date Préférée",
     "preferredTime": "Heure Préférée",
     "notes": "Demandes Spéciales",
-    "submit": "Confirmer la Réservation",
-    "success": "Réservation confirmée ! Nous vous contacterons bientôt.",
+    "submit": "Envoyer la demande de réservation",
+    "success": "Demande reçue ! Notre équipe vous contactera rapidement.",
     "totalAmount": "Montant Total",
     "selectActivity": "Sélectionner l'Activité",
     "chooseActivity": "Choisir une Activité",
@@ -103,7 +103,7 @@
       "optional": "Informations optionnelles"
     },
     "confirmationStep": {
-      "title": "Vérifier et Confirmer",
+      "title": "Vérifier votre demande",
       "subtitle": "Veuillez vérifier les détails de votre réservation",
       "bookingSummary": "Résumé de la Réservation",
       "paymentInfo": "Informations de Paiement"
@@ -112,7 +112,7 @@
       "selectActivity": "Choisir l'Activité",
       "selectDate": "Sélectionner la Date",
       "details": "Vos Détails", 
-      "confirmation": "Confirmer et Payer"
+      "confirmation": "Vérifier et envoyer"
     }
   },
   "reviews": {
@@ -354,8 +354,8 @@
           "description": "Nous collaborons avec les communautés locales et promouvons un voyage responsable qui protège l'environnement marocain et soutient les cultures berbères et arabes traditionnelles."
         },
         "instantBooking": {
-          "title": "Réservation instantanée",
-          "description": "Notre plateforme simplifiée confirme immédiatement votre réservation et met nos guides en contact direct via WhatsApp pour des mises à jour en temps réel."
+          "title": "Demandes de réservation",
+          "description": "Envoyez votre demande d'activité en quelques étapes. Notre équipe vérifie les disponibilités et vous répond par WhatsApp."
         },
         "premiumExperience": {
           "title": "Expérience premium",

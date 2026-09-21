@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { useLanguage } from "@/hooks/use-language";
 import type { ActivityType } from "marrakechdunes-shared/schema";
+import { getBookingDateOnly } from "@/lib/booking-utils";
 
 interface BookingConfirmationData {
   activity: ActivityType;
@@ -112,12 +113,12 @@ export default function BookingConfirmationPage() {
                     <Calendar className="w-5 h-5 text-moroccan-blue" />
                     <div>
                       <p className="font-medium">Date</p>
-                      <p className="text-gray-600">{new Date(bookingData.preferredDate).toLocaleDateString('en-US', { 
+                      <p className="text-gray-600">{getBookingDateOnly(bookingData.preferredDate)?.toLocaleDateString('en-US', {
                         weekday: 'long', 
                         year: 'numeric', 
                         month: 'long', 
                         day: 'numeric' 
-                      })}</p>
+                      }) || 'Date unavailable'}</p>
                     </div>
                   </div>
                   

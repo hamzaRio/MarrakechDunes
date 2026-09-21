@@ -67,8 +67,8 @@
     "preferredDate": "Preferred Date",
     "preferredTime": "Preferred Time",
     "notes": "Special Requests",
-    "submit": "Confirm Booking",
-    "success": "Booking confirmed! We'll contact you soon.",
+    "submit": "Submit Booking Request",
+    "success": "Booking request received! Our team will contact you shortly.",
     "totalAmount": "Total Amount",
     "selectActivity": "Select Activity",
     "chooseActivity": "Choose Activity",
@@ -103,7 +103,7 @@
       "optional": "Optional information"
     },
     "confirmationStep": {
-      "title": "Review & Confirm",
+      "title": "Review Your Request",
       "subtitle": "Please review your booking details",
       "bookingSummary": "Booking Summary",
       "paymentInfo": "Payment Information"
@@ -112,7 +112,7 @@
       "selectActivity": "Choose Activity",
       "selectDate": "Select Date", 
       "details": "Your Details",
-      "confirmation": "Confirm & Pay"
+      "confirmation": "Review & Submit"
     }
   },
   "reviews": {
@@ -293,8 +293,8 @@
           "description": "We partner with local communities and promote responsible travel practices that protect Morocco's environment and support traditional Berber and Arab cultures."
         },
         "instantBooking": {
-          "title": "Instant Booking",
-          "description": "Our streamlined booking platform provides instant confirmation with direct WhatsApp contact to our guides for real-time updates and personalized assistance."
+          "title": "Booking Requests",
+          "description": "Send your activity request in a few steps. Our team checks availability and follows up with you via WhatsApp."
         },
         "premiumExperience": {
           "title": "Premium Experience",

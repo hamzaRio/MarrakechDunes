@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
+import { getBookingDateOnly, isBookingDateTodayOrLater } from "@/lib/booking-utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { getStatusDisplayName, getStatusColor } from "@/lib/booking-utils";
@@ -217,7 +218,7 @@ export default function CustomerPortal() {
           <TabsContent value="upcoming" className="space-y-4">
             <div className="grid gap-4">
               {bookings.filter(b => 
-                new Date(b.preferredDate) > new Date() && 
+                isBookingDateTodayOrLater(b.preferredDate) &&
                 !['CANCELLED', 'COMPLETED', 'NO_SHOW'].includes(String(b.status || '').toUpperCase())
               ).map((booking) => (
                 <BookingCard key={booking._id} booking={booking} />
@@ -242,7 +243,7 @@ export default function CustomerPortal() {
 
 function BookingCard({ booking }: { booking: BookingType }) {
   const statusColor = getStatusColor(booking.status as any);
-  const bookingDate = new Date(booking.preferredDate);
+  const bookingDate = getBookingDateOnly(booking.preferredDate);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [showReschedule, setShowReschedule] = useState(false);
@@ -250,7 +251,7 @@ function BookingCard({ booking }: { booking: BookingType }) {
   const [newDate, setNewDate] = useState('');
   const [reason, setReason] = useState('');
 
-  const isUpcoming = new Date(booking.preferredDate) > new Date();
+  const isUpcoming = isBookingDateTodayOrLater(booking.preferredDate);
   const normalizedStatus = String(booking.status || '').toUpperCase();
   const canModify = isUpcoming && normalizedStatus !== 'CANCELLED' && normalizedStatus !== 'COMPLETED';
 
@@ -324,11 +325,11 @@ function BookingCard({ booking }: { booking: BookingType }) {
         <div className="grid grid-cols-2 gap-4 mb-4">
           <div className="flex items-center gap-2">
             <Calendar className="h-4 w-4 text-gray-500" />
-            <span className="text-sm">{bookingDate.toLocaleDateString()}</span>
+            <span className="text-sm">{bookingDate?.toLocaleDateString() || 'Date unavailable'}</span>
           </div>
           <div className="flex items-center gap-2">
             <Clock className="h-4 w-4 text-gray-500" />
-            <span className="text-sm">{bookingDate.toLocaleTimeString()}</span>
+            <span className="text-sm">{booking.preferredTime || 'Time to be confirmed'}</span>
           </div>
           <div className="flex items-center gap-2">
             <Users className="h-4 w-4 text-gray-500" />
