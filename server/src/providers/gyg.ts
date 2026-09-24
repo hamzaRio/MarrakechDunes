@@ -354,7 +354,7 @@ export function isOfficialGYGConfigured(): boolean {
   return Boolean(process.env.GYG_PARTNER_API_TOKEN);
 }
 
-function buildOfficialSearchRequest(query: string, limit = 12): GYGPartnerSearchRequest {
+function buildOfficialSearchRequest(query: string, limit = 12, offset = 0): GYGPartnerSearchRequest {
   const baseUrl = (process.env.GYG_PARTNER_API_BASE || GYG_PARTNER_API_DEFAULT_BASE).replace(/\/$/, '');
   const language = process.env.GYG_PARTNER_API_LANGUAGE || GYG_PARTNER_API_DEFAULT_LANGUAGE;
   const currency = process.env.GYG_PARTNER_API_CURRENCY || GYG_PARTNER_API_DEFAULT_CURRENCY;
@@ -364,6 +364,7 @@ function buildOfficialSearchRequest(query: string, limit = 12): GYGPartnerSearch
     currency,
     limit: String(Math.min(Math.max(limit, 1), 50)),
   });
+  if (offset > 0) params.set('offset', String(Math.max(0, Math.floor(offset))));
 
   return {
     method: 'GET',
@@ -413,13 +414,13 @@ export function normalizeOfficialTour(tour: any): OfficialGYGActivity {
   };
 }
 
-export async function searchOfficialGYG(query: string, limit = 12): Promise<OfficialGYGActivity[]> {
+export async function searchOfficialGYG(query: string, limit = 12, offset = 0): Promise<OfficialGYGActivity[]> {
   if (!isOfficialGYGConfigured()) {
     const error = new Error('GetYourGuide API access is not configured.') as Error & { code?: string };
     error.code = 'GYG_API_NOT_CONFIGURED';
     throw error;
   }
-  const request = buildOfficialSearchRequest(query, limit);
+  const request = buildOfficialSearchRequest(query, limit, offset);
   const response = await fetch(request.url, {
     method: request.method,
     headers: request.headers,

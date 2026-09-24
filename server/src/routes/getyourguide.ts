@@ -76,8 +76,10 @@ router.get('/official-search', requireAdmin, async (req: Request, res: Response)
   }
   if (!consumeGYGRateLimit(req, res, 'normalSearch')) return;
   try {
-    const activities = await searchOfficialGYG(query, Number(req.query.limit) || 12);
-    return res.json({ activities, total: activities.length, hasMore: false });
+    const limit = Math.min(Math.max(Number(req.query.limit) || 12, 1), 50);
+    const offset = Math.max(Number(req.query.offset) || 0, 0);
+    const activities = await searchOfficialGYG(query, limit, offset);
+    return res.json({ activities, total: activities.length, hasMore: activities.length >= limit, offset, limit });
   } catch (error: any) {
     console.warn('[GYG Official API] Search failed:', error?.message || 'unknown error');
     return res.status(503).json({

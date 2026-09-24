@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Plus, Search, MapPin, Clock, Users, Star, DollarSign, Save, X } from 'lucide-react';
 import GYGActivitySearch from '../components/gyg-activity-search';
 import type { NormalizedGYGActivity } from '../lib/getyourguide-api';
 import { api } from '../lib/api';
+import { useLocation } from 'wouter';
 
 interface Activity {
   id: string;
@@ -22,6 +23,7 @@ interface Activity {
 }
 
 export default function AddActivity() {
+  const [location] = useLocation();
   const [showGYGSearch, setShowGYGSearch] = useState(false);
   const [selectedGYGActivity, setSelectedGYGActivity] = useState<NormalizedGYGActivity | null>(null);
   const [activity, setActivity] = useState<Activity>({
@@ -58,6 +60,18 @@ export default function AddActivity() {
     }));
     setShowGYGSearch(false);
   };
+
+  useEffect(() => {
+    try {
+      const stored = sessionStorage.getItem('gyg-activity-template');
+      if (!stored) return;
+      sessionStorage.removeItem('gyg-activity-template');
+      const template = JSON.parse(stored) as NormalizedGYGActivity;
+      if (template?.title) handleGYGActivitySelect(template);
+    } catch {
+      sessionStorage.removeItem('gyg-activity-template');
+    }
+  }, [location]);
 
   const addHighlight = () => {
     if (newHighlight.trim()) {
@@ -167,7 +181,7 @@ export default function AddActivity() {
                 <div>
                   <p className="text-green-700">{selectedGYGActivity.title}</p>
                   <p className="text-sm text-green-600">
-                    ${selectedGYGActivity.price.amount} {selectedGYGActivity.price.currency} • {selectedGYGActivity.duration}
+                    {selectedGYGActivity.price.amount} {selectedGYGActivity.price.currency} • {selectedGYGActivity.duration}
                   </p>
                 </div>
                 <button

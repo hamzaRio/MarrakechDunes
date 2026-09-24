@@ -1,17 +1,22 @@
 import React, { useState } from 'react';
-import { Search, MapPin, Clock, Users, Star, ExternalLink, Wifi, WifiOff } from 'lucide-react';
+import { Search, MapPin, Clock, Star, ExternalLink, Wifi, WifiOff, Loader2 } from 'lucide-react';
 import { searchGetYourGuideActivities, getGetYourGuideAPIStatus, type NormalizedGYGActivity } from '../lib/getyourguide-api';
 
 type GYGActivity = NormalizedGYGActivity;
 
 interface GYGSearchProps {
   onActivitySelect?: (activity: GYGActivity) => void;
+  onCompare?: (activity: GYGActivity) => void;
+  onUseAsTemplate?: (activity: GYGActivity) => void;
+  onManualFallback?: () => void;
 }
 
-export const GYGActivitySearch: React.FC<GYGSearchProps> = ({ onActivitySelect }) => {
+export const GYGActivitySearch: React.FC<GYGSearchProps> = ({ onActivitySelect, onCompare, onUseAsTemplate, onManualFallback }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [activities, setActivities] = useState<GYGActivity[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [apiStatus, setApiStatus] = useState(getGetYourGuideAPIStatus());
 
@@ -28,18 +33,44 @@ export const GYGActivitySearch: React.FC<GYGSearchProps> = ({ onActivitySelect }
       const result = await searchGetYourGuideActivities({
         q: searchTerm,
         limit: 12,
+        offset: 0,
         location: 'Marrakech, Morocco'
       });
 
       setActivities(result.activities as GYGActivity[]);
+      setHasMore(result.hasMore);
       setApiStatus(getGetYourGuideAPIStatus());
       
     } catch (err) {
       const response = (err as any)?.response;
-      setError(response?.data?.message || 'GetYourGuide API access is not configured.');
+      if (response?.data?.code === 'GYG_API_NOT_CONFIGURED') {
+        setError('GetYourGuide Partner API access is not configured.');
+      } else {
+        setError(response?.data?.message || 'GetYourGuide Partner API access is temporarily unavailable.');
+      }
       console.error('Search error:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleLoadMore = async () => {
+    if (!searchTerm.trim() || loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    try {
+      const result = await searchGetYourGuideActivities({
+        q: searchTerm,
+        limit: 12,
+        offset: activities.length,
+        location: 'Marrakech, Morocco',
+      });
+      setActivities((current) => [...current, ...(result.activities as GYGActivity[])]);
+      setHasMore(result.hasMore);
+    } catch (err) {
+      const response = (err as any)?.response;
+      setError(response?.data?.message || 'Unable to load more GetYourGuide results.');
+    } finally {
+      setLoadingMore(false);
     }
   };
 
@@ -102,15 +133,22 @@ export const GYGActivitySearch: React.FC<GYGSearchProps> = ({ onActivitySelect }
         {error && (
           <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
             {error}
-            {((error.includes('not configured') || error.includes('not configured')) && searchTerm) && (
-              <a
-                className="ml-2 underline font-medium"
-                href={`https://www.getyourguide.com/s/?q=${encodeURIComponent(searchTerm)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Open GetYourGuide Search
-              </a>
+            {(error.includes('not configured') && searchTerm) && (
+              <span className="ml-3 inline-flex flex-wrap gap-3">
+                <a
+                  className="underline font-medium"
+                  href={`https://www.getyourguide.com/s/?q=${encodeURIComponent(searchTerm)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Open GetYourGuide Search
+                </a>
+                {onManualFallback && (
+                  <button type="button" className="underline font-medium" onClick={onManualFallback}>
+                    Add Verified Comparable Manually
+                  </button>
+                )}
+              </span>
             )}
           </div>
         )}
@@ -129,14 +167,16 @@ export const GYGActivitySearch: React.FC<GYGSearchProps> = ({ onActivitySelect }
                   onClick={() => handleActivityClick(activity)}
                 >
                   <div className="aspect-w-16 aspect-h-9">
-                    <img
-                      src={activity.imageUrl}
-                      alt={activity.title}
-                      className="w-full h-48 object-cover rounded-t-lg"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = '/images/placeholder-activity.jpg';
-                      }}
-                    />
+                    {activity.imageUrl ? (
+                      <img
+                        src={activity.imageUrl}
+                        alt={activity.title}
+                        className="w-full h-48 object-cover rounded-t-lg"
+                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                      />
+                    ) : (
+                      <div className="w-full h-48 bg-gray-100 flex items-center justify-center text-sm text-gray-400">No image available</div>
+                    )}
                   </div>
                   
                   <div className="p-4">
@@ -163,16 +203,13 @@ export const GYGActivitySearch: React.FC<GYGSearchProps> = ({ onActivitySelect }
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center">
                         <span className="text-2xl font-bold text-green-600">
-                          ${activity.price.amount}
+                          {activity.price.amount} {activity.price.currency}
                         </span>
                         {activity.price.originalAmount && (
                           <span className="ml-2 text-sm text-gray-500 line-through">
                             ${activity.price.originalAmount}
                           </span>
                         )}
-                        <span className="ml-1 text-sm text-gray-600">
-                          {activity.price.currency}
-                        </span>
                       </div>
                     </div>
                     
@@ -191,20 +228,52 @@ export const GYGActivitySearch: React.FC<GYGSearchProps> = ({ onActivitySelect }
                       ))}
                     </div>
                     
-                    <a
-                      href={activity.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center text-blue-600 hover:text-blue-800 text-sm font-medium"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      View on GetYourGuide
-                      <ExternalLink className="ml-1 h-4 w-4" />
-                    </a>
+                    <div className="flex flex-wrap gap-2 pt-2">
+                      <a
+                        href={activity.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center text-blue-600 hover:text-blue-800 text-sm font-medium"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        Open on GetYourGuide
+                        <ExternalLink className="ml-1 h-4 w-4" />
+                      </a>
+                      {onCompare && (
+                        <button
+                          type="button"
+                          className="px-2 py-1 rounded border border-blue-300 text-blue-700 text-xs hover:bg-blue-50"
+                          onClick={(e) => { e.stopPropagation(); onCompare(activity); }}
+                        >
+                          Compare with...
+                        </button>
+                      )}
+                      {(onUseAsTemplate || onActivitySelect) && (
+                        <button
+                          type="button"
+                          className="px-2 py-1 rounded border border-green-300 text-green-700 text-xs hover:bg-green-50"
+                          onClick={(e) => { e.stopPropagation(); (onUseAsTemplate ?? onActivitySelect)?.(activity); }}
+                        >
+                          Use as Activity Template
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
             </div>
+            {hasMore && (
+              <div className="flex justify-center pt-2">
+                <button
+                  type="button"
+                  onClick={handleLoadMore}
+                  disabled={loadingMore}
+                  className="px-4 py-2 border border-blue-300 text-blue-700 rounded-lg hover:bg-blue-50 disabled:opacity-50"
+                >
+                  {loadingMore ? <><Loader2 className="inline-block mr-2 h-4 w-4 animate-spin" />Loading…</> : 'Load more'}
+                </button>
+              </div>
+            )}
           </div>
         )}
 

@@ -16,6 +16,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
+import { useLocation } from 'wouter';
+import GYGActivitySearch from '@/components/gyg-activity-search';
+import type { NormalizedGYGActivity } from '@/lib/getyourguide-api';
 
 interface GYGReferenceToolProps {
   onActivitySelect?: (activity: any) => void;
@@ -133,6 +136,31 @@ const formatFetchedAt = (fetchedAt: string | null) => fetchedAt
   ? new Intl.DateTimeFormat('en-GB', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(fetchedAt))
   : null;
 
+function toComparableOffer(activity: NormalizedGYGActivity): GYGActivityResult {
+  return {
+    id: activity.id,
+    title: activity.title,
+    price: activity.price.amount,
+    currency: activity.price.currency,
+    image: activity.imageUrl || null,
+    url: activity.url || null,
+    duration: activity.duration || null,
+    rating: activity.rating,
+    reviewCount: activity.reviewCount,
+    location: activity.location || null,
+    sourceType: 'LIVE_VERIFIED',
+    verified: true,
+    stale: false,
+    fetchedAt: new Date().toISOString(),
+    expiresAt: null,
+    matchScore: null,
+    matchReasons: [],
+    validationState: null,
+    originalPrice: activity.price.amount,
+    originalCurrency: activity.price.currency,
+  };
+}
+
 // Secondary manual-search tool (French, unchanged from before this phase).
 const getGYGErrorMessage = (error: unknown) => {
   const response = (error as any)?.response;
@@ -222,6 +250,7 @@ const POPULAR_SEARCHES = [
 
 export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolProps) {
   const { user } = useAuth();
+  const [, setLocation] = useLocation();
   const canForceLiveRefresh = user?.role === 'superadmin';
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -245,6 +274,9 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
   const [filter, setFilter] = useState<'all' | 'below' | 'above' | 'needs-review' | 'no-data'>('all');
   const [sortBy, setSortBy] = useState<SortKey>('activity');
   const [selectedActivityId, setSelectedActivityId] = useState<string | null>(null);
+  const [officialOfferToCompare, setOfficialOfferToCompare] = useState<GYGActivityResult | null>(null);
+  const [compareActivityDialogOpen, setCompareActivityDialogOpen] = useState(false);
+  const [activityPickerMode, setActivityPickerMode] = useState<'compare' | 'manual' | null>(null);
   const [comparableDialogOpen, setComparableDialogOpen] = useState(false);
   const [editingComparable, setEditingComparable] = useState<GYGActivityResult | null>(null);
   const [comparableForm, setComparableForm] = useState({ url: '', title: '', price: '', currency: 'MAD', normalizedMadPrice: '', conversionRate: '', rating: '', reviewCount: '', duration: '', notes: '' });
@@ -322,25 +354,6 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
     onError: (error) => toast({ title: 'Could not clear override', description: getWorkspaceErrorMessage(error), variant: 'destructive' }),
   });
 
-  const forceRefreshMutation = useMutation({
-    mutationFn: async (activityId: string) => {
-      const response = await api.get('/gyg/search', {
-        params: { useMyActivities: 'true', activityId, forceRefresh: 'true' },
-      });
-      return response.data as ActivityComparisonRow[];
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['gyg-workspace-summary'] });
-      const result = Array.isArray(data) ? data[0] : null;
-      if (result?.message) {
-        toast({ title: result.dataStatus === 'stale' ? 'Using cached data' : 'Notice', description: result.message });
-      } else {
-        toast({ title: 'Live refresh complete' });
-      }
-    },
-    onError: (error) => toast({ title: 'Live refresh failed', description: getWorkspaceErrorMessage(error), variant: 'destructive' }),
-  });
-
   const comparableMutation = useMutation({
     mutationFn: async () => {
       if (!selectedRow) throw new Error('Select an activity first.');
@@ -391,6 +404,28 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
       normalizedMadPrice: offer.normalizedMadPrice == null ? '' : String(offer.normalizedMadPrice), conversionRate: '', rating: offer.rating == null ? '' : String(offer.rating), reviewCount: offer.reviewCount == null ? '' : String(offer.reviewCount), duration: offer.duration || '', notes: offer.notes || '',
     } : { url: '', title: '', price: '', currency: 'MAD', normalizedMadPrice: '', conversionRate: '', rating: '', reviewCount: '', duration: '', notes: '' });
     setComparableDialogOpen(true);
+  };
+
+  const handleOfficialCompare = (activity: NormalizedGYGActivity) => {
+    const offer = toComparableOffer(activity);
+    if (selectedRow) {
+      openComparableDialog(offer);
+      return;
+    }
+    setOfficialOfferToCompare(offer);
+    setActivityPickerMode('compare');
+    setCompareActivityDialogOpen(true);
+  };
+
+  const handleManualFallback = () => {
+    setOfficialOfferToCompare(null);
+    setActivityPickerMode('manual');
+    setCompareActivityDialogOpen(true);
+  };
+
+  const handleOfficialTemplate = (activity: NormalizedGYGActivity) => {
+    sessionStorage.setItem('gyg-activity-template', JSON.stringify(activity));
+    setLocation('/admin/activities/new');
   };
 
   const submitComparable = () => {
@@ -491,6 +526,20 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
 
   return (
     <div className="space-y-6">
+      <section className="space-y-3">
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900">Official GetYourGuide Search</h2>
+          <p className="text-sm text-gray-500">
+            Search the official Partner API, compare a result with one of our activities, or use it as a reviewed activity template.
+          </p>
+        </div>
+        <GYGActivitySearch
+          onCompare={handleOfficialCompare}
+          onUseAsTemplate={handleOfficialTemplate}
+          onManualFallback={canForceLiveRefresh ? handleManualFallback : undefined}
+        />
+      </section>
+
       {/* ============================================================ */}
       {/* PRIMARY: Market Comparison Workspace                          */}
       {/* ============================================================ */}
@@ -675,7 +724,6 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
                 </h4>
                 <div className="flex gap-2">
                   {canForceLiveRefresh && <Button size="sm" className="h-7 text-xs" onClick={() => openComparableDialog()}>Add Verified Comparable Manually</Button>}
-                  {canForceLiveRefresh && <Button size="sm" variant="outline" className="h-7 text-xs" disabled={forceRefreshMutation.isPending} onClick={() => forceRefreshMutation.mutate(selectedRow.myActivity.id)}><RefreshCw className={`w-3 h-3 mr-1 ${forceRefreshMutation.isPending ? 'animate-spin' : ''}`} />Try Live Source</Button>}
                 </div>
               </div>
 
@@ -814,6 +862,44 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
         </SheetContent>
       </Sheet>
 
+      <Dialog open={compareActivityDialogOpen} onOpenChange={setCompareActivityDialogOpen}>
+        <DialogContent className="max-w-lg bg-white">
+          <DialogHeader>
+            <DialogTitle>Compare with a MarrakechDunes activity</DialogTitle>
+            <DialogDescription>Select the internal activity that should receive this official GetYourGuide comparable.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 max-h-80 overflow-y-auto py-2">
+            {enrichedRows.map((row) => (
+              <Button
+                key={row.myActivity.id}
+                type="button"
+                variant="outline"
+                className="w-full justify-between h-auto py-3"
+                onClick={() => {
+                  setSelectedActivityId(row.myActivity.id);
+                  setCompareActivityDialogOpen(false);
+                  if (activityPickerMode === 'compare' && officialOfferToCompare) {
+                    openComparableDialog(officialOfferToCompare);
+                  } else if (activityPickerMode === 'manual') {
+                    openComparableDialog();
+                  }
+                  setOfficialOfferToCompare(null);
+                  setActivityPickerMode(null);
+                }}
+              >
+                <span className="text-left">
+                  <span className="block font-medium">{row.myActivity.name}</span>
+                  <span className="block text-xs text-gray-500">Our price: {formatMAD(row.ourPrice)}</span>
+                </span>
+                <span className="text-xs text-blue-600">Select</span>
+              </Button>
+            ))}
+            {enrichedRows.length === 0 && <p className="text-sm text-gray-500">No MarrakechDunes activities are available to compare.</p>}
+          </div>
+          <DialogFooter><Button variant="outline" onClick={() => setCompareActivityDialogOpen(false)}>Cancel</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={comparableDialogOpen} onOpenChange={setComparableDialogOpen}>
         <DialogContent className="max-w-lg bg-white">
           <DialogHeader><DialogTitle>{editingComparable ? 'Edit Verified Comparable' : 'Add Verified Comparable Manually'}</DialogTitle><DialogDescription>For: {selectedRow?.myActivity.name}. Pasting a URL does not import metadata; enter the offer facts you verified.</DialogDescription></DialogHeader>
@@ -830,10 +916,11 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
         </DialogContent>
       </Dialog>
 
+      {canForceLiveRefresh && <>
       <Separator />
 
       {/* ============================================================ */}
-      {/* SECONDARY: manual GetYourGuide search (Phase 3D-2 §12)         */}
+      {/* SECONDARY: legacy diagnostic search, Superadmin only          */}
       {/* ============================================================ */}
       <div>
         <button
@@ -841,7 +928,7 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
           className="flex items-center gap-1 text-sm font-medium text-gray-600 hover:text-gray-800"
         >
           {showManualSearch ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-          Secondary tool: manual GetYourGuide search
+          Legacy diagnostics: manual GetYourGuide source
         </button>
 
         {showManualSearch && (
@@ -1099,6 +1186,7 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
           </div>
         )}
       </div>
+      </>}
 
       {/* Info Tip */}
       <div className="bg-blue-100 border border-blue-200 rounded-lg p-4">
