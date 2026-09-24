@@ -44,7 +44,11 @@ console.log("[Env] GYG Environment Variables:", {
   GYG_DEBUG: process.env.GYG_DEBUG || 'NOT SET',
   GYG_DEFAULT_VACANCY: process.env.GYG_DEFAULT_VACANCY || 'NOT SET',
   GYG_ENABLE_LIVE_SEARCH: process.env.GYG_ENABLE_LIVE_SEARCH || 'NOT SET',
-  GYG_SUPPLIER_BASE: process.env.GYG_SUPPLIER_BASE || 'NOT SET'
+  GYG_SUPPLIER_BASE: process.env.GYG_SUPPLIER_BASE || 'NOT SET',
+  VIATOR_API_BASE: process.env.VIATOR_API_BASE || 'https://api.viator.com/partner (default)',
+  VIATOR_API_KEY: process.env.VIATOR_API_KEY ? 'SET' : 'NOT SET',
+  VIATOR_API_LANGUAGE: process.env.VIATOR_API_LANGUAGE || 'en-US',
+  VIATOR_API_CURRENCY: process.env.VIATOR_API_CURRENCY || 'EUR'
 });
 
 // Simple self-check to ensure VITE_* variables are not required on backend

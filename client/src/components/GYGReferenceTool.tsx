@@ -17,8 +17,8 @@ import { api } from '@/lib/api';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { useLocation } from 'wouter';
-import GYGActivitySearch from '@/components/gyg-activity-search';
-import type { NormalizedGYGActivity } from '@/lib/getyourguide-api';
+import ViatorActivitySearch from '@/components/viator-activity-search';
+import type { NormalizedViatorActivity } from '@/lib/viator-api';
 
 interface GYGReferenceToolProps {
   onActivitySelect?: (activity: any) => void;
@@ -61,6 +61,9 @@ interface GYGActivityResult {
   originalCurrency?: string | null;
   normalizedMadPrice?: number | null;
   notes?: string | null;
+  provider?: 'VIATOR' | 'GETYOURGUIDE' | 'OTHER';
+  externalId?: string | null;
+  checkedAt?: string | null;
 }
 
 interface GYGSearchResponse {
@@ -136,7 +139,7 @@ const formatFetchedAt = (fetchedAt: string | null) => fetchedAt
   ? new Intl.DateTimeFormat('en-GB', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(fetchedAt))
   : null;
 
-function toComparableOffer(activity: NormalizedGYGActivity): GYGActivityResult {
+function toComparableOffer(activity: NormalizedViatorActivity): GYGActivityResult {
   return {
     id: activity.id,
     title: activity.title,
@@ -158,6 +161,9 @@ function toComparableOffer(activity: NormalizedGYGActivity): GYGActivityResult {
     validationState: null,
     originalPrice: activity.price.amount,
     originalCurrency: activity.price.currency,
+    provider: activity.provider,
+    externalId: activity.id,
+    checkedAt: 'checkedAt' in activity ? activity.checkedAt : new Date().toISOString(),
   };
 }
 
@@ -254,6 +260,12 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
   const canForceLiveRefresh = user?.role === 'superadmin';
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const providerStatusQuery = useQuery({
+    queryKey: ['market-provider-status'],
+    queryFn: async () => (await api.get('/market/providers')).data,
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+  });
 
   // ------------------------------------------------------------------
   // Primary: market comparison workspace (Phase 3D-2). Cache-first: this
@@ -279,7 +291,7 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
   const [activityPickerMode, setActivityPickerMode] = useState<'compare' | 'manual' | null>(null);
   const [comparableDialogOpen, setComparableDialogOpen] = useState(false);
   const [editingComparable, setEditingComparable] = useState<GYGActivityResult | null>(null);
-  const [comparableForm, setComparableForm] = useState({ url: '', title: '', price: '', currency: 'MAD', normalizedMadPrice: '', conversionRate: '', rating: '', reviewCount: '', duration: '', notes: '' });
+  const [comparableForm, setComparableForm] = useState({ provider: 'GETYOURGUIDE', url: '', externalId: '', title: '', price: '', currency: 'MAD', normalizedMadPrice: '', conversionRate: '', rating: '', reviewCount: '', duration: '', notes: '' });
   const [comparableErrors, setComparableErrors] = useState<Record<string, string>>({});
 
   const enrichedRows: EnrichedRow[] = useMemo(() => {
@@ -359,7 +371,9 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
       if (!selectedRow) throw new Error('Select an activity first.');
       const payload = {
         activityId: selectedRow.myActivity.id,
+        provider: comparableForm.provider,
         url: comparableForm.url,
+        externalId: comparableForm.externalId || undefined,
         title: comparableForm.title,
         price: Number(comparableForm.price),
         currency: comparableForm.currency,
@@ -400,13 +414,13 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
     setEditingComparable(offer ?? null);
     setComparableErrors({});
     setComparableForm(offer ? {
-      url: offer.url || '', title: offer.title, price: String(offer.originalPrice ?? offer.price), currency: offer.originalCurrency ?? offer.currency,
+      provider: offer.provider ?? 'GETYOURGUIDE', url: offer.url || '', externalId: offer.externalId ?? '', title: offer.title, price: String(offer.originalPrice ?? offer.price), currency: offer.originalCurrency ?? offer.currency,
       normalizedMadPrice: offer.normalizedMadPrice == null ? '' : String(offer.normalizedMadPrice), conversionRate: '', rating: offer.rating == null ? '' : String(offer.rating), reviewCount: offer.reviewCount == null ? '' : String(offer.reviewCount), duration: offer.duration || '', notes: offer.notes || '',
-    } : { url: '', title: '', price: '', currency: 'MAD', normalizedMadPrice: '', conversionRate: '', rating: '', reviewCount: '', duration: '', notes: '' });
+    } : { provider: 'GETYOURGUIDE', url: '', externalId: '', title: '', price: '', currency: 'MAD', normalizedMadPrice: '', conversionRate: '', rating: '', reviewCount: '', duration: '', notes: '' });
     setComparableDialogOpen(true);
   };
 
-  const handleOfficialCompare = (activity: NormalizedGYGActivity) => {
+  const handleViatorCompare = (activity: NormalizedViatorActivity) => {
     const offer = toComparableOffer(activity);
     if (selectedRow) {
       openComparableDialog(offer);
@@ -417,20 +431,14 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
     setCompareActivityDialogOpen(true);
   };
 
-  const handleManualFallback = () => {
-    setOfficialOfferToCompare(null);
-    setActivityPickerMode('manual');
-    setCompareActivityDialogOpen(true);
-  };
-
-  const handleOfficialTemplate = (activity: NormalizedGYGActivity) => {
-    sessionStorage.setItem('gyg-activity-template', JSON.stringify(activity));
+  const handleViatorTemplate = (activity: NormalizedViatorActivity) => {
+    sessionStorage.setItem('marketplace-activity-template', JSON.stringify(activity));
     setLocation('/admin/activities/new');
   };
 
   const submitComparable = () => {
     const errors: Record<string, string> = {};
-    if (!comparableForm.url.trim()) errors.url = 'GetYourGuide URL is required for manual entry.';
+    if (!comparableForm.url.trim()) errors.url = 'Marketplace HTTPS URL is required for manual entry.';
     if (!comparableForm.title.trim()) errors.title = 'Offer title is required for manual entry.';
     if (!comparableForm.price || Number(comparableForm.price) <= 0) errors.price = 'Offer price must be greater than zero.';
     if (comparableForm.rating !== '' && (Number(comparableForm.rating) < 0 || Number(comparableForm.rating) > 5)) errors.rating = 'Rating must be between 0 and 5.';
@@ -526,18 +534,31 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
 
   return (
     <div className="space-y-6">
-      <section className="space-y-3">
+      <section className="space-y-4">
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">Official GetYourGuide Search</h2>
-          <p className="text-sm text-gray-500">
-            Search the official Partner API, compare a result with one of our activities, or use it as a reviewed activity template.
-          </p>
+          <h2 className="text-xl font-semibold text-gray-900">Market Reference</h2>
+          <p className="text-sm text-gray-500">Use official marketplace results for factual comparison. Internal MarrakechDunes prices remain manually controlled.</p>
         </div>
-        <GYGActivitySearch
-          onCompare={handleOfficialCompare}
-          onUseAsTemplate={handleOfficialTemplate}
-          onManualFallback={canForceLiveRefresh ? handleManualFallback : undefined}
-        />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <Card className="border-emerald-200 bg-emerald-50/40">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between"><h3 className="font-semibold text-gray-900">Viator</h3><Badge className="bg-emerald-600 text-white">Active</Badge></div>
+              <p className="mt-1 text-xs text-gray-600">Official Partner API search and trusted comparison workflow.</p>
+              <p className="mt-2 text-xs text-gray-500">{providerStatusQuery.data?.providers?.viator?.configured ? 'Ready' : 'Partner API key not configured'}</p>
+            </CardContent>
+          </Card>
+          <Card className="border-slate-200 bg-slate-50">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between"><h3 className="font-semibold text-gray-900">GetYourGuide</h3><Badge variant="outline">Disabled</Badge></div>
+              <p className="mt-1 text-xs text-gray-600">Read-only legacy comparables remain visible. Official Partner API access is required for live search.</p>
+            </CardContent>
+          </Card>
+        </div>
+        <div>
+          <h3 className="text-lg font-semibold text-gray-900">Official Viator Search</h3>
+          <p className="text-sm text-gray-500 mb-3">Search Viator, compare offers, or use factual fields as an activity template. Foreign-currency offers are not treated as MAD metrics without verified normalization.</p>
+          <ViatorActivitySearch onCompare={handleViatorCompare} onUseAsTemplate={handleViatorTemplate} />
+        </div>
       </section>
 
       {/* ============================================================ */}
@@ -546,7 +567,7 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
       <div className="space-y-4">
         <div className="flex items-start justify-between flex-wrap gap-2">
           <div>
-            <h3 className="text-lg font-semibold text-gray-900">GetYourGuide Market Comparison</h3>
+            <h3 className="text-lg font-semibold text-gray-900">Market Comparison</h3>
             <p className="text-sm text-gray-500">
               Internal market intelligence for MarrakechDunes activities. Uses cached comparison data —
               opening this workspace never sends live requests to GetYourGuide.
@@ -720,7 +741,7 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
 
               <div className="mt-4 flex items-center justify-between">
                 <h4 className="text-sm font-semibold text-gray-700">
-                  Manage Comparables · GetYourGuide offers ({selectedRow.gygMatches.length})
+                  Manage Comparables · marketplace offers ({selectedRow.gygMatches.length})
                 </h4>
                 <div className="flex gap-2">
                   {canForceLiveRefresh && <Button size="sm" className="h-7 text-xs" onClick={() => openComparableDialog()}>Add Verified Comparable Manually</Button>}
@@ -772,6 +793,7 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
                       </div>
 
                       <div className="flex items-center gap-2 flex-wrap">
+                        <Badge variant="outline" className="text-[10px]">{offer.provider ?? 'GETYOURGUIDE'}</Badge>
                         <Badge className={trustBadgeClass[offer.sourceType]}>{trustLabel[offer.sourceType]}</Badge>
                         {offer.validationState && <MatchBadge state={offer.validationState} score={offer.matchScore} />}
                         {offer.manualOverride && (
@@ -795,7 +817,7 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
                       {canForceLiveRefresh && offer.manualComparableId && (
                         <div className="flex gap-1 pt-1">
                           <Button size="sm" variant="outline" className="h-6 px-2 text-[11px]" onClick={() => openComparableDialog(offer)}>Edit</Button>
-                          <Button size="sm" variant="outline" className="h-6 px-2 text-[11px]" disabled={reverifyComparableMutation.isPending} onClick={() => reverifyComparableMutation.mutate(offer.manualComparableId!)}>Re-verify</Button>
+                          {offer.provider !== 'VIATOR' && <Button size="sm" variant="outline" className="h-6 px-2 text-[11px]" disabled={reverifyComparableMutation.isPending} onClick={() => reverifyComparableMutation.mutate(offer.manualComparableId!)}>Re-verify</Button>}
                           <Button size="sm" variant="outline" className="h-6 px-2 text-[11px] text-red-700" disabled={deleteComparableMutation.isPending} onClick={() => deleteComparableMutation.mutate(offer.manualComparableId!)}>Remove</Button>
                         </div>
                       )}
@@ -904,7 +926,9 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
         <DialogContent className="max-w-lg bg-white">
           <DialogHeader><DialogTitle>{editingComparable ? 'Edit Verified Comparable' : 'Add Verified Comparable Manually'}</DialogTitle><DialogDescription>For: {selectedRow?.myActivity.name}. Pasting a URL does not import metadata; enter the offer facts you verified.</DialogDescription></DialogHeader>
           <div className="grid gap-3 py-2">
-            <div><Input aria-label="GetYourGuide URL" placeholder="https://www.getyourguide.com/..." value={comparableForm.url} onChange={(e) => setComparableForm({ ...comparableForm, url: e.target.value })} />{comparableErrors.url && <p className="text-xs text-red-600 mt-1">{comparableErrors.url}</p>}</div>
+            <Select value={comparableForm.provider} onValueChange={(provider) => setComparableForm({ ...comparableForm, provider })}><SelectTrigger aria-label="Marketplace provider"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="VIATOR">Viator</SelectItem><SelectItem value="GETYOURGUIDE">GetYourGuide</SelectItem><SelectItem value="OTHER">Other</SelectItem></SelectContent></Select>
+            <div><Input aria-label="Marketplace URL" placeholder={comparableForm.provider === 'VIATOR' ? 'https://www.viator.com/...' : comparableForm.provider === 'GETYOURGUIDE' ? 'https://www.getyourguide.com/...' : 'https://...'} value={comparableForm.url} onChange={(e) => setComparableForm({ ...comparableForm, url: e.target.value })} />{comparableErrors.url && <p className="text-xs text-red-600 mt-1">{comparableErrors.url}</p>}</div>
+            <Input aria-label="External product code" placeholder="External product code (optional)" value={comparableForm.externalId} onChange={(e) => setComparableForm({ ...comparableForm, externalId: e.target.value })} />
             <div><Input aria-label="Offer title" placeholder="Offer title" value={comparableForm.title} onChange={(e) => setComparableForm({ ...comparableForm, title: e.target.value })} />{comparableErrors.title && <p className="text-xs text-red-600 mt-1">{comparableErrors.title}</p>}</div>
             <div className="grid grid-cols-2 gap-2"><div><Input aria-label="Price" type="number" min="0" placeholder="Price" value={comparableForm.price} onChange={(e) => setComparableForm({ ...comparableForm, price: e.target.value })} />{comparableErrors.price && <p className="text-xs text-red-600 mt-1">{comparableErrors.price}</p>}</div><Select value={comparableForm.currency} onValueChange={(currency) => setComparableForm({ ...comparableForm, currency })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="MAD">MAD</SelectItem><SelectItem value="EUR">EUR</SelectItem><SelectItem value="USD">USD</SelectItem><SelectItem value="GBP">GBP</SelectItem></SelectContent></Select></div>
             {comparableForm.currency !== 'MAD' && <div className="grid grid-cols-2 gap-2"><Input aria-label="Normalized MAD price" type="number" min="0" placeholder="MAD equivalent (optional)" value={comparableForm.normalizedMadPrice} onChange={(e) => setComparableForm({ ...comparableForm, normalizedMadPrice: e.target.value })} /><Input aria-label="Manual conversion rate" type="number" min="0" step="0.0001" placeholder="Manual rate (optional)" value={comparableForm.conversionRate} onChange={(e) => setComparableForm({ ...comparableForm, conversionRate: e.target.value })} /></div>}

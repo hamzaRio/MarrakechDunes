@@ -47,6 +47,9 @@ export interface NormalizedGYGOffer {
   // for backward compatibility with routes that predate Phase 3D-1 matching.
   validationState: ValidationState | null;
   manualOverride: GYGManualOverride | null;
+  provider?: 'VIATOR' | 'GETYOURGUIDE' | 'OTHER';
+  externalId?: string | null;
+  checkedAt?: Date | null;
 }
 
 const canonicalSources = new Set<GYGTrustSource>([
@@ -125,6 +128,9 @@ export function normalizeGYGOffer(value: Record<string, any>, defaults: Partial<
     matchReasons: Array.isArray(value.matchReasons) ? value.matchReasons : [],
     validationState: normalizeValidationState(value.validationState ?? defaults.validationState),
     manualOverride: normalizeManualOverride(value.manualOverride ?? defaults.manualOverride),
+    provider: value.provider === 'VIATOR' || value.provider === 'OTHER' ? value.provider : 'GETYOURGUIDE',
+    externalId: value.externalId == null ? null : String(value.externalId),
+    checkedAt: value.checkedAt ?? value.verifiedAt ?? null,
   };
 }
 
@@ -152,7 +158,11 @@ export function isEligibleForVerifiedMetrics(offer: NormalizedGYGOffer): boolean
 }
 
 export function calculateVerifiedMetrics(offers: NormalizedGYGOffer[]) {
-  const prices = offers.filter(isEligibleForVerifiedMetrics).map((offer) => offer.price).sort((a, b) => a - b);
+  const prices = offers
+    .filter(isEligibleForVerifiedMetrics)
+    .map((offer) => offer.currency === 'MAD' ? offer.price : offer.normalizedMadPrice)
+    .filter((price): price is number => price != null && Number.isFinite(price) && price > 0)
+    .sort((a, b) => a - b);
   const count = prices.length;
   const median = count === 0 ? null : count % 2 ? prices[(count - 1) / 2] : (prices[count / 2 - 1] + prices[count / 2]) / 2;
   return {

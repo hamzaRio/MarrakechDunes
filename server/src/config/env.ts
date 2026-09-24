@@ -25,6 +25,12 @@ export const ENV = {
   GYG_SUPPLIER_USER: process.env.GYG_SUPPLIER_USER,
   GYG_SUPPLIER_PASS: process.env.GYG_SUPPLIER_PASS,
   GYG_ENABLE_LIVE_SEARCH: process.env.GYG_ENABLE_LIVE_SEARCH || 'false',
+
+  // Viator Partner API (server-side only)
+  VIATOR_API_BASE: process.env.VIATOR_API_BASE,
+  VIATOR_API_KEY: process.env.VIATOR_API_KEY,
+  VIATOR_API_LANGUAGE: process.env.VIATOR_API_LANGUAGE || 'en-US',
+  VIATOR_API_CURRENCY: process.env.VIATOR_API_CURRENCY || 'EUR',
   
   // Rezdy API Configuration
   REZDY_API_KEY: process.env.REZDY_API_KEY,

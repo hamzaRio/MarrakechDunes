@@ -2,9 +2,13 @@ import mongoose from 'mongoose';
 
 export const SUPPORTED_GYG_CURRENCIES = ['MAD', 'EUR', 'USD', 'GBP'] as const;
 export type SupportedGYGCurrency = typeof SUPPORTED_GYG_CURRENCIES[number];
+export const SUPPORTED_MARKET_PROVIDERS = ['VIATOR', 'GETYOURGUIDE', 'OTHER'] as const;
+export type MarketProvider = typeof SUPPORTED_MARKET_PROVIDERS[number];
 
 const GYGComparableSchema = new mongoose.Schema({
   ourActivityId: { type: mongoose.Schema.Types.ObjectId, required: true, index: true },
+  provider: { type: String, enum: SUPPORTED_MARKET_PROVIDERS, default: 'GETYOURGUIDE', immutable: true },
+  externalId: { type: String, default: null, trim: true, immutable: true },
   url: { type: String, required: true, trim: true },
   normalizedUrl: { type: String, required: true, trim: true },
   title: { type: String, required: true, trim: true },
@@ -23,6 +27,11 @@ const GYGComparableSchema = new mongoose.Schema({
   verified: { type: Boolean, default: true, immutable: true },
   createdBy: { type: String, required: true },
   verifiedAt: { type: Date, required: true, default: Date.now },
+  checkedAt: { type: Date, default: Date.now },
+  // Official Viator search results are real-time data with a one-hour
+  // freshness window. Manual GetYourGuide/other references remain historical
+  // records without an automatic expiry.
+  expiresAt: { type: Date, default: null },
 }, { timestamps: true });
 
 GYGComparableSchema.index({ ourActivityId: 1, normalizedUrl: 1 }, { unique: true });

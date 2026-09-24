@@ -5,7 +5,7 @@ import { GYGFetcher, GYGActivity } from '../utils/gygFetcher.js';
 import { MoroccoActivityFetcher, MoroccoActivity } from '../utils/moroccoActivityFetcher.js';
 import { MoroccoDatabase, MoroccoActivityData } from '../utils/moroccoDatabase.js';
 import GYGCache from '../models/GYGCache.js';
-import GYGComparable, { SUPPORTED_GYG_CURRENCIES, type SupportedGYGCurrency } from '../models/GYGComparable.js';
+import GYGComparable, { SUPPORTED_GYG_CURRENCIES, SUPPORTED_MARKET_PROVIDERS, type SupportedGYGCurrency, type MarketProvider } from '../models/GYGComparable.js';
 import { requireAdmin, requireSuperAdmin } from '../middleware/admin-auth.js';
 import { calculateVerifiedMetrics, normalizeGYGOffer, type GYGTrustSource } from '../services/gyg-comparison.js';
 import { consumeGYGRateLimit } from '../services/gyg-rate-limits.js';
@@ -14,6 +14,8 @@ import { rankCandidateMatches, type MatchableActivity } from '../services/gyg-ma
 import { isOfficialGYGConfigured, searchOfficialGYG } from '../providers/gyg.js';
 
 const router = Router();
+
+const VIATOR_COMPARABLE_TTL_MS = 60 * 60 * 1000;
 
 const isTrueQueryValue = (value: unknown) =>
   value === 'true' || value === '1' || value === true;
@@ -206,12 +208,14 @@ async function withOverridesReattached(ourActivityId: string, offers: any[]): Pr
   }));
 }
 
-const normalizeGYGUrl = (value: unknown): string | null => {
+const normalizeComparableUrl = (value: unknown, provider: MarketProvider = 'GETYOURGUIDE'): string | null => {
   if (typeof value !== 'string') return null;
   try {
     const url = new URL(value.trim());
     const host = url.hostname.toLowerCase();
-    if (url.protocol !== 'https:' || !(host === 'getyourguide.com' || host.endsWith('.getyourguide.com'))) return null;
+    if (url.protocol !== 'https:') return null;
+    if (provider === 'GETYOURGUIDE' && !(host === 'getyourguide.com' || host.endsWith('.getyourguide.com'))) return null;
+    if (provider === 'VIATOR' && !(host === 'viator.com' || host.endsWith('.viator.com'))) return null;
     url.hash = '';
     return url.toString().replace(/\/$/, '');
   } catch {
@@ -221,31 +225,43 @@ const normalizeGYGUrl = (value: unknown): string | null => {
 
 async function loadManualComparables(ourActivityId: string): Promise<any[]> {
   const records = await GYGComparable.find({ ourActivityId }).lean();
-  return records.map((record: any) => ({
+  return records.map((record: any) => {
+    const isViator = record.provider === 'VIATOR';
+    const expiresAt = record.expiresAt ? new Date(record.expiresAt) : null;
+    const stale = isViator && (!expiresAt || expiresAt.getTime() <= Date.now());
+    const sourceType = stale
+      ? 'STALE_VERIFIED'
+      : (record.sourceType ?? 'MANUAL_VERIFIED');
+
+    return {
     id: `manual:${record._id}`,
     ourActivityId,
     matchedExternalId: `manual:${record._id}`,
     matchedUrl: record.url,
     url: record.url,
     title: record.title,
-    price: Number(record.normalizedMadPrice) || 0,
-    currency: 'MAD',
+    price: Number(record.price) || 0,
+    currency: record.currency,
     originalPrice: record.price,
     originalCurrency: record.currency,
     normalizedMadPrice: record.normalizedMadPrice,
     rating: record.rating,
     reviewCount: record.reviewCount,
     duration: record.duration,
-    sourceType: 'MANUAL_VERIFIED',
+    sourceType,
     verified: true,
-    stale: false,
+    stale,
     fetchedAt: record.verifiedAt,
-    expiresAt: null,
+    expiresAt,
     validationState: 'STRONG_MATCH',
     matchReasons: Number(record.normalizedMadPrice) > 0 ? ['Manually verified comparable'] : ['Needs MAD normalization'],
     manualComparableId: String(record._id),
     notes: record.notes,
-  }));
+    provider: record.provider ?? 'GETYOURGUIDE',
+    externalId: record.externalId ?? null,
+    checkedAt: record.checkedAt ?? record.verifiedAt,
+    };
+  });
 }
 
 interface ActivityComparisonResult {
@@ -396,16 +412,18 @@ router.get('/comparables', requireAdmin, async (req: Request, res: Response) => 
 });
 
 router.post('/comparables', requireSuperAdmin, async (req: Request, res: Response) => {
-  const { activityId, url, title, price, currency, rating, reviewCount, duration, notes, normalizedMadPrice, conversionRate } = req.body ?? {};
-  const normalizedUrl = normalizeGYGUrl(url);
+  const { activityId, url, title, price, currency, rating, reviewCount, duration, notes, normalizedMadPrice, conversionRate, provider, externalId } = req.body ?? {};
+  const normalizedProvider = String(provider ?? 'GETYOURGUIDE').toUpperCase() as MarketProvider;
+  const normalizedUrl = normalizeComparableUrl(url, normalizedProvider);
   const normalizedCurrency = String(currency ?? '').toUpperCase() as SupportedGYGCurrency;
   const numericPrice = Number(price);
   const numericRating = rating == null || rating === '' ? null : Number(rating);
   const numericReviewCount = reviewCount == null || reviewCount === '' ? null : Number(reviewCount);
 
   if (!activityId || !normalizedUrl || typeof title !== 'string' || !title.trim()) {
-    return res.status(400).json({ status: 'error', message: 'A valid activity, GetYourGuide HTTPS URL and offer title are required.' });
+    return res.status(400).json({ status: 'error', message: 'A valid activity, provider HTTPS URL and offer title are required.' });
   }
+  if (!SUPPORTED_MARKET_PROVIDERS.includes(normalizedProvider)) return res.status(400).json({ status: 'error', message: 'Provider must be Viator, GetYourGuide, or Other.' });
   if (!Number.isFinite(numericPrice) || numericPrice <= 0 || !SUPPORTED_GYG_CURRENCIES.includes(normalizedCurrency)) {
     return res.status(400).json({ status: 'error', message: 'Price must be greater than zero and currency must be supported.' });
   }
@@ -422,9 +440,14 @@ router.post('/comparables', requireSuperAdmin, async (req: Request, res: Respons
   const { storage } = await import('../storage.js');
   if (!await storage.getActivity(String(activityId))) return res.status(404).json({ status: 'error', message: 'Activity not found.' });
 
+  const now = new Date();
+  const isViator = normalizedProvider === 'VIATOR';
   try {
     const comparable = await GYGComparable.create({
       ourActivityId: activityId,
+      provider: normalizedProvider,
+      externalId: typeof externalId === 'string' && externalId.trim() ? externalId.trim() : null,
+      source: normalizedProvider === 'VIATOR' ? 'viator_official_api' : normalizedProvider === 'GETYOURGUIDE' ? 'getyourguide_manual' : 'other_manual',
       url: normalizedUrl,
       normalizedUrl,
       title: title.trim(),
@@ -439,11 +462,40 @@ router.post('/comparables', requireSuperAdmin, async (req: Request, res: Respons
       duration: typeof duration === 'string' && duration.trim() ? duration.trim() : null,
       notes: typeof notes === 'string' && notes.trim() ? notes.trim() : null,
       createdBy: String((req.session as any).userId ?? 'superadmin'),
-      verifiedAt: new Date(),
+      sourceType: isViator ? 'LIVE_VERIFIED' : 'MANUAL_VERIFIED',
+      verifiedAt: now,
+      checkedAt: now,
+      expiresAt: isViator ? new Date(now.getTime() + VIATOR_COMPARABLE_TTL_MS) : null,
     });
     return res.status(201).json({ comparable });
   } catch (error: any) {
-    if (error?.code === 11000) return res.status(409).json({ status: 'error', message: 'This GetYourGuide URL is already recorded for the activity.' });
+    if (error?.code === 11000 && isViator) {
+      // A fresh official search result may refresh the same historical URL.
+      // Reusing the record preserves its audit identity while restarting the
+      // one-hour freshness window. A stale record is never revived by the
+      // generic reverify action below.
+      const existing = await GYGComparable.findOne({ ourActivityId: activityId, normalizedUrl });
+      if (existing && existing.provider === 'VIATOR') {
+        existing.externalId = typeof externalId === 'string' && externalId.trim() ? externalId.trim() : existing.externalId;
+        existing.title = title.trim();
+        existing.price = numericPrice;
+        existing.currency = normalizedCurrency;
+        existing.normalizedMadPrice = normalizedCurrency === 'MAD' ? numericPrice : providedNormalizedMadPrice;
+        existing.conversionRate = normalizedCurrency === 'MAD' ? 1 : providedRate;
+        existing.conversionRateSource = normalizedCurrency === 'MAD' ? 'identity' : (providedNormalizedMadPrice ? 'manual_operator' : null);
+        existing.conversionRateVerifiedAt = normalizedCurrency === 'MAD' || providedNormalizedMadPrice ? now : null;
+        existing.rating = numericRating;
+        existing.reviewCount = numericReviewCount;
+        existing.duration = typeof duration === 'string' && duration.trim() ? duration.trim() : null;
+        existing.notes = typeof notes === 'string' && notes.trim() ? notes.trim() : null;
+        existing.verifiedAt = now;
+        existing.checkedAt = now;
+        existing.expiresAt = new Date(now.getTime() + VIATOR_COMPARABLE_TTL_MS);
+        await existing.save();
+        return res.json({ comparable: existing, refreshed: true });
+      }
+    }
+    if (error?.code === 11000) return res.status(409).json({ status: 'error', message: 'This marketplace URL is already recorded for the activity.' });
     throw error;
   }
 });
@@ -451,10 +503,14 @@ router.post('/comparables', requireSuperAdmin, async (req: Request, res: Respons
 router.patch('/comparables/:id', requireSuperAdmin, async (req: Request, res: Response) => {
   const comparable = await GYGComparable.findById(req.params.id);
   if (!comparable) return res.status(404).json({ status: 'error', message: 'Comparable not found.' });
-  const { url, title, price, currency, rating, reviewCount, duration, notes, normalizedMadPrice, conversionRate } = req.body ?? {};
+  const { url, title, price, currency, rating, reviewCount, duration, notes, normalizedMadPrice, conversionRate, provider, externalId } = req.body ?? {};
+  const normalizedProvider = String(provider ?? comparable.provider ?? 'GETYOURGUIDE').toUpperCase() as MarketProvider;
+  if (!SUPPORTED_MARKET_PROVIDERS.includes(normalizedProvider)) return res.status(400).json({ status: 'error', message: 'Provider must be Viator, GetYourGuide, or Other.' });
+  if (provider !== undefined && normalizedProvider !== (comparable.provider ?? 'GETYOURGUIDE')) return res.status(400).json({ status: 'error', message: 'Comparable provider cannot be changed after creation.' });
+  if (externalId !== undefined && String(externalId ?? '') !== String(comparable.externalId ?? '')) return res.status(400).json({ status: 'error', message: 'Comparable external id cannot be changed after creation.' });
   if (url !== undefined) {
-    const normalizedUrl = normalizeGYGUrl(url);
-    if (!normalizedUrl) return res.status(400).json({ status: 'error', message: 'A valid GetYourGuide HTTPS URL is required.' });
+    const normalizedUrl = normalizeComparableUrl(url, normalizedProvider);
+    if (!normalizedUrl) return res.status(400).json({ status: 'error', message: 'A valid provider HTTPS URL is required.' });
     comparable.url = normalizedUrl;
     comparable.normalizedUrl = normalizedUrl;
   }
@@ -486,19 +542,30 @@ router.patch('/comparables/:id', requireSuperAdmin, async (req: Request, res: Re
   }
   if (duration !== undefined) comparable.duration = typeof duration === 'string' && duration.trim() ? duration.trim() : null;
   if (notes !== undefined) comparable.notes = typeof notes === 'string' && notes.trim() ? notes.trim() : null;
-  comparable.verifiedAt = new Date();
+  // Editing a Viator record is metadata maintenance only. It must not make
+  // an expired official result current without a fresh Partner API search.
+  if (comparable.provider !== 'VIATOR') {
+    comparable.verifiedAt = new Date();
+    comparable.checkedAt = new Date();
+  }
   try {
     await comparable.save();
     return res.json({ comparable });
   } catch (error: any) {
-    if (error?.code === 11000) return res.status(409).json({ status: 'error', message: 'This GetYourGuide URL is already recorded for the activity.' });
+    if (error?.code === 11000) return res.status(409).json({ status: 'error', message: 'This marketplace URL is already recorded for the activity.' });
     throw error;
   }
 });
 
 router.post('/comparables/:id/reverify', requireSuperAdmin, async (req: Request, res: Response) => {
-  const comparable = await GYGComparable.findByIdAndUpdate(req.params.id, { verifiedAt: new Date() }, { new: true });
+  const comparable = await GYGComparable.findById(req.params.id);
   if (!comparable) return res.status(404).json({ status: 'error', message: 'Comparable not found.' });
+  if (comparable.provider === 'VIATOR') {
+    return res.status(409).json({ status: 'error', message: 'Viator comparables require a fresh official search before re-verification.' });
+  }
+  comparable.verifiedAt = new Date();
+  comparable.checkedAt = new Date();
+  await comparable.save();
   return res.json({ comparable });
 });
 

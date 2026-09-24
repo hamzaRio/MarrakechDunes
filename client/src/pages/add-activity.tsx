@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
-import { Plus, Search, MapPin, Clock, Users, Star, DollarSign, Save, X } from 'lucide-react';
-import GYGActivitySearch from '../components/gyg-activity-search';
-import type { NormalizedGYGActivity } from '../lib/getyourguide-api';
+import { useEffect, useState } from 'react';
+import { Plus, Search, Save, X } from 'lucide-react';
+import ViatorActivitySearch from '../components/viator-activity-search';
+import type { NormalizedViatorActivity } from '../lib/viator-api';
 import { api } from '../lib/api';
 import { useLocation } from 'wouter';
 
@@ -25,7 +25,7 @@ interface Activity {
 export default function AddActivity() {
   const [location] = useLocation();
   const [showGYGSearch, setShowGYGSearch] = useState(false);
-  const [selectedGYGActivity, setSelectedGYGActivity] = useState<NormalizedGYGActivity | null>(null);
+  const [selectedGYGActivity, setSelectedGYGActivity] = useState<NormalizedViatorActivity | null>(null);
   const [activity, setActivity] = useState<Activity>({
     id: '',
     title: '',
@@ -48,25 +48,29 @@ export default function AddActivity() {
   const [newRequirement, setNewRequirement] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
-  const handleGYGActivitySelect = (gygActivity: NormalizedGYGActivity) => {
+  const handleGYGActivitySelect = (gygActivity: NormalizedViatorActivity) => {
     setSelectedGYGActivity(gygActivity);
     setActivity(prev => ({
       ...prev,
       title: gygActivity.title,
-      location: gygActivity.location,
-      duration: gygActivity.duration,
-      currency: gygActivity.price.currency,
-      highlights: gygActivity.highlights,
+      location: gygActivity.location ?? prev.location,
+      duration: gygActivity.duration ?? prev.duration,
+      // MarrakechDunes selling prices remain MAD and are entered by staff;
+      // marketplace currency is shown only as reference data below.
+      currency: 'MAD',
+      highlights: prev.highlights,
     }));
     setShowGYGSearch(false);
   };
 
   useEffect(() => {
     try {
-      const stored = sessionStorage.getItem('gyg-activity-template');
+      const marketplaceStored = sessionStorage.getItem('marketplace-activity-template');
+      const legacyStored = sessionStorage.getItem('gyg-activity-template');
+      const stored = marketplaceStored ?? legacyStored;
       if (!stored) return;
-      sessionStorage.removeItem('gyg-activity-template');
-      const template = JSON.parse(stored) as NormalizedGYGActivity;
+      sessionStorage.removeItem(marketplaceStored ? 'marketplace-activity-template' : 'gyg-activity-template');
+      const template = JSON.parse(stored) as NormalizedViatorActivity;
       if (template?.title) handleGYGActivitySelect(template);
     } catch {
       sessionStorage.removeItem('gyg-activity-template');
@@ -164,19 +168,23 @@ export default function AddActivity() {
               className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center"
             >
               <Search className="mr-2 h-5 w-5" />
-              {showGYGSearch ? 'Hide' : 'Search'} GetYourGuide
+              {showGYGSearch ? 'Hide' : 'Search'} Viator
             </button>
           </div>
 
           {showGYGSearch && (
             <div className="mb-8">
-              <GYGActivitySearch onActivitySelect={handleGYGActivitySelect} />
+              <div className="space-y-4">
+                <p className="text-sm text-gray-600">Import factual data from marketplace</p>
+                <ViatorActivitySearch onUseAsTemplate={handleGYGActivitySelect} />
+                <div className="rounded border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">GetYourGuide search is read-only and disabled until official Partner API access is configured.</div>
+              </div>
             </div>
           )}
 
           {selectedGYGActivity && (
             <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-              <h3 className="font-semibold text-green-800 mb-2">Selected from GetYourGuide:</h3>
+              <h3 className="font-semibold text-green-800 mb-2">Selected from Viator:</h3>
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-green-700">{selectedGYGActivity.title}</p>

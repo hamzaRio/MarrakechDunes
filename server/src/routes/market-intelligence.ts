@@ -6,8 +6,26 @@ import { requireAdmin, requireSuperAdmin } from '../middleware/admin-auth.js';
 import { calculateVerifiedMetrics, normalizeGYGOffer, type GYGTrustSource } from '../services/gyg-comparison.js';
 import { consumeGYGRateLimit } from '../services/gyg-rate-limits.js';
 import { gygRequestKey, gygResilience } from '../services/gyg-resilience.js';
+import { viatorProviderStatus } from './viator.js';
 
 const router = express.Router();
+
+// Configuration-only provider status. This never calls an external service and
+// never returns API keys or other credentials.
+router.get('/providers', requireAdmin, (_req: Request, res: Response) => {
+  return res.json({
+    providers: {
+      viator: viatorProviderStatus(),
+      getyourguide: {
+        provider: 'GETYOURGUIDE',
+        active: false,
+        configured: Boolean(process.env.GYG_PARTNER_API_TOKEN),
+        source: 'OFFICIAL_API',
+        message: 'GetYourGuide Partner API access is required for live search.',
+      },
+    },
+  });
+});
 
 const isTrueQueryValue = (value: unknown) =>
   value === 'true' || value === '1' || value === true;
