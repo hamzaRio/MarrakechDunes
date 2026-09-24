@@ -530,21 +530,25 @@ export default function ActivityManagementModal({
                                      <div key={index} className="bg-white p-2 rounded border text-xs flex items-center justify-between">
                                        <div>
                                          <p className="font-medium">{result.name}</p>
-                                         <div className="flex gap-2 mt-1">
-                                           <p className="text-orange-600 font-bold">GYG: {result.price} MAD</p>
-                                           <p className="text-green-600 font-bold">Suggested: {result.suggestedPrice} MAD</p>
-                                         </div>
+                                          <div className="flex gap-2 mt-1">
+                                            <p className="text-orange-600 font-bold">GYG: {result.price} MAD</p>
+                                            {result.suggestedPrice != null && (
+                                              <p className="text-green-600 font-bold">Suggested: {result.suggestedPrice} MAD</p>
+                                            )}
+                                          </div>
                                        </div>
                                        <div className="flex gap-1">
-                                         <Button
-                                           type="button"
-                                           size="sm"
-                                           variant="outline"
-                                           onClick={() => setSuggestedPrice(result.suggestedPrice)}
-                                           className="h-6 px-2 text-xs"
-                                         >
-                                           Use Suggested
-                                         </Button>
+                                          {result.suggestedPrice != null && (
+                                            <Button
+                                              type="button"
+                                              size="sm"
+                                              variant="outline"
+                                              onClick={() => setSuggestedPrice(result.suggestedPrice)}
+                                              className="h-6 px-2 text-xs"
+                                            >
+                                              Use Suggested
+                                            </Button>
+                                          )}
                                          <Button
                                            type="button"
                                            size="sm"

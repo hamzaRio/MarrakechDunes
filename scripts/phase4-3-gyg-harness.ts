@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { calculateVerifiedMetrics, normalizeGYGOffer } from '../server/src/services/gyg-comparison.js';
+import { normalizeOfficialTour } from '../server/src/providers/gyg.js';
 import gygRouter from '../server/src/routes/getyourguide.js';
 import { requireAdmin, requireSuperAdmin } from '../server/src/middleware/admin-auth.js';
 
@@ -63,4 +64,28 @@ const result = calculateVerifiedMetrics([trusted(300), trusted(500), trusted(700
 assert.equal(result.lowestVerifiedPrice, 300);
 assert.equal(result.medianVerifiedPrice, 500);
 assert.equal(result.verifiedOfferCount, 3);
+
+process.env.GYG_PARTNER_API_CURRENCY = 'MAD';
+const placeholderImage = normalizeOfficialTour({
+  tour_id: 1,
+  title: 'Image placeholder test',
+  price: { values: { amount: 450 } },
+  pictures: [{ ssl_url: 'https://img.getyourguide.com/tour-[format_id].jpg', url: 'https://img.getyourguide.com/tour-[format_id].jpg' }],
+  url: 'https://www.getyourguide.com/test-tour-t1/'
+});
+assert.equal(placeholderImage.imageUrl, '');
+assert.equal(placeholderImage.imageUrl.includes('[format_id]'), false);
+assert.equal(placeholderImage.price.amount, 450);
+assert.equal(placeholderImage.price.currency, 'MAD');
+
+process.env.GYG_PARTNER_API_CURRENCY = 'EUR';
+const euroOffer = normalizeOfficialTour({
+  tour_id: 2,
+  title: 'EUR currency test',
+  price: { values: { amount: 100 } },
+  url: 'https://www.getyourguide.com/test-tour-t2/'
+});
+assert.equal(euroOffer.price.amount, 100);
+assert.equal(euroOffer.price.currency, 'EUR');
 console.log('Phase 4.3 GYG CRUD/RBAC/metrics harness: PASS');
+process.exit(0);

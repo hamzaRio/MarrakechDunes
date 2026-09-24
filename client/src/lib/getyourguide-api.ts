@@ -33,7 +33,7 @@ export interface GYGActivity {
   link: string;
   gygPrice: number;
   currency: string;
-  suggestedPrice: number;
+  suggestedPrice?: number;
 }
 
 export interface GYGSearchResponse {
@@ -59,7 +59,7 @@ export interface NormalizedGYGActivity {
   verified: boolean;
   currency: string;
   gygPrice: number;
-  suggestedPrice: number;
+  suggestedPrice?: number;
   link: string;
 }
 
@@ -68,13 +68,16 @@ export function searchGetYourGuideActivities(_params: GYGSearchParams): Promise<
 export async function searchGetYourGuideActivities(_params: string | GYGSearchParams): Promise<GYGActivity[] | GYGSearchResponse> {
   const params = typeof _params === 'string' ? { q: _params } : _params;
   const response = await api.get('/gyg/official-search', { params });
-  const activities = ((response.data?.activities ?? []) as any[]).map((activity) => ({
+  const activities = ((response.data?.activities ?? []) as any[]).map((activity) => {
+    const suggestedPrice = activity.suggestedPrice == null ? undefined : Number(activity.suggestedPrice);
+    return {
     ...activity,
     currency: activity.currency ?? activity.price?.currency ?? 'MAD',
     gygPrice: Number(activity.gygPrice ?? activity.price?.amount ?? 0),
-    suggestedPrice: Number(activity.suggestedPrice ?? activity.price?.amount ?? 0),
     link: activity.link ?? activity.url ?? '',
-  }));
+    ...(suggestedPrice != null && Number.isFinite(suggestedPrice) ? { suggestedPrice } : {}),
+  };
+  });
   if (typeof _params === 'string') return activities as GYGActivity[];
   return { ...response.data, activities } as GYGSearchResponse;
 }

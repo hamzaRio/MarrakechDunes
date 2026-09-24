@@ -109,7 +109,7 @@ export default function GYGSearchSuggestions({
     setShowSuggestions(false);
     
     // Call the callbacks if provided
-    if (onPriceSelect) {
+    if (onPriceSelect && activity.suggestedPrice != null) {
       onPriceSelect(activity.suggestedPrice, activity);
     }
     if (onTitleSelect) {
@@ -202,9 +202,11 @@ export default function GYGSearchSuggestions({
                   <Badge variant="outline" className="text-xs bg-red-50 text-red-700 border-red-200">
                     GYG: {formatGYGPrice(selectedActivity.gygPrice, selectedActivity.currency)}
                   </Badge>
-                  <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
-                    Suggested: {formatGYGPrice(selectedActivity.suggestedPrice, selectedActivity.currency)}
-                  </Badge>
+                  {selectedActivity.suggestedPrice != null && (
+                    <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
+                      Suggested: {formatGYGPrice(selectedActivity.suggestedPrice, selectedActivity.currency)}
+                    </Badge>
+                  )}
                 </div>
                 {selectedActivity.rating && (
                   <div className="flex items-center gap-1 mt-1 text-xs text-green-600">
@@ -275,9 +277,11 @@ export default function GYGSearchSuggestions({
                         <Badge variant="outline" className="text-xs bg-red-50 text-red-700 border-red-200">
                           GYG: {formatGYGPrice(activity.gygPrice, activity.currency)}
                         </Badge>
-                        <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
-                          Suggested: {formatGYGPrice(activity.suggestedPrice, activity.currency)}
-                        </Badge>
+                        {activity.suggestedPrice != null && (
+                          <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
+                            Suggested: {formatGYGPrice(activity.suggestedPrice, activity.currency)}
+                          </Badge>
+                        )}
                         {activity.location && (
                           <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
                             📍 {activity.location}

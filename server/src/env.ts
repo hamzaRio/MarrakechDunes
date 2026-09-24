@@ -35,8 +35,12 @@ console.log("[Env] Loaded server variables OK:", {
 
 // GYG Environment Variables Check
 console.log("[Env] GYG Environment Variables:", {
-  GYG_SUPPLIER_USER: process.env.GYG_SUPPLIER_USER ? `${process.env.GYG_SUPPLIER_USER.substring(0, 3)}...` : 'NOT SET',
-  GYG_SUPPLIER_PASS: process.env.GYG_SUPPLIER_PASS ? `${process.env.GYG_SUPPLIER_PASS.substring(0, 3)}...` : 'NOT SET',
+  GYG_PARTNER_API_BASE: process.env.GYG_PARTNER_API_BASE || 'https://api.getyourguide.com/1 (default)',
+  GYG_PARTNER_API_TOKEN: process.env.GYG_PARTNER_API_TOKEN ? 'SET' : 'NOT SET',
+  GYG_PARTNER_API_LANGUAGE: process.env.GYG_PARTNER_API_LANGUAGE || 'en',
+  GYG_PARTNER_API_CURRENCY: process.env.GYG_PARTNER_API_CURRENCY || 'MAD',
+  GYG_SUPPLIER_USER: process.env.GYG_SUPPLIER_USER ? 'SET' : 'NOT SET',
+  GYG_SUPPLIER_PASS: process.env.GYG_SUPPLIER_PASS ? 'SET' : 'NOT SET',
   GYG_DEBUG: process.env.GYG_DEBUG || 'NOT SET',
   GYG_DEFAULT_VACANCY: process.env.GYG_DEFAULT_VACANCY || 'NOT SET',
   GYG_ENABLE_LIVE_SEARCH: process.env.GYG_ENABLE_LIVE_SEARCH || 'NOT SET',

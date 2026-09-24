@@ -337,39 +337,76 @@ export interface OfficialGYGActivity {
   verified: true;
 }
 
-export function isOfficialGYGConfigured(): boolean {
-  return Boolean(process.env.GYG_SUPPLIER_BASE && process.env.GYG_SUPPLIER_USER && process.env.GYG_SUPPLIER_PASS);
-}
+const GYG_PARTNER_API_DEFAULT_BASE = 'https://api.getyourguide.com/1';
+const GYG_PARTNER_API_DEFAULT_LANGUAGE = 'en';
+const GYG_PARTNER_API_DEFAULT_CURRENCY = 'MAD';
 
-function buildOfficialSearchRequest(query: string, limit = 12): GYGSearchRequest {
-  const baseUrl = (process.env.GYG_SUPPLIER_BASE || '').replace(/\/$/, '');
-  const user = process.env.GYG_SUPPLIER_USER || '';
-  const pass = process.env.GYG_SUPPLIER_PASS || '';
-  return {
-    method: 'GET',
-    url: `${baseUrl}/tours?query=${encodeURIComponent(query)}&limit=${Math.min(Math.max(limit, 1), 50)}&currency=MAD`,
-    headers: {
-      Authorization: `Basic ${Buffer.from(`${user}:${pass}`).toString('base64')}`,
-      Accept: 'application/json',
-    },
-    notes: ['Official GetYourGuide Partner API', 'Credentials kept server-side', 'No browser scraping or fallback data'],
+interface GYGPartnerSearchRequest {
+  method: 'GET';
+  url: string;
+  headers: {
+    'X-ACCESS-TOKEN': string;
+    Accept: string;
   };
 }
 
-function normalizeOfficialTour(tour: any): OfficialGYGActivity {
-  const rawPrice = typeof tour.price === 'object' ? tour.price?.amount : tour.price;
-  const currency = typeof tour.price === 'object' ? tour.price?.currency : tour.currency;
+export function isOfficialGYGConfigured(): boolean {
+  return Boolean(process.env.GYG_PARTNER_API_TOKEN);
+}
+
+function buildOfficialSearchRequest(query: string, limit = 12): GYGPartnerSearchRequest {
+  const baseUrl = (process.env.GYG_PARTNER_API_BASE || GYG_PARTNER_API_DEFAULT_BASE).replace(/\/$/, '');
+  const language = process.env.GYG_PARTNER_API_LANGUAGE || GYG_PARTNER_API_DEFAULT_LANGUAGE;
+  const currency = process.env.GYG_PARTNER_API_CURRENCY || GYG_PARTNER_API_DEFAULT_CURRENCY;
+  const params = new URLSearchParams({
+    q: query,
+    cnt_language: language,
+    currency,
+    limit: String(Math.min(Math.max(limit, 1), 50)),
+  });
+
   return {
-    id: String(tour.id ?? tour.tourId ?? ''),
-    title: String(tour.title ?? tour.name ?? 'Untitled activity'),
-    location: String(tour.location?.name ?? tour.location ?? ''),
-    duration: String(tour.duration ?? tour.durationText ?? ''),
-    price: { amount: Number(rawPrice) || 0, currency: String(currency || 'MAD') },
-    rating: Number(tour.rating) || 0,
-    reviewCount: Number(tour.reviewCount ?? tour.reviewsCount) || 0,
-    imageUrl: String(tour.imageUrl ?? tour.image ?? ''),
-    url: String(tour.url ?? tour.link ?? ''),
-    description: String(tour.description ?? ''),
+    method: 'GET',
+    url: `${baseUrl}/tours?${params.toString()}`,
+    headers: {
+      'X-ACCESS-TOKEN': process.env.GYG_PARTNER_API_TOKEN || '',
+      Accept: 'application/json',
+    },
+  };
+}
+
+export function normalizeOfficialTour(tour: any): OfficialGYGActivity {
+  const priceValues = tour.price?.values ?? {};
+  const rawPrice = priceValues.amount ?? tour.price?.amount;
+  const originalPrice = priceValues.special?.original_price;
+  const duration = Array.isArray(tour.durations) && tour.durations.length > 0
+    ? tour.durations[0]
+    : undefined;
+  const location = Array.isArray(tour.locations) && tour.locations.length > 0
+    ? tour.locations[0]
+    : undefined;
+  const picture = Array.isArray(tour.pictures) && tour.pictures.length > 0
+    ? tour.pictures[0]
+    : undefined;
+  const imageUrl = [picture?.ssl_url, picture?.url]
+    .find((value): value is string => typeof value === 'string' && value.length > 0 && !value.includes('[format_id]')) ?? '';
+  const currency = process.env.GYG_PARTNER_API_CURRENCY || GYG_PARTNER_API_DEFAULT_CURRENCY;
+
+  return {
+    id: String(tour.tour_id ?? ''),
+    title: String(tour.title ?? ''),
+    location: String(location?.name ?? location?.city ?? ''),
+    duration: duration ? `${duration.duration ?? ''} ${duration.unit ?? ''}`.trim() : '',
+    price: {
+      amount: Number(rawPrice) || 0,
+      currency,
+      ...(Number.isFinite(Number(originalPrice)) ? { originalAmount: Number(originalPrice) } : {}),
+    },
+    rating: Number(tour.overall_rating) || 0,
+    reviewCount: Number(tour.number_of_ratings) || 0,
+    imageUrl,
+    url: String(tour.url ?? ''),
+    description: String(tour.description ?? tour.abstract ?? ''),
     highlights: Array.isArray(tour.highlights) ? tour.highlights.map(String) : [],
     sourceType: 'LIVE_VERIFIED',
     verified: true,
@@ -394,6 +431,6 @@ export async function searchOfficialGYG(query: string, limit = 12): Promise<Offi
     throw error;
   }
   const payload = await response.json() as any;
-  const tours = Array.isArray(payload?.tours) ? payload.tours : Array.isArray(payload?.products) ? payload.products : Array.isArray(payload?.results) ? payload.results : [];
+  const tours = Array.isArray(payload?.data?.tours) ? payload.data.tours : [];
   return tours.map(normalizeOfficialTour).filter((tour: OfficialGYGActivity) => tour.id && tour.title && tour.price.amount > 0 && tour.url);
 }

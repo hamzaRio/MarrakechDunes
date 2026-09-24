@@ -75,10 +75,12 @@ export default function GetYourGuidePriceFetcher({
         const suggestions = {
           suggestedPrice: activity.suggestedPrice,
           gygPrice: activity.gygPrice,
-          savings: activity.gygPrice - activity.suggestedPrice
+          savings: activity.suggestedPrice == null ? null : activity.gygPrice - activity.suggestedPrice
         };
         setPricingSuggestions(suggestions);
-        onPriceSelect(activity.suggestedPrice, suggestions);
+        if (activity.suggestedPrice != null) {
+          onPriceSelect(activity.suggestedPrice, suggestions);
+        }
         setShowResults(true);
         setNotFound(false);
       } else {
@@ -143,7 +145,7 @@ export default function GetYourGuidePriceFetcher({
                       if (activities.length > 0) {
                         console.log('✅ Found activities:', activities.length);
                         // Update the form with the first result
-                        if (onPriceSelect) {
+                        if (onPriceSelect && activities[0].suggestedPrice != null) {
                           onPriceSelect(activities[0].suggestedPrice, activities[0]);
                         }
                         if (onTitleSelect) {
