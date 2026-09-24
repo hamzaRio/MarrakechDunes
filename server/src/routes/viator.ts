@@ -1,6 +1,6 @@
 import { Router, type Request, type Response } from 'express';
 import { requireAdmin } from '../middleware/admin-auth.js';
-import { isViatorConfigured, searchViator, ViatorProviderError } from '../providers/viator.js';
+import { isViatorConfigured, isViatorMarketIntelligenceEnabled, searchViator, viatorProviderState, ViatorProviderError } from '../providers/viator.js';
 
 const router = Router();
 
@@ -25,8 +25,16 @@ export const viatorProviderStatus = () => ({
   provider: 'VIATOR',
   active: true,
   configured: isViatorConfigured(),
+  state: viatorProviderState(),
+  marketIntelligenceEnabled: isViatorMarketIntelligenceEnabled(),
   source: 'OFFICIAL_API',
-  message: isViatorConfigured() ? 'Viator Partner API is configured.' : 'Viator Partner API access is not configured.',
+  message: !isViatorConfigured()
+    ? 'Viator Partner API access is not configured.'
+    : viatorProviderState() === 'SANDBOX'
+      ? 'Viator Sandbox API is configured.'
+      : viatorProviderState() === 'ACTIVE'
+        ? 'Viator Affiliate API is configured.'
+        : 'Viator API is configured.',
 });
 
 export default router;

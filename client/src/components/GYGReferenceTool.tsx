@@ -266,6 +266,13 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
     staleTime: 5 * 60 * 1000,
     retry: false,
   });
+  const viatorProvider = providerStatusQuery.data?.providers?.viator;
+  const viatorMarketIntelligenceEnabled = Boolean(viatorProvider?.marketIntelligenceEnabled);
+  const viatorStateLabel = viatorProvider?.state === 'SANDBOX'
+    ? 'Sandbox'
+    : viatorProvider?.state === 'ACTIVE'
+      ? 'Active'
+      : 'Not configured';
 
   // ------------------------------------------------------------------
   // Primary: market comparison workspace (Phase 3D-2). Cache-first: this
@@ -542,9 +549,9 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <Card className="border-emerald-200 bg-emerald-50/40">
             <CardContent className="p-4">
-              <div className="flex items-center justify-between"><h3 className="font-semibold text-gray-900">Viator</h3><Badge className="bg-emerald-600 text-white">Active</Badge></div>
+              <div className="flex items-center justify-between"><h3 className="font-semibold text-gray-900">Viator</h3><Badge className="bg-emerald-600 text-white">{viatorStateLabel}</Badge></div>
               <p className="mt-1 text-xs text-gray-600">Official Partner API search and trusted comparison workflow.</p>
-              <p className="mt-2 text-xs text-gray-500">{providerStatusQuery.data?.providers?.viator?.configured ? 'Ready' : 'Partner API key not configured'}</p>
+              <p className="mt-2 text-xs text-gray-500">{viatorProvider?.message ?? 'Provider status unavailable.'}</p>
             </CardContent>
           </Card>
           <Card className="border-slate-200 bg-slate-50">
@@ -557,7 +564,7 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
         <div>
           <h3 className="text-lg font-semibold text-gray-900">Official Viator Search</h3>
           <p className="text-sm text-gray-500 mb-3">Search Viator, compare offers, or use factual fields as an activity template. Foreign-currency offers are not treated as MAD metrics without verified normalization.</p>
-          <ViatorActivitySearch onCompare={handleViatorCompare} onUseAsTemplate={handleViatorTemplate} />
+          <ViatorActivitySearch marketIntelligenceEnabled={viatorMarketIntelligenceEnabled} onCompare={handleViatorCompare} onUseAsTemplate={handleViatorTemplate} />
         </div>
       </section>
 
@@ -814,7 +821,7 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
                         <p className="text-[11px] text-slate-500">Checked: {formatFetchedAt(offer.fetchedAt)}</p>
                       )}
 
-                      {canForceLiveRefresh && offer.manualComparableId && (
+                      {canForceLiveRefresh && offer.manualComparableId && (offer.provider !== 'VIATOR' || viatorMarketIntelligenceEnabled) && (
                         <div className="flex gap-1 pt-1">
                           <Button size="sm" variant="outline" className="h-6 px-2 text-[11px]" onClick={() => openComparableDialog(offer)}>Edit</Button>
                           {offer.provider !== 'VIATOR' && <Button size="sm" variant="outline" className="h-6 px-2 text-[11px]" disabled={reverifyComparableMutation.isPending} onClick={() => reverifyComparableMutation.mutate(offer.manualComparableId!)}>Re-verify</Button>}
@@ -926,7 +933,7 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
         <DialogContent className="max-w-lg bg-white">
           <DialogHeader><DialogTitle>{editingComparable ? 'Edit Verified Comparable' : 'Add Verified Comparable Manually'}</DialogTitle><DialogDescription>For: {selectedRow?.myActivity.name}. Pasting a URL does not import metadata; enter the offer facts you verified.</DialogDescription></DialogHeader>
           <div className="grid gap-3 py-2">
-            <Select value={comparableForm.provider} onValueChange={(provider) => setComparableForm({ ...comparableForm, provider })}><SelectTrigger aria-label="Marketplace provider"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="VIATOR">Viator</SelectItem><SelectItem value="GETYOURGUIDE">GetYourGuide</SelectItem><SelectItem value="OTHER">Other</SelectItem></SelectContent></Select>
+            <Select value={comparableForm.provider} onValueChange={(provider) => setComparableForm({ ...comparableForm, provider })}><SelectTrigger aria-label="Marketplace provider"><SelectValue /></SelectTrigger><SelectContent>{viatorMarketIntelligenceEnabled && <SelectItem value="VIATOR">Viator</SelectItem>}<SelectItem value="GETYOURGUIDE">GetYourGuide</SelectItem><SelectItem value="OTHER">Other</SelectItem></SelectContent></Select>
             <div><Input aria-label="Marketplace URL" placeholder={comparableForm.provider === 'VIATOR' ? 'https://www.viator.com/...' : comparableForm.provider === 'GETYOURGUIDE' ? 'https://www.getyourguide.com/...' : 'https://...'} value={comparableForm.url} onChange={(e) => setComparableForm({ ...comparableForm, url: e.target.value })} />{comparableErrors.url && <p className="text-xs text-red-600 mt-1">{comparableErrors.url}</p>}</div>
             <Input aria-label="External product code" placeholder="External product code (optional)" value={comparableForm.externalId} onChange={(e) => setComparableForm({ ...comparableForm, externalId: e.target.value })} />
             <div><Input aria-label="Offer title" placeholder="Offer title" value={comparableForm.title} onChange={(e) => setComparableForm({ ...comparableForm, title: e.target.value })} />{comparableErrors.title && <p className="text-xs text-red-600 mt-1">{comparableErrors.title}</p>}</div>

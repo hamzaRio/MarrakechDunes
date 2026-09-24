@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { buildViatorSearchRequest, normalizeViatorProduct, searchViator, ViatorProviderError } from '../server/src/providers/viator.js';
+import { buildViatorSearchRequest, isViatorMarketIntelligenceEnabled, normalizeViatorProduct, searchViator, viatorProviderState, ViatorProviderError } from '../server/src/providers/viator.js';
 import viatorRouter, { viatorProviderStatus } from '../server/src/routes/viator.js';
 import { requireAdmin } from '../server/src/middleware/admin-auth.js';
 import { calculateVerifiedMetrics, normalizeGYGOffer } from '../server/src/services/gyg-comparison.js';
@@ -26,6 +26,9 @@ process.env.VIATOR_API_KEY = 'test-only-key';
 process.env.VIATOR_API_LANGUAGE = 'en-US';
 process.env.VIATOR_API_CURRENCY = 'EUR';
 process.env.VIATOR_API_BASE = 'https://api.sandbox.viator.com/partner';
+delete process.env.VIATOR_MARKET_INTELLIGENCE_ENABLED;
+assert.equal(isViatorMarketIntelligenceEnabled(), false);
+assert.equal(viatorProviderState(), 'SANDBOX');
 const request = buildViatorSearchRequest('Agafay desert', 10, 10);
 assert.equal(request.url, 'https://api.sandbox.viator.com/partner/search/freetext');
 assert.equal(request.headers['exp-api-key'], 'test-only-key');

@@ -10,6 +10,7 @@ import { searchViatorActivities, type NormalizedViatorActivity } from '@/lib/via
 interface ViatorActivitySearchProps {
   onCompare?: (activity: NormalizedViatorActivity) => void;
   onUseAsTemplate?: (activity: NormalizedViatorActivity) => void;
+  marketIntelligenceEnabled?: boolean;
 }
 
 const providerError = (error: any) => {
@@ -20,7 +21,7 @@ const providerError = (error: any) => {
   return 'Viator official search is temporarily unavailable.';
 };
 
-export default function ViatorActivitySearch({ onCompare, onUseAsTemplate }: ViatorActivitySearchProps) {
+export default function ViatorActivitySearch({ onCompare, onUseAsTemplate, marketIntelligenceEnabled = false }: ViatorActivitySearchProps) {
   const [query, setQuery] = useState('');
   const [activeQuery, setActiveQuery] = useState('');
   const [offset, setOffset] = useState(0);
@@ -46,6 +47,7 @@ export default function ViatorActivitySearch({ onCompare, onUseAsTemplate }: Via
         <Input value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') submit(); }} placeholder="Search Viator experiences…" aria-label="Viator search" />
         <Button onClick={submit} disabled={search.isFetching || query.trim().length < 2}><Search className="w-4 h-4 mr-1" />Search Viator</Button>
       </div>
+      {!marketIntelligenceEnabled && <p className="text-xs text-slate-600">Viator Affiliate API results are currently available for discovery and affiliate referral only.</p>}
       {search.isFetching && <div className="flex items-center justify-center py-8 text-gray-500"><Loader2 className="w-5 h-5 mr-2 animate-spin" />Searching the official Viator Partner API…</div>}
       {search.isError && <div className="rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">{providerError(search.error)}</div>}
       {!search.isFetching && !search.isError && activeQuery && activities.length === 0 && <p className="text-sm text-gray-500">No official Viator products matched this search.</p>}
@@ -64,8 +66,8 @@ export default function ViatorActivitySearch({ onCompare, onUseAsTemplate }: Via
               </div>
               <div className="flex flex-wrap gap-2 pt-2 border-t">
                 {activity.url && <Button size="sm" variant="outline" onClick={() => window.open(activity.url!, '_blank', 'noopener,noreferrer')}><ExternalLink className="w-3 h-3 mr-1" />Open on Viator</Button>}
-                {onCompare && <Button size="sm" onClick={() => onCompare(activity)}>Compare with…</Button>}
-                {onUseAsTemplate && <Button size="sm" variant="outline" onClick={() => onUseAsTemplate(activity)}>Use as Activity Template</Button>}
+                {marketIntelligenceEnabled && onCompare && <Button size="sm" onClick={() => onCompare(activity)}>Compare with…</Button>}
+                {marketIntelligenceEnabled && onUseAsTemplate && <Button size="sm" variant="outline" onClick={() => onUseAsTemplate(activity)}>Use as Activity Template</Button>}
               </div>
             </CardContent>
           </Card>

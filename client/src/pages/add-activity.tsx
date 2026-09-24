@@ -4,6 +4,7 @@ import ViatorActivitySearch from '../components/viator-activity-search';
 import type { NormalizedViatorActivity } from '../lib/viator-api';
 import { api } from '../lib/api';
 import { useLocation } from 'wouter';
+import { useQuery } from '@tanstack/react-query';
 
 interface Activity {
   id: string;
@@ -24,6 +25,13 @@ interface Activity {
 
 export default function AddActivity() {
   const [location] = useLocation();
+  const providerStatusQuery = useQuery({
+    queryKey: ['market-provider-status'],
+    queryFn: async () => (await api.get('/market/providers')).data,
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+  });
+  const viatorMarketIntelligenceEnabled = Boolean(providerStatusQuery.data?.providers?.viator?.marketIntelligenceEnabled);
   const [showGYGSearch, setShowGYGSearch] = useState(false);
   const [selectedGYGActivity, setSelectedGYGActivity] = useState<NormalizedViatorActivity | null>(null);
   const [activity, setActivity] = useState<Activity>({
@@ -176,7 +184,7 @@ export default function AddActivity() {
             <div className="mb-8">
               <div className="space-y-4">
                 <p className="text-sm text-gray-600">Import factual data from marketplace</p>
-                <ViatorActivitySearch onUseAsTemplate={handleGYGActivitySelect} />
+                <ViatorActivitySearch marketIntelligenceEnabled={viatorMarketIntelligenceEnabled} onUseAsTemplate={handleGYGActivitySelect} />
                 <div className="rounded border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">GetYourGuide search is read-only and disabled until official Partner API access is configured.</div>
               </div>
             </div>

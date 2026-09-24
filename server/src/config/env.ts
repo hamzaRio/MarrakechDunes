@@ -31,6 +31,7 @@ export const ENV = {
   VIATOR_API_KEY: process.env.VIATOR_API_KEY,
   VIATOR_API_LANGUAGE: process.env.VIATOR_API_LANGUAGE || 'en-US',
   VIATOR_API_CURRENCY: process.env.VIATOR_API_CURRENCY || 'EUR',
+  VIATOR_MARKET_INTELLIGENCE_ENABLED: process.env.VIATOR_MARKET_INTELLIGENCE_ENABLED || 'false',
   
   // Rezdy API Configuration
   REZDY_API_KEY: process.env.REZDY_API_KEY,

@@ -17,6 +17,7 @@ export const VIATOR_DEFAULT_LANGUAGE = 'en-US';
 // supported display currency and keeps foreign offers clearly separate from
 // MarrakechDunes' internally-controlled MAD prices.
 export const VIATOR_DEFAULT_CURRENCY = 'EUR';
+export const VIATOR_DEFAULT_MARKET_INTELLIGENCE_ENABLED = false;
 
 export const VIATOR_SUPPORTED_CURRENCIES = new Set([
   'USD', 'EUR', 'GBP', 'AUD', 'CAD', 'CHF', 'DKK', 'FJD', 'HKD', 'JPY',
@@ -71,6 +72,19 @@ export const viatorCurrency = () => {
 };
 
 export const isViatorConfigured = () => Boolean(String(process.env.VIATOR_API_KEY ?? '').trim());
+
+export const isViatorMarketIntelligenceEnabled = () =>
+  String(process.env.VIATOR_MARKET_INTELLIGENCE_ENABLED ?? VIATOR_DEFAULT_MARKET_INTELLIGENCE_ENABLED).trim().toLowerCase() === 'true';
+
+export type ViatorProviderState = 'NOT_CONFIGURED' | 'SANDBOX' | 'ACTIVE' | 'CUSTOM';
+
+export const viatorProviderState = (): ViatorProviderState => {
+  if (!isViatorConfigured()) return 'NOT_CONFIGURED';
+  const base = String(process.env.VIATOR_API_BASE || VIATOR_DEFAULT_BASE).replace(/\/$/, '').toLowerCase();
+  if (base === 'https://api.sandbox.viator.com/partner') return 'SANDBOX';
+  if (base === VIATOR_DEFAULT_BASE) return 'ACTIVE';
+  return 'CUSTOM';
+};
 
 export interface ViatorSearchRequest {
   url: string;

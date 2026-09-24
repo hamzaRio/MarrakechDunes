@@ -12,6 +12,7 @@ import { consumeGYGRateLimit } from '../services/gyg-rate-limits.js';
 import { gygRequestKey, gygResilience, isGYGServiceUnavailable } from '../services/gyg-resilience.js';
 import { rankCandidateMatches, type MatchableActivity } from '../services/gyg-matching.js';
 import { isOfficialGYGConfigured, searchOfficialGYG } from '../providers/gyg.js';
+import { isViatorMarketIntelligenceEnabled } from '../providers/viator.js';
 
 const router = Router();
 
@@ -228,7 +229,7 @@ async function loadManualComparables(ourActivityId: string): Promise<any[]> {
   return records.map((record: any) => {
     const isViator = record.provider === 'VIATOR';
     const expiresAt = record.expiresAt ? new Date(record.expiresAt) : null;
-    const stale = isViator && (!expiresAt || expiresAt.getTime() <= Date.now());
+    const stale = isViator && (!isViatorMarketIntelligenceEnabled() || !expiresAt || expiresAt.getTime() <= Date.now());
     const sourceType = stale
       ? 'STALE_VERIFIED'
       : (record.sourceType ?? 'MANUAL_VERIFIED');
@@ -424,6 +425,9 @@ router.post('/comparables', requireSuperAdmin, async (req: Request, res: Respons
     return res.status(400).json({ status: 'error', message: 'A valid activity, provider HTTPS URL and offer title are required.' });
   }
   if (!SUPPORTED_MARKET_PROVIDERS.includes(normalizedProvider)) return res.status(400).json({ status: 'error', message: 'Provider must be Viator, GetYourGuide, or Other.' });
+  if (normalizedProvider === 'VIATOR' && !isViatorMarketIntelligenceEnabled()) {
+    return res.status(403).json({ status: 'error', code: 'VIATOR_MARKET_INTELLIGENCE_DISABLED', message: 'Viator results are currently available for discovery and affiliate referral only.' });
+  }
   if (!Number.isFinite(numericPrice) || numericPrice <= 0 || !SUPPORTED_GYG_CURRENCIES.includes(normalizedCurrency)) {
     return res.status(400).json({ status: 'error', message: 'Price must be greater than zero and currency must be supported.' });
   }
@@ -506,6 +510,9 @@ router.patch('/comparables/:id', requireSuperAdmin, async (req: Request, res: Re
   const { url, title, price, currency, rating, reviewCount, duration, notes, normalizedMadPrice, conversionRate, provider, externalId } = req.body ?? {};
   const normalizedProvider = String(provider ?? comparable.provider ?? 'GETYOURGUIDE').toUpperCase() as MarketProvider;
   if (!SUPPORTED_MARKET_PROVIDERS.includes(normalizedProvider)) return res.status(400).json({ status: 'error', message: 'Provider must be Viator, GetYourGuide, or Other.' });
+  if (normalizedProvider === 'VIATOR' && !isViatorMarketIntelligenceEnabled()) {
+    return res.status(403).json({ status: 'error', code: 'VIATOR_MARKET_INTELLIGENCE_DISABLED', message: 'Viator results are currently available for discovery and affiliate referral only.' });
+  }
   if (provider !== undefined && normalizedProvider !== (comparable.provider ?? 'GETYOURGUIDE')) return res.status(400).json({ status: 'error', message: 'Comparable provider cannot be changed after creation.' });
   if (externalId !== undefined && String(externalId ?? '') !== String(comparable.externalId ?? '')) return res.status(400).json({ status: 'error', message: 'Comparable external id cannot be changed after creation.' });
   if (url !== undefined) {
@@ -561,6 +568,9 @@ router.post('/comparables/:id/reverify', requireSuperAdmin, async (req: Request,
   const comparable = await GYGComparable.findById(req.params.id);
   if (!comparable) return res.status(404).json({ status: 'error', message: 'Comparable not found.' });
   if (comparable.provider === 'VIATOR') {
+    if (!isViatorMarketIntelligenceEnabled()) {
+      return res.status(403).json({ status: 'error', code: 'VIATOR_MARKET_INTELLIGENCE_DISABLED', message: 'Viator results are currently available for discovery and affiliate referral only.' });
+    }
     return res.status(409).json({ status: 'error', message: 'Viator comparables require a fresh official search before re-verification.' });
   }
   comparable.verifiedAt = new Date();
