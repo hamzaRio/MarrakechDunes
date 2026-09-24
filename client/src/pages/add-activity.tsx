@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { Plus, Search, MapPin, Clock, Users, Star, DollarSign, Save, X } from 'lucide-react';
 import GYGActivitySearch from '../components/gyg-activity-search';
+import type { NormalizedGYGActivity } from '../lib/getyourguide-api';
+import { api } from '../lib/api';
 
 interface Activity {
   id: string;
@@ -19,27 +21,9 @@ interface Activity {
   requirements: string[];
 }
 
-interface GYGActivity {
-  id: string;
-  title: string;
-  location: string;
-  duration: string;
-  price: {
-    amount: number;
-    currency: string;
-    originalAmount?: number;
-  };
-  rating: number;
-  reviewCount: number;
-  imageUrl: string;
-  url: string;
-  description: string;
-  highlights: string[];
-}
-
 export default function AddActivity() {
   const [showGYGSearch, setShowGYGSearch] = useState(false);
-  const [selectedGYGActivity, setSelectedGYGActivity] = useState<GYGActivity | null>(null);
+  const [selectedGYGActivity, setSelectedGYGActivity] = useState<NormalizedGYGActivity | null>(null);
   const [activity, setActivity] = useState<Activity>({
     id: '',
     title: '',
@@ -60,19 +44,17 @@ export default function AddActivity() {
   const [newHighlight, setNewHighlight] = useState('');
   const [newIncluded, setNewIncluded] = useState('');
   const [newRequirement, setNewRequirement] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
 
-  const handleGYGActivitySelect = (gygActivity: GYGActivity) => {
+  const handleGYGActivitySelect = (gygActivity: NormalizedGYGActivity) => {
     setSelectedGYGActivity(gygActivity);
     setActivity(prev => ({
       ...prev,
       title: gygActivity.title,
-      description: gygActivity.description,
       location: gygActivity.location,
       duration: gygActivity.duration,
-      price: gygActivity.price.amount,
-      currency: gygActivity.currency,
+      currency: gygActivity.price.currency,
       highlights: gygActivity.highlights,
-      imageUrl: gygActivity.imageUrl
     }));
     setShowGYGSearch(false);
   };
@@ -128,10 +110,30 @@ export default function AddActivity() {
     }));
   };
 
-  const handleSave = () => {
-    // Here you would save the activity to your database
-    console.log('Saving activity:', activity);
-    alert('Activity saved successfully!');
+  const handleSave = async () => {
+    setIsSaving(true);
+    try {
+      await api.post('/admin/activities', {
+        name: activity.title,
+        description: activity.description,
+        location: activity.location,
+        duration: activity.duration,
+        price: String(activity.price),
+        maxParticipants: activity.maxParticipants,
+        highlights: activity.highlights,
+        included: activity.included,
+        requirements: activity.requirements,
+        category: activity.category,
+        difficulty: activity.difficulty,
+        imageUrls: activity.imageUrl ? [activity.imageUrl] : [],
+      });
+      alert('Activity saved successfully!');
+    } catch (error) {
+      console.error('Activity save failed:', error);
+      alert('Unable to save activity. Please check your access and try again.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -448,9 +450,10 @@ export default function AddActivity() {
               <button
                 type="submit"
                 className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center"
+                disabled={isSaving}
               >
                 <Save className="mr-2 h-5 w-5" />
-                Save Activity
+                {isSaving ? 'Saving...' : 'Save Activity'}
               </button>
             </div>
           </form>

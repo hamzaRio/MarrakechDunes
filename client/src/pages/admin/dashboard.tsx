@@ -304,7 +304,7 @@ function AdminDashboardContent() {
         
         // Force immediate redirect without any auth checks
         setTimeout(() => {
-          window.location.replace('/');
+          window.location.replace('/admin/login');
         }, 100);
         
       } catch (error) {
@@ -312,7 +312,7 @@ function AdminDashboardContent() {
         
         // Force redirect even on error
         setTimeout(() => {
-          window.location.replace('/');
+          window.location.replace('/admin/login');
         }, 100);
       }
     }

@@ -7,6 +7,7 @@ import { ActivityType } from "marrakechdunes-shared/schema";
 import { apiRequest } from "@/lib/queryClient";
 import { ensureArray } from "@/lib/ensureArray";
 import { formatLocalDateOnly, normalizeBookingDateOnlyInput } from "@/lib/booking-utils";
+import { isValidPhoneE164, normalizePhoneE164 } from "@/lib/phone";
 import { useToast } from "@/hooks/use-toast";
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
@@ -104,12 +105,6 @@ export default function BookingFixed() {
     },
     mode: "onChange",
   });
-
-  // Phone number validation helper for international numbers
-  const handlePhoneChange = (value: string, countryData: any) => {
-    const formattedValue = '+' + value;
-    form.setValue("customerPhone", formattedValue);
-  };
 
   // Check for pre-selected activity from localStorage or URL params
   useEffect(() => {
@@ -282,7 +277,7 @@ export default function BookingFixed() {
       return;
     }
     
-    if (!customerPhone || !customerPhone.match(/^\+\d{8,15}$/)) {
+    if (!isValidPhoneE164(customerPhone)) {
       toast({
         title: "Invalid Phone Number",
         description: "Please select your country and enter a valid phone number",
@@ -606,8 +601,11 @@ export default function BookingFixed() {
                                   <FormControl>
                                     <PhoneInput
                                       country={'ma'}
-                                      value={field.value}
-                                      onChange={(value, countryData) => handlePhoneChange(value, countryData)}
+                                      value={field.value.replace(/^\+/, '')}
+                                      onChange={(value) => {
+                                        field.onChange(normalizePhoneE164(value));
+                                        field.onBlur();
+                                      }}
                                       enableSearch={true}
                                       searchPlaceholder="Search countries"
                                       preferredCountries={['ma', 'fr', 'es', 'us', 'gb']}

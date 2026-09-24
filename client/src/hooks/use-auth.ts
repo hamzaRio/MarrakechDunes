@@ -20,7 +20,9 @@ export function useAuth() {
   // Enhanced authentication with better error handling
   const { data, isLoading, error, refetch } = useQuery<AuthUserResponse | null>({
     queryKey: ["/auth/user"],
-    enabled: !isLoginPage,
+    // Keep the authoritative session check active on the login page so an
+    // already authenticated staff member is routed back to the admin area.
+    enabled: true,
     retry: (failureCount, error: any) => {
       // Don't retry on 401/403 errors
       if (error?.response?.status === 401 || error?.response?.status === 403) {

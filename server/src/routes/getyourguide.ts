@@ -11,6 +11,7 @@ import { calculateVerifiedMetrics, normalizeGYGOffer, type GYGTrustSource } from
 import { consumeGYGRateLimit } from '../services/gyg-rate-limits.js';
 import { gygRequestKey, gygResilience, isGYGServiceUnavailable } from '../services/gyg-resilience.js';
 import { rankCandidateMatches, type MatchableActivity } from '../services/gyg-matching.js';
+import { isOfficialGYGConfigured, searchOfficialGYG } from '../providers/gyg.js';
 
 const router = Router();
 
@@ -55,6 +56,37 @@ const comparisonResponse = (offers: Record<string, any>[], sourceType: GYGTrustS
 };
 
 const circuitIsOpen = () => gygResilience.getDiagnostics().circuitState === 'OPEN';
+
+/**
+ * Official Partner API search used by the reusable staff search widget.
+ * This route never fabricates results when credentials are unavailable; the
+ * UI can then offer a direct GetYourGuide website search as a manual fallback.
+ */
+router.get('/official-search', requireAdmin, async (req: Request, res: Response) => {
+  const query = typeof req.query.q === 'string' ? req.query.q.trim() : '';
+  if (query.length < 2) {
+    return res.status(400).json({ error: 'A search query is required.' });
+  }
+  if (!isOfficialGYGConfigured()) {
+    return res.status(503).json({
+      code: 'GYG_API_NOT_CONFIGURED',
+      message: 'GetYourGuide API access is not configured.',
+      searchUrl: `https://www.getyourguide.com/s/?q=${encodeURIComponent(query)}`,
+    });
+  }
+  if (!consumeGYGRateLimit(req, res, 'normalSearch')) return;
+  try {
+    const activities = await searchOfficialGYG(query, Number(req.query.limit) || 12);
+    return res.json({ activities, total: activities.length, hasMore: false });
+  } catch (error: any) {
+    console.warn('[GYG Official API] Search failed:', error?.message || 'unknown error');
+    return res.status(503).json({
+      code: error?.code || 'GYG_UPSTREAM_UNAVAILABLE',
+      message: 'Live GetYourGuide data is temporarily unavailable.',
+      searchUrl: `https://www.getyourguide.com/s/?q=${encodeURIComponent(query)}`,
+    });
+  }
+});
 
 /**
  * Load any superadmin ACCEPT/REJECT decisions recorded for this activity,

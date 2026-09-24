@@ -320,3 +320,80 @@ function generateMoroccoActivities(query: string, city?: string): MarketItem[] {
   
   return filteredActivities.map(activity => normalizeGYGProduct(activity));
 }
+
+export interface OfficialGYGActivity {
+  id: string;
+  title: string;
+  location: string;
+  duration: string;
+  price: { amount: number; currency: string; originalAmount?: number };
+  rating: number;
+  reviewCount: number;
+  imageUrl: string;
+  url: string;
+  description: string;
+  highlights: string[];
+  sourceType: 'LIVE_VERIFIED';
+  verified: true;
+}
+
+export function isOfficialGYGConfigured(): boolean {
+  return Boolean(process.env.GYG_SUPPLIER_BASE && process.env.GYG_SUPPLIER_USER && process.env.GYG_SUPPLIER_PASS);
+}
+
+function buildOfficialSearchRequest(query: string, limit = 12): GYGSearchRequest {
+  const baseUrl = (process.env.GYG_SUPPLIER_BASE || '').replace(/\/$/, '');
+  const user = process.env.GYG_SUPPLIER_USER || '';
+  const pass = process.env.GYG_SUPPLIER_PASS || '';
+  return {
+    method: 'GET',
+    url: `${baseUrl}/tours?query=${encodeURIComponent(query)}&limit=${Math.min(Math.max(limit, 1), 50)}&currency=MAD`,
+    headers: {
+      Authorization: `Basic ${Buffer.from(`${user}:${pass}`).toString('base64')}`,
+      Accept: 'application/json',
+    },
+    notes: ['Official GetYourGuide Partner API', 'Credentials kept server-side', 'No browser scraping or fallback data'],
+  };
+}
+
+function normalizeOfficialTour(tour: any): OfficialGYGActivity {
+  const rawPrice = typeof tour.price === 'object' ? tour.price?.amount : tour.price;
+  const currency = typeof tour.price === 'object' ? tour.price?.currency : tour.currency;
+  return {
+    id: String(tour.id ?? tour.tourId ?? ''),
+    title: String(tour.title ?? tour.name ?? 'Untitled activity'),
+    location: String(tour.location?.name ?? tour.location ?? ''),
+    duration: String(tour.duration ?? tour.durationText ?? ''),
+    price: { amount: Number(rawPrice) || 0, currency: String(currency || 'MAD') },
+    rating: Number(tour.rating) || 0,
+    reviewCount: Number(tour.reviewCount ?? tour.reviewsCount) || 0,
+    imageUrl: String(tour.imageUrl ?? tour.image ?? ''),
+    url: String(tour.url ?? tour.link ?? ''),
+    description: String(tour.description ?? ''),
+    highlights: Array.isArray(tour.highlights) ? tour.highlights.map(String) : [],
+    sourceType: 'LIVE_VERIFIED',
+    verified: true,
+  };
+}
+
+export async function searchOfficialGYG(query: string, limit = 12): Promise<OfficialGYGActivity[]> {
+  if (!isOfficialGYGConfigured()) {
+    const error = new Error('GetYourGuide API access is not configured.') as Error & { code?: string };
+    error.code = 'GYG_API_NOT_CONFIGURED';
+    throw error;
+  }
+  const request = buildOfficialSearchRequest(query, limit);
+  const response = await fetch(request.url, {
+    method: request.method,
+    headers: request.headers,
+    signal: AbortSignal.timeout(10000),
+  });
+  if (!response.ok) {
+    const error = new Error(`GetYourGuide Partner API returned HTTP ${response.status}`) as Error & { code?: string };
+    error.code = 'GYG_UPSTREAM_UNAVAILABLE';
+    throw error;
+  }
+  const payload = await response.json() as any;
+  const tours = Array.isArray(payload?.tours) ? payload.tours : Array.isArray(payload?.products) ? payload.products : Array.isArray(payload?.results) ? payload.results : [];
+  return tours.map(normalizeOfficialTour).filter((tour: OfficialGYGActivity) => tour.id && tour.title && tour.price.amount > 0 && tour.url);
+}

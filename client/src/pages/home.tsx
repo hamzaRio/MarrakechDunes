@@ -7,52 +7,16 @@ import MapView from "@/components/MapView";
 import SEOHead, { seoConfigs } from "@/components/seo-head";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Star, Award, MapPin, Calendar, Shield, User } from "lucide-react";
+import { Star, Award, MapPin, Calendar } from "lucide-react";
 import { useLanguage } from "@/hooks/use-language";
-import { useAuth } from "@/hooks/use-auth";
 import { asset } from "@/lib/env";
 import { useLocation } from "wouter";
-import { useState, useEffect } from "react";
 // Single hero background image - force refresh
 const heroBackgroundImage = asset("riad-kheirredine_1756041288677.jpg");
-
-interface SessionUser {
-  id: string;
-  role: string;
-  username?: string;
-  email?: string;
-}
 
 export default function Home() {
   const { t, language } = useLanguage();
   const [, setLocation] = useLocation();
-  const { user: authUser } = useAuth();
-  const [adminUser, setAdminUser] = useState<SessionUser | null>(null);
-  
-  // Check localStorage for admin user (since useAuth only checks on admin routes)
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem('user');
-      if (stored) {
-        const parsed = JSON.parse(stored) as SessionUser;
-        if (parsed && (parsed.role === 'admin' || parsed.role === 'superadmin')) {
-          setAdminUser(parsed);
-        } else {
-          setAdminUser(null);
-        }
-      } else {
-        setAdminUser(null);
-      }
-    } catch (error) {
-      setAdminUser(null);
-    }
-  }, [authUser]); // Re-check when authUser changes
-  
-  // Use authUser if available, otherwise use adminUser from localStorage
-  const user = authUser || adminUser;
-  
-  // Check if admin or superadmin is logged in
-  const isAdminLoggedIn = user && (user.role === 'admin' || user.role === 'superadmin');
   
   // Navigation handlers with specific activity IDs
   const handleHotAirBalloonClick = () => {
@@ -77,32 +41,6 @@ export default function Home() {
         image={heroBackgroundImage}
       />
       <Navbar />
-      
-      {/* Admin Login Indicator */}
-      {isAdminLoggedIn && (
-        <div className="bg-gradient-to-r from-moroccan-blue to-blue-700 text-white py-3 px-4 shadow-md">
-          <div className="max-w-7xl mx-auto flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Shield className="h-5 w-5" />
-              <div>
-                <span className="font-semibold">Admin Connected</span>
-                <span className="text-sm ml-2 opacity-90">
-                  {user.role === 'superadmin' ? 'Super Admin' : 'Admin'}: {user.username || user.email || 'User'}
-                </span>
-              </div>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              className="bg-white/10 hover:bg-white/20 text-white border-white/30"
-              onClick={() => setLocation('/admin/dashboard')}
-            >
-              <User className="h-4 w-4 mr-2" />
-              Go to Dashboard
-            </Button>
-          </div>
-        </div>
-      )}
       
       {/* Hero Section */}
       <section className="relative h-screen overflow-hidden">

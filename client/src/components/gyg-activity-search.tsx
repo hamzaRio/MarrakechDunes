@@ -1,24 +1,8 @@
 import React, { useState } from 'react';
 import { Search, MapPin, Clock, Users, Star, ExternalLink, Wifi, WifiOff } from 'lucide-react';
-import { searchGetYourGuideActivities, getGetYourGuideAPIStatus } from '../lib/getyourguide-api';
+import { searchGetYourGuideActivities, getGetYourGuideAPIStatus, type NormalizedGYGActivity } from '../lib/getyourguide-api';
 
-interface GYGActivity {
-  id: string;
-  title: string;
-  location: string;
-  duration: string;
-  price: {
-    amount: number;
-    currency: string;
-    originalAmount?: number;
-  };
-  rating: number;
-  reviewCount: number;
-  imageUrl: string;
-  url: string;
-  description: string;
-  highlights: string[];
-}
+type GYGActivity = NormalizedGYGActivity;
 
 interface GYGSearchProps {
   onActivitySelect?: (activity: GYGActivity) => void;
@@ -40,22 +24,19 @@ export const GYGActivitySearch: React.FC<GYGSearchProps> = ({ onActivitySelect }
     setError(null);
 
     try {
-      // Search using real GetYourGuide API (with mock fallback)
+      // Search through the protected server-side provider.
       const result = await searchGetYourGuideActivities({
         q: searchTerm,
         limit: 12,
         location: 'Marrakech, Morocco'
       });
 
-      setActivities(result.activities);
+      setActivities(result.activities as GYGActivity[]);
       setApiStatus(getGetYourGuideAPIStatus());
       
-      // Browser-side provider access is intentionally disabled.
-      if (!apiStatus.available) {
-        console.warn('ℹ️ Les comparaisons GetYourGuide passent par l’API staff protégée.');
-      }
     } catch (err) {
-      setError('Échec de la recherche. Veuillez réessayer.');
+      const response = (err as any)?.response;
+      setError(response?.data?.message || 'GetYourGuide API access is not configured.');
       console.error('Search error:', err);
     } finally {
       setLoading(false);
@@ -121,6 +102,16 @@ export const GYGActivitySearch: React.FC<GYGSearchProps> = ({ onActivitySelect }
         {error && (
           <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
             {error}
+            {((error.includes('not configured') || error.includes('not configured')) && searchTerm) && (
+              <a
+                className="ml-2 underline font-medium"
+                href={`https://www.getyourguide.com/s/?q=${encodeURIComponent(searchTerm)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Open GetYourGuide Search
+              </a>
+            )}
           </div>
         )}
 

@@ -2,12 +2,8 @@ import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Mountain, Menu, MapPin, Phone, Globe, LogOut, User } from "lucide-react";
+import { Mountain, Menu, MapPin, Phone, Globe } from "lucide-react";
 import { useLanguage } from "@/hooks/use-language";
-import { useAuth } from "@/hooks/use-auth";
-import { logout } from "@/lib/api";
-import { useQueryClient } from "@tanstack/react-query";
-import { useToast } from "@/hooks/use-toast";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,66 +15,6 @@ export default function Navbar() {
   const [location] = useLocation();
   const [isOpen, setIsOpen] = useState(false);
   const { language, changeLanguage, t } = useLanguage();
-  const { user, isLoading: authLoading, isAuthenticated } = useAuth();
-  const displayName = user?.username ?? t("admin.userPlaceholder");
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
-  
-  const isStaffAuthenticated = !authLoading && isAuthenticated &&
-    (user?.role === 'admin' || user?.role === 'superadmin');
-  const isSuperAdmin = user?.role === 'superadmin';
-
-  const handleLogout = async () => {
-    try {
-      console.log('[NAVBAR] Starting logout process...');
-      
-      // Call server logout
-      await logout();
-      
-      // Clear all client-side state
-      localStorage.removeItem('user');
-      localStorage.removeItem('auth-token');
-      sessionStorage.clear();
-      
-      // Clear all cookies
-      document.cookie.split(";").forEach(function(c) { 
-        document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
-      });
-      
-      // Invalidate all queries
-      queryClient.invalidateQueries({ queryKey: ["/auth/user"] });
-      queryClient.clear();
-      
-      toast({
-        title: "✅ Déconnexion réussie",
-        description: "Vous avez été déconnecté avec succès",
-      });
-      
-      // Force page reload to ensure clean state
-      setTimeout(() => {
-        window.location.href = '/';
-      }, 1000);
-      
-    } catch (error) {
-      console.error('Logout error:', error);
-      
-      // Even if server logout fails, clear client state
-      localStorage.removeItem('user');
-      localStorage.removeItem('auth-token');
-      sessionStorage.clear();
-      queryClient.clear();
-      
-      toast({
-        title: "⚠️ Déconnexion",
-        description: "Déconnexion locale effectuée",
-      });
-      
-      // Force page reload
-      setTimeout(() => {
-        window.location.href = '/';
-      }, 1000);
-    }
-  };
 
   const navItems = [
     { href: "/", label: t('nav.home') },
@@ -134,42 +70,11 @@ export default function Navbar() {
             </DropdownMenu>
             
             {/* Staff access stays separate from public tourism navigation. */}
-            {isStaffAuthenticated ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="flex items-center space-x-2 hover:bg-gray-100 transition-colors">
-                    <User className="h-4 w-4 text-gray-600" />
-                    <span className="text-sm font-medium text-gray-700">{displayName}</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56 shadow-lg border border-gray-200">
-                  <DropdownMenuItem asChild>
-                    <Link href="/admin/dashboard" className="flex items-center w-full px-3 py-2 hover:bg-gray-50 transition-colors">
-                      <User className="h-4 w-4 mr-2 text-gray-600" />
-                      <span className="text-sm">{isSuperAdmin ? t('nav.operationsDashboard') : t('nav.adminDashboard')}</span>
-                    </Link>
-                  </DropdownMenuItem>
-                  {isSuperAdmin && (
-                    <DropdownMenuItem asChild>
-                      <Link href="/admin/ceo" className="flex items-center w-full px-3 py-2 hover:bg-gray-50 transition-colors">
-                        <User className="h-4 w-4 mr-2 text-gray-600" />
-                        <span className="text-sm">{t('nav.executiveDashboard')}</span>
-                      </Link>
-                    </DropdownMenuItem>
-                  )}
-                  <DropdownMenuItem onClick={handleLogout} className="flex items-center text-red-600 hover:text-red-700 hover:bg-red-50 px-3 py-2 transition-colors">
-                    <LogOut className="h-4 w-4 mr-2" />
-                    <span className="text-sm">{t('admin.logout')}</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : !authLoading ? (
-              <Link href="/admin/login">
-                <span className="text-sm text-gray-500 hover:text-moroccan-red transition-colors cursor-pointer">
-                  {t('nav.staffSpace')}
-                </span>
-              </Link>
-            ) : null}
+            <Link href="/admin/login">
+              <span className="text-sm text-gray-500 hover:text-moroccan-red transition-colors cursor-pointer">
+                {t('nav.staffSpace')}
+              </span>
+            </Link>
           </div>
 
           {/* Mobile Navigation Trigger */}
@@ -200,52 +105,16 @@ export default function Navbar() {
                       </div>
                     </Link>
                   ))}
-                  {isStaffAuthenticated ? (
-                    <div className="border-t pt-4 mt-4 space-y-2">
-                      <div className="text-sm text-gray-600 mb-2">
-                        Logged in as: <span className="font-semibold">{displayName}</span>
-                      </div>
-                      <Link href="/admin/dashboard">
-                        <div
-                          className="text-lg hover:text-moroccan-red transition-colors cursor-pointer p-2 rounded"
-                          onClick={() => setIsOpen(false)}
-                        >
-                          {isSuperAdmin ? t('nav.operationsDashboard') : t('nav.adminDashboard')}
-                        </div>
-                      </Link>
-                      {isSuperAdmin && (
-                        <Link href="/admin/ceo">
-                          <div
-                            className="text-lg hover:text-moroccan-red transition-colors cursor-pointer p-2 rounded"
-                            onClick={() => setIsOpen(false)}
-                          >
-                            {t('nav.executiveDashboard')}
-                          </div>
-                        </Link>
-                      )}
+                  <div className="border-t pt-4 mt-4">
+                    <Link href="/admin/login">
                       <div
-                        className="text-lg hover:text-red-600 transition-colors cursor-pointer p-2 rounded flex items-center"
-                        onClick={() => {
-                          handleLogout();
-                          setIsOpen(false);
-                        }}
+                        className="text-sm text-gray-500 hover:text-moroccan-red transition-colors cursor-pointer p-2 rounded"
+                        onClick={() => setIsOpen(false)}
                       >
-                        <LogOut className="h-4 w-4 mr-2" />
-                        {t('admin.logout')}
+                        {t('nav.staffSpace')}
                       </div>
-                    </div>
-                  ) : !authLoading ? (
-                    <div className="border-t pt-4 mt-4">
-                      <Link href="/admin/login">
-                        <div
-                          className="text-sm text-gray-500 hover:text-moroccan-red transition-colors cursor-pointer p-2 rounded"
-                          onClick={() => setIsOpen(false)}
-                        >
-                          {t('nav.staffSpace')}
-                        </div>
-                      </Link>
-                    </div>
-                  ) : null}
+                    </Link>
+                  </div>
 
                   {/* Contact Info */}
                   <div className="border-t pt-4 mt-4 space-y-3">

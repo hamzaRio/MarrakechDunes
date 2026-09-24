@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
@@ -12,6 +12,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { api, initializeCSRFToken } from "@/lib/api";
 import { useLocation } from "wouter";
 import { useLanguage } from "@/hooks/use-language";
+import { useAuth } from "@/hooks/use-auth";
 import SEOHead, { seoConfigs } from "@/components/seo-head";
 import { Eye, EyeOff, AlertCircle, CheckCircle } from "lucide-react";
 
@@ -29,7 +30,14 @@ export default function AdminLogin() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { t, language } = useLanguage();
+  const { user: existingUser, isLoading: authLoading } = useAuth();
   const seoConfig = seoConfigs.admin(language);
+
+  useEffect(() => {
+    if (!authLoading && existingUser) {
+      navigate('/admin/dashboard');
+    }
+  }, [authLoading, existingUser, navigate]);
 
   const form = useForm<LoginFormData>({
     resolver: zodResolver(createLoginFormSchema(t)),

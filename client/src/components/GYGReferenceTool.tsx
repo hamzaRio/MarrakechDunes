@@ -248,6 +248,7 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
   const [comparableDialogOpen, setComparableDialogOpen] = useState(false);
   const [editingComparable, setEditingComparable] = useState<GYGActivityResult | null>(null);
   const [comparableForm, setComparableForm] = useState({ url: '', title: '', price: '', currency: 'MAD', normalizedMadPrice: '', conversionRate: '', rating: '', reviewCount: '', duration: '', notes: '' });
+  const [comparableErrors, setComparableErrors] = useState<Record<string, string>>({});
 
   const enrichedRows: EnrichedRow[] = useMemo(() => {
     const rows = workspaceQuery.data ?? [];
@@ -384,11 +385,23 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
 
   const openComparableDialog = (offer?: GYGActivityResult) => {
     setEditingComparable(offer ?? null);
+    setComparableErrors({});
     setComparableForm(offer ? {
       url: offer.url || '', title: offer.title, price: String(offer.originalPrice ?? offer.price), currency: offer.originalCurrency ?? offer.currency,
       normalizedMadPrice: offer.normalizedMadPrice == null ? '' : String(offer.normalizedMadPrice), conversionRate: '', rating: offer.rating == null ? '' : String(offer.rating), reviewCount: offer.reviewCount == null ? '' : String(offer.reviewCount), duration: offer.duration || '', notes: offer.notes || '',
     } : { url: '', title: '', price: '', currency: 'MAD', normalizedMadPrice: '', conversionRate: '', rating: '', reviewCount: '', duration: '', notes: '' });
     setComparableDialogOpen(true);
+  };
+
+  const submitComparable = () => {
+    const errors: Record<string, string> = {};
+    if (!comparableForm.url.trim()) errors.url = 'GetYourGuide URL is required for manual entry.';
+    if (!comparableForm.title.trim()) errors.title = 'Offer title is required for manual entry.';
+    if (!comparableForm.price || Number(comparableForm.price) <= 0) errors.price = 'Offer price must be greater than zero.';
+    if (comparableForm.rating !== '' && (Number(comparableForm.rating) < 0 || Number(comparableForm.rating) > 5)) errors.rating = 'Rating must be between 0 and 5.';
+    if (comparableForm.reviewCount !== '' && Number(comparableForm.reviewCount) < 0) errors.reviewCount = 'Review count cannot be negative.';
+    setComparableErrors(errors);
+    if (Object.keys(errors).length === 0) comparableMutation.mutate();
   };
 
   // ------------------------------------------------------------------
@@ -658,10 +671,10 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
 
               <div className="mt-4 flex items-center justify-between">
                 <h4 className="text-sm font-semibold text-gray-700">
-                  Comparable GetYourGuide offers ({selectedRow.gygMatches.length})
+                  Manage Comparables · GetYourGuide offers ({selectedRow.gygMatches.length})
                 </h4>
                 <div className="flex gap-2">
-                  {canForceLiveRefresh && <Button size="sm" className="h-7 text-xs" onClick={() => openComparableDialog()}>+ Add GYG Comparable</Button>}
+                  {canForceLiveRefresh && <Button size="sm" className="h-7 text-xs" onClick={() => openComparableDialog()}>Add Verified Comparable Manually</Button>}
                   {canForceLiveRefresh && <Button size="sm" variant="outline" className="h-7 text-xs" disabled={forceRefreshMutation.isPending} onClick={() => forceRefreshMutation.mutate(selectedRow.myActivity.id)}><RefreshCw className={`w-3 h-3 mr-1 ${forceRefreshMutation.isPending ? 'animate-spin' : ''}`} />Try Live Source</Button>}
                 </div>
               </div>
@@ -803,17 +816,17 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
 
       <Dialog open={comparableDialogOpen} onOpenChange={setComparableDialogOpen}>
         <DialogContent className="max-w-lg bg-white">
-          <DialogHeader><DialogTitle>{editingComparable ? 'Edit GYG Comparable' : 'Add GYG Comparable'}</DialogTitle><DialogDescription>For: {selectedRow?.myActivity.name}. Manual entries are marked as verified by the staff member recording them.</DialogDescription></DialogHeader>
+          <DialogHeader><DialogTitle>{editingComparable ? 'Edit Verified Comparable' : 'Add Verified Comparable Manually'}</DialogTitle><DialogDescription>For: {selectedRow?.myActivity.name}. Pasting a URL does not import metadata; enter the offer facts you verified.</DialogDescription></DialogHeader>
           <div className="grid gap-3 py-2">
-            <Input aria-label="GetYourGuide URL" placeholder="https://www.getyourguide.com/..." value={comparableForm.url} onChange={(e) => setComparableForm({ ...comparableForm, url: e.target.value })} />
-            <Input aria-label="Offer title" placeholder="Offer title" value={comparableForm.title} onChange={(e) => setComparableForm({ ...comparableForm, title: e.target.value })} />
-            <div className="grid grid-cols-2 gap-2"><Input aria-label="Price" type="number" min="0" placeholder="Price" value={comparableForm.price} onChange={(e) => setComparableForm({ ...comparableForm, price: e.target.value })} /><Select value={comparableForm.currency} onValueChange={(currency) => setComparableForm({ ...comparableForm, currency })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="MAD">MAD</SelectItem><SelectItem value="EUR">EUR</SelectItem><SelectItem value="USD">USD</SelectItem><SelectItem value="GBP">GBP</SelectItem></SelectContent></Select></div>
+            <div><Input aria-label="GetYourGuide URL" placeholder="https://www.getyourguide.com/..." value={comparableForm.url} onChange={(e) => setComparableForm({ ...comparableForm, url: e.target.value })} />{comparableErrors.url && <p className="text-xs text-red-600 mt-1">{comparableErrors.url}</p>}</div>
+            <div><Input aria-label="Offer title" placeholder="Offer title" value={comparableForm.title} onChange={(e) => setComparableForm({ ...comparableForm, title: e.target.value })} />{comparableErrors.title && <p className="text-xs text-red-600 mt-1">{comparableErrors.title}</p>}</div>
+            <div className="grid grid-cols-2 gap-2"><div><Input aria-label="Price" type="number" min="0" placeholder="Price" value={comparableForm.price} onChange={(e) => setComparableForm({ ...comparableForm, price: e.target.value })} />{comparableErrors.price && <p className="text-xs text-red-600 mt-1">{comparableErrors.price}</p>}</div><Select value={comparableForm.currency} onValueChange={(currency) => setComparableForm({ ...comparableForm, currency })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="MAD">MAD</SelectItem><SelectItem value="EUR">EUR</SelectItem><SelectItem value="USD">USD</SelectItem><SelectItem value="GBP">GBP</SelectItem></SelectContent></Select></div>
             {comparableForm.currency !== 'MAD' && <div className="grid grid-cols-2 gap-2"><Input aria-label="Normalized MAD price" type="number" min="0" placeholder="MAD equivalent (optional)" value={comparableForm.normalizedMadPrice} onChange={(e) => setComparableForm({ ...comparableForm, normalizedMadPrice: e.target.value })} /><Input aria-label="Manual conversion rate" type="number" min="0" step="0.0001" placeholder="Manual rate (optional)" value={comparableForm.conversionRate} onChange={(e) => setComparableForm({ ...comparableForm, conversionRate: e.target.value })} /></div>}
-            <div className="grid grid-cols-2 gap-2"><Input aria-label="Rating" type="number" min="0" max="5" step="0.1" placeholder="Rating (optional)" value={comparableForm.rating} onChange={(e) => setComparableForm({ ...comparableForm, rating: e.target.value })} /><Input aria-label="Review count" type="number" min="0" placeholder="Review count (optional)" value={comparableForm.reviewCount} onChange={(e) => setComparableForm({ ...comparableForm, reviewCount: e.target.value })} /></div>
+            <div className="grid grid-cols-2 gap-2"><div><Input aria-label="Rating" type="number" min="0" max="5" step="0.1" placeholder="Rating (optional)" value={comparableForm.rating} onChange={(e) => setComparableForm({ ...comparableForm, rating: e.target.value })} />{comparableErrors.rating && <p className="text-xs text-red-600 mt-1">{comparableErrors.rating}</p>}</div><div><Input aria-label="Review count" type="number" min="0" placeholder="Review count (optional)" value={comparableForm.reviewCount} onChange={(e) => setComparableForm({ ...comparableForm, reviewCount: e.target.value })} />{comparableErrors.reviewCount && <p className="text-xs text-red-600 mt-1">{comparableErrors.reviewCount}</p>}</div></div>
             <Input aria-label="Duration" placeholder="Duration (optional)" value={comparableForm.duration} onChange={(e) => setComparableForm({ ...comparableForm, duration: e.target.value })} />
             <Input aria-label="Notes" placeholder="Notes (optional)" value={comparableForm.notes} onChange={(e) => setComparableForm({ ...comparableForm, notes: e.target.value })} />
           </div>
-          <DialogFooter><Button variant="outline" onClick={() => setComparableDialogOpen(false)}>Cancel</Button><Button disabled={comparableMutation.isPending} onClick={() => comparableMutation.mutate()}>{editingComparable ? 'Save' : 'Add Comparable'}</Button></DialogFooter>
+          <DialogFooter><Button variant="outline" onClick={() => setComparableDialogOpen(false)}>Cancel</Button><Button disabled={comparableMutation.isPending} onClick={submitComparable}>{editingComparable ? 'Save' : 'Add Comparable'}</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
