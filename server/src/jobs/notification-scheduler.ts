@@ -7,6 +7,7 @@ import { storage } from '../storage.js';
 import { whatsappService } from '../whatsapp-service.js';
 import type { BookingWithActivity } from 'marrakechdunes-shared/schema';
 import { formatBookingDateOnly } from '../utils/booking-date.js';
+import { getCasablancaCalendarDate } from '../utils/booking-query.js';
 
 // Simple scheduler using setInterval (can be replaced with node-cron later)
 class NotificationScheduler {
@@ -57,11 +58,11 @@ class NotificationScheduler {
     console.log('[SCHEDULER] Processing reminders...');
     
     try {
-      const bookings = await storage.getBookings();
       const now = new Date();
       // Bookings carry a calendar date, not an appointment time. Queue one
       // reminder for tomorrow instead of manufacturing 24h/2h precision.
-      const bookings24h = this.getBookingsNeedingReminder(bookings, 1, now);
+      const tomorrow = getCasablancaCalendarDate(now, 1);
+      const bookings24h = await storage.getBookingsForReminderDate(tomorrow, ['CONFIRMED']);
       const bookings2h: BookingWithActivity[] = [];
       
       console.log(`[SCHEDULER] Found ${bookings24h.length} bookings needing 24h reminders, ${bookings2h.length} needing 2h reminders`);
@@ -117,6 +118,7 @@ class NotificationScheduler {
       return (dateOnly.getTime() - todayUtc) / 86400000 === daysBefore;
     });
   }
+
 
   /**
    * Send reminder notification using Twilio WhatsApp

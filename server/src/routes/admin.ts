@@ -6,6 +6,7 @@ import { consumeGYGRateLimit } from '../services/gyg-rate-limits.js';
 import { gygRequestKey, gygResilience, isGYGServiceUnavailable } from '../services/gyg-resilience.js';
 import { rankCandidateMatches, isComparableValidationState, type MatchableActivity, type ManualOverrideDecision } from '../services/gyg-matching.js';
 import { hasCapacityForBooking } from '../utils/booking-capacity.js';
+import { parseBookingDateOnly } from '../utils/booking-query.js';
 
 const router = Router();
 const BOOKING_STATUSES = ['PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED'] as const;
@@ -32,6 +33,7 @@ const normalizePaymentMethod = (paymentMethod: unknown): 'cash' | 'cash_deposit'
       return null;
   }
 };
+
 
 // Apply admin authentication middleware to all routes
 router.use(requireAdmin);
@@ -84,6 +86,36 @@ router.get('/bookings', async (req: Request, res: Response) => {
       status: 'error',
       message: 'Failed to fetch bookings'
     });
+  }
+});
+
+/**
+ * GET /api/admin/bookings/summary
+ * Aggregate booking metrics without returning booking rows or customer data.
+ */
+router.get('/bookings/summary', async (req: Request, res: Response) => {
+  try {
+    const hasFrom = req.query.from !== undefined;
+    const hasTo = req.query.to !== undefined;
+    if (hasFrom !== hasTo) {
+      return res.status(400).json({ status: 'error', message: 'Both from and to dates are required' });
+    }
+
+    let dateRange: { start: Date; end: Date } | undefined;
+    if (hasFrom && hasTo) {
+      const start = parseBookingDateOnly(req.query.from, false);
+      const end = parseBookingDateOnly(req.query.to, true);
+      if (!start || !end || start > end) {
+        return res.status(400).json({ status: 'error', message: 'Invalid date range' });
+      }
+      dateRange = { start, end };
+    }
+
+    const summary = await storage.getBookingSummary(dateRange);
+    return res.status(200).json(summary);
+  } catch (error) {
+    console.error('[ADMIN] Error fetching booking summary:', error);
+    return res.status(500).json({ status: 'error', message: 'Failed to fetch booking summary' });
   }
 });
 

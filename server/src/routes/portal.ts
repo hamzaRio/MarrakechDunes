@@ -20,10 +20,9 @@ router.post('/request-otp', async (req: Request, res: Response) => {
     }
 
     // Check if customer has bookings
-    const bookings = await storage.getBookings();
-    const customerBookings = bookings.filter(b => b.customerPhone === phone);
+    const hasBookings = await storage.hasBookingsForCustomerPhone(phone);
     
-    if (customerBookings.length === 0) {
+    if (!hasBookings) {
       return res.status(404).json({
         status: 'error',
         message: 'No bookings found for this phone number'
@@ -84,8 +83,7 @@ router.get('/me/bookings', async (req: Request, res: Response) => {
       });
     }
     
-    const bookings = await storage.getBookings();
-    const customerBookings = bookings.filter(b => b.customerPhone === phone);
+    const customerBookings = await storage.getBookingsByCustomerPhone(phone);
     
     return res.status(200).json(customerBookings);
   } catch (error) {

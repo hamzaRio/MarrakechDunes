@@ -43,8 +43,7 @@ class AutoResponseService {
     };
     
     // Try to find customer bookings
-    const bookings = await storage.getBookings();
-    const customerBookings = bookings.filter(b => b.customerPhone === phone);
+    const customerBookings = await storage.getBookingsByCustomerPhone(phone);
     const upcomingBooking = customerBookings.find(b => 
       new Date(b.preferredDate) > new Date() && 
       b.status !== 'CANCELLED' && 

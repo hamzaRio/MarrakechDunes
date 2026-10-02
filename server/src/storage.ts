@@ -3,6 +3,7 @@ import { randomBytes } from 'crypto';
 import bcrypt from 'bcrypt';
 import { cacheService } from './services/cache-service.js';
 import { loggingService } from './services/logging-service.js';
+import { normalizeBookingPagination } from './utils/booking-query.js';
 import type {
   UserType,
   ActivityType,
@@ -173,6 +174,19 @@ export interface IStorage {
     fields?: string[];
     sort?: { field: string; order: 1 | -1 };
   }): Promise<{ bookings: BookingWithActivity[]; total: number; page: number; totalPages: number }>;
+  getBookingsByCustomerPhone(phone: string): Promise<BookingWithActivity[]>;
+  hasBookingsForCustomerPhone(phone: string): Promise<boolean>;
+  getBookingsForReminderDate(date: Date, statuses?: string[]): Promise<BookingWithActivity[]>;
+  getBookingSummary(dateRange?: { start: Date; end: Date }): Promise<{
+    totalBookings: number;
+    pendingBookings: number;
+    confirmedBookings: number;
+    completedBookings: number;
+    cancelledBookings: number;
+    grossBookingValue: number;
+    collectedPayments: number;
+    outstandingAmount: number;
+  }>;
   getBooking(id: string): Promise<BookingWithActivity | null>;
   createBooking(booking: InsertBooking): Promise<BookingType>;
   getBookingByIdempotencyHash(hash: string): Promise<BookingType | null>;
@@ -539,13 +553,12 @@ class MongoStorage implements IStorage {
     fields?: string[];
     sort?: { field: string; order: 1 | -1 };
   }): Promise<{ bookings: BookingWithActivity[]; total: number; page: number; totalPages: number }> {
-    const page = options?.page || 1;
-    const limit = options?.limit || 50;
+    const { page, limit, sort } = normalizeBookingPagination(options);
     const skip = (page - 1) * limit;
     
     // Build sort object
-    const sortField = options?.sort?.field || 'createdAt';
-    const sortOrder = options?.sort?.order || -1;
+    const sortField = sort.field;
+    const sortOrder = sort.order;
     const sortObj: any = { [sortField]: sortOrder };
     
     // Build projection if fields specified (only fetch needed fields)
@@ -708,6 +721,77 @@ class MongoStorage implements IStorage {
       loggingService.error('Failed to create booking', error as Error);
       throw error;
     }
+  }
+
+  async getBookingsByCustomerPhone(phone: string): Promise<BookingWithActivity[]> {
+    const bookings = await Booking.find({ customerPhone: phone })
+      .populate('activityId', 'name price imageUrls category')
+      .sort({ createdAt: -1 });
+    return this.processBookingsWithActivities(bookings);
+  }
+
+  async hasBookingsForCustomerPhone(phone: string): Promise<boolean> {
+    return (await Booking.exists({ customerPhone: phone })) !== null;
+  }
+
+  async getBookingsForReminderDate(date: Date, statuses: string[] = ['CONFIRMED']): Promise<BookingWithActivity[]> {
+    const startOfDayUTC = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), 0, 0, 0, 0));
+    const endOfDayUTC = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), 23, 59, 59, 999));
+    const normalizedStatuses = Array.from(new Set(statuses.flatMap((status) => [status, status.toLowerCase()])));
+    const bookings = await Booking.find({
+      preferredDate: { $gte: startOfDayUTC, $lte: endOfDayUTC },
+      status: { $in: normalizedStatuses },
+    })
+      .populate('activityId', 'name')
+      .sort({ preferredDate: 1, createdAt: -1 });
+    return this.processBookingsWithActivities(bookings);
+  }
+
+  async getBookingSummary(dateRange?: { start: Date; end: Date }): Promise<{
+    totalBookings: number;
+    pendingBookings: number;
+    confirmedBookings: number;
+    completedBookings: number;
+    cancelledBookings: number;
+    grossBookingValue: number;
+    collectedPayments: number;
+    outstandingAmount: number;
+  }> {
+    const match: Record<string, any> = {};
+    if (dateRange) match.preferredDate = { $gte: dateRange.start, $lte: dateRange.end };
+    const statusUpper = { $toUpper: { $ifNull: ['$status', ''] } };
+    const totalAmount = { $convert: { input: '$totalAmount', to: 'double', onError: 0, onNull: 0 } };
+    const paidAmount = { $convert: { input: '$paidAmount', to: 'double', onError: 0, onNull: 0 } };
+    const outstanding = { $cond: [
+      { $gt: [{ $subtract: [totalAmount, paidAmount] }, 0] },
+      { $subtract: [totalAmount, paidAmount] },
+      0,
+    ] };
+    const result = await Booking.aggregate([
+      { $match: match },
+      { $group: {
+        _id: null,
+        totalBookings: { $sum: 1 },
+        pendingBookings: { $sum: { $cond: [{ $eq: [statusUpper, 'PENDING'] }, 1, 0] } },
+        confirmedBookings: { $sum: { $cond: [{ $eq: [statusUpper, 'CONFIRMED'] }, 1, 0] } },
+        completedBookings: { $sum: { $cond: [{ $eq: [statusUpper, 'COMPLETED'] }, 1, 0] } },
+        cancelledBookings: { $sum: { $cond: [{ $eq: [statusUpper, 'CANCELLED'] }, 1, 0] } },
+        grossBookingValue: { $sum: { $cond: [{ $ne: [statusUpper, 'CANCELLED'] }, totalAmount, 0] } },
+        collectedPayments: { $sum: paidAmount },
+        outstandingAmount: { $sum: { $cond: [{ $ne: [statusUpper, 'CANCELLED'] }, outstanding, 0] } },
+      } },
+    ]);
+    const summary = result[0] || {};
+    return {
+      totalBookings: summary.totalBookings || 0,
+      pendingBookings: summary.pendingBookings || 0,
+      confirmedBookings: summary.confirmedBookings || 0,
+      completedBookings: summary.completedBookings || 0,
+      cancelledBookings: summary.cancelledBookings || 0,
+      grossBookingValue: summary.grossBookingValue || 0,
+      collectedPayments: summary.collectedPayments || 0,
+      outstandingAmount: summary.outstandingAmount || 0,
+    };
   }
 
   async getBookingByIdempotencyHash(hash: string): Promise<BookingType | null> {
