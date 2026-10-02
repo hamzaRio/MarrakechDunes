@@ -177,7 +177,9 @@ export function normalizeViatorProduct(product: any, requestedCurrency = viatorC
 }
 
 const responseProducts = (payload: any): any[] => {
+  if (Array.isArray(payload?.products?.results)) return payload.products.results;
   if (Array.isArray(payload?.products)) return payload.products;
+  if (Array.isArray(payload?.data?.products?.results)) return payload.data.products.results;
   if (Array.isArray(payload?.data?.products)) return payload.data.products;
   const productSearch = Array.isArray(payload?.searchTypes) ? payload.searchTypes.find((entry: any) => entry?.searchType === 'PRODUCTS') : null;
   if (Array.isArray(productSearch?.products)) return productSearch.products;
@@ -210,6 +212,6 @@ export async function searchViator(query: string, limit = 12, offset = 0, fetchI
   const currency = viatorCurrency();
   const products = responseProducts(payload);
   const activities = products.map((product) => normalizeViatorProduct(product, currency)).filter((value): value is NormalizedViatorActivity => value !== null);
-  const total = asFiniteNumber(payload?.totalCount ?? payload?.data?.totalCount ?? payload?.total) ?? null;
+  const total = asFiniteNumber(payload?.products?.totalCount ?? payload?.data?.products?.totalCount ?? payload?.totalCount ?? payload?.data?.totalCount ?? payload?.total) ?? null;
   return { activities, total, hasMore: total != null ? offset + activities.length < total : activities.length >= Math.min(Math.max(limit, 1), 50), offset: Math.max(offset, 0), limit: Math.min(Math.max(limit, 1), 50), currency };
 }

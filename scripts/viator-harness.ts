@@ -109,6 +109,24 @@ assert.equal(result.activities.length, 1);
 assert.equal(result.total, 21);
 assert.equal(result.hasMore, true);
 
+const verifiedShapeFetch = async () => new Response(JSON.stringify({
+  products: {
+    totalCount: 2,
+    results: [rawProduct, { ...rawProduct, productCode: '12345P2', title: 'Second Agafay Experience' }],
+  },
+}), { status: 200, headers: { 'content-type': 'application/json' } });
+const verifiedShapeResult = await searchViator('Agafay desert', 10, 0, verifiedShapeFetch as typeof fetch);
+assert.equal(verifiedShapeResult.activities.length, 2);
+assert.equal(verifiedShapeResult.total, 2);
+assert.equal(verifiedShapeResult.hasMore, false);
+
+const emptyResults = await searchViator('Agafay desert', 10, 0, async () => new Response(JSON.stringify({ products: { totalCount: 0, results: [] } }), { status: 200 }));
+assert.equal(emptyResults.activities.length, 0);
+assert.equal(emptyResults.total, 0);
+const malformedProducts = await searchViator('Agafay desert', 10, 0, async () => new Response(JSON.stringify({ products: { totalCount: 2, results: {} } }), { status: 200 }));
+assert.equal(malformedProducts.activities.length, 0);
+assert.equal(malformedProducts.total, 2);
+
 await assert.rejects(() => searchViator('test', 10, 0, async () => new Response('', { status: 429, headers: { 'retry-after': '7' } })), (error: any) => {
   assert.equal(error instanceof ViatorProviderError, true);
   assert.equal(error.status, 429);
