@@ -14,7 +14,7 @@ router.post('/login', strictLimiter, async (req: Request, res: Response) => {
   try {
     const { username, password } = req.body;
 
-    console.log('[AUTH] Login attempt for username:', username);
+    console.log('[AUTH] Login attempt');
 
     if (!username || !password) {
       console.log('[AUTH] Missing username or password');
@@ -28,14 +28,14 @@ router.post('/login', strictLimiter, async (req: Request, res: Response) => {
     const user = await storage.getUserByUsername(username);
 
     if (!user) {
-      console.log('[AUTH] User not found:', username);
+      console.log('[AUTH] User not found');
       return res.status(401).json({
         status: 'error',
         message: 'Nom d\'utilisateur ou mot de passe incorrect'
       });
     }
 
-    console.log('[AUTH] User found:', { id: user.id || user._id, username: user.username, role: user.role, hasPassword: !!user.password });
+    console.log('[AUTH] User found:', { role: user.role, hasPassword: !!user.password });
 
     // Verify user has admin or superadmin role
     if (!user.role || (user.role !== 'admin' && user.role !== 'superadmin')) {
@@ -58,16 +58,16 @@ router.post('/login', strictLimiter, async (req: Request, res: Response) => {
     const passwordMatch = await bcrypt.compare(password, user.password);
 
     if (!passwordMatch) {
-      console.log('[AUTH] Password mismatch for user:', username);
+      console.log('[AUTH] Password mismatch');
       return res.status(401).json({
         status: 'error',
         message: 'Nom d\'utilisateur ou mot de passe incorrect'
       });
     }
 
-    console.log('[AUTH] Password verified successfully for user:', username);
+    console.log('[AUTH] Password verified successfully');
 
-    // Set session
+    // Regenerate the session before assigning authenticated state to prevent session fixation.
     if (!req.session) {
       console.log('[AUTH] Session not available');
       return res.status(500).json({
@@ -77,12 +77,20 @@ router.post('/login', strictLimiter, async (req: Request, res: Response) => {
     }
 
     const userId = user.id || user._id;
+    try {
+      await new Promise<void>((resolve, reject) => {
+        req.session.regenerate((error) => error ? reject(error) : resolve());
+      });
+    } catch (error) {
+      console.error('[AUTH] Session regeneration failed');
+      return res.status(500).json({ status: 'error', message: 'Session non disponible' });
+    }
     (req.session as any).userId = userId;
     (req.session as any).username = user.username;
     (req.session as any).role = user.role;
     (req.session as any).authenticated = true;
 
-    console.log('[AUTH] Session set for user:', { userId, username: user.username, role: user.role });
+    console.log('[AUTH] Session authenticated', { role: user.role });
 
     return res.status(200).json({
       status: 'success',
@@ -123,7 +131,7 @@ router.get('/user', async (req: Request, res: Response) => {
     const sessionUsername = (req.session as any).username;
     const sessionRole = (req.session as any).role;
 
-    console.log('[AUTH] Session data:', { userId: sessionUserId, username: sessionUsername, role: sessionRole });
+    console.log('[AUTH] Session data available', { hasUserId: Boolean(sessionUserId), role: sessionRole });
 
     // Optionally verify user still exists in database
     if (sessionUserId) {
@@ -176,7 +184,6 @@ router.post('/logout', async (req: Request, res: Response) => {
     console.log('[AUTH] Logout attempt');
     
     if (req.session) {
-      const username = (req.session as any).username || 'unknown';
       req.session.destroy((err) => {
         if (err) {
           console.error('[AUTH] Error destroying session:', err);
@@ -192,7 +199,7 @@ router.post('/logout', async (req: Request, res: Response) => {
           secure: isProduction,
           sameSite: isProduction ? 'none' : 'lax',
         });
-        console.log('[AUTH] Logged out user:', username);
+        console.log('[AUTH] Logout completed');
         
         return res.status(200).json({
           status: 'success',

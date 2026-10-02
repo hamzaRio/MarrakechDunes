@@ -46,11 +46,9 @@ function requireBasicAuth(req: Request, res: Response, next: Function) {
     const expectedUser = process.env.GYG_SUPPLIER_USER;
     const expectedPass = process.env.GYG_SUPPLIER_PASS;
     
-    console.log('[GYG-AUTH] Environment check:', {
+    console.log('[GYG-AUTH] Environment configured:', {
       hasUser: !!expectedUser,
-      hasPass: !!expectedPass,
-      userValue: expectedUser ? `${expectedUser.substring(0, 3)}...` : 'undefined',
-      passValue: expectedPass ? `${expectedPass.substring(0, 3)}...` : 'undefined'
+      hasPass: !!expectedPass
     });
     
     if (!expectedUser || !expectedPass) {
@@ -60,14 +58,7 @@ function requireBasicAuth(req: Request, res: Response, next: Function) {
     }
     
     if (user !== expectedUser || pass !== expectedPass) {
-      console.log('[GYG-AUTH] Invalid credentials provided:', {
-        providedUser: user,
-        providedPass: pass ? `${pass.substring(0, 3)}...` : 'undefined',
-        expectedUser: expectedUser,
-        expectedPass: expectedPass ? `${expectedPass.substring(0, 3)}...` : 'undefined',
-        userMatch: user === expectedUser,
-        passMatch: pass === expectedPass
-      });
+      console.log('[GYG-AUTH] Invalid credentials provided');
       return res.status(401)
         .set('WWW-Authenticate', 'Basic realm="GYG"')
         .json({ ok: false, error: 'unauthorized' });

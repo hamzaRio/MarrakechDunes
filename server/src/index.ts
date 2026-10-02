@@ -207,12 +207,25 @@ app.get("/", (_req, res) => res.json({ ok: true }));
 app.head("/", (_req, res) => res.status(200).end());
 
 // CORS configuration - must be defined BEFORE all other middleware
-const allowedOrigins = process.env.CLIENT_URL?.split(",") || [
-  "http://localhost:5173",
-  "http://localhost:5174",
+const configuredOrigins = (process.env.CLIENT_URL || "")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter((origin) =>
+    origin === "https://marrakech-dunes.vercel.app" ||
+    (!isProduction && /^http:\/\/localhost:\d+$/.test(origin)) ||
+    /^https:\/\/marrakech-dunes-[a-z0-9-]+\.vercel\.app$/i.test(origin)
+  );
+const developmentOrigins = isProduction ? [] : ["http://localhost:5173", "http://localhost:5174"];
+const previewOrigins = (process.env.VERCEL_PREVIEW_ORIGINS || "")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter((origin) => /^https:\/\/marrakech-dunes-[a-z0-9-]+\.vercel\.app$/i.test(origin));
+const allowedOrigins = Array.from(new Set([
+  ...configuredOrigins,
+  ...developmentOrigins,
   "https://marrakech-dunes.vercel.app",
-  "https://marrakech-dunes-*.vercel.app" // Allow all Vercel preview URLs
-];
+  ...previewOrigins,
+]));
 
 console.log('?? CORS Configuration:');
 console.log('  CLIENT_URL:', process.env.CLIENT_URL);
@@ -248,46 +261,7 @@ const corsOptions: cors.CorsOptions = {
       return callback(null, true);
     }
     
-    // Automatically allow ALL Vercel preview URLs (with hyphen)
-    if (origin && origin.match(/^https:\/\/marrakech-dunes-.*\.vercel\.app$/)) {
-      if (!isProduction) {
-        console.log("? Allowing Vercel preview URL:", origin);
-      }
-      return callback(null, true);
-    }
-    
-    // Allow all marrakechdunes Vercel URLs (including preview URLs without hyphen)
-    if (origin && origin.match(/^https:\/\/marrakechdunes-.*\.vercel\.app$/)) {
-      if (!isProduction) {
-        console.log("? Allowing marrakechdunes Vercel URL:", origin);
-      }
-      return callback(null, true);
-    }
-    
-    // Allow all Vercel preview URLs with any subdomain pattern
-    if (origin && origin.match(/^https:\/\/.*\.vercel\.app$/)) {
-      if (!isProduction) {
-        console.log("? Allowing any Vercel preview URL:", origin);
-      }
-      return callback(null, true);
-    }
-    
-    // Handle wildcard patterns in CLIENT_URL (for other domains)
-    for (const allowedOrigin of allowedOrigins) {
-      if (allowedOrigin.includes('*')) {
-        const pattern = allowedOrigin.replace(/\*/g, '.*');
-        const regex = new RegExp(`^${pattern}$`);
-        if (origin && regex.test(origin)) {
-          if (!isProduction) {
-            console.log("? Allowing wildcard origin:", origin, "matches pattern:", allowedOrigin);
-          }
-          return callback(null, true);
-        }
-      }
-    }
-    
-    // Always log blocked CORS origins (security issue)
-    console.warn("❌ Blocked CORS origin:", origin);
+    console.warn("[CORS] Blocked origin");
     return callback(new Error("CORS not allowed for this origin: " + origin));
   },
   credentials: true,
@@ -303,67 +277,6 @@ const corsOptions: cors.CorsOptions = {
 };
 
 app.use(cors(corsOptions));
-
-// Additional CORS middleware to ensure headers are set for ALL requests (including preflight)
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  
-  // Handle OPTIONS preflight requests FIRST
-  if (req.method === 'OPTIONS') {
-    // Check if origin is allowed
-    const isAllowed = !origin || 
-                     allowedOrigins.includes(origin) || 
-                     (origin && origin.match(/^https:\/\/marrakech-dunes-.*\.vercel\.app$/)) ||
-                     (origin && origin.match(/^https:\/\/marrakechdunes-.*\.vercel\.app$/)) ||
-                     (origin && origin.match(/^https:\/\/.*\.vercel\.app$/));
-    
-    if (isAllowed && origin) {
-      res.header('Access-Control-Allow-Origin', origin);
-      res.header('Access-Control-Allow-Credentials', 'true');
-      res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS,HEAD');
-      res.header('Access-Control-Allow-Headers', 'Content-Type, Accept, Accept-Charset, X-CSRF-Token, X-Requested-With, Authorization');
-      res.header('Access-Control-Max-Age', '86400'); // 24 hours
-    }
-    return res.sendStatus(204);
-  }
-  
-  // Set CORS headers for all other requests
-  if (origin) {
-    // Check if origin is allowed
-    const isAllowed = allowedOrigins.includes(origin) || 
-                     origin.match(/^https:\/\/marrakech-dunes-.*\.vercel\.app$/) ||
-                     origin.match(/^https:\/\/marrakechdunes-.*\.vercel\.app$/) ||
-                     origin.match(/^https:\/\/.*\.vercel\.app$/);
-    
-    if (isAllowed) {
-      res.header('Access-Control-Allow-Origin', origin);
-      res.header('Access-Control-Allow-Credentials', 'true');
-      res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS,HEAD');
-      res.header('Access-Control-Allow-Headers', 'Content-Type, Accept, Accept-Charset, X-CSRF-Token, X-Requested-With, Authorization');
-    }
-  }
-  
-  next();
-});
-
-// Explicitly handle CORS preflight for all routes (backup)
-app.options("*", (req, res) => {
-  const origin = req.headers.origin;
-  const isAllowed = !origin || 
-                   allowedOrigins.includes(origin) || 
-                   (origin && origin.match(/^https:\/\/marrakech-dunes-.*\.vercel\.app$/)) ||
-                   (origin && origin.match(/^https:\/\/marrakechdunes-.*\.vercel\.app$/)) ||
-                   (origin && origin.match(/^https:\/\/.*\.vercel\.app$/));
-  
-  if (isAllowed && origin) {
-    res.header('Access-Control-Allow-Origin', origin);
-    res.header('Access-Control-Allow-Credentials', 'true');
-    res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS,HEAD');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Accept, Accept-Charset, X-CSRF-Token, X-Requested-With, Authorization');
-    res.header('Access-Control-Max-Age', '86400');
-  }
-  res.sendStatus(204);
-});
 
 // Security middleware with CORS-friendly configuration and map support
 app.use(helmet({
@@ -563,31 +476,16 @@ app.use(globalLimiter);
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
-  let capturedJsonResponse: Record<string, any> | undefined = undefined;
   
   // Log Origin header for CORS debugging (only in development)
   if (req.headers.origin && !isProduction) {
     log(`Origin: ${req.headers.origin} for ${req.method} ${path}`, "cors");
   }
 
-  const originalResJson = res.json;
-  res.json = function (bodyJson, ...args) {
-    capturedJsonResponse = bodyJson;
-    return originalResJson.apply(res, [bodyJson, ...args]);
-  };
-
   res.on("finish", () => {
     const duration = Date.now() - start;
     if (path.startsWith("/api")) {
       let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
-      }
-
-      if (logLine.length > 80) {
-        logLine = logLine.slice(0, 79) + "�";
-      }
-
       log(logLine);
     }
   });

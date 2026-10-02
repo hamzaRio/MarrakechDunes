@@ -104,9 +104,7 @@ export const adminSecurityMiddleware = (req: Request, res: Response, next: NextF
     hasSession: !!req.session,
     hasUser: !!req.session?.user,
     userRole: req.session?.user?.role,
-    sessionId: req.session?.id,
     cookies: req.headers.cookie ? 'present' : 'missing',
-    cookieHeader: req.headers.cookie,
     origin: req.headers.origin,
     userAgent: req.headers['user-agent']?.substring(0, 50),
     ip: req.ip || req.connection.remoteAddress,
@@ -187,7 +185,6 @@ export const superadminSecurityMiddleware = (req: Request, res: Response, next: 
     hasSession: !!req.session,
     hasUser: !!req.session?.user,
     userRole: req.session?.user?.role,
-    sessionId: req.session?.id,
     cookies: req.headers.cookie ? 'present' : 'missing',
     origin: req.headers.origin
   };

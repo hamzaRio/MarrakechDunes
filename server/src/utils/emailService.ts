@@ -23,13 +23,14 @@ class EmailService {
     try {
       // Use SMTP_* variables as canonical, fallback to EMAIL_* for backward compatibility
       const smtpPort = parseInt(process.env.SMTP_PORT || process.env.EMAIL_PORT || '465');
+      const allowInsecureTls = process.env.NODE_ENV === 'development' && process.env.SMTP_ALLOW_INSECURE_TLS === 'true';
       const smtpConfig = {
         host: process.env.SMTP_HOST || 'smtp.gmail.com',
         // Try port 465 (SSL) first, fallback to 587 (TLS) - some cloud providers block 587
         port: smtpPort,
         secure: smtpPort === 465, // Use SSL for port 465, TLS for 587
         auth: {
-          user: process.env.SMTP_USER || process.env.EMAIL_USER || 'timedizzy45@gmail.com',
+          user: process.env.SMTP_USER || process.env.EMAIL_USER,
           // Remove spaces from password (Gmail app passwords should be 16 chars without spaces)
           pass: (process.env.SMTP_PASS || process.env.EMAIL_PASS)?.replace(/\s+/g, '') || undefined
         },
@@ -39,9 +40,8 @@ class EmailService {
         socketTimeout: 5000, // 5 seconds
         // Try to use TLS upgrade if secure is false
         requireTLS: smtpPort === 587,
-        // Disable certificate validation issues (for testing)
         tls: {
-          rejectUnauthorized: false // Allow self-signed certificates
+          rejectUnauthorized: !allowInsecureTls
         },
         // Retry configuration
         pool: false,
@@ -56,7 +56,7 @@ class EmailService {
 
       this.transporter = nodemailer.createTransport(smtpConfig);
 
-      console.log(`[EMAIL] Transporter initialized - Host: ${smtpConfig.host}, Port: ${smtpPort}, Secure: ${smtpConfig.secure}, User: ${smtpConfig.auth.user}`);
+      console.log(`[EMAIL] Transporter initialized - Host: ${smtpConfig.host}, Port: ${smtpPort}, Secure: ${smtpConfig.secure}`);
     } catch (error) {
       console.error('[EMAIL] Failed to initialize transporter:', error);
       this.transporter = null;
