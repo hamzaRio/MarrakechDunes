@@ -262,7 +262,7 @@ const corsOptions: cors.CorsOptions = {
     }
     
     console.warn("[CORS] Blocked origin");
-    return callback(new Error("CORS not allowed for this origin: " + origin));
+    return callback(new CorsOriginDeniedError());
   },
   credentials: true,
   methods: ["GET","POST","PUT","PATCH","DELETE","OPTIONS","HEAD"],
@@ -276,6 +276,16 @@ const corsOptions: cors.CorsOptions = {
     "Authorization"
   ],
 };
+
+class CorsOriginDeniedError extends Error {
+  readonly code = 'CORS_ORIGIN_DENIED';
+  readonly statusCode = 403;
+
+  constructor() {
+    super('Origin not allowed');
+    this.name = 'CorsOriginDeniedError';
+  }
+}
 
 app.use(cors(corsOptions));
 
@@ -374,6 +384,13 @@ app.use((req, res, next) => {
 
 // Global error handler to prevent 502 crashes
 app.use((err: any, req: any, res: any, next: any) => {
+  if (err?.code === 'CORS_ORIGIN_DENIED') {
+    return res.status(403).json({
+      status: 'error',
+      code: 'CORS_ORIGIN_DENIED',
+      message: 'Origin not allowed',
+    });
+  }
   if (err?.name === 'ZodError') {
     return res.status(400).json({ 
       status: 'error', 

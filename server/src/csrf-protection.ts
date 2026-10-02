@@ -57,7 +57,7 @@ export class CSRFProtection {
     
     // Set token in cookie
     res.cookie(this.COOKIE_NAME, token, {
-      httpOnly: false, // Allow client-side access for double-submit
+      httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
       path: '/',
