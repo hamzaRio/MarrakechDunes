@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -58,6 +58,7 @@ export default function BookingFormModal({
   activities: passedActivities 
 }: BookingFormModalProps) {
   const [open, setOpen] = useState(false);
+  const idempotencyKeyRef = useRef<string | null>(null);
   const { toast } = useToast();
   const { t } = useLanguage();
   const queryClient = useQueryClient();
@@ -88,6 +89,7 @@ export default function BookingFormModal({
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "Idempotency-Key": idempotencyKeyRef.current || crypto.randomUUID(),
         },
         body: JSON.stringify({
           ...data,
@@ -125,6 +127,7 @@ export default function BookingFormModal({
       });
       queryClient.invalidateQueries({ queryKey: ["/admin/bookings"] });
       form.reset();
+      idempotencyKeyRef.current = null;
       setOpen(false);
     },
     onError: (error: any) => {
@@ -137,6 +140,7 @@ export default function BookingFormModal({
   });
 
   const onSubmit = async (data: BookingFormData) => {
+    if (!idempotencyKeyRef.current) idempotencyKeyRef.current = crypto.randomUUID();
     createBookingMutation.mutate(data);
   };
 

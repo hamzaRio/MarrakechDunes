@@ -5,6 +5,7 @@ import { normalizeGYGOffer, type GYGTrustSource } from '../services/gyg-comparis
 import { consumeGYGRateLimit } from '../services/gyg-rate-limits.js';
 import { gygRequestKey, gygResilience, isGYGServiceUnavailable } from '../services/gyg-resilience.js';
 import { rankCandidateMatches, isComparableValidationState, type MatchableActivity, type ManualOverrideDecision } from '../services/gyg-matching.js';
+import { hasCapacityForBooking } from '../utils/booking-capacity.js';
 
 const router = Router();
 const BOOKING_STATUSES = ['PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED'] as const;
@@ -136,6 +137,13 @@ router.patch('/bookings/:id/status', async (req: Request, res: Response) => {
     }
     const currentStatus = String(booking.status || '').toUpperCase();
     const wasConfirmed = currentStatus === 'CONFIRMED';
+
+    if (currentStatus === 'PENDING' && normalizedStatus === 'CONFIRMED') {
+      const activity = await storage.getActivity(booking.activityId);
+      if (activity && !(await hasCapacityForBooking(activity, booking.activityId, booking.preferredDate, Number(booking.numberOfPeople) || 0, storage))) {
+        return res.status(409).json({ status: 'error', code: 'BOOKING_CAPACITY_EXCEEDED', message: 'Cannot confirm this booking because the activity capacity is full for the selected date.' });
+      }
+    }
 
     // Phase 4 §5: reject lifecycle jumps that skip the normal flow
     // (e.g. COMPLETED -> PENDING, or CANCELLED -> anything). A no-op

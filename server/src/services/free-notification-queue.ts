@@ -46,7 +46,7 @@ class FreeNotificationQueue {
       this.queue = this.queue.slice(0, this.maxQueueSize);
     }
 
-    console.log(`[FREE NOTIFICATIONS] Added to queue: ${notification.type} for ${notification.customerName}`);
+    console.log(`[FREE NOTIFICATIONS] Added to queue: ${notification.type}`);
     return id;
   }
 

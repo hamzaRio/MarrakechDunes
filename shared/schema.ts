@@ -65,6 +65,8 @@ export interface BookingType {
   paymentMethod?: 'cash' | 'cash_deposit';
   paidAmount: number;
   depositAmount?: number;
+  bookingReference?: string;
+  idempotencyKeyHash?: string;
   // Group booking fields
   isGroupBooking?: boolean;
   groupCoordinator?: {
@@ -271,6 +273,8 @@ export const insertBookingSchema = z.object({
   paymentMethod: z.enum(['cash', 'cash_deposit']).default('cash'),
   paidAmount: z.number().default(0),
   depositAmount: z.number().optional(),
+  bookingReference: z.string().optional(),
+  idempotencyKeyHash: z.string().optional(),
   // Group booking fields
   isGroupBooking: z.boolean().optional(),
   groupCoordinator: z.object({

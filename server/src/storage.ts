@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { randomBytes } from 'crypto';
 import bcrypt from 'bcrypt';
 import { cacheService } from './services/cache-service.js';
 import { loggingService } from './services/logging-service.js';
@@ -58,7 +59,9 @@ const activitySchema = new mongoose.Schema({
   seasonalPricing: { type: mongoose.Schema.Types.Mixed },
   getyourguidePrice: { type: Number },
   availability: { type: String },
-  duration: { type: String }
+  duration: { type: String },
+  maxParticipants: { type: Number },
+  capacitySettings: { type: mongoose.Schema.Types.Mixed }
 }, { timestamps: true });
 
 const bookingSchema = new mongoose.Schema({
@@ -76,6 +79,8 @@ const bookingSchema = new mongoose.Schema({
   paymentMethod: { type: String, enum: ['cash', 'cash_deposit'] },
   paidAmount: { type: Number, default: 0 },
   depositAmount: { type: Number },
+  bookingReference: { type: String },
+  idempotencyKeyHash: { type: String },
 }, { timestamps: true });
 
 const auditLogSchema = new mongoose.Schema({
@@ -118,6 +123,8 @@ bookingSchema.index({ customerEmail: 1 });
 bookingSchema.index({ numberOfPeople: 1, status: 1 });
 bookingSchema.index({ totalAmount: 1, paymentStatus: 1 });
 bookingSchema.index({ updatedAt: -1, status: 1 });
+bookingSchema.index({ bookingReference: 1 }, { unique: true, sparse: true });
+bookingSchema.index({ idempotencyKeyHash: 1 }, { unique: true, sparse: true });
 
 // Review performance indexes
 reviewSchema.index({ activityId: 1, approved: 1, rating: -1 });
@@ -168,6 +175,7 @@ export interface IStorage {
   }): Promise<{ bookings: BookingWithActivity[]; total: number; page: number; totalPages: number }>;
   getBooking(id: string): Promise<BookingWithActivity | null>;
   createBooking(booking: InsertBooking): Promise<BookingType>;
+  getBookingByIdempotencyHash(hash: string): Promise<BookingType | null>;
   updateBooking(id: string, updateData: Partial<InsertBooking>): Promise<BookingType | null>;
   updateBookingStatus(id: string, status: string): Promise<BookingType | null>;
   updateBookingPayment(id: string, paymentData: {
@@ -674,15 +682,17 @@ class MongoStorage implements IStorage {
         bookingData.paymentMethod = 'cash';
       }
       
-      const booking = new Booking(bookingData);
+      const booking = new Booking({
+        ...bookingData,
+        bookingReference: bookingData.bookingReference || `MD-${randomBytes(5).toString('hex').toUpperCase()}`,
+      });
       const savedBooking = await booking.save();
       
       // Invalidate bookings cache
       await cacheService.invalidateBookings();
       
       // Log booking creation
-      loggingService.logBooking(savedBooking._id?.toString() || 'unknown', 'created', {
-        customerName: bookingData.customerName,
+      loggingService.logBooking(savedBooking.bookingReference || 'unknown', 'created', {
         activityId: bookingData.activityId,
         totalAmount: bookingData.totalAmount,
         numberOfPeople: bookingData.numberOfPeople
@@ -698,6 +708,11 @@ class MongoStorage implements IStorage {
       loggingService.error('Failed to create booking', error as Error);
       throw error;
     }
+  }
+
+  async getBookingByIdempotencyHash(hash: string): Promise<BookingType | null> {
+    const booking = await Booking.findOne({ idempotencyKeyHash: hash });
+    return booking ? this.transformDocument(booking) : null;
   }
 
   async updateBooking(id: string, updateData: Partial<InsertBooking>): Promise<BookingType | null> {
@@ -1662,7 +1677,7 @@ class MongoStorage implements IStorage {
     const bookings = await Booking.find({
       activityId,
       preferredDate: { $gte: startOfDayUTC, $lte: endOfDayUTC },
-      status: { $in: ['CONFIRMED', 'COMPLETED'] },
+      status: { $in: ['CONFIRMED', 'COMPLETED', 'confirmed', 'completed'] },
     });
 
     return bookings.map(booking => this.transformDocument(booking));

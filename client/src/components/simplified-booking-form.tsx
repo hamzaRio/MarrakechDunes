@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -36,6 +36,7 @@ export default function SimplifiedBookingForm({
     numberOfPeople: 1,
     preferredDate: new Date()
   });
+  const idempotencyKeyRef = useRef<string | null>(null);
 
   // Fetch activity details
   const { data: activity } = useQuery({
@@ -48,15 +49,20 @@ export default function SimplifiedBookingForm({
     mutationFn: async (bookingData: any) => {
       return apiFetch("/bookings", {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": idempotencyKeyRef.current || crypto.randomUUID(),
+        },
         body: JSON.stringify(bookingData)
       });
     },
     onSuccess: () => {
       toast({
-        title: "Booking Successful! 🎉",
-        description: "Your booking has been confirmed. We'll contact you via WhatsApp shortly.",
+        title: "Booking request submitted",
+        description: "We'll confirm availability with you via WhatsApp shortly.",
       });
       onSuccess?.();
+      idempotencyKeyRef.current = null;
     },
     onError: (error: any) => {
       toast({
@@ -81,6 +87,7 @@ export default function SimplifiedBookingForm({
 
     const totalAmount = formData.numberOfPeople * activityPrice;
     
+    if (!idempotencyKeyRef.current) idempotencyKeyRef.current = crypto.randomUUID();
     bookingMutation.mutate({
       activityId,
       customerName: formData.customerName,

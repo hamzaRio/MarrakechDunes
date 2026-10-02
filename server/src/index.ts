@@ -271,6 +271,7 @@ const corsOptions: cors.CorsOptions = {
     "Accept",
     "Accept-Charset",
     "X-CSRF-Token",
+    "Idempotency-Key",
     "X-Requested-With",
     "Authorization"
   ],

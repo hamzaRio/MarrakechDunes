@@ -1,6 +1,9 @@
 import express from 'express';
 import { storage } from '../storage.js';
+import { bookingCreationLimiter } from '../rate-limiters.js';
 import { formatBookingDateOnly, isBookingDateInPast, parseBookingDateOnly } from '../utils/booking-date.js';
+import { hasCapacityForBooking } from '../utils/booking-capacity.js';
+import { hashIdempotencyKey, resolveIdempotentCreate, toPublicBookingResult } from '../utils/booking-idempotency.js';
 // Twilio removed - using free notification queue only
 
 const router = express.Router();
@@ -20,8 +23,18 @@ const isNonEmptyString = (value: unknown): value is string =>
  * one of those is recomputed here from the server-side Activity record (or
  * hardcoded), and any client-submitted value for them is ignored.
  */
-router.post('/', async (req, res) => {
+router.post('/', bookingCreationLimiter, async (req, res) => {
   try {
+    const rawIdempotencyKey = req.get('Idempotency-Key');
+    let idempotencyKeyHash: string | undefined;
+    if (rawIdempotencyKey !== undefined) {
+      if (!/^[0-9a-fA-F-]{16,128}$/.test(rawIdempotencyKey)) {
+        return res.status(400).json({ status: 'error', message: 'Invalid Idempotency-Key.' });
+      }
+      idempotencyKeyHash = hashIdempotencyKey(rawIdempotencyKey);
+      const existing = await storage.getBookingByIdempotencyHash(idempotencyKeyHash);
+      if (existing) return res.status(200).json(toPublicBookingResult(existing));
+    }
     const {
       activityId,
       numberOfPeople,
@@ -94,24 +107,8 @@ router.post('/', async (req, res) => {
     // activity and calendar date - PENDING and CANCELLED bookings for this
     // date, and any booking for a different activity or date, are already
     // excluded there, not filtered here.
-    const capacitySettings = (activity as any).capacitySettings;
-    const capacityLimit: number | null =
-      typeof capacitySettings?.maxParticipants === 'number'
-        ? capacitySettings.maxParticipants
-        : typeof (activity as any).maxParticipants === 'number'
-          ? (activity as any).maxParticipants
-          : null;
-
-    if (capacityLimit != null && capacityLimit > 0) {
-      const overbookingLimit = capacitySettings?.overbookingAllowed ? Number(capacitySettings.overbookingLimit) || 0 : 0;
-      const confirmedSeats = await storage.getBookingsForActivityOnDate(activityId, requestedDate);
-      const alreadyConfirmed = confirmedSeats.reduce((sum, b) => sum + (Number(b.numberOfPeople) || 0), 0);
-      if (alreadyConfirmed + people > capacityLimit + overbookingLimit) {
-        return res.status(400).json({
-          status: 'error',
-          message: 'This activity is fully booked for the selected date. Please choose another date or contact us via WhatsApp.',
-        });
-      }
+    if (!(await hasCapacityForBooking(activity, activityId, requestedDate, people, storage))) {
+      return res.status(400).json({ status: 'error', message: 'This activity is fully booked for the selected date. Please choose another date or contact us via WhatsApp.' });
     }
 
     // --- Server-computed financial fields (client input for these is ignored) ---
@@ -130,12 +127,18 @@ router.post('/', async (req, res) => {
       paymentMethod: 'cash_deposit',
       paymentStatus: 'unpaid',
       paidAmount: 0,
+      ...(idempotencyKeyHash ? { idempotencyKeyHash } : {}),
     };
     if (isNonEmptyString(customerEmail)) bookingData.customerEmail = customerEmail.trim();
     if (Array.isArray(participantNames)) bookingData.participantNames = participantNames;
     if (isNonEmptyString(notes)) bookingData.notes = notes.trim();
 
-    const booking = await storage.createBooking(bookingData as any);
+    const { booking, created } = await resolveIdempotentCreate({
+      idempotencyKeyHash,
+      findExisting: (hash) => storage.getBookingByIdempotencyHash(hash),
+      create: () => storage.createBooking(bookingData as any),
+    });
+    if (!created) return res.status(200).json(toPublicBookingResult(booking));
 
     // Send WhatsApp "request received" notice via the FREE notification queue.
     // This is a request, not a confirmation — the booking is PENDING until an
@@ -143,7 +146,7 @@ router.post('/', async (req, res) => {
     try {
       const activityName = activity.name || 'Activity';
       const dateLabel = formatBookingDateOnly(requestedDate);
-      const bookingRef = String(booking._id || booking.id || '');
+      const bookingRef = String(booking.bookingReference || '');
 
       const { freeNotificationQueue } = await import('../services/free-notification-queue.js');
       const message = `📩 *Booking Request Received*
@@ -165,7 +168,7 @@ Thank you for choosing MarrakechDunes! 🏜️`.trim();
         message,
         whatsappLink: freeNotificationQueue.generateWhatsAppLink(bookingData.customerPhone, message),
         priority: 'high',
-        bookingId: booking._id || booking.id,
+          bookingId: booking._id || booking.id,
         metadata: {
           activityName,
           date: requestedDate.toISOString(),
@@ -177,7 +180,7 @@ Thank you for choosing MarrakechDunes! 🏜️`.trim();
       console.error('[BOOKINGS] Failed to send request-received notice:', notificationError);
     }
 
-    return res.status(201).json(booking);
+    return res.status(201).json(toPublicBookingResult(booking));
   } catch (error) {
     console.error('[BOOKINGS] Error creating booking:', error);
     return res.status(500).json({

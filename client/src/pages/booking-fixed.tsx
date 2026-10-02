@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -75,6 +75,7 @@ export default function BookingFixed() {
   const seoConfig = seoConfigs.booking(language);
   const [showPaymentConfirmation, setShowPaymentConfirmation] = useState(false);
   const [pendingBookingData, setPendingBookingData] = useState<BookingFormData | null>(null);
+  const idempotencyKeyRef = useRef<string | null>(null);
   const [currentActivity, setCurrentActivity] = useState<ActivityType | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [currentStep, setCurrentStep] = useState<'activity' | 'date' | 'details' | 'confirmation'>('activity');
@@ -173,14 +174,16 @@ export default function BookingFixed() {
       const response = await apiRequest("/bookings", {
         method: "POST",
         body: JSON.stringify(data),
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": idempotencyKeyRef.current || crypto.randomUUID(),
+        },
       });
       return response;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/bookings"] });
       const createdBooking = (data as any)?.data ?? data;
-      const bookingId = String(createdBooking?._id ?? createdBooking?.id ?? '');
-      
       // Store booking data for confirmation page
       const bookingData = {
         activity: currentActivity!,
@@ -189,11 +192,11 @@ export default function BookingFixed() {
         customerPhone: form.getValues('customerPhone'),
         customerEmail: form.getValues('customerEmail'),
         preferredDate: form.getValues('preferredDate'),
-        bookingReference: bookingId ? bookingId.slice(-8).toUpperCase() : undefined,
+        bookingReference: createdBooking.bookingReference,
         paymentType: (data as any).paymentType || 'deposit',
-        totalAmount: Number(currentActivity!.price) * form.getValues('numberOfPeople'),
-        depositAmount: Math.round(Number(currentActivity!.price) * form.getValues('numberOfPeople') * 0.3),
-        remainingAmount: Math.round(Number(currentActivity!.price) * form.getValues('numberOfPeople') * 0.7)
+        totalAmount: Number(createdBooking.totalAmount),
+        depositAmount: Number(createdBooking.depositAmount),
+        remainingAmount: Number(createdBooking.remainingAmount),
       };
       
       localStorage.setItem('pendingBooking', JSON.stringify(bookingData));
@@ -205,6 +208,7 @@ export default function BookingFixed() {
       
       setShowPaymentConfirmation(false);
       setPendingBookingData(null);
+      idempotencyKeyRef.current = null;
       
       // Navigate to confirmation page
       window.location.href = '/confirmation-and-pay';
@@ -230,6 +234,7 @@ export default function BookingFixed() {
 
   const handlePaymentConfirm = (paymentType: 'full' | 'deposit') => {
     if (pendingBookingData && currentActivity) {
+      if (!idempotencyKeyRef.current) idempotencyKeyRef.current = crypto.randomUUID();
       // Calculate total amount
       const calculatedTotal = parseInt(currentActivity.price) * form.getValues('numberOfPeople');
       

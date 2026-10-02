@@ -54,7 +54,7 @@ assert.equal(getBookingCalendarDayLabel('2026-09-22', nowBeforeCasablancaMidnigh
 assert.equal(getBookingCalendarDayLabel('2026-09-23', nowBeforeCasablancaMidnight), 'Within 2 days');
 assert.equal(getBookingCalendarDayLabel('2026-09-24', nowBeforeCasablancaMidnight), 'Future');
 
-assert.match(bookingRoute, /getBookingsForActivityOnDate\(activityId,\s*requestedDate\)/, 'capacity lookup receives the normalized date');
+assert.match(bookingRoute, /hasCapacityForBooking\(activity,\s*activityId,\s*requestedDate,\s*people/, 'capacity validation receives the normalized date');
 assert.match(storageSource, /startOfDayUTC\s*=\s*new Date\(Date\.UTC\([\s\S]*?date\.getUTCFullYear\(\)/);
 assert.match(storageSource, /preferredDate:\s*\{\s*\$gte:\s*startOfDayUTC,\s*\$lte:\s*endOfDayUTC\s*\}/, 'capacity lookup remains bounded to the exact UTC calendar day');
 

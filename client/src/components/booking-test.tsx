@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,7 @@ import { CheckCircle, XCircle, Loader2 } from "lucide-react";
 import type { ActivityType } from "marrakechdunes-shared/schema";
 
 export default function BookingTest() {
+  const idempotencyKeyRef = useRef<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [testData, setTestData] = useState({
@@ -43,7 +44,10 @@ export default function BookingTest() {
       
       const response = await apiFetch("/bookings", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": idempotencyKeyRef.current || crypto.randomUUID(),
+        },
         body: JSON.stringify({
           ...data,
           totalAmount: totalAmount.toString(),
@@ -60,9 +64,10 @@ export default function BookingTest() {
       return await response.json();
     },
     onSuccess: (booking) => {
+      idempotencyKeyRef.current = null;
       toast({
         title: "✅ Test de Réservation Réussi",
-        description: `Réservation créée: ${booking.customerName} - ${booking.totalAmount} MAD`,
+        description: `Réservation créée: ${booking.bookingReference} - ${booking.totalAmount} MAD`,
       });
       queryClient.invalidateQueries({ queryKey: ["/admin/bookings"] });
       queryClient.invalidateQueries({ queryKey: ["/activities"] });
@@ -94,6 +99,7 @@ export default function BookingTest() {
       });
       return;
     }
+    if (!idempotencyKeyRef.current) idempotencyKeyRef.current = crypto.randomUUID();
     createTestBookingMutation.mutate(testData);
   };
 
