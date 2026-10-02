@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { buildViatorSearchRequest, isViatorMarketIntelligenceEnabled, normalizeViatorProduct, searchViator, viatorProviderState, ViatorProviderError } from '../server/src/providers/viator.js';
+import { buildViatorSearchRequest, getViatorProductDetail, isViatorMarketIntelligenceEnabled, normalizeViatorProduct, normalizeViatorProductDetail, searchViator, viatorProviderState, ViatorProviderError } from '../server/src/providers/viator.js';
 import viatorRouter, { viatorProviderStatus } from '../server/src/routes/viator.js';
 import { requireAdmin } from '../server/src/middleware/admin-auth.js';
 import { calculateVerifiedMetrics, normalizeGYGOffer } from '../server/src/services/gyg-comparison.js';
@@ -8,6 +8,9 @@ const route = (path: string, method: string) => (viatorRouter as any).stack.find
 const searchRoute = route('/search', 'post');
 assert.ok(searchRoute, 'Viator search route exists');
 assert.equal(searchRoute.route.stack[0].handle, requireAdmin, 'Viator search is admin protected');
+const productDetailRoute = route('/products/:productCode', 'get');
+assert.ok(productDetailRoute, 'Viator product detail route exists');
+assert.equal(productDetailRoute.route.stack[0].handle, requireAdmin, 'Viator product detail is admin protected');
 const response = () => {
   const result: any = { statusCode: 200, body: null };
   result.status = (code: number) => { result.statusCode = code; return result; };
@@ -58,6 +61,46 @@ assert.equal(normalized?.provider, 'VIATOR');
 assert.equal(normalized?.sourceType, 'OFFICIAL_API');
 assert.equal(normalized?.id, '12345P1');
 assert.equal(normalized?.duration, '360 minutes');
+
+const rawDetail = {
+  productCode: '5010SYDNEY',
+  title: 'Sydney and Bondi Big Bus Hop-on Hop-off Tour',
+  status: 'ACTIVE',
+  reviews: { totalReviews: 2853, combinedAverageRating: 3.95 },
+  productUrl: 'https://www.viator.com/tours/Sydney/example/d357-5010SYDNEY',
+  destinations: [{ ref: '357' }],
+  images: [{ url: 'https://example.test/image.jpg' }, { url: 'https://example.test/image-2.jpg' }],
+  description: 'Should not be exposed by detail normalization',
+};
+const normalizedDetail = normalizeViatorProductDetail(rawDetail);
+assert.ok(normalizedDetail);
+assert.equal(normalizedDetail?.productCode, '5010SYDNEY');
+assert.equal(normalizedDetail?.status, 'ACTIVE');
+assert.equal(normalizedDetail?.rating, 3.95);
+assert.equal(normalizedDetail?.reviewCount, 2853);
+assert.equal(normalizedDetail?.productUrl, rawDetail.productUrl);
+assert.deepEqual(normalizedDetail?.destinationRefs, ['357']);
+assert.equal(normalizedDetail?.imageCount, 2);
+assert.equal(normalizedDetail?.firstImage, 'https://example.test/image.jpg');
+assert.equal(normalizeViatorProductDetail({ productCode: '5010SYDNEY', title: 'No optional fields' })?.reviewCount, null);
+assert.equal(normalizeViatorProductDetail({ productCode: '5010SYDNEY', title: 'Placeholder image', images: [{ url: 'https://example.test/[format_id].jpg' }] })?.firstImage, undefined);
+assert.equal(normalizeViatorProductDetail({ productCode: '5010SYDNEY' }), null);
+
+const detailFetch = async (url: string | URL, init?: RequestInit) => {
+  assert.equal(String(url), 'https://api.sandbox.viator.com/partner/products/5010SYDNEY');
+  assert.equal(init?.method, 'GET');
+  return new Response(JSON.stringify(rawDetail), { status: 200, headers: { 'content-type': 'application/json' } });
+};
+const productDetail = await getViatorProductDetail('5010SYDNEY', detailFetch as typeof fetch);
+assert.equal(productDetail.reviewCount, 2853);
+assert.equal(productDetail.destinationRefs[0], '357');
+await assert.rejects(() => getViatorProductDetail('bad code', detailFetch as typeof fetch), (error: any) => error.code === 'VIATOR_PRODUCT_CODE_INVALID' && error.status === 400);
+await assert.rejects(() => getViatorProductDetail('5010SYDNEY', async () => new Response('', { status: 401 })), (error: any) => error.code === 'VIATOR_UPSTREAM_ERROR' && error.status === 401);
+await assert.rejects(() => getViatorProductDetail('5010SYDNEY', async () => new Response('', { status: 403 })), (error: any) => error.code === 'VIATOR_UPSTREAM_ERROR' && error.status === 403);
+await assert.rejects(() => getViatorProductDetail('5010SYDNEY', async () => new Response('', { status: 429, headers: { 'retry-after': '9' } })), (error: any) => error.code === 'VIATOR_RATE_LIMITED' && error.status === 429 && error.retryAfter === '9');
+await assert.rejects(() => getViatorProductDetail('5010SYDNEY', async () => new Response('', { status: 500 })), (error: any) => error.code === 'VIATOR_UPSTREAM_ERROR' && error.status === 503);
+await assert.rejects(() => getViatorProductDetail('5010SYDNEY', async () => { throw new Error('network'); }), (error: any) => error.code === 'VIATOR_UPSTREAM_UNAVAILABLE');
+await assert.rejects(() => getViatorProductDetail('5010SYDNEY', async () => new Response('{', { status: 200 })), (error: any) => error.code === 'VIATOR_INVALID_RESPONSE');
 
 const freshOffer = (id: string, price: number, currency = 'MAD', normalizedMadPrice: number | null = null) => normalizeGYGOffer({
   id,

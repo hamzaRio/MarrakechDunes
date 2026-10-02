@@ -1,6 +1,6 @@
 import { Router, type Request, type Response } from 'express';
 import { requireAdmin } from '../middleware/admin-auth.js';
-import { isViatorConfigured, isViatorMarketIntelligenceEnabled, searchViator, viatorProviderState, ViatorProviderError } from '../providers/viator.js';
+import { getViatorProductDetail, isViatorConfigured, isViatorMarketIntelligenceEnabled, searchViator, viatorProviderState, ViatorProviderError } from '../providers/viator.js';
 
 const router = Router();
 
@@ -16,6 +16,17 @@ router.post('/search', requireAdmin, async (req: Request, res: Response) => {
     return res.json(result);
   } catch (error: any) {
     const providerError = error instanceof ViatorProviderError ? error : new ViatorProviderError('Viator search is temporarily unavailable.', 503, 'VIATOR_UPSTREAM_UNAVAILABLE');
+    if (providerError.retryAfter) res.setHeader('Retry-After', providerError.retryAfter);
+    return res.status(providerError.status).json({ code: providerError.code, message: providerError.message });
+  }
+});
+
+router.get('/products/:productCode', requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const detail = await getViatorProductDetail(req.params.productCode);
+    return res.json(detail);
+  } catch (error: any) {
+    const providerError = error instanceof ViatorProviderError ? error : new ViatorProviderError('Viator product lookup is temporarily unavailable.', 503, 'VIATOR_UPSTREAM_UNAVAILABLE');
     if (providerError.retryAfter) res.setHeader('Retry-After', providerError.retryAfter);
     return res.status(providerError.status).json({ code: providerError.code, message: providerError.message });
   }

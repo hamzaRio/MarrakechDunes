@@ -52,6 +52,18 @@ export interface ViatorSearchResult {
   currency: string;
 }
 
+export interface NormalizedViatorProductDetail {
+  productCode: string;
+  title: string;
+  status: string | null;
+  rating: number | null;
+  reviewCount: number | null;
+  productUrl: string | null;
+  destinationRefs: string[];
+  imageCount: number;
+  firstImage?: string;
+}
+
 export class ViatorProviderError extends Error {
   status: number;
   code: string;
@@ -134,6 +146,11 @@ const durationLabel = (duration: any): string | null => {
   return null;
 };
 
+const safeViatorImageUrl = (value: unknown): string | null => {
+  if (typeof value !== 'string' || !value.startsWith('https://') || value.includes('[format_id]')) return null;
+  return value;
+};
+
 export function normalizeViatorProduct(product: any, requestedCurrency = viatorCurrency()): NormalizedViatorActivity | null {
   if (!product || typeof product !== 'object') return null;
   const id = String(product.productCode ?? product.product_code ?? product.code ?? product.id ?? '').trim();
@@ -176,6 +193,34 @@ export function normalizeViatorProduct(product: any, requestedCurrency = viatorC
   };
 }
 
+export function normalizeViatorProductDetail(payload: any): NormalizedViatorProductDetail | null {
+  const product = payload?.data?.product ?? payload?.product ?? payload;
+  if (!product || typeof product !== 'object') return null;
+  const productCode = String(product.productCode ?? '').trim();
+  const title = String(product.title ?? '').trim();
+  if (!productCode || !title) return null;
+  const rawUrl = product.productUrl;
+  const productUrl = typeof rawUrl === 'string' && /^https:\/\/([\w-]+\.)?viator\.com\//i.test(rawUrl) ? rawUrl : null;
+  const images = Array.isArray(product.images) ? product.images : [];
+  const firstImage = safeViatorImageUrl(images[0]?.ssl_url ?? images[0]?.sslUrl ?? images[0]?.url);
+  const destinationRefs = Array.isArray(product.destinations)
+    ? product.destinations.map((destination: any) => String(destination?.ref ?? destination?.destinationId ?? destination?.id ?? '').trim()).filter(Boolean)
+    : [];
+  const rating = asFiniteNumber(product.reviews?.combinedAverageRating);
+  const reviewCount = asFiniteNumber(product.reviews?.totalReviews);
+  return {
+    productCode,
+    title,
+    status: typeof product.status === 'string' ? product.status : null,
+    rating: rating != null && rating >= 0 && rating <= 5 ? rating : null,
+    reviewCount: reviewCount != null && reviewCount >= 0 ? Math.floor(reviewCount) : null,
+    productUrl,
+    destinationRefs,
+    imageCount: images.length,
+    ...(firstImage ? { firstImage } : {}),
+  };
+}
+
 const responseProducts = (payload: any): any[] => {
   if (Array.isArray(payload?.products?.results)) return payload.products.results;
   if (Array.isArray(payload?.products)) return payload.products;
@@ -214,4 +259,40 @@ export async function searchViator(query: string, limit = 12, offset = 0, fetchI
   const activities = products.map((product) => normalizeViatorProduct(product, currency)).filter((value): value is NormalizedViatorActivity => value !== null);
   const total = asFiniteNumber(payload?.products?.totalCount ?? payload?.data?.products?.totalCount ?? payload?.totalCount ?? payload?.data?.totalCount ?? payload?.total) ?? null;
   return { activities, total, hasMore: total != null ? offset + activities.length < total : activities.length >= Math.min(Math.max(limit, 1), 50), offset: Math.max(offset, 0), limit: Math.min(Math.max(limit, 1), 50), currency };
+}
+
+export async function getViatorProductDetail(productCode: string, fetchImpl: typeof fetch = fetch): Promise<NormalizedViatorProductDetail> {
+  const normalizedCode = String(productCode ?? '').trim();
+  if (!/^[A-Za-z0-9_-]{1,100}$/.test(normalizedCode)) {
+    throw new ViatorProviderError('A valid Viator product code is required.', 400, 'VIATOR_PRODUCT_CODE_INVALID');
+  }
+  if (!isViatorConfigured()) throw new ViatorProviderError('Viator Partner API access is not configured.', 503, 'VIATOR_API_NOT_CONFIGURED');
+  const request = buildViatorSearchRequest('', 1, 0);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10000);
+  let response: Response;
+  try {
+    response = await fetchImpl(`${request.url.replace('/search/freetext', '')}/products/${encodeURIComponent(normalizedCode)}`, {
+      method: 'GET',
+      headers: request.headers,
+      signal: controller.signal,
+    });
+  } catch (error: any) {
+    if (error?.name === 'AbortError') throw new ViatorProviderError('Viator product lookup timed out.', 503, 'VIATOR_TIMEOUT');
+    throw new ViatorProviderError('Viator product lookup is temporarily unavailable.', 503, 'VIATOR_UPSTREAM_UNAVAILABLE');
+  } finally {
+    clearTimeout(timeout);
+  }
+  if (!response.ok) {
+    const retryAfter = response.headers.get('retry-after') ?? undefined;
+    if (response.status === 404) throw new ViatorProviderError('Viator product was not found.', 404, 'VIATOR_PRODUCT_NOT_FOUND', retryAfter);
+    const status = response.status === 429 ? 429 : response.status >= 500 ? 503 : response.status;
+    const code = response.status === 429 ? 'VIATOR_RATE_LIMITED' : 'VIATOR_UPSTREAM_ERROR';
+    throw new ViatorProviderError('Viator product lookup failed.', status, code, retryAfter);
+  }
+  let payload: any;
+  try { payload = await response.json(); } catch { throw new ViatorProviderError('Viator returned malformed product data.', 503, 'VIATOR_INVALID_RESPONSE'); }
+  const detail = normalizeViatorProductDetail(payload);
+  if (!detail) throw new ViatorProviderError('Viator returned malformed product data.', 503, 'VIATOR_INVALID_RESPONSE');
+  return detail;
 }

@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { searchViatorActivities, type NormalizedViatorActivity } from '@/lib/viator-api';
+import { getViatorProductDetail, searchViatorActivities, type NormalizedViatorActivity, type NormalizedViatorProductDetail } from '@/lib/viator-api';
 
 interface ViatorActivitySearchProps {
   onCompare?: (activity: NormalizedViatorActivity) => void;
@@ -25,6 +25,9 @@ export default function ViatorActivitySearch({ onCompare, onUseAsTemplate, marke
   const [query, setQuery] = useState('');
   const [activeQuery, setActiveQuery] = useState('');
   const [offset, setOffset] = useState(0);
+  const [details, setDetails] = useState<Record<string, NormalizedViatorProductDetail>>({});
+  const [detailLoading, setDetailLoading] = useState<string | null>(null);
+  const [detailError, setDetailError] = useState<string | null>(null);
   const search = useQuery({
     queryKey: ['viator-official-search', activeQuery, offset],
     enabled: activeQuery.length >= 2,
@@ -40,6 +43,19 @@ export default function ViatorActivitySearch({ onCompare, onUseAsTemplate, marke
     setActiveQuery(value);
   };
   const activities = search.data?.activities ?? [];
+  const loadDetails = async (activity: NormalizedViatorActivity) => {
+    if (details[activity.id] || detailLoading === activity.id) return;
+    setDetailLoading(activity.id);
+    setDetailError(null);
+    try {
+      const detail = await getViatorProductDetail(activity.id);
+      setDetails((current) => ({ ...current, [activity.id]: detail }));
+    } catch {
+      setDetailError(activity.id);
+    } finally {
+      setDetailLoading(null);
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -52,7 +68,10 @@ export default function ViatorActivitySearch({ onCompare, onUseAsTemplate, marke
       {search.isError && <div className="rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">{providerError(search.error)}</div>}
       {!search.isFetching && !search.isError && activeQuery && activities.length === 0 && <p className="text-sm text-gray-500">No official Viator products matched this search.</p>}
       {activities.length > 0 && <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {activities.map((activity) => (
+        {activities.map((activity) => {
+          const detail = details[activity.id];
+          const productUrl = detail?.productUrl ?? activity.url;
+          return (
           <Card key={activity.id}>
             {activity.imageUrl && <img src={activity.imageUrl} alt="" className="h-32 w-full object-cover rounded-t" />}
             <CardContent className="p-4 space-y-2">
@@ -60,18 +79,24 @@ export default function ViatorActivitySearch({ onCompare, onUseAsTemplate, marke
               {activity.description && <p className="text-xs text-gray-600 line-clamp-2">{activity.description}</p>}
               <div className="flex flex-wrap gap-3 text-xs text-gray-600">
                 <span className="font-semibold text-gray-900">{activity.price.amount} {activity.price.currency}</span>
-                {activity.rating != null && <span className="flex items-center gap-1"><Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />{activity.rating}{activity.reviewCount != null ? ` (${activity.reviewCount.toLocaleString()})` : ''}</span>}
+                {(detail?.rating ?? activity.rating) != null && <span className="flex items-center gap-1"><Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />{detail?.rating ?? activity.rating}{(detail?.reviewCount ?? activity.reviewCount) != null ? ` (${(detail?.reviewCount ?? activity.reviewCount)!.toLocaleString()})` : ''}</span>}
                 {activity.duration && <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{activity.duration}</span>}
                 {activity.location && <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{activity.location}</span>}
               </div>
+              {detail?.firstImage && <img src={detail.firstImage} alt="" className="h-20 w-28 rounded object-cover" />}
+              {detail && <div className="text-xs text-gray-600">{detail.status && <span>Status: {detail.status}</span>}{detail.destinationRefs.length > 0 && <span className="ml-3">Destination: {detail.destinationRefs.join(', ')}</span>}</div>}
+              {detailLoading === activity.id && <div className="text-xs text-gray-500"><Loader2 className="mr-1 inline h-3 w-3 animate-spin" />Loading details…</div>}
+              {detailError === activity.id && <div className="text-xs text-amber-700">Product details are temporarily unavailable.</div>}
               <div className="flex flex-wrap gap-2 pt-2 border-t">
-                {activity.url && <Button size="sm" variant="outline" onClick={() => window.open(activity.url!, '_blank', 'noopener,noreferrer')}><ExternalLink className="w-3 h-3 mr-1" />Open on Viator</Button>}
+                <Button size="sm" variant="outline" onClick={() => void loadDetails(activity)} disabled={detailLoading === activity.id || Boolean(detail)}>{detail ? 'Details loaded' : 'Details'}</Button>
+                {productUrl && <Button size="sm" variant="outline" onClick={() => window.open(productUrl, '_blank', 'noopener,noreferrer')}><ExternalLink className="w-3 h-3 mr-1" />Open on Viator</Button>}
                 {marketIntelligenceEnabled && onCompare && <Button size="sm" onClick={() => onCompare(activity)}>Compare with…</Button>}
                 {marketIntelligenceEnabled && onUseAsTemplate && <Button size="sm" variant="outline" onClick={() => onUseAsTemplate(activity)}>Use as Activity Template</Button>}
               </div>
             </CardContent>
           </Card>
-        ))}
+          );
+        })}
       </div>}
       {search.data?.hasMore && <Button variant="outline" onClick={() => setOffset((value) => value + 12)} disabled={search.isFetching}>Load more</Button>}
     </div>
