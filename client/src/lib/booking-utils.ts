@@ -62,6 +62,24 @@ export function formatLocalDateOnly(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
+/** Format today's calendar date in Morocco without a browser UTC conversion. */
+export function formatCasablancaDateOnly(date = new Date()): string {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Africa/Casablanca', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).formatToParts(date);
+  const value = (type: Intl.DateTimeFormatPartTypes) => parts.find((part) => part.type === type)?.value;
+  return `${value('year')}-${value('month')}-${value('day')}`;
+}
+
+/** Resolve pagination state without resetting a page during normal navigation. */
+export function resolveBookingPage(currentPage: number, totalPages: number, filtersChanged = false): { page: number; clearSelection: boolean } {
+  const lastPage = Math.max(1, totalPages);
+  return {
+    page: filtersChanged ? 1 : Math.min(Math.max(1, currentPage), lastPage),
+    clearSelection: true,
+  };
+}
+
 /** Preserve date-only booking semantics when parsing API values for display. */
 export function getBookingDateOnly(value: Date | string | null | undefined): Date | null {
   if (!value) return null;

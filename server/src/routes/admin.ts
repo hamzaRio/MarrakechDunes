@@ -60,19 +60,40 @@ router.get('/bookings', async (req: Request, res: Response) => {
     }
     
     // Support pagination via query params
-    const page = req.query.page ? parseInt(req.query.page as string, 10) : undefined;
-    const limit = req.query.limit ? parseInt(req.query.limit as string, 10) : undefined;
+    const pagingKeys = ['page', 'limit', 'search', 'status', 'paymentStatus', 'from', 'to', 'sortField', 'sortOrder'];
+    const isPaginatedRequest = pagingKeys.some((key) => req.query[key] !== undefined);
+    const page = req.query.page !== undefined ? Number(req.query.page) : 1;
+    const limit = req.query.limit !== undefined ? Number(req.query.limit) : 50;
     const sortField = req.query.sortField as string | undefined;
     const sortOrder = req.query.sortOrder === 'asc' ? 1 : -1;
+    const status = req.query.status && req.query.status !== 'all' ? String(req.query.status).toUpperCase() : undefined;
+    const paymentStatus = req.query.paymentStatus && req.query.paymentStatus !== 'all' ? String(req.query.paymentStatus) : undefined;
+    if (status && !['PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED'].includes(status)) {
+      return res.status(400).json({ status: 'error', message: 'Invalid booking status filter' });
+    }
+    if (paymentStatus && !['unpaid', 'deposit_paid', 'fully_paid'].includes(paymentStatus)) {
+      return res.status(400).json({ status: 'error', message: 'Invalid payment status filter' });
+    }
+    const hasFrom = req.query.from !== undefined;
+    const hasTo = req.query.to !== undefined;
+    const from = hasFrom ? parseBookingDateOnly(req.query.from, false) : null;
+    const to = hasTo ? parseBookingDateOnly(req.query.to, true) : null;
+    if ((hasFrom && !from) || (hasTo && !to) || (from && to && from > to)) {
+      return res.status(400).json({ status: 'error', message: 'Invalid booking date filter' });
+    }
     
-    const options = (page || limit) ? {
-      page: page || 1,
-      limit: limit || 50,
+    const options = isPaginatedRequest ? {
+      page,
+      limit,
+      search: req.query.search ? String(req.query.search).trim().slice(0, 100) : undefined,
+      status,
+      paymentStatus,
+      dateRange: (from || to) ? { start: from || undefined, end: to || undefined } : undefined,
       sort: sortField ? { field: sortField, order: sortOrder as 1 | -1 } : undefined
     } : undefined;
     
     // If pagination requested, return paginated response
-    if (options && (page || limit)) {
+    if (options) {
       const result = await storage.getBookingsPaginated(options);
       return res.status(200).json(result);
     }

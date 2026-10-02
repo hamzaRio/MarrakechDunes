@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -15,21 +15,28 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiFetch } from "@/lib/api";
-import { getBookingCalendarDayDistance, getBookingCalendarDayLabel, getBookingDateOnly } from "@/lib/booking-utils";
+import { formatCasablancaDateOnly, getBookingCalendarDayDistance, getBookingCalendarDayLabel, getBookingDateOnly } from "@/lib/booking-utils";
 import type { BookingType, ActivityType } from "marrakechdunes-shared/schema";
 
 interface BookingWithActivity extends BookingType {
   activity: ActivityType;
 }
 
-interface CashBookingRemindersProps {
-  bookings: BookingWithActivity[];
-}
-
-export default function CashBookingReminders({ bookings }: CashBookingRemindersProps) {
+export default function CashBookingReminders() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [sendingReminders, setSendingReminders] = useState<Set<string>>(new Set());
+  const { data: bookingPage, isLoading } = useQuery<{ bookings: BookingWithActivity[] }>({
+    queryKey: ["/admin/bookings", "cash-reminders"],
+    queryFn: async () => {
+      const today = formatCasablancaDateOnly();
+      const response = await apiFetch(`/admin/bookings?page=1&limit=100&status=CONFIRMED&from=${today}&sortField=preferredDate&sortOrder=asc`);
+      if (!response.ok) throw new Error("Failed to fetch reminder bookings");
+      return response.json();
+    },
+    staleTime: 60_000,
+  });
+  const bookings = bookingPage?.bookings || [];
 
   // Filter bookings that need reminders
   const upcomingBookings = bookings.filter(booking => {
@@ -80,7 +87,7 @@ export default function CashBookingReminders({ bookings }: CashBookingRemindersP
     return { level: 'upcoming', text: label };
   };
 
-  if (upcomingBookings.length === 0) {
+  if (isLoading || upcomingBookings.length === 0) {
     return (
       <Card>
         <CardHeader>

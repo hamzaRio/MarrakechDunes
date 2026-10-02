@@ -17,7 +17,7 @@ import { Link } from "wouter";
 import { getActivityFallbackImage } from "@/lib/image-utils";
 import { ensureArray } from "@/lib/ensureArray";
 import { getAssetUrl } from "@/lib/utils";
-import { getBookingDateOnly } from "@/lib/booking-utils";
+import { formatLocalDateOnly } from "@/lib/booking-utils";
 import BookingManagement from "@/components/admin/booking-management";
 import { WhatsAppNotificationPanel } from "@/components/whatsapp-notification-panel";
 import FreeNotificationPanel from "@/components/free-notification-panel";
@@ -39,8 +39,15 @@ import CEOOperationsDashboard from "@/components/ceo-operations-dashboard";
 
 import type { BookingType, ActivityType, AuditLogType } from "marrakechdunes-shared/schema";
 
-interface BookingWithActivity extends BookingType {
-  activity: ActivityType;
+interface BookingSummary {
+  totalBookings: number;
+  pendingBookings: number;
+  confirmedBookings: number;
+  completedBookings: number;
+  cancelledBookings: number;
+  grossBookingValue: number;
+  collectedPayments: number;
+  outstandingAmount: number;
 }
 
 function AdminDashboardContent() {
@@ -94,20 +101,11 @@ function AdminDashboardContent() {
   // Reports date range state
   const [reportsDateRange, setReportsDateRange] = useState<{ from?: Date; to?: Date }>({});
   
-  const { data: bookings = [] } = useQuery<BookingWithActivity[]>({
-    queryKey: ["/admin/bookings"],
-    enabled: !!user, // Only fetch if user is authenticated
-    retry: (failureCount, error: any) => {
-      // Don't retry on 401/403 errors
-      if (error?.response?.status === 401 || error?.response?.status === 403) {
-        console.warn('[DASHBOARD] Bookings fetch failed - authentication issue:', error?.response?.status);
-        return false;
-      }
-      return failureCount < 1; // Retry only once for other errors
-    },
-    staleTime: 5 * 60 * 1000, // 5 minutes - reduce unnecessary refetches
-    refetchOnWindowFocus: false, // Don't refetch when window regains focus
-    refetchOnMount: false, // Don't refetch on component mount if data exists
+  const { data: bookingSummary, isLoading: bookingSummaryLoading, isError: bookingSummaryError } = useQuery<BookingSummary>({
+    queryKey: ["/admin/bookings/summary"],
+    enabled: !!user,
+    queryFn: async () => (await api.get("/admin/bookings/summary")).data,
+    staleTime: 60_000,
   });
 
   // Fetch only INTERNAL activities (not GetYourGuide activities) for management
@@ -145,93 +143,32 @@ function AdminDashboardContent() {
     refetchOnMount: false, // Don't refetch on component mount if data exists
   });
 
-  // Phase 4 §8 + correction pass §2: financial metrics use precise
-  // definitions instead of a single "Revenus Totaux" figure that silently
-  // included unpaid PENDING bookings:
-  //   - Gross Booking Value: total value of non-cancelled bookings
-  //   - Collected Payments: sum of amounts actually recorded as paid
-  //     (paidAmount) - see note below on why CANCELLED is NOT excluded here
-  //   - Outstanding Amount: remaining unpaid balance on non-cancelled bookings
-  //
-  // There is no refund ledger/state in this system yet, so CANCELLED must
-  // never be treated as if it implies the paid money disappeared. A
-  // cancelled booking that already had paidAmount=300 recorded keeps
-  // counting toward Collected Payments; only Gross Booking Value and
-  // Outstanding (which describe *booking* value, not cash already in hand)
-  // exclude cancelled bookings. If/when a real refund model exists, this is
-  // where a "Refunded" figure would be subtracted from Collected Payments -
-  // documented here as a future enhancement, not implemented in this pass.
-  const withinReportsDateRange = (b: any) => {
-    if (reportsDateRange.from || reportsDateRange.to) {
-      const bookingDate = getBookingDateOnly(b.preferredDate);
-      if (!bookingDate) return false;
-      if (reportsDateRange.from && bookingDate < reportsDateRange.from) return false;
-      if (reportsDateRange.to) {
-        const toDate = new Date(reportsDateRange.to);
-        toDate.setHours(23, 59, 59, 999);
-        if (bookingDate > toDate) return false;
-      }
-    }
-    return true;
-  };
-  // Any booking with a valid activity/totalAmount, regardless of status -
-  // the base set for Collected Payments (cancellation must not erase an
-  // already-recorded payment).
-  const bookingsWithValue = bookings.filter(b => {
-    if (!b.activity) return false;
-    if (Number(b.totalAmount) <= 0) return false;
-    return withinReportsDateRange(b);
-  });
-  // Same set, excluding CANCELLED - used for Gross Booking Value and
-  // Outstanding Amount, and for the "details" breakdown list below.
-  const eligibleBookings = bookingsWithValue.filter(b => String(b.status || '').toUpperCase() !== 'CANCELLED');
-  // Kept as an alias so the "details" list below reads naturally; identical to eligibleBookings.
-  const revenueBookings = eligibleBookings;
-  const grossBookingValue = eligibleBookings.reduce((sum, b) => sum + (Number(b.totalAmount) || 0), 0);
-  const collectedPayments = bookingsWithValue.reduce((sum, b) => sum + (Number(b.paidAmount) || 0), 0);
-  const outstandingAmount = eligibleBookings.reduce((sum, b) => sum + Math.max(0, (Number(b.totalAmount) || 0) - (Number(b.paidAmount) || 0)), 0);
-  
-  // Filter bookings for reports based on date range
-  const reportsFilteredBookings = bookings.filter(b => {
-    if (!b.activity) return false;
-    
-    // Apply reports date range filter
-    if (reportsDateRange.from || reportsDateRange.to) {
-      const bookingDate = getBookingDateOnly(b.preferredDate);
-      if (!bookingDate) return false;
-      if (reportsDateRange.from && bookingDate < reportsDateRange.from) return false;
-      if (reportsDateRange.to) {
-        const toDate = new Date(reportsDateRange.to);
-        toDate.setHours(23, 59, 59, 999);
-        if (bookingDate > toDate) return false;
-      }
-    }
-    
-    return true;
-  });
-  
-  const reportsPendingBookings = reportsFilteredBookings.filter(b => String(b.status || '').toUpperCase() === 'PENDING').length;
-  const reportsConfirmedBookings = reportsFilteredBookings.filter(b => String(b.status || '').toUpperCase() === 'CONFIRMED').length;
 
-  // Debug logging for revenue calculation (DEV only)
-  if (import.meta.env.DEV) {
-    console.log('[REVENUE DEBUG]', {
-      totalBookings: bookings.length,
-      eligibleBookings: eligibleBookings.length,
-      allBookingsData: bookings.map(b => ({
-        id: b._id,
-        status: b.status,
-        totalAmount: b.totalAmount,
-        paidAmount: b.paidAmount
-      })),
-      grossBookingValue,
-      collectedPayments,
-      outstandingAmount
-    });
-  }
-
-  const pendingBookings = bookings.filter(b => String(b.status || '').toUpperCase() === 'PENDING').length;
-  const confirmedBookings = bookings.filter(b => String(b.status || '').toUpperCase() === 'CONFIRMED').length;
+  const reportFrom = reportsDateRange.from ? formatLocalDateOnly(reportsDateRange.from) : undefined;
+  const reportTo = reportsDateRange.to ? formatLocalDateOnly(reportsDateRange.to) : undefined;
+  const reportQuery = reportFrom && reportTo ? `?from=${reportFrom}&to=${reportTo}` : "";
+  const { data: reportSummary, isLoading: reportSummaryLoading, isError: reportSummaryError } = useQuery<BookingSummary>({
+    queryKey: ["/admin/bookings/summary", reportFrom, reportTo],
+    enabled: !!user,
+    queryFn: async () => (await api.get(`/admin/bookings/summary${reportQuery}`)).data,
+    staleTime: 60_000,
+  });
+  const summaryValue = (value: number | undefined, suffix = "") =>
+    bookingSummaryLoading ? "…" : bookingSummaryError ? "Indisponible" : `${(value ?? 0).toLocaleString()}${suffix}`;
+  const reportValue = (value: number | undefined) =>
+    reportSummaryLoading ? "…" : reportSummaryError ? "Indisponible" : String(value ?? 0);
+  const pendingBookings = bookingSummary?.pendingBookings ?? 0;
+  const confirmedBookings = bookingSummary?.confirmedBookings ?? 0;
+  const collectedPayments = bookingSummary?.collectedPayments ?? 0;
+  const grossBookingValue = bookingSummary?.grossBookingValue ?? 0;
+  const outstandingAmount = bookingSummary?.outstandingAmount ?? 0;
+  const { data: latestBookingPage } = useQuery<{ bookings: BookingType[] }>({
+    queryKey: ["/admin/bookings", "latest"],
+    enabled: !!user,
+    queryFn: async () => (await api.get("/admin/bookings?page=1&limit=1&sortField=createdAt&sortOrder=desc")).data,
+    staleTime: 60_000,
+  });
+  const latestBooking = latestBookingPage?.bookings?.[0];
 
   // Delete activity mutation
   const deleteActivityMutation = useMutation({
@@ -489,13 +426,9 @@ function AdminDashboardContent() {
   };
 
   const handleViewActivityBookings = (activity: ActivityType) => {
-    // Fix: Add null check for b.activity to prevent TypeError
-    const activityBookings = bookings.filter(b => b.activity && (b.activity.id === activity.id || b.activity._id === activity._id || b.activityId === activity._id || b.activityId === activity.id));
-    const totalRevenue = activityBookings.filter(b => String(b.status || '').toUpperCase() === 'CONFIRMED').reduce((sum, b) => sum + Number(b.totalAmount || 0), 0);
-    
     toast({
-      title: `Statistiques: ${activity.name}`,
-      description: `Total: ${activityBookings.length} réservations, Revenus: ${totalRevenue} MAD`,
+      title: `Réservations: ${activity.name}`,
+      description: "Utilisez l’onglet Réservations pour rechercher et filtrer les réservations.",
     });
   };
 
@@ -556,31 +489,14 @@ function AdminDashboardContent() {
                         <TrendingUp className="h-4 w-4 text-green-600" />
                       </CardHeader>
                       <CardContent>
-                        <div className="text-2xl font-bold text-green-900">
-                          {collectedPayments.toLocaleString()} MAD
-                        </div>
+                        <div className="text-2xl font-bold text-green-900">{summaryValue(collectedPayments, " MAD")}</div>
                         <p className="text-xs text-green-600 mt-1">
-                          Montant réellement encaissé, y compris sur réservations annulées ({bookingsWithValue.length} réservation{bookingsWithValue.length !== 1 ? 's' : ''})
+                          Montant réellement encaissé selon le résumé serveur
                         </p>
                         <p className="text-xs text-green-700 mt-1">
-                          Valeur brute des réservations (hors annulées) : {grossBookingValue.toLocaleString()} MAD · Reste à encaisser : {outstandingAmount.toLocaleString()} MAD
+                          Valeur brute : {summaryValue(grossBookingValue, " MAD")} · Reste à encaisser : {summaryValue(outstandingAmount, " MAD")}
                         </p>
-                        {revenueBookings.length > 0 && (
-                          <details className="mt-3 text-xs">
-                            <summary className="cursor-pointer text-green-700 hover:text-green-900 font-medium">
-                              Voir les détails ({revenueBookings.length})
-                            </summary>
-                            <div className="mt-2 space-y-1 max-h-32 overflow-y-auto">
-                              {revenueBookings.map((b) => (
-                                <div key={b.id || b._id} className="bg-white/50 p-2 rounded border border-green-200">
-                                  <div className="font-medium">{b.customerName}</div>
-                                  <div className="text-green-600">{b.activity?.name || 'Activité supprimée'}</div>
-                                  <div className="text-green-700 font-semibold">{b.totalAmount} MAD payé {b.paidAmount ?? 0} MAD - {b.status}</div>
-                                </div>
-                              ))}
-                            </div>
-                          </details>
-                        )}
+                        <p className="text-xs text-green-700 mt-2">Les détails sont disponibles dans la liste paginée des réservations.</p>
                       </CardContent>
                     </Card>
 
@@ -593,7 +509,7 @@ function AdminDashboardContent() {
                       </CardHeader>
                       <CardContent>
                         <div className="text-2xl font-bold text-orange-900">
-                          {pendingBookings}
+                          {summaryValue(pendingBookings)}
                         </div>
                         <p className="text-xs text-orange-600 mt-1">En cours de traitement</p>
                       </CardContent>
@@ -608,7 +524,7 @@ function AdminDashboardContent() {
                       </CardHeader>
                       <CardContent>
                         <div className="text-2xl font-bold text-blue-900">
-                          {confirmedBookings.toString()}
+                          {summaryValue(confirmedBookings)}
                         </div>
                         <p className="text-xs text-blue-600 mt-1">Clients satisfaits</p>
                       </CardContent>
@@ -632,7 +548,6 @@ function AdminDashboardContent() {
 
             <TabsContent value="bookings" className="space-y-4">
               <BookingManagement
-                bookings={bookings}
                 onExportBookings={handleExportBookings}
                 onExportBookingsPDF={handleExportBookingsPDF}
                 canDeleteBookings={isSuperAdmin}
@@ -812,11 +727,11 @@ function AdminDashboardContent() {
                 </CardHeader>
                 <CardContent>
                   <WhatsAppNotificationPanel 
-                    booking={bookings.length > 0 ? {
-                      ...bookings[0],
-                      activityName: bookings[0].activity?.name || 'N/A'
+                    booking={latestBooking ? {
+                      ...latestBooking,
+                      activityName: latestBooking.activity?.name || 'N/A'
                     } : undefined}
-                    customerPhone={bookings.length > 0 ? bookings[0].customerPhone : undefined}
+                    customerPhone={latestBooking?.customerPhone}
                   />
                 </CardContent>
               </Card>
@@ -857,7 +772,7 @@ function AdminDashboardContent() {
                       {reportsDateRange.from && (
                         <div className="p-3 border-t flex justify-between items-center">
                           <span className="text-sm text-gray-600">
-                            {reportsFilteredBookings.length} réservation(s) dans cette période
+                            {reportSummaryLoading ? "Chargement…" : reportSummaryError ? "Résumé indisponible" : `${reportSummary?.totalBookings ?? 0} réservation(s) dans cette période`}
                           </span>
                           <Button
                             variant="outline"
@@ -901,10 +816,10 @@ function AdminDashboardContent() {
                   </CardHeader>
                   <CardContent>
                     <div className="text-3xl font-bold text-blue-900">
-                      {collectedPayments.toLocaleString()} MAD
+                      {reportSummaryLoading ? "…" : reportSummaryError ? "Indisponible" : `${(reportSummary?.collectedPayments ?? 0).toLocaleString()} MAD`}
                     </div>
                     <p className="text-sm text-blue-600 mt-1">
-                      Valeur brute (hors annulées) : {grossBookingValue.toLocaleString()} MAD · Reste à encaisser : {outstandingAmount.toLocaleString()} MAD
+                      Valeur brute : {reportSummaryLoading ? "…" : reportSummaryError ? "Indisponible" : `${(reportSummary?.grossBookingValue ?? 0).toLocaleString()} MAD`} · Reste à encaisser : {reportSummaryLoading ? "…" : reportSummaryError ? "Indisponible" : `${(reportSummary?.outstandingAmount ?? 0).toLocaleString()} MAD`}
                     </p>
                   </CardContent>
                 </Card>
@@ -917,7 +832,7 @@ function AdminDashboardContent() {
                   </CardHeader>
                   <CardContent>
                     <div className="text-3xl font-bold text-green-900">
-                      {reportsConfirmedBookings.toString()}
+                      {reportValue(reportSummary?.confirmedBookings)}
                     </div>
                     <p className="text-sm text-green-600 mt-1">Clients satisfaits{reportsDateRange.from ? ' (période sélectionnée)' : ''}</p>
                   </CardContent>
@@ -931,7 +846,7 @@ function AdminDashboardContent() {
                   </CardHeader>
                   <CardContent>
                     <div className="text-3xl font-bold text-orange-900">
-                      {reportsPendingBookings}
+                      {reportValue(reportSummary?.pendingBookings)}
                     </div>
                     <p className="text-sm text-orange-600 mt-1">En cours de traitement{reportsDateRange.from ? ' (période sélectionnée)' : ''}</p>
                   </CardContent>
@@ -994,7 +909,7 @@ function AdminDashboardContent() {
 
             {/* Cash Reminders Tab */}
             <TabsContent value="reminders" className="space-y-4">
-              <CashBookingReminders bookings={bookings} />
+              <CashBookingReminders />
             </TabsContent>
 
             {isSuperAdmin && (

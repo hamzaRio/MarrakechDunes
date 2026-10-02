@@ -86,6 +86,7 @@ export default function PaymentManagement({ booking, trigger, open, onOpenChange
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["/admin/bookings"] });
+      await queryClient.invalidateQueries({ queryKey: ["/admin/bookings/summary"] });
       toast({
         title: "Paiement Mis à Jour",
         description: "Le statut de paiement a été mis à jour avec succès.",

@@ -167,13 +167,21 @@ export interface IStorage {
     limit?: number;
     fields?: string[];
     sort?: { field: string; order: 1 | -1 };
+    search?: string;
+    status?: string;
+    paymentStatus?: string;
+    dateRange?: { start?: Date; end?: Date };
   }): Promise<BookingWithActivity[]>;
   getBookingsPaginated(options?: {
     page?: number;
     limit?: number;
     fields?: string[];
     sort?: { field: string; order: 1 | -1 };
-  }): Promise<{ bookings: BookingWithActivity[]; total: number; page: number; totalPages: number }>;
+    search?: string;
+    status?: string;
+    paymentStatus?: string;
+    dateRange?: { start?: Date; end?: Date };
+  }): Promise<{ bookings: BookingWithActivity[]; total: number; page: number; limit: number; totalPages: number }>;
   getBookingsByCustomerPhone(phone: string): Promise<BookingWithActivity[]>;
   hasBookingsForCustomerPhone(phone: string): Promise<boolean>;
   getBookingsForReminderDate(date: Date, statuses?: string[]): Promise<BookingWithActivity[]>;
@@ -528,9 +536,13 @@ class MongoStorage implements IStorage {
     limit?: number;
     fields?: string[];
     sort?: { field: string; order: 1 | -1 };
+    search?: string;
+    status?: string;
+    paymentStatus?: string;
+    dateRange?: { start?: Date; end?: Date };
   }): Promise<BookingWithActivity[]> {
     // If no pagination options, return all (backward compatible)
-    if (!options || (!options.page && !options.limit)) {
+    if (!options || Object.keys(options).length === 0) {
       return await cacheService.withCache(
         'bookings',
         'all',
@@ -552,7 +564,11 @@ class MongoStorage implements IStorage {
     limit?: number;
     fields?: string[];
     sort?: { field: string; order: 1 | -1 };
-  }): Promise<{ bookings: BookingWithActivity[]; total: number; page: number; totalPages: number }> {
+    search?: string;
+    status?: string;
+    paymentStatus?: string;
+    dateRange?: { start?: Date; end?: Date };
+  }): Promise<{ bookings: BookingWithActivity[]; total: number; page: number; limit: number; totalPages: number }> {
     const { page, limit, sort } = normalizeBookingPagination(options);
     const skip = (page - 1) * limit;
     
@@ -561,6 +577,32 @@ class MongoStorage implements IStorage {
     const sortOrder = sort.order;
     const sortObj: any = { [sortField]: sortOrder };
     
+    const filter: Record<string, any> = {};
+    const bookingStatuses = ['PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED'];
+    if (options?.status && bookingStatuses.includes(options.status.toUpperCase())) {
+      const normalized = options.status.toUpperCase();
+      filter.status = { $in: [normalized, normalized.toLowerCase()] };
+    }
+    const paymentStatuses = ['unpaid', 'deposit_paid', 'fully_paid'];
+    if (options?.paymentStatus && paymentStatuses.includes(options.paymentStatus)) {
+      filter.paymentStatus = options.paymentStatus;
+    }
+    if (options?.dateRange?.start || options?.dateRange?.end) {
+      filter.preferredDate = {};
+      if (options.dateRange.start) filter.preferredDate.$gte = options.dateRange.start;
+      if (options.dateRange.end) filter.preferredDate.$lte = options.dateRange.end;
+    }
+    const search = options?.search?.trim().slice(0, 100);
+    if (search) {
+      const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const activityIds = await Activity.find({ name: { $regex: escaped, $options: 'i' } }).select('_id').lean();
+      filter.$or = [
+        { customerName: { $regex: escaped, $options: 'i' } },
+        { customerPhone: { $regex: escaped, $options: 'i' } },
+        { activityId: { $in: activityIds.map((activity) => activity._id) } },
+      ];
+    }
+
     // Build projection if fields specified (only fetch needed fields)
     const projection = options?.fields && options.fields.length > 0
       ? options.fields.reduce((acc, field) => ({ ...acc, [field]: 1 }), {})
@@ -569,12 +611,13 @@ class MongoStorage implements IStorage {
     // Execute queries in parallel
     const [bookings, total] = await Promise.all([
       Booking.find()
+        .find(filter)
         .select(projection)
         .populate('activityId', 'name price imageUrls category') // Only fetch needed activity fields
         .sort(sortObj)
         .skip(skip)
         .limit(limit),
-      Booking.countDocuments()
+      Booking.countDocuments(filter)
     ]);
     
     console.log(`[STORAGE] Fetched ${bookings.length} bookings (page ${page}, total: ${total})`);
@@ -586,6 +629,7 @@ class MongoStorage implements IStorage {
       bookings: processedBookings,
       total,
       page,
+      limit,
       totalPages
     };
   }

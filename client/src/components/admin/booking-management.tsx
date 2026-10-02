@@ -1,5 +1,5 @@
-import { useMemo, useRef, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import BookingDetailsModal from "@/components/booking-details-modal";
 import PaymentManagement from "@/components/payment-management";
 import BookingRow, { type AdminBooking, type BookingLifecycleStatus } from "@/components/admin/booking-row";
@@ -23,11 +23,10 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { apiFetch } from "@/lib/api";
-import { getBookingDateOnly, getBookingPaymentSummary, normalizeBookingStatus } from "@/lib/booking-utils";
+import { formatLocalDateOnly, getBookingDateOnly, getBookingPaymentSummary, normalizeBookingStatus, resolveBookingPage } from "@/lib/booking-utils";
 import { Calendar as CalendarIcon, Download, FileText, Filter, Search, Trash2, X } from "lucide-react";
 
 interface BookingManagementProps {
-  bookings: AdminBooking[];
   onExportBookings: () => void;
   onExportBookingsPDF: () => void;
   canDeleteBookings: boolean;
@@ -36,7 +35,6 @@ interface BookingManagementProps {
 const bookingIdOf = (booking: AdminBooking): string => booking._id || booking.id || "";
 
 export default function BookingManagement({
-  bookings,
   onExportBookings,
   onExportBookingsPDF,
   canDeleteBookings,
@@ -60,61 +58,71 @@ export default function BookingManagement({
   const mutationInFlight = useRef(false);
   const isBusy = isDeleting || isBulkUpdating || updatingBookingId !== null;
 
-  const filteredBookings = useMemo(() => {
-    return bookings.filter((booking) => {
-      if (!booking.activity) return false;
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebouncedSearch(searchQuery.trim().slice(0, 100)), 300);
+    return () => window.clearTimeout(timer);
+  }, [searchQuery]);
 
-      if (searchQuery) {
-        const query = searchQuery.toLowerCase();
-        const matchesSearch =
-          booking.customerName?.toLowerCase().includes(query) ||
-          booking.customerPhone?.toLowerCase().includes(query) ||
-          booking.activity.name?.toLowerCase().includes(query);
-        if (!matchesSearch) return false;
-      }
+  const dateParams = useMemo(() => ({
+    from: dateRange.from ? formatLocalDateOnly(dateRange.from) : undefined,
+    to: dateRange.to ? formatLocalDateOnly(dateRange.to) : undefined,
+  }), [dateRange.from, dateRange.to]);
+  const listParams = useMemo(() => {
+    const params = new URLSearchParams({ page: String(page), limit: String(pageSize) });
+    if (debouncedSearch) params.set("search", debouncedSearch);
+    if (statusFilter !== "all") params.set("status", statusFilter);
+    if (paymentStatusFilter !== "all") params.set("paymentStatus", paymentStatusFilter);
+    if (dateParams.from) params.set("from", dateParams.from);
+    if (dateParams.to) params.set("to", dateParams.to);
+    return params.toString();
+  }, [dateParams.from, dateParams.to, debouncedSearch, page, pageSize, paymentStatusFilter, statusFilter]);
+  const { data: bookingPage, isLoading, isFetching, isError } = useQuery<{
+    bookings: AdminBooking[]; total: number; page: number; limit: number; totalPages: number;
+  }>({
+    queryKey: ["/admin/bookings", listParams],
+    queryFn: async () => {
+      const response = await apiFetch(`/admin/bookings?${listParams}`);
+      if (!response.ok) throw new Error("Failed to fetch bookings");
+      return response.json();
+    },
+    staleTime: 60_000,
+    placeholderData: keepPreviousData,
+  });
+  const bookings = bookingPage?.bookings || [];
+  const totalBookings = bookingPage?.total || 0;
+  const totalPages = Math.max(1, bookingPage?.totalPages || 1);
 
-      if (statusFilter !== "all" && normalizeBookingStatus(booking.status) !== statusFilter) {
-        return false;
-      }
-
-      if (paymentStatusFilter !== "all" && getBookingPaymentSummary(booking).paymentStatus !== paymentStatusFilter) {
-        return false;
-      }
-
-      if (dateRange.from || dateRange.to) {
-        const bookingDate = getBookingDateOnly(booking.preferredDate);
-        if (!bookingDate) return false;
-        if (dateRange.from && bookingDate < dateRange.from) return false;
-        if (dateRange.to) {
-          const endDate = new Date(dateRange.to);
-          endDate.setHours(23, 59, 59, 999);
-          if (bookingDate > endDate) return false;
-        }
-      }
-
-      return true;
-    });
-  }, [bookings, dateRange.from, dateRange.to, paymentStatusFilter, searchQuery, statusFilter]);
+  useEffect(() => {
+    const resolved = resolveBookingPage(page, totalPages);
+    if (resolved.page !== page) setPage(resolved.page);
+  }, [page, totalPages]);
 
   const visibleBookingIds = useMemo(
-    () => new Set(filteredBookings.map(bookingIdOf).filter(Boolean)),
-    [filteredBookings],
+    () => new Set(bookings.map(bookingIdOf).filter(Boolean)),
+    [bookings],
   );
   const selectedBookings = useMemo(
     () => new Set([...selectedBookingIds].filter((id) => visibleBookingIds.has(id))),
     [selectedBookingIds, visibleBookingIds],
   );
-  // Prune immediately so hidden/deleted IDs cannot be acted on or reselected
-  // automatically when filters are cleared. This guard only removes IDs.
-  if (selectedBookings.size !== selectedBookingIds.size) {
-    setSelectedBookings(selectedBookings);
-  }
+  useEffect(() => {
+    if (selectedBookings.size !== selectedBookingIds.size) setSelectedBookings(selectedBookings);
+  }, [selectedBookings, selectedBookingIds]);
 
   const selectedBooking = useMemo(
     () => bookings.find((booking) => bookingIdOf(booking) === selectedBookingId) || null,
     [bookings, selectedBookingId],
   );
   const paymentBooking = bookings.find((booking) => bookingIdOf(booking) === paymentBookingId);
+  const refreshBookings = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["/admin/bookings"] }),
+      queryClient.invalidateQueries({ queryKey: ["/admin/bookings/summary"] }),
+    ]);
+  };
 
   const filtersActive =
     searchQuery !== "" ||
@@ -127,7 +135,18 @@ export default function BookingManagement({
     setStatusFilter("all");
     setPaymentStatusFilter("all");
     setDateRange({});
+    setPage(1);
+    setSelectedBookings(new Set());
   };
+
+  useEffect(() => {
+    setPage(resolveBookingPage(page, totalPages, true).page);
+    setSelectedBookings(new Set());
+  }, [statusFilter, paymentStatusFilter, dateParams.from, dateParams.to, pageSize, debouncedSearch]);
+
+  useEffect(() => {
+    setSelectedBookings(new Set());
+  }, [page]);
 
   const updateBookingStatus = async (bookingId: string, status: BookingLifecycleStatus) => {
     const response = await apiFetch(`/admin/bookings/${bookingId}/status`, {
@@ -148,7 +167,7 @@ export default function BookingManagement({
     setUpdatingBookingId(bookingIdOf(booking));
     try {
       await updateBookingStatus(bookingIdOf(booking), status);
-      await queryClient.invalidateQueries({ queryKey: ["/admin/bookings"] });
+      await refreshBookings();
       toast({
         title: "Statut Mis à Jour",
         description: `La réservation est maintenant ${status}.`,
@@ -180,7 +199,7 @@ export default function BookingManagement({
     setIsDeleting(true);
     try {
       await deleteBooking(bookingIdOf(bookingToDelete));
-      await queryClient.invalidateQueries({ queryKey: ["/admin/bookings"] });
+      await refreshBookings();
       setSelectedBookings((current) => {
         const next = new Set(current);
         next.delete(bookingIdOf(bookingToDelete));
@@ -247,7 +266,7 @@ export default function BookingManagement({
       });
     } finally {
       try {
-        await queryClient.invalidateQueries({ queryKey: ["/admin/bookings"] });
+        await refreshBookings();
       } finally {
         mutationInFlight.current = false;
         setIsBulkUpdating(false);
@@ -285,7 +304,7 @@ export default function BookingManagement({
       });
     } finally {
       try {
-        await queryClient.invalidateQueries({ queryKey: ["/admin/bookings"] });
+        await refreshBookings();
       } finally {
         mutationInFlight.current = false;
         setIsDeleting(false);
@@ -294,7 +313,7 @@ export default function BookingManagement({
   };
 
   const handleBulkExport = () => {
-    const selectedData = filteredBookings.filter((booking) => selectedBookings.has(bookingIdOf(booking)));
+    const selectedData = bookings.filter((booking) => selectedBookings.has(bookingIdOf(booking)));
     if (selectedData.length === 0) return;
 
     const headers = [
@@ -523,7 +542,7 @@ export default function BookingManagement({
                   ? true : selectedBookings.size > 0 ? "indeterminate" : false}
                 onCheckedChange={(checked) => handleSelectAll(checked === true)}
               />
-              <Label htmlFor="select-visible-bookings">Sélectionner tout ({filteredBookings.length})</Label>
+              <Label htmlFor="select-visible-bookings">Sélectionner tout sur cette page ({bookings.length})</Label>
               {filtersActive ? (
                 <Button disabled={isBusy} variant="ghost" size="sm" onClick={resetFilters}>
                   <X className="mr-1 h-4 w-4" />
@@ -534,7 +553,11 @@ export default function BookingManagement({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {filteredBookings.length === 0 ? (
+          {isLoading ? (
+            <div className="py-12 text-center text-gray-500">Chargement des réservations…</div>
+          ) : isError ? (
+            <div className="py-12 text-center text-red-600">Impossible de charger les réservations.</div>
+          ) : bookings.length === 0 ? (
             <div className="py-12 text-center">
               <p className="text-gray-500">Aucune réservation trouvée avec les filtres sélectionnés.</p>
               {filtersActive ? (
@@ -545,7 +568,7 @@ export default function BookingManagement({
             </div>
           ) : (
             <div className="space-y-3">
-              {filteredBookings.map((booking, index) => {
+              {bookings.map((booking, index) => {
                 const bookingId = bookingIdOf(booking) || `booking-${index}`;
                 return (
                   <BookingRow
@@ -566,6 +589,23 @@ export default function BookingManagement({
               })}
             </div>
           )}
+          <div className="mt-4 flex flex-col gap-3 border-t pt-4 text-sm text-gray-600 sm:flex-row sm:items-center sm:justify-between">
+            <span>
+              {isFetching ? "Mise à jour…" : `${totalBookings} réservation(s) · page ${page} sur ${totalPages}`}
+            </span>
+            <div className="flex items-center gap-2">
+              <Select value={String(pageSize)} onValueChange={(value) => setPageSize(Number(value))} disabled={isBusy}>
+                <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="25">25 / page</SelectItem>
+                  <SelectItem value="50">50 / page</SelectItem>
+                  <SelectItem value="100">100 / page</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button variant="outline" size="sm" disabled={isBusy || page <= 1} onClick={() => setPage((value) => Math.max(1, value - 1))}>Précédent</Button>
+              <Button variant="outline" size="sm" disabled={isBusy || page >= totalPages} onClick={() => setPage((value) => Math.min(totalPages, value + 1))}>Suivant</Button>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
