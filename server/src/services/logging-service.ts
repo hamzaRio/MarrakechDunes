@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { createWriteStream, mkdirSync } from 'fs';
+import type { WriteStream } from 'fs';
 import { join } from 'path';
 
 export interface LogEntry {
@@ -30,20 +31,19 @@ export interface LogEntry {
 }
 
 export class LoggingService {
+  private readonly fileLoggingEnabled: boolean;
+  private readonly logDir: string;
   private logFile: string;
   private errorLogFile: string;
   private accessLogFile: string;
+  private readonly streams = new Map<string, WriteStream>();
 
   constructor() {
+    this.fileLoggingEnabled = process.env.NODE_ENV !== 'production';
     const logDir = process.env.LOG_DIR || './logs';
-    
-    // Ensure logs directory exists
-    try {
-      mkdirSync(logDir, { recursive: true });
-    } catch (error) {
-      console.warn('Could not create logs directory:', error);
-    }
-    
+    this.logDir = logDir;
+    // Render production uses structured stdout/stderr; file logging is
+    // explicitly development-only to keep request handling non-blocking.
     this.logFile = join(logDir, 'application.log');
     this.errorLogFile = join(logDir, 'error.log');
     this.accessLogFile = join(logDir, 'access.log');
@@ -63,19 +63,37 @@ export class LoggingService {
   }
 
   private writeToFile(filename: string, message: string): void {
-    try {
-      // Ensure directory exists before writing
-      const dir = filename.substring(0, filename.lastIndexOf('/'));
-      if (dir) {
-        mkdirSync(dir, { recursive: true });
+    if (!this.fileLoggingEnabled) return;
+
+    let stream = this.streams.get(filename);
+    if (!stream) {
+      try {
+        mkdirSync(this.logDir, { recursive: true });
+        stream = createWriteStream(filename, { flags: 'a' });
+        stream.on('error', () => {
+          this.streams.delete(filename);
+          console.error('[logging] log stream unavailable');
+        });
+        this.streams.set(filename, stream);
+      } catch {
+        console.error('[logging] unable to open log stream');
+        return;
       }
-      
-      const stream = createWriteStream(filename, { flags: 'a' });
-      stream.write(message + '\n');
-      stream.end();
-    } catch (error) {
-      console.error('Failed to write to log file:', error);
     }
+
+    try {
+      stream.write(message + '\n');
+    } catch {
+      console.error('[logging] unable to write log entry');
+    }
+  }
+
+  async close(): Promise<void> {
+    const streams = Array.from(this.streams.values());
+    this.streams.clear();
+    await Promise.all(streams.map((stream) => new Promise<void>((resolve) => {
+      stream.end(() => resolve());
+    })));
   }
 
   info(message: string, context?: LogEntry['context'], metadata?: Record<string, any>): void {

@@ -20,8 +20,12 @@ export interface CacheStats {
 }
 
 export class CacheService {
+  // Conservative bound for the single-instance Render memory budget. This is
+  // an entry-count limit; values themselves remain governed by their TTL.
+  private static readonly MAX_MEMORY_CACHE_ENTRIES = 500;
   private config: CacheConfig;
   private memoryCache: Map<string, { data: any; expires: number }> = new Map();
+  private cleanupTimer: NodeJS.Timeout;
   private stats: CacheStats = { hits: 0, misses: 0, sets: 0, deletes: 0, errors: 0 };
 
   constructor() {
@@ -37,9 +41,10 @@ export class CacheService {
     };
     
     // Clean up expired memory cache entries every 5 minutes
-    setInterval(() => {
+    this.cleanupTimer = setInterval(() => {
       this.cleanupMemoryCache();
     }, 5 * 60 * 1000);
+    this.cleanupTimer.unref?.();
   }
 
   async connect(): Promise<void> {
@@ -79,8 +84,7 @@ export class CacheService {
   async del(type: string, identifier: string): Promise<boolean> {
     try {
       const key = this.getKey(type, identifier);
-      this.memoryCache.delete(key);
-      this.stats.deletes++;
+      if (this.memoryCache.delete(key)) this.stats.deletes++;
       return true;
     } catch (error) {
       console.warn('Cache delete error:', error);
@@ -90,12 +94,14 @@ export class CacheService {
 
   async invalidatePattern(pattern: string): Promise<boolean> {
     try {
-      const prefix = `marrakechdunes:${pattern}`;
+      const prefix = `marrakechdunes:${pattern.replace(/\*$/, '')}`;
+      let removed = 0;
       for (const key of this.memoryCache.keys()) {
         if (key.startsWith(prefix)) {
-          this.memoryCache.delete(key);
+          if (this.memoryCache.delete(key)) removed++;
         }
       }
+      this.stats.deletes += removed;
       return true;
     } catch (error) {
       console.warn('Cache pattern invalidation error:', error);
@@ -196,18 +202,17 @@ export class CacheService {
     
     // Delete memory cache entries
     for (const key of keysToInvalidate) {
-      this.memoryCache.delete(key);
+      if (this.memoryCache.delete(key)) this.stats.deletes++;
     }
-    
-    // Memory cache entries already deleted above
-    
-    this.stats.deletes += keysToInvalidate.length;
   }
 
   // Memory cache helpers
   private getFromMemoryCache<T>(key: string): T | null {
     const entry = this.memoryCache.get(key);
     if (entry && entry.expires > Date.now()) {
+      // Refresh insertion order so the oldest entry is the least recently used.
+      this.memoryCache.delete(key);
+      this.memoryCache.set(key, entry);
       return entry.data;
     }
     if (entry) {
@@ -218,6 +223,12 @@ export class CacheService {
 
   private setInMemoryCache(key: string, data: any, ttlSeconds: number): void {
     const expires = Date.now() + (ttlSeconds * 1000);
+    this.memoryCache.delete(key);
+    while (this.memoryCache.size >= CacheService.MAX_MEMORY_CACHE_ENTRIES) {
+      const oldestKey = this.memoryCache.keys().next().value as string | undefined;
+      if (oldestKey === undefined) break;
+      this.memoryCache.delete(oldestKey);
+    }
     this.memoryCache.set(key, { data, expires });
   }
 
@@ -303,6 +314,7 @@ export class CacheService {
   }
 
   async disconnect(): Promise<void> {
+    clearInterval(this.cleanupTimer);
     this.memoryCache.clear();
   }
 }

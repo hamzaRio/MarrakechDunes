@@ -15,8 +15,6 @@ process.stderr.setEncoding("utf8");
 // Set UTF-8 environment variables for proper character handling
 process.env.LANG = 'en_US.UTF-8';
 process.env.LC_ALL = 'en_US.UTF-8';
-process.env.NODE_OPTIONS = '--max-old-space-size=4096';
-
 // Ensure proper UTF-8 handling in Node.js
 if (process.platform === 'win32') {
   process.env.CHCP = '65001'; // UTF-8 code page on Windows
@@ -121,6 +119,7 @@ if (process.env.NODE_ENV === 'production') {
 
 // Now import modules that depend on environment variables
 import express, { type Request, type Response, type NextFunction, type CookieOptions, type RequestHandler } from "express";
+import type { Server as HttpServer } from "http";
 import type { ServeStaticOptions } from "serve-static";
 import cors from "cors";
 import cookieParser from "cookie-parser";
@@ -138,10 +137,11 @@ import {
 } from "./security-hardening.js";
 import { globalLimiter, strictLimiter } from "./rate-limiters.js";
 // registerRoutes removed - routes are now mounted directly
-import { connectToDatabase } from "./db.js";
+import { connectToDatabase, disconnectFromDatabase } from "./db.js";
 import { notFoundHandler, globalErrorHandler } from "./error-handler.js";
 import { sessionSecurity } from "./security-middleware.js";
 import sessionRouter from "./routes/session.js";
+import { createGracefulShutdown } from './utils/graceful-shutdown.js';
 
 // CORS origins are defined below in FRONT_ORIGINS
 
@@ -176,6 +176,46 @@ const log = (
 };
 
 const app = express();
+let httpServer: HttpServer | null = null;
+let stopScheduler: (() => void) | null = null;
+let disconnectCache: (() => Promise<void>) | null = null;
+let closeLogging: (() => Promise<void>) | null = null;
+let stopNotificationCleanup: (() => void) | null = null;
+
+const gracefulShutdown = createGracefulShutdown({
+  closeServer: async () => {
+    if (httpServer?.listening) {
+      await new Promise<void>((resolve) => httpServer!.close(() => resolve()));
+    }
+  },
+  stopTimers: () => {
+    stopScheduler?.();
+    stopNotificationCleanup?.();
+  },
+  closeLogging: async () => { if (closeLogging) await closeLogging(); },
+  closeCache: async () => {
+    if (disconnectCache) await disconnectCache();
+  },
+  closeDatabase: disconnectFromDatabase,
+  onTimeout: () => {
+    console.error('[shutdown] Cleanup exceeded timeout; forcing shutdown');
+    process.exit(1);
+  },
+});
+
+process.once('SIGTERM', () => { console.warn('[shutdown] Received SIGTERM'); void gracefulShutdown(); });
+process.once('SIGINT', () => { console.warn('[shutdown] Received SIGINT'); void gracefulShutdown(); });
+process.on('unhandledRejection', (reason) => {
+  const error = reason instanceof Error ? reason : new Error('Unhandled promise rejection');
+  console.error('[process] Unhandled rejection:', error.name);
+  Sentry.captureException(error);
+  void gracefulShutdown().then(() => { process.exitCode = 1; });
+});
+process.on('uncaughtException', (error) => {
+  console.error('[process] Uncaught exception:', error.name);
+  Sentry.captureException(error);
+  void gracefulShutdown().then(() => { process.exitCode = 1; });
+});
 
 // Initialize Sentry for error tracking
 if (process.env.NODE_ENV === 'production' && process.env.SENTRY_DSN) {
@@ -523,12 +563,14 @@ app.use((req, res, next) => {
   // ? Initialize cache service
   const { cacheService } = await import('./services/cache-service.js');
   await cacheService.connect();
+  disconnectCache = () => cacheService.disconnect();
 
   // ? Initialize error monitoring
   const { errorMonitoring } = await import('./services/error-monitoring.js');
 
   // ? Initialize logging service
   const { loggingService } = await import('./services/logging-service.js');
+  closeLogging = () => loggingService.close();
 
   // Add performance monitoring middleware
   app.use((req: Request, res: Response, next: NextFunction) => {
@@ -613,8 +655,6 @@ app.use((req, res, next) => {
   app.use('/api', uploadRouter);
   
   // Routes are now mounted directly above, no need for registerRoutes
-  const server = app;
-
   // Test notification endpoint (superadmin only)
   app.post("/api/test/notifications", requireSuperAdmin, async (req, res) => {
     const { testType = 'email' } = req.body;
@@ -814,12 +854,15 @@ app.use((req, res, next) => {
   try {
     const { notificationScheduler } = await import('./jobs/notification-scheduler.js');
     notificationScheduler.start();
+    stopScheduler = () => notificationScheduler.stop();
+    const queue = await import('./services/free-notification-queue.js');
+    stopNotificationCleanup = queue.stopNotificationQueueCleanup;
     log(`⏰ Notification scheduler started`);
   } catch (error) {
     console.warn('⚠️ Failed to start notification scheduler:', error);
   }
 
-  server.listen(PORT, () => {
+  httpServer = app.listen(PORT, () => {
     console.log(`[server] listening on ${PORT}`);
     console.log(`[assets] Static assets served by frontend at /images/`);
     console.log(`[routers] /api/session mounted`);

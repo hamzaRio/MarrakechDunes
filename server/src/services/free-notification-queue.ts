@@ -132,10 +132,15 @@ class FreeNotificationQueue {
 export const freeNotificationQueue = new FreeNotificationQueue();
 
 // Clean up old notifications every hour
-setInterval(() => {
+const notificationCleanupTimer = setInterval(() => {
   const removed = freeNotificationQueue.clearOldNotifications();
   if (removed > 0) {
     console.log(`[FREE NOTIFICATIONS] Cleaned up ${removed} old notifications`);
   }
 }, 60 * 60 * 1000);
+notificationCleanupTimer.unref?.();
+
+export function stopNotificationQueueCleanup(): void {
+  clearInterval(notificationCleanupTimer);
+}
 
