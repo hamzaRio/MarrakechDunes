@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { formatLocalDateOnly, resolveBookingPage } from "../client/src/lib/booking-utils.ts";
+import { formatLocalDateOnly, getCommonNextPossibleStatuses, getNextPossibleStatuses, resolveBookingPage } from "../client/src/lib/booking-utils.ts";
 import { normalizeBookingPagination, parseBookingDateOnly } from "../server/src/utils/booking-query.js";
 
 const assert = (condition: unknown, message: string) => {
@@ -23,6 +23,13 @@ assert(resolveBookingPage(4, 3).page === 3, "page overflow recovers to the last 
 assert(resolveBookingPage(1, 0).page === 1, "empty results retain page one");
 assert(resolveBookingPage(4, 10, true).page === 1, "filter changes reset to page one");
 assert(resolveBookingPage(2, 10).page === 2 && resolveBookingPage(2, 10).clearSelection, "page-only changes preserve page and clear selection");
+assert(JSON.stringify(getNextPossibleStatuses("PENDING")) === JSON.stringify(["CONFIRMED", "CANCELLED"]), "pending transitions are forward-only");
+assert(JSON.stringify(getNextPossibleStatuses("CONFIRMED")) === JSON.stringify(["COMPLETED", "CANCELLED"]), "confirmed transitions are forward-only");
+assert(getNextPossibleStatuses("COMPLETED").length === 0 && getNextPossibleStatuses("CANCELLED").length === 0, "terminal statuses have no transitions");
+assert(JSON.stringify(getCommonNextPossibleStatuses(["PENDING", "PENDING"])) === JSON.stringify(["CONFIRMED", "CANCELLED"]), "same pending bulk intersection");
+assert(JSON.stringify(getCommonNextPossibleStatuses(["CONFIRMED", "CONFIRMED"])) === JSON.stringify(["COMPLETED", "CANCELLED"]), "same confirmed bulk intersection");
+assert(JSON.stringify(getCommonNextPossibleStatuses(["PENDING", "CONFIRMED"])) === JSON.stringify(["CANCELLED"]), "mixed active bulk intersection");
+assert(getCommonNextPossibleStatuses(["CANCELLED", "COMPLETED"]).length === 0, "terminal bulk intersection is empty");
 assert([...statuses].join(",") === "PENDING,CONFIRMED,COMPLETED,CANCELLED", "booking status filter allowlist is canonical");
 assert(payments.has("deposit_paid") && !payments.has("paid"), "payment status filter allowlist is independent");
 

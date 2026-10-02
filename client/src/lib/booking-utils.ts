@@ -208,6 +208,13 @@ export function getNextPossibleStatuses(currentStatus: BookingStatus | string): 
   return VALID_TRANSITIONS[normalizedStatus] || [];
 }
 
+export function getCommonNextPossibleStatuses(statuses: Array<BookingStatus | string>): BookingStatus[] {
+  if (statuses.length === 0) return [];
+  return getNextPossibleStatuses(statuses[0]).filter((candidate) =>
+    statuses.slice(1).every((status) => getNextPossibleStatuses(status).includes(candidate)),
+  );
+}
+
 export function isFinalStatus(status: BookingStatus | string): boolean {
   return ['COMPLETED', 'CANCELLED'].includes(normalizeBookingStatus(status));
 }

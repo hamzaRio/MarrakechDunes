@@ -23,7 +23,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { apiFetch } from "@/lib/api";
-import { formatLocalDateOnly, getBookingDateOnly, getBookingPaymentSummary, normalizeBookingStatus, resolveBookingPage } from "@/lib/booking-utils";
+import { formatLocalDateOnly, getBookingDateOnly, getBookingPaymentSummary, getCommonNextPossibleStatuses, normalizeBookingStatus, resolveBookingPage } from "@/lib/booking-utils";
 import { Calendar as CalendarIcon, Download, FileText, Filter, Search, Trash2, X } from "lucide-react";
 
 interface BookingManagementProps {
@@ -108,6 +108,14 @@ export default function BookingManagement({
     () => new Set([...selectedBookingIds].filter((id) => visibleBookingIds.has(id))),
     [selectedBookingIds, visibleBookingIds],
   );
+  const selectedBookingRecords = useMemo(
+    () => bookings.filter((booking) => selectedBookings.has(bookingIdOf(booking))),
+    [bookings, selectedBookings],
+  );
+  const bulkAllowedStatuses = useMemo(
+    () => getCommonNextPossibleStatuses(selectedBookingRecords.map((booking) => booking.status || "")) as BookingLifecycleStatus[],
+    [selectedBookingRecords],
+  );
   useEffect(() => {
     if (selectedBookings.size !== selectedBookingIds.size) setSelectedBookings(selectedBookings);
   }, [selectedBookings, selectedBookingIds]);
@@ -148,6 +156,10 @@ export default function BookingManagement({
     setSelectedBookings(new Set());
   }, [page]);
 
+  useEffect(() => {
+    if (bulkStatusToUpdate && !bulkAllowedStatuses.includes(bulkStatusToUpdate)) setBulkStatusToUpdate("");
+  }, [bulkAllowedStatuses, bulkStatusToUpdate]);
+
   const updateBookingStatus = async (bookingId: string, status: BookingLifecycleStatus) => {
     const response = await apiFetch(`/admin/bookings/${bookingId}/status`, {
       method: "PATCH",
@@ -161,7 +173,8 @@ export default function BookingManagement({
   };
 
   const handleBookingStatusUpdate = async (booking: AdminBooking, status: BookingLifecycleStatus) => {
-    if (mutationInFlight.current || normalizeBookingStatus(booking.status) === status) return;
+    const allowedStatuses = getCommonNextPossibleStatuses([booking.status || ""]);
+    if (mutationInFlight.current || !allowedStatuses.includes(status) || normalizeBookingStatus(booking.status) === status) return;
 
     mutationInFlight.current = true;
     setUpdatingBookingId(bookingIdOf(booking));
@@ -241,7 +254,7 @@ export default function BookingManagement({
   };
 
   const handleBulkStatusUpdate = async () => {
-    if (!bulkStatusToUpdate || selectedBookings.size === 0 || mutationInFlight.current) return;
+    if (!bulkStatusToUpdate || !bulkAllowedStatuses.includes(bulkStatusToUpdate) || selectedBookings.size === 0 || mutationInFlight.current) return;
 
     mutationInFlight.current = true;
     setIsBulkUpdating(true);
@@ -462,7 +475,7 @@ export default function BookingManagement({
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
                 <Calendar
-                  disabled={isBusy}
+                  disabled={isBusy || bulkAllowedStatuses.length === 0}
                   initialFocus
                   mode="range"
                   defaultMonth={dateRange.from}
@@ -497,19 +510,19 @@ export default function BookingManagement({
                     <SelectValue placeholder="Changer statut" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="PENDING">Pending</SelectItem>
-                    <SelectItem value="CONFIRMED">Confirmed</SelectItem>
-                    <SelectItem value="COMPLETED">Completed</SelectItem>
-                    <SelectItem value="CANCELLED">Cancelled</SelectItem>
+                    {bulkAllowedStatuses.map((status) => <SelectItem key={status} value={status}>{status}</SelectItem>)}
                   </SelectContent>
                 </Select>
                 <Button
                   size="sm"
-                  disabled={isBusy || !bulkStatusToUpdate}
+                  disabled={isBusy || !bulkStatusToUpdate || bulkAllowedStatuses.length === 0}
                   onClick={() => setBulkStatusUpdateDialogOpen(true)}
                 >
                   Mettre à jour
                 </Button>
+                {bulkAllowedStatuses.length === 0 ? (
+                  <span className="text-sm text-blue-800">Aucune transition de statut valide pour cette sélection.</span>
+                ) : null}
                 <Button disabled={isBusy} size="sm" variant="outline" onClick={handleBulkExport}>
                   <Download className="mr-1 h-4 w-4" />
                   Exporter
