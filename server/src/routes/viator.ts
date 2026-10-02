@@ -1,6 +1,7 @@
 import { Router, type Request, type Response } from 'express';
 import { requireAdmin } from '../middleware/admin-auth.js';
 import { getViatorProductDetail, isViatorConfigured, isViatorMarketIntelligenceEnabled, searchViator, viatorProviderState, ViatorProviderError } from '../providers/viator.js';
+import { BamProviderError, getEurMadReferenceRate } from '../providers/bam.js';
 
 const router = Router();
 
@@ -28,6 +29,15 @@ router.get('/products/:productCode', requireAdmin, async (req: Request, res: Res
   } catch (error: any) {
     const providerError = error instanceof ViatorProviderError ? error : new ViatorProviderError('Viator product lookup is temporarily unavailable.', 503, 'VIATOR_UPSTREAM_UNAVAILABLE');
     if (providerError.retryAfter) res.setHeader('Retry-After', providerError.retryAfter);
+    return res.status(providerError.status).json({ code: providerError.code, message: providerError.message });
+  }
+});
+
+router.get('/exchange-rate', requireAdmin, async (_req: Request, res: Response) => {
+  try {
+    return res.json(await getEurMadReferenceRate());
+  } catch (error: any) {
+    const providerError = error instanceof BamProviderError ? error : new BamProviderError('Bank Al-Maghrib rate is temporarily unavailable.');
     return res.status(providerError.status).json({ code: providerError.code, message: providerError.message });
   }
 });

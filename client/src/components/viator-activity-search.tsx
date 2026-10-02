@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { getViatorProductDetail, searchViatorActivities, type NormalizedViatorActivity, type NormalizedViatorProductDetail } from '@/lib/viator-api';
+import { getViatorEurMadRate, getViatorProductDetail, searchViatorActivities, type NormalizedViatorActivity, type NormalizedViatorProductDetail } from '@/lib/viator-api';
 
 interface ViatorActivitySearchProps {
   onCompare?: (activity: NormalizedViatorActivity) => void;
@@ -33,6 +33,13 @@ export default function ViatorActivitySearch({ onCompare, onUseAsTemplate, marke
     enabled: activeQuery.length >= 2,
     queryFn: () => searchViatorActivities(activeQuery, 12, offset),
     staleTime: 60_000,
+    retry: false,
+  });
+  const eurMadRate = useQuery({
+    queryKey: ['viator-eur-mad-rate'],
+    queryFn: getViatorEurMadRate,
+    enabled: activeQuery.length >= 2,
+    staleTime: 24 * 60 * 60 * 1000,
     retry: false,
   });
 
@@ -71,6 +78,9 @@ export default function ViatorActivitySearch({ onCompare, onUseAsTemplate, marke
         {activities.map((activity) => {
           const detail = details[activity.id];
           const productUrl = detail?.productUrl ?? activity.url;
+          const convertedMad = activity.price.currency === 'EUR' && Number.isFinite(activity.price.amount) && eurMadRate.data
+            ? Math.round(activity.price.amount * eurMadRate.data.rate)
+            : null;
           return (
           <Card key={activity.id}>
             {activity.imageUrl && <img src={activity.imageUrl} alt="" className="h-32 w-full object-cover rounded-t" />}
@@ -78,7 +88,8 @@ export default function ViatorActivitySearch({ onCompare, onUseAsTemplate, marke
               <div className="flex items-start justify-between gap-2"><h4 className="font-semibold line-clamp-2">{activity.title}</h4><Badge className="bg-emerald-100 text-emerald-800">Official Viator</Badge></div>
               {activity.description && <p className="text-xs text-gray-600 line-clamp-2">{activity.description}</p>}
               <div className="flex flex-wrap gap-3 text-xs text-gray-600">
-                <span className="font-semibold text-gray-900">{activity.price.amount} {activity.price.currency}</span>
+                <span className="font-semibold text-gray-900">{convertedMad != null ? `≈ ${convertedMad} MAD` : `${activity.price.amount} ${activity.price.currency}`}</span>
+                {convertedMad != null && <span title={`Approx. conversion using Bank Al-Maghrib reference rate (${eurMadRate.data.sourceDate})`}>{activity.price.amount} EUR · Viator</span>}
                 {(detail?.rating ?? activity.rating) != null && <span className="flex items-center gap-1"><Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />{detail?.rating ?? activity.rating}{(detail?.reviewCount ?? activity.reviewCount) != null ? ` (${(detail?.reviewCount ?? activity.reviewCount)!.toLocaleString()})` : ''}</span>}
                 {activity.duration && <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{activity.duration}</span>}
                 {activity.location && <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{activity.location}</span>}

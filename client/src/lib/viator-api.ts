@@ -38,6 +38,14 @@ export interface NormalizedViatorProductDetail {
   firstImage?: string;
 }
 
+export interface ViatorEurMadRate {
+  sourceCurrency: 'EUR';
+  targetCurrency: 'MAD';
+  rate: number;
+  sourceDate: string;
+  source: 'BANK_AL_MAGHRIB';
+}
+
 export async function searchViatorActivities(query: string, limit = 12, offset = 0): Promise<ViatorSearchResponse> {
   const response = await api.post('/viator/search', { q: query, limit, offset });
   return response.data as ViatorSearchResponse;
@@ -46,4 +54,9 @@ export async function searchViatorActivities(query: string, limit = 12, offset =
 export async function getViatorProductDetail(productCode: string): Promise<NormalizedViatorProductDetail> {
   const response = await api.get(`/viator/products/${encodeURIComponent(productCode)}`);
   return response.data as NormalizedViatorProductDetail;
+}
+
+export async function getViatorEurMadRate(): Promise<ViatorEurMadRate> {
+  const response = await api.get('/viator/exchange-rate');
+  return response.data as ViatorEurMadRate;
 }
