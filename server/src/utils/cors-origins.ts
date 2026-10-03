@@ -6,6 +6,10 @@ export function isMarrakechDunesPreviewOrigin(origin: string): boolean {
   return /^https:\/\/marrakech-dunes-[a-z0-9]+(?:-[a-z0-9]+)*-hamzarios-projects\.vercel\.app$/i.test(origin);
 }
 
+export function isMarrakechDunesAdminPreviewOrigin(origin: string): boolean {
+  return /^https:\/\/marrakech-dunes-admin-[a-z0-9]+(?:-[a-z0-9]+)*-hamzarios-projects\.vercel\.app$/i.test(origin);
+}
+
 export function isAllowedCorsOrigin(
   origin: string | undefined,
   allowedOrigins: readonly string[],
@@ -14,5 +18,5 @@ export function isAllowedCorsOrigin(
   if (!origin) return true;
   if (allowedOrigins.includes(origin)) return true;
   if (!isProduction && /^http:\/\/localhost:\d+$/.test(origin)) return true;
-  return isMarrakechDunesPreviewOrigin(origin);
+  return isMarrakechDunesPreviewOrigin(origin) || isMarrakechDunesAdminPreviewOrigin(origin);
 }

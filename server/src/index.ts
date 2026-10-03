@@ -142,7 +142,7 @@ import { notFoundHandler, globalErrorHandler } from "./error-handler.js";
 import { sessionSecurity } from "./security-middleware.js";
 import sessionRouter from "./routes/session.js";
 import { createGracefulShutdown } from './utils/graceful-shutdown.js';
-import { isAllowedCorsOrigin, isMarrakechDunesPreviewOrigin } from './utils/cors-origins.js';
+import { isAllowedCorsOrigin, isMarrakechDunesAdminPreviewOrigin, isMarrakechDunesPreviewOrigin } from './utils/cors-origins.js';
 
 // CORS origins are defined below in FRONT_ORIGINS
 
@@ -253,8 +253,10 @@ const configuredOrigins = (process.env.CLIENT_URL || "")
   .map((origin) => origin.trim())
   .filter((origin) =>
     origin === "https://marrakech-dunes.vercel.app" ||
+    origin === "https://marrakech-dunes-admin.vercel.app" ||
     (!isProduction && /^http:\/\/localhost:\d+$/.test(origin)) ||
-    isMarrakechDunesPreviewOrigin(origin)
+    isMarrakechDunesPreviewOrigin(origin) ||
+    isMarrakechDunesAdminPreviewOrigin(origin)
   );
 const developmentOrigins = isProduction ? [] : ["http://localhost:5173", "http://localhost:5174"];
 const previewOrigins = (process.env.VERCEL_PREVIEW_ORIGINS || "")
@@ -265,6 +267,7 @@ const allowedOrigins = Array.from(new Set([
   ...configuredOrigins,
   ...developmentOrigins,
   "https://marrakech-dunes.vercel.app",
+  "https://marrakech-dunes-admin.vercel.app",
   ...previewOrigins,
 ]));
 

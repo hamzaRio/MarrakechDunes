@@ -2,12 +2,14 @@ import assert from "node:assert/strict";
 import express from "express";
 import cors from "cors";
 import type { AddressInfo } from "node:net";
-import { isAllowedCorsOrigin, isMarrakechDunesPreviewOrigin } from "../server/src/utils/cors-origins.js";
+import { isAllowedCorsOrigin, isMarrakechDunesAdminPreviewOrigin, isMarrakechDunesPreviewOrigin } from "../server/src/utils/cors-origins.js";
 
 const canonicalOrigin = "https://marrakech-dunes.vercel.app";
 const envPreviewOrigin = "https://marrakech-dunes-env123-hamzarios-projects.vercel.app";
 const dynamicPreviewOrigin = "https://marrakech-dunes-test123-hamzarios-projects.vercel.app";
-const allowedOrigins = [canonicalOrigin, envPreviewOrigin];
+const adminOrigin = "https://marrakech-dunes-admin.vercel.app";
+const adminPreviewOrigin = "https://marrakech-dunes-admin-test123-hamzarios-projects.vercel.app";
+const allowedOrigins = [canonicalOrigin, envPreviewOrigin, adminOrigin];
 
 const app = express();
 app.use(cors({
@@ -57,6 +59,15 @@ try {
   assert.equal(dynamic.headers.get("access-control-allow-origin"), dynamicPreviewOrigin);
   assert.equal(dynamic.headers.get("access-control-allow-credentials"), "true");
 
+  const admin = await preflight(adminOrigin);
+  assert.equal(admin.status, 204);
+  assert.equal(admin.headers.get("access-control-allow-origin"), adminOrigin);
+  assert.equal(admin.headers.get("access-control-allow-credentials"), "true");
+
+  const adminPreview = await preflight(adminPreviewOrigin);
+  assert.equal(adminPreview.status, 204);
+  assert.equal(adminPreview.headers.get("access-control-allow-origin"), adminPreviewOrigin);
+
   const exactEnv = await preflight(envPreviewOrigin);
   assert.equal(exactEnv.status, 204);
   assert.equal(exactEnv.headers.get("access-control-allow-origin"), envPreviewOrigin);
@@ -64,6 +75,11 @@ try {
   for (const origin of [
     "https://evil.vercel.app",
     "https://marrakech-dunes-test123-otherteam.vercel.app",
+    "https://marrakech-dunes-admin.attacker.vercel.app",
+    "https://marrakech-dunes-admin.vercel.app.evil.com",
+    "https://marrakech-dunes-admin-test123-wrongteam.vercel.app",
+    "https://marrakech-dunes-admin--test123-hamzarios-projects.vercel.app",
+    "https://marrakech-dunes-admin-test123-hamzarios-projects.vercel.app.evil.com",
     "http://marrakech-dunes-test123-hamzarios-projects.vercel.app",
   ]) {
     const rejected = await preflight(origin);
@@ -73,6 +89,7 @@ try {
   }
 
   assert.equal(isMarrakechDunesPreviewOrigin(dynamicPreviewOrigin), true);
+  assert.equal(isMarrakechDunesAdminPreviewOrigin(adminPreviewOrigin), true);
   assert.equal(isAllowedCorsOrigin(undefined, allowedOrigins, true), true);
   console.log("CORS runtime harness: PASS");
 } finally {

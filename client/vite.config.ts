@@ -9,7 +9,7 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [
       react(),
-      VitePWA({
+      ...(mode === 'admin' ? [] : [VitePWA({
         registerType: 'autoUpdate',
         includeAssets: ['favicon.ico'],
         manifest: {
@@ -69,7 +69,7 @@ export default defineConfig(({ mode }) => {
             }
           ]
         }
-      })
+      })])
     ],
     resolve: {
       alias: {
