@@ -10,7 +10,7 @@ export default defineConfig(({ mode }) => {
     plugins: [
       react(),
       ...(mode === 'admin' ? [] : [VitePWA({
-        registerType: 'autoUpdate',
+        registerType: 'prompt',
         includeAssets: ['favicon.ico'],
         manifest: {
           name: 'MarrakechDunes - Moroccan Adventures',
@@ -32,30 +32,14 @@ export default defineConfig(({ mode }) => {
         },
         workbox: {
           globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+          navigateFallbackDenylist: [
+            /^\/api(\/|$)/,
+            /^\/admin(\/|$)/,
+            /^\/sitemap\.xml$/,
+            /^\/robots\.txt$/,
+          ],
+          importScripts: ['/pwa-cache-cleanup.js'],
           runtimeCaching: [
-            {
-              urlPattern: /^https:\/\/marrakechdunes-sppy\.onrender\.com\/api\/.*/i,
-              handler: 'NetworkFirst',
-              options: {
-                cacheName: 'api-cache',
-                expiration: {
-                  maxEntries: 10,
-                  maxAgeSeconds: 60 * 60 * 24 // 24 hours
-                }
-              }
-            },
-            // Exclude static files from API caching
-            {
-              urlPattern: /^https:\/\/marrakechdunes-sppy\.onrender\.com\/(manifest\.webmanifest|favicon\.ico|sw\.js|workbox-.*\.js)$/i,
-              handler: 'NetworkOnly', // Don't cache static files
-              options: {
-                cacheName: 'static-files',
-                expiration: {
-                  maxEntries: 0, // Don't cache at all
-                  maxAgeSeconds: 0
-                }
-              }
-            },
             {
               urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
               handler: 'CacheFirst',

@@ -8,6 +8,7 @@ yarn-error.log*
 dist/
 build/
 client/dist/
+client/dist-admin/
 server/dist/
 *.tsbuildinfo
 
