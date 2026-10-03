@@ -551,6 +551,7 @@ function AdminDashboardContent() {
                 onExportBookings={handleExportBookings}
                 onExportBookingsPDF={handleExportBookingsPDF}
                 canDeleteBookings={isSuperAdmin}
+                isSuperAdmin={isSuperAdmin}
               />
             </TabsContent>
             <TabsContent value="activities" className="space-y-4">

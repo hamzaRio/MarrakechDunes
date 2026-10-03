@@ -7,21 +7,9 @@ import { gygRequestKey, gygResilience, isGYGServiceUnavailable } from '../servic
 import { rankCandidateMatches, isComparableValidationState, type MatchableActivity, type ManualOverrideDecision } from '../services/gyg-matching.js';
 import { hasCapacityForBooking } from '../utils/booking-capacity.js';
 import { parseBookingDateOnly } from '../utils/booking-query.js';
+import { BOOKING_STATUSES, BookingStatusAuditError, evaluateBookingStatusChange, executeBookingStatusMutation, hasAuthorizedSuperadminOverride, normalizeOverrideReason, MAX_OVERRIDE_REASON_LENGTH } from '../utils/booking-status-override.js';
 
 const router = Router();
-const BOOKING_STATUSES = ['PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED'] as const;
-
-// Phase 4 §5: allowed lifecycle transitions for admin-driven status changes.
-// Booking status and payment status are independent (Phase 4 non-negotiable
-// invariant) — this map only constrains status->status moves and never
-// touches payment fields.
-const ADMIN_ALLOWED_TRANSITIONS: Record<(typeof BOOKING_STATUSES)[number], readonly string[]> = {
-  PENDING: ['CONFIRMED', 'CANCELLED'],
-  CONFIRMED: ['COMPLETED', 'CANCELLED'],
-  COMPLETED: [],
-  CANCELLED: [],
-};
-
 const normalizePaymentMethod = (paymentMethod: unknown): 'cash' | 'cash_deposit' | null => {
   switch (String(paymentMethod ?? '').trim().toUpperCase()) {
     case 'CASH':
@@ -171,12 +159,19 @@ router.get('/bookings/:id', async (req: Request, res: Response) => {
 router.patch('/bookings/:id/status', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { status } = req.body;
+    const { status, force, overrideReason } = req.body;
     const normalizedStatus = String(status ?? '').toUpperCase();
     if (!(BOOKING_STATUSES as readonly string[]).includes(normalizedStatus)) {
       return res.status(400).json({
         status: 'error',
         message: 'Invalid booking status'
+      });
+    }
+    const overrideReasonResult = normalizeOverrideReason(overrideReason);
+    if (!overrideReasonResult.valid) {
+      return res.status(400).json({
+        status: 'error',
+        message: `Override reason must be between 1 and ${MAX_OVERRIDE_REASON_LENGTH} characters.`
       });
     }
     
@@ -190,35 +185,67 @@ router.patch('/bookings/:id/status', async (req: Request, res: Response) => {
     }
     const currentStatus = String(booking.status || '').toUpperCase();
     const wasConfirmed = currentStatus === 'CONFIRMED';
+    const role = (req.session as any).role;
+    const trimmedOverrideReason = overrideReasonResult.value;
+    const hasExplicitSuperadminOverride = hasAuthorizedSuperadminOverride(role, force, trimmedOverrideReason);
+    const decision = evaluateBookingStatusChange({
+      currentStatus,
+      targetStatus: normalizedStatus,
+      role,
+      force,
+      overrideReason: trimmedOverrideReason,
+    });
+    if (!decision.allowed) {
+      return res.status(400).json({ status: 'error', message: decision.reason });
+    }
 
-    if (currentStatus === 'PENDING' && normalizedStatus === 'CONFIRMED') {
+    let capacityOverridden = false;
+    if (normalizedStatus === 'CONFIRMED') {
       const activity = await storage.getActivity(booking.activityId);
       if (activity && !(await hasCapacityForBooking(activity, booking.activityId, booking.preferredDate, Number(booking.numberOfPeople) || 0, storage))) {
-        return res.status(409).json({ status: 'error', code: 'BOOKING_CAPACITY_EXCEEDED', message: 'Cannot confirm this booking because the activity capacity is full for the selected date.' });
+        if (!hasExplicitSuperadminOverride) {
+          return res.status(409).json({ status: 'error', code: 'BOOKING_CAPACITY_EXCEEDED', message: 'Cannot confirm this booking because the activity capacity is full for the selected date.' });
+        }
+        capacityOverridden = true;
       }
     }
 
-    // Phase 4 §5: reject lifecycle jumps that skip the normal flow
-    // (e.g. COMPLETED -> PENDING, or CANCELLED -> anything). A no-op
-    // (same status) is allowed through without consulting the map.
-    if (currentStatus !== normalizedStatus) {
-      const allowedNext = ADMIN_ALLOWED_TRANSITIONS[currentStatus as (typeof BOOKING_STATUSES)[number]] ?? [];
-      if (!allowedNext.includes(normalizedStatus)) {
-        return res.status(400).json({
-          status: 'error',
-          message: `Cannot change booking from ${currentStatus} to ${normalizedStatus}.`
-        });
+    const requiresOverrideAudit = decision.forced || capacityOverridden;
+    let updatedBooking;
+    try {
+      updatedBooking = await executeBookingStatusMutation({
+        requiresAudit: requiresOverrideAudit,
+        createAudit: async () => {
+          await storage.createAuditLog({
+            userId: String((req.session as any).userId || 'unknown'),
+            action: 'BOOKING_STATUS_OVERRIDE',
+            details: JSON.stringify({
+              phase: 'authorized_override',
+              bookingId: id,
+              bookingReference: booking.bookingReference,
+              fromStatus: currentStatus,
+              toStatus: normalizedStatus,
+              reason: trimmedOverrideReason,
+              capacityOverridden,
+            }),
+          });
+        },
+        updateStatus: () => storage.updateBookingStatus(id, normalizedStatus),
+      });
+    } catch (error) {
+      if (error instanceof BookingStatusAuditError) {
+        console.error('[ADMIN] Failed to audit booking status override:', error);
+        return res.status(500).json({ status: 'error', message: 'Failed to record booking status override' });
       }
+      throw error;
     }
-
-    const updatedBooking = await storage.updateBookingStatus(id, normalizedStatus);
     if (!updatedBooking) {
       return res.status(404).json({
         status: 'error',
         message: 'Booking not found'
       });
     }
-    
+
     // Send automatic notification when booking is confirmed
     if (normalizedStatus === 'CONFIRMED' && !wasConfirmed && booking) {
       try {

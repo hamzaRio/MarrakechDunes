@@ -31,6 +31,7 @@ interface BookingRowProps {
   onWhatsApp: () => void;
   onDelete: () => void;
   canDelete: boolean;
+  isSuperAdmin: boolean;
 }
 
 const BOOKING_STATUSES: BookingLifecycleStatus[] = ["PENDING", "CONFIRMED", "COMPLETED", "CANCELLED"];
@@ -79,9 +80,13 @@ export default function BookingRow({
   onWhatsApp,
   onDelete,
   canDelete,
+  isSuperAdmin,
 }: BookingRowProps) {
   const normalizedStatus = normalizeBookingStatus(booking.status);
   const nextStatuses = getNextPossibleStatuses(normalizedStatus) as BookingLifecycleStatus[];
+  const availableStatuses = isSuperAdmin
+    ? BOOKING_STATUSES.filter((status) => status !== normalizedStatus)
+    : nextStatuses;
   const { paymentStatus: normalizedPaymentStatus, totalAmount, paidAmount, remainingAmount } = getBookingPaymentSummary(booking);
   const bookingDate = getBookingDateOnly(booking.preferredDate);
   const statusSelectValue = BOOKING_STATUSES.includes(normalizedStatus as BookingLifecycleStatus)
@@ -157,7 +162,7 @@ export default function BookingRow({
           ) : null}
 
           <Select
-            disabled={isBusy || nextStatuses.length === 0}
+            disabled={isBusy || availableStatuses.length === 0}
             value={statusSelectValue}
             onValueChange={(value) => onStatusChange(value as BookingLifecycleStatus)}
           >
@@ -165,9 +170,9 @@ export default function BookingRow({
               <SelectValue placeholder="Changer statut" />
             </SelectTrigger>
             <SelectContent>
-              {nextStatuses.map((status) => (
+              {availableStatuses.map((status) => (
                 <SelectItem key={status} value={status}>
-                  {status}
+                  {status}{isSuperAdmin && !nextStatuses.includes(status) ? " (Superadmin override)" : ""}
                 </SelectItem>
               ))}
             </SelectContent>

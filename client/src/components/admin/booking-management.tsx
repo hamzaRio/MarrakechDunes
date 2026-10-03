@@ -30,6 +30,12 @@ interface BookingManagementProps {
   onExportBookings: () => void;
   onExportBookingsPDF: () => void;
   canDeleteBookings: boolean;
+  isSuperAdmin: boolean;
+}
+
+interface StatusOverrideRequest {
+  booking: AdminBooking;
+  status: BookingLifecycleStatus;
 }
 
 const bookingIdOf = (booking: AdminBooking): string => booking._id || booking.id || "";
@@ -38,6 +44,7 @@ export default function BookingManagement({
   onExportBookings,
   onExportBookingsPDF,
   canDeleteBookings,
+  isSuperAdmin,
 }: BookingManagementProps) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -51,6 +58,9 @@ export default function BookingManagement({
   const [bookingToDelete, setBookingToDelete] = useState<AdminBooking | null>(null);
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
   const [bulkStatusUpdateDialogOpen, setBulkStatusUpdateDialogOpen] = useState(false);
+  const [statusOverrideRequest, setStatusOverrideRequest] = useState<StatusOverrideRequest | null>(null);
+  const [statusOverrideReason, setStatusOverrideReason] = useState("");
+  const [bulkOverrideReason, setBulkOverrideReason] = useState("");
   const [bulkStatusToUpdate, setBulkStatusToUpdate] = useState<BookingLifecycleStatus | "">("");
   const [isDeleting, setIsDeleting] = useState(false);
   const [isBulkUpdating, setIsBulkUpdating] = useState(false);
@@ -113,8 +123,17 @@ export default function BookingManagement({
     [bookings, selectedBookings],
   );
   const bulkAllowedStatuses = useMemo(
-    () => getCommonNextPossibleStatuses(selectedBookingRecords.map((booking) => booking.status || "")) as BookingLifecycleStatus[],
-    [selectedBookingRecords],
+    () => isSuperAdmin
+      ? (['PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED'] as BookingLifecycleStatus[])
+      : getCommonNextPossibleStatuses(selectedBookingRecords.map((booking) => booking.status || "")) as BookingLifecycleStatus[],
+    [isSuperAdmin, selectedBookingRecords],
+  );
+  const bulkRequiresOverride = useMemo(
+    () => isSuperAdmin && Boolean(bulkStatusToUpdate) && selectedBookingRecords.some((booking) => {
+      const current = normalizeBookingStatus(booking.status);
+      return current !== bulkStatusToUpdate && !getCommonNextPossibleStatuses([current]).includes(bulkStatusToUpdate as BookingLifecycleStatus);
+    }),
+    [bulkStatusToUpdate, isSuperAdmin, selectedBookingRecords],
   );
   useEffect(() => {
     if (selectedBookings.size !== selectedBookingIds.size) setSelectedBookings(selectedBookings);
@@ -160,10 +179,10 @@ export default function BookingManagement({
     if (bulkStatusToUpdate && !bulkAllowedStatuses.includes(bulkStatusToUpdate)) setBulkStatusToUpdate("");
   }, [bulkAllowedStatuses, bulkStatusToUpdate]);
 
-  const updateBookingStatus = async (bookingId: string, status: BookingLifecycleStatus) => {
+  const updateBookingStatus = async (bookingId: string, status: BookingLifecycleStatus, override?: { force: true; overrideReason: string }) => {
     const response = await apiFetch(`/admin/bookings/${bookingId}/status`, {
       method: "PATCH",
-      body: JSON.stringify({ status }),
+      body: JSON.stringify({ status, ...override }),
     });
 
     if (!response.ok) {
@@ -174,7 +193,14 @@ export default function BookingManagement({
 
   const handleBookingStatusUpdate = async (booking: AdminBooking, status: BookingLifecycleStatus) => {
     const allowedStatuses = getCommonNextPossibleStatuses([booking.status || ""]);
-    if (mutationInFlight.current || !allowedStatuses.includes(status) || normalizeBookingStatus(booking.status) === status) return;
+    const isNormalTransition = allowedStatuses.includes(status);
+    if (mutationInFlight.current || normalizeBookingStatus(booking.status) === status) return;
+    if (!isNormalTransition && isSuperAdmin) {
+      setStatusOverrideReason("");
+      setStatusOverrideRequest({ booking, status });
+      return;
+    }
+    if (!isNormalTransition) return;
 
     mutationInFlight.current = true;
     setUpdatingBookingId(bookingIdOf(booking));
@@ -191,6 +217,25 @@ export default function BookingManagement({
         description: error instanceof Error ? error.message : "Impossible de mettre à jour le statut",
         variant: "destructive",
       });
+    } finally {
+      mutationInFlight.current = false;
+      setUpdatingBookingId(null);
+    }
+  };
+
+  const confirmStatusOverride = async () => {
+    if (!statusOverrideRequest || !statusOverrideReason.trim() || mutationInFlight.current) return;
+    const { booking, status } = statusOverrideRequest;
+    mutationInFlight.current = true;
+    setUpdatingBookingId(bookingIdOf(booking));
+    try {
+      await updateBookingStatus(bookingIdOf(booking), status, { force: true, overrideReason: statusOverrideReason.trim() });
+      await refreshBookings();
+      toast({ title: "Override Superadmin appliqué", description: `${normalizeBookingStatus(booking.status)} → ${status}.` });
+      setStatusOverrideRequest(null);
+      setStatusOverrideReason("");
+    } catch (error) {
+      toast({ title: "Erreur", description: error instanceof Error ? error.message : "Impossible d'appliquer l'override", variant: "destructive" });
     } finally {
       mutationInFlight.current = false;
       setUpdatingBookingId(null);
@@ -255,13 +300,16 @@ export default function BookingManagement({
 
   const handleBulkStatusUpdate = async () => {
     if (!bulkStatusToUpdate || !bulkAllowedStatuses.includes(bulkStatusToUpdate) || selectedBookings.size === 0 || mutationInFlight.current) return;
+    if (bulkRequiresOverride && !bulkOverrideReason.trim()) return;
 
     mutationInFlight.current = true;
     setIsBulkUpdating(true);
     let completedCount = 0;
     try {
       for (const bookingId of selectedBookings) {
-        await updateBookingStatus(bookingId, bulkStatusToUpdate);
+        const booking = selectedBookingRecords.find((item) => bookingIdOf(item) === bookingId);
+        const requiresOverride = booking && normalizeBookingStatus(booking.status) !== bulkStatusToUpdate && !getCommonNextPossibleStatuses([booking.status || ""]).includes(bulkStatusToUpdate);
+        await updateBookingStatus(bookingId, bulkStatusToUpdate, requiresOverride ? { force: true, overrideReason: bulkOverrideReason.trim() } : undefined);
         completedCount++;
       }
       toast({
@@ -270,6 +318,7 @@ export default function BookingManagement({
       });
       setSelectedBookings(new Set());
       setBulkStatusToUpdate("");
+      setBulkOverrideReason("");
       setBulkStatusUpdateDialogOpen(false);
     } catch (error) {
       toast({
@@ -502,7 +551,7 @@ export default function BookingManagement({
               </span>
               <div className="flex flex-wrap gap-2">
                 <Select
-                  disabled={isBusy}
+                  disabled={isBusy || bulkAllowedStatuses.length === 0}
                   value={bulkStatusToUpdate}
                   onValueChange={(value) => setBulkStatusToUpdate(value as BookingLifecycleStatus)}
                 >
@@ -597,6 +646,7 @@ export default function BookingManagement({
                     onWhatsApp={() => handleSendWhatsApp(booking)}
                     onDelete={() => setBookingToDelete(booking)}
                     canDelete={canDeleteBookings}
+                    isSuperAdmin={isSuperAdmin}
                   />
                 );
               })}
@@ -632,6 +682,25 @@ export default function BookingManagement({
           onManagePayment={() => setPaymentBookingId(bookingIdOf(selectedBooking))}
         />
       ) : null}
+
+      <AlertDialog open={Boolean(statusOverrideRequest)} onOpenChange={(open) => !open && setStatusOverrideRequest(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Override Superadmin</AlertDialogTitle>
+            <AlertDialogDescription>
+              Confirmer le changement exceptionnel de {normalizeBookingStatus(statusOverrideRequest?.booking.status || "")} vers {statusOverrideRequest?.status}.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="status-override-reason">Motif de l'override</Label>
+            <Input id="status-override-reason" value={statusOverrideReason} onChange={(event) => setStatusOverrideReason(event.target.value)} placeholder="Motif opérationnel requis" />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmStatusOverride} disabled={isBusy || !statusOverrideReason.trim()}>Confirmer l'override</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {paymentBooking ? (
         <PaymentManagement
@@ -694,12 +763,18 @@ export default function BookingManagement({
               Êtes-vous sûr de vouloir mettre à jour {selectedBookings.size} réservation(s) au statut
               {` "${bulkStatusToUpdate}"`} ?
             </AlertDialogDescription>
+            {bulkRequiresOverride ? (
+              <div className="space-y-2">
+                <Label htmlFor="bulk-status-override-reason">Motif de l'override Superadmin</Label>
+                <Input id="bulk-status-override-reason" value={bulkOverrideReason} onChange={(event) => setBulkOverrideReason(event.target.value)} placeholder="Motif opérationnel requis" />
+              </div>
+            ) : null}
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Annuler</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleBulkStatusUpdate}
-              disabled={isBusy || selectedBookings.size === 0}
+              disabled={isBusy || selectedBookings.size === 0 || (bulkRequiresOverride && !bulkOverrideReason.trim())}
               className="bg-green-600 hover:bg-green-700"
             >
               Confirmer
