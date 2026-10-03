@@ -142,6 +142,7 @@ import { notFoundHandler, globalErrorHandler } from "./error-handler.js";
 import { sessionSecurity } from "./security-middleware.js";
 import sessionRouter from "./routes/session.js";
 import { createGracefulShutdown } from './utils/graceful-shutdown.js';
+import { isAllowedCorsOrigin, isMarrakechDunesPreviewOrigin } from './utils/cors-origins.js';
 
 // CORS origins are defined below in FRONT_ORIGINS
 
@@ -253,13 +254,13 @@ const configuredOrigins = (process.env.CLIENT_URL || "")
   .filter((origin) =>
     origin === "https://marrakech-dunes.vercel.app" ||
     (!isProduction && /^http:\/\/localhost:\d+$/.test(origin)) ||
-    /^https:\/\/marrakech-dunes-[a-z0-9-]+\.vercel\.app$/i.test(origin)
+    isMarrakechDunesPreviewOrigin(origin)
   );
 const developmentOrigins = isProduction ? [] : ["http://localhost:5173", "http://localhost:5174"];
 const previewOrigins = (process.env.VERCEL_PREVIEW_ORIGINS || "")
   .split(",")
   .map((origin) => origin.trim())
-  .filter((origin) => /^https:\/\/marrakech-dunes-[a-z0-9-]+\.vercel\.app$/i.test(origin));
+  .filter((origin) => isMarrakechDunesPreviewOrigin(origin));
 const allowedOrigins = Array.from(new Set([
   ...configuredOrigins,
   ...developmentOrigins,
@@ -297,7 +298,7 @@ const corsOptions: cors.CorsOptions = {
     }
     
     // Check exact matches first
-    if (allowedOrigins.includes(origin)) {
+    if (isAllowedCorsOrigin(origin, allowedOrigins, isProduction)) {
       return callback(null, true);
     }
     
