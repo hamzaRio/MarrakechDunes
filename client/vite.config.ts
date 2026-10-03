@@ -89,11 +89,12 @@ export default defineConfig(({ mode }) => {
       },
     },
     build: {
-      outDir: 'dist',
+      outDir: mode === 'admin' ? 'dist-admin' : 'dist',
       sourcemap: true,
       minify: 'esbuild',
       chunkSizeWarningLimit: 2000,
       rollupOptions: {
+        input: path.resolve(__dirname, mode === 'admin' ? 'admin.html' : 'index.html'),
         output: {
           manualChunks: {
             react: ['react', 'react-dom'],

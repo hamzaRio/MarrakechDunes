@@ -4,7 +4,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "npm run build:shared --prefix .. && vite build",
+    "build": "npm run build:public",
+    "build:public": "npm run build:shared --prefix .. && vite build --mode public",
+    "build:admin": "npm run build:shared --prefix .. && vite build --mode admin",
     "preview": "vite preview --port 5173",
     "test": "vitest",
     "test:run": "vitest run"

@@ -11,6 +11,8 @@
   "scripts": {
     "build": "npm run build:shared && npm run build:client && npm run build:server",
     "build:client": "npm --prefix client run build",
+    "build:public": "npm --prefix client run build:public",
+    "build:admin": "npm --prefix client run build:admin",
     "build:server": "npm --prefix server run build",
     "start:server": "powershell -NoProfile -ExecutionPolicy Bypass -Command \". .\\\\scripts\\\\load-env.ps1; node server/dist/index.js\"",
     "start": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"$env:NODE_ENV='production'; cd server; npm run start:build\"",
