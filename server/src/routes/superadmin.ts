@@ -7,7 +7,6 @@
 import { Router, type Request, type Response } from 'express';
 import { storage } from '../storage.js';
 import { requireSuperAdmin } from '../middleware/admin-auth.js';
-import bcrypt from 'bcrypt';
 
 const router = Router();
 
@@ -74,13 +73,10 @@ router.post('/admins', async (req: Request, res: Response) => {
       });
     }
 
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Create user
+    // Storage is the sole password-hashing authority.
     const newUser = await storage.createUser({
       username,
-      password: hashedPassword,
+      password,
       role: role || 'admin'
     });
 
@@ -187,7 +183,8 @@ router.patch('/admins/:id', async (req: Request, res: Response) => {
     }
 
     if (password) {
-      updateData.password = await bcrypt.hash(password, 10);
+      // Storage hashes a supplied plaintext password immediately before persistence.
+      updateData.password = password;
     }
 
     if (role && (role === 'admin' || role === 'superadmin')) {

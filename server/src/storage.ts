@@ -1,9 +1,9 @@
 import mongoose from 'mongoose';
 import { randomBytes } from 'crypto';
-import bcrypt from 'bcrypt';
 import { cacheService } from './services/cache-service.js';
 import { loggingService } from './services/logging-service.js';
 import { normalizeBookingPagination } from './utils/booking-query.js';
+import { hashPasswordForPersistence, prepareUserUpdateForPersistence } from './utils/password-hashing.js';
 import type {
   UserType,
   ActivityType,
@@ -331,7 +331,7 @@ class MongoStorage implements IStorage {
   }
 
   async createUser(userData: InsertUser): Promise<UserType> {
-    const hashedPassword = await bcrypt.hash(userData.password, 10);
+    const hashedPassword = await hashPasswordForPersistence(userData.password);
     
     const user = new User({
       ...userData,
@@ -342,7 +342,7 @@ class MongoStorage implements IStorage {
   }
 
   async updateUserPassword(username: string, password: string): Promise<void> {
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await hashPasswordForPersistence(password);
     await User.updateOne(
       { username },
       { $set: { password: hashedPassword } }
@@ -351,14 +351,11 @@ class MongoStorage implements IStorage {
 
   async updateUser(id: string, updateData: Partial<InsertUser>): Promise<UserType | null> {
     try {
-      // If password is being updated, hash it
-      if (updateData.password) {
-        updateData.password = await bcrypt.hash(updateData.password, 10);
-      }
+      const persistedUpdateData = await prepareUserUpdateForPersistence(updateData);
       
       const updatedUser = await User.findByIdAndUpdate(
         id,
-        { $set: updateData },
+        { $set: persistedUpdateData },
         { new: true }
       );
       
@@ -914,7 +911,7 @@ class MongoStorage implements IStorage {
   }
 
   async createAdmin(adminData: { username: string; password: string; role: string }): Promise<any> {
-    const hashedPassword = await bcrypt.hash(adminData.password, 10);
+    const hashedPassword = await hashPasswordForPersistence(adminData.password);
     
     const admin = new User({
       username: adminData.username,
@@ -1439,8 +1436,8 @@ class MongoStorage implements IStorage {
       for (const userData of adminUsers) {
         const existingUser = await User.findOne({ username: userData.username });
         if (!existingUser) {
-          console.log(`ðŸ” Creating admin user: ${userData.username} with password length: ${userData.password ? userData.password.length : 'undefined'}`);
-          const hashedPassword = await bcrypt.hash(userData.password, 10);
+          console.log(`ðŸ” Creating admin user: ${userData.username}`);
+          const hashedPassword = await hashPasswordForPersistence(userData.password);
           await User.create({
             ...userData,
             password: hashedPassword,
@@ -1450,7 +1447,7 @@ class MongoStorage implements IStorage {
           console.log(`ℹ️ Admin user already exists: ${userData.username}`);
           // Force update password to ensure it's correct
           console.log(`🔄 Updating password for existing user: ${userData.username}`);
-          const hashedPassword = await bcrypt.hash(userData.password, 10);
+          const hashedPassword = await hashPasswordForPersistence(userData.password);
           const updateResult = await User.updateOne(
             { username: userData.username },
             { $set: { password: hashedPassword, role: userData.role } }
