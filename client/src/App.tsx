@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, type ComponentProps, type ComponentType, type LazyExoticComponent } from "react";
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { getQueryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
@@ -13,6 +13,7 @@ import { HelmetProvider } from "react-helmet-async";
 import ReactGA from "react-ga4";
 import PWAInstallPrompt from "@/components/pwa-install-prompt";
 import AdminRoute from "@/components/admin-route";
+import { isAdminPath } from "@/lib/admin-routing";
 
 const Home = lazy(() => import("@/pages/home"));
 const Activities = lazy(() => import("@/pages/activities"));
@@ -101,11 +102,25 @@ function Router() {
           </AdminRoute>
         )}
       </Route>
-      <Route path="/admin/access-guide" component={withSecurity(AdminAccessGuide, PUBLIC_ROUTE)} />
+      <Route path="/admin/access-guide">
+        {() => (
+          <AdminRoute>
+            <SecurityWrapper {...ADMIN_ROUTE}>
+              <Suspense fallback={PAGE_FALLBACK}><AdminAccessGuide /></Suspense>
+            </SecurityWrapper>
+          </AdminRoute>
+        )}
+      </Route>
       <Route path="/customer" component={withSecurity(CustomerPortal, PUBLIC_ROUTE)} />
       <Route component={withSecurity(NotFound, PUBLIC_ROUTE)} />
     </Switch>
   );
+}
+
+function StaffSessionRuntime() {
+  const [location] = useLocation();
+  if (!isAdminPath(location)) return null;
+  return <AutoLogout timeoutMinutes={5} warningMinutes={1} />;
 }
 
 function App() {
@@ -147,9 +162,7 @@ function App() {
           <LanguageProvider>
             <TooltipProvider>
               <Toaster />
-              <Suspense fallback={null}>
-                <AutoLogout timeoutMinutes={5} warningMinutes={1} />
-              </Suspense>
+              <Suspense fallback={null}><StaffSessionRuntime /></Suspense>
               <PWAInstallPrompt />
               <Router />
             </TooltipProvider>

@@ -1,4 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
+import { useLocation } from "wouter";
+import { isAdminLoginPath, isAdminPath } from "@/lib/admin-routing";
 
 interface SessionUser {
   id: string;
@@ -12,17 +14,16 @@ interface AuthUserResponse {
 }
 
 export function useAuth() {
-  // Check if we're on an admin route to determine authentication strategy
-  const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
-  const isAdminRoute = currentPath.startsWith('/admin') || currentPath.startsWith('/admin/');
-  const isLoginPage = currentPath === '/admin/login' || currentPath === '/admin/Login';
+  const [currentPath] = useLocation();
+  const isAdminRoute = isAdminPath(currentPath);
+  const isLoginPage = isAdminLoginPath(currentPath);
   
   // Enhanced authentication with better error handling
   const { data, isLoading, error, refetch } = useQuery<AuthUserResponse | null>({
     queryKey: ["/auth/user"],
     // Keep the authoritative session check active on the login page so an
     // already authenticated staff member is routed back to the admin area.
-    enabled: true,
+    enabled: isAdminRoute,
     retry: (failureCount, error: any) => {
       // Don't retry on 401/403 errors
       if (error?.response?.status === 401 || error?.response?.status === 403) {
@@ -56,7 +57,7 @@ export function useAuth() {
       localStorage.removeItem('user');
     }
   }
-  const finalUser = isAuthRejected ? null : serverUser || localUser;
+  const finalUser = isAdminRoute && !isAuthRejected ? serverUser || localUser : null;
   
   // Clear persisted state only when the authoritative auth check explicitly returns 401.
   if (!isLoading && isAuthRejected && isAdminRoute) {
