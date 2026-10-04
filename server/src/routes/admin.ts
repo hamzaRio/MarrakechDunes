@@ -274,7 +274,7 @@ Payment: ${booking.depositAmount ? 'Deposit required before activity' : 'Cash on
 
 Thank you for choosing MarrakechDunes! 🏜️`.trim();
 
-        freeNotificationQueue.addNotification({
+        await freeNotificationQueue.addNotificationDurable({
           type: 'booking_confirmation',
           customerPhone: booking.customerPhone,
           customerName: booking.customerName,
@@ -282,6 +282,7 @@ Thank you for choosing MarrakechDunes! 🏜️`.trim();
           whatsappLink: freeNotificationQueue.generateWhatsAppLink(booking.customerPhone, whatsappMessage),
           priority: 'high',
           bookingId: booking._id || booking.id,
+          dedupeKey: `${booking._id || booking.id}:booking_confirmation:${String(booking.status).toUpperCase()}`,
           metadata: {
             activityName,
             date: typeof booking.preferredDate === 'string' ? booking.preferredDate : booking.preferredDate.toISOString(),
@@ -1036,14 +1037,14 @@ router.get('/notifications', async (req: Request, res: Response) => {
     
     let notifications;
     if (type) {
-      notifications = freeNotificationQueue.getByType(type as any);
+      notifications = (await freeNotificationQueue.getQueueDurable()).filter((notification) => notification.type === type);
     } else if (priority === 'high') {
-      notifications = freeNotificationQueue.getHighPriority();
+      notifications = (await freeNotificationQueue.getQueueDurable()).filter((notification) => notification.priority === 'high');
     } else {
-      notifications = freeNotificationQueue.getQueue(limit ? parseInt(limit as string) : undefined);
+      notifications = await freeNotificationQueue.getQueueDurable(limit ? parseInt(limit as string) : undefined);
     }
 
-    const stats = freeNotificationQueue.getStats();
+    const stats = await freeNotificationQueue.getStatsDurable();
 
     return res.status(200).json({
       status: 'success',
@@ -1068,7 +1069,7 @@ router.post('/notifications/:id/mark-sent', async (req: Request, res: Response) 
     const { id } = req.params;
     const { freeNotificationQueue } = await import('../services/free-notification-queue.js');
     
-    const removed = freeNotificationQueue.removeNotification(id);
+    const removed = await freeNotificationQueue.removeNotificationDurable(id);
     
     if (removed) {
       return res.status(200).json({

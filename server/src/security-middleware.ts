@@ -337,6 +337,9 @@ const createSessionStore = () => {
   }
 
   if (!mongoUrl) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('[session] DATABASE_URL is required in production; refusing MemoryStore fallback');
+    }
     return memoryStoreFactory();
   }
 
@@ -352,6 +355,9 @@ const createSessionStore = () => {
       },
     });
   } catch (error) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('[session] MongoDB session store initialization failed in production');
+    }
     console.log('[session] MongoDB session store failed, falling back to in-memory store:', error);
     return memoryStoreFactory();
   }
@@ -367,6 +373,9 @@ const createEnhancedSessionStore = () => {
   }
 
   if (!mongoUrl) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('[session] DATABASE_URL is required in production; refusing MemoryStore fallback');
+    }
     return memoryStoreFactory();
   }
 
@@ -393,6 +402,9 @@ const createEnhancedSessionStore = () => {
 
     return store;
   } catch (error) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('[session] MongoDB session store initialization failed in production');
+    }
     console.log('[session] MongoDB session store failed, falling back to in-memory store:', error);
     return memoryStoreFactory();
   }

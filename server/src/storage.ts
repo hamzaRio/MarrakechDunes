@@ -1825,4 +1825,6 @@ class MongoStorage implements IStorage {
 
 export const storage = new MongoStorage();
 
+export async function initializeBookingIndexes(): Promise<void> { await Booking.init(); }
+
 

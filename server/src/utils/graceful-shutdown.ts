@@ -1,6 +1,6 @@
 export interface ShutdownDependencies {
   closeServer: () => Promise<void>;
-  stopTimers: () => void;
+  stopTimers: () => void | Promise<void>;
   closeLogging: () => Promise<void>;
   closeCache: () => Promise<void>;
   closeDatabase: () => Promise<void>;
@@ -28,8 +28,8 @@ export function createGracefulShutdown(dependencies: ShutdownDependencies) {
           try { await stage(); }
           catch (error) { console.error(`[shutdown] ${name} failed`, error instanceof Error ? error.name : 'UnknownError'); }
         };
-        await runStage('server close', dependencies.closeServer);
         await runStage('timer stop', dependencies.stopTimers);
+        await runStage('server close', dependencies.closeServer);
         await runStage('logging close', dependencies.closeLogging);
         await runStage('cache close', dependencies.closeCache);
         await runStage('database close', dependencies.closeDatabase);

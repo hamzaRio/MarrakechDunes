@@ -18,6 +18,7 @@ const schema = z.object({
   TRUST_PROXY: z.coerce.number().int().min(0).max(10).optional(),
   LEGACY_STARTUP_SEEDING: z.enum(['true', 'false']).optional(),
   SEED_DEMO_DATA: z.enum(['true', 'false']).optional(),
+  ROLE: z.enum(['all', 'api', 'worker']).default('all'),
 }).superRefine((env, context) => {
   const required = env.LEGACY_STARTUP_SEEDING === 'false'
     ? ['DATABASE_URL', 'JWT_SECRET', 'SESSION_SECRET'] as const
@@ -68,5 +69,6 @@ export function parseRuntimeConfig(env: NodeJS.ProcessEnv) {
     cookie: { secure: cookieSecure, sameSite: cookieSameSite, domain: cookieDomain },
     trustProxy: values.TRUST_PROXY ?? 1,
     seeding: resolveStartupSeedingPolicy(env),
+    role: values.ROLE,
   };
 }

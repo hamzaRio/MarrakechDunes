@@ -27,13 +27,13 @@ router.post('/', bookingCreationLimiter, async (req, res) => {
   try {
     const rawIdempotencyKey = req.get('Idempotency-Key');
     let idempotencyKeyHash: string | undefined;
+    let existingForIdempotency: any = null;
     if (rawIdempotencyKey !== undefined) {
       if (!/^[0-9a-fA-F-]{16,128}$/.test(rawIdempotencyKey)) {
         return res.status(400).json({ status: 'error', message: 'Invalid Idempotency-Key.' });
       }
       idempotencyKeyHash = hashIdempotencyKey(rawIdempotencyKey);
-      const existing = await storage.getBookingByIdempotencyHash(idempotencyKeyHash);
-      if (existing) return res.status(200).json(toPublicBookingResult(existing));
+      existingForIdempotency = await storage.getBookingByIdempotencyHash(idempotencyKeyHash);
     }
     const {
       activityId,
@@ -45,6 +45,27 @@ router.post('/', bookingCreationLimiter, async (req, res) => {
       participantNames,
       notes,
     } = req.body ?? {};
+
+    const validateIdempotencyPayload = (existing: any) => {
+      const existingDate = existing.preferredDate instanceof Date
+        ? existing.preferredDate.toISOString().slice(0, 10)
+        : String(existing.preferredDate).slice(0, 10);
+      const samePayload = String(existing.activityId) === String(activityId)
+        && Number(existing.numberOfPeople) === Number(numberOfPeople)
+        && existingDate === String(preferredDate).slice(0, 10)
+        && String(existing.customerName).trim() === String(customerName).trim()
+        && String(existing.customerPhone).trim() === String(customerPhone).trim()
+        && String(existing.customerEmail || '').trim() === String(customerEmail || '').trim()
+        && JSON.stringify(existing.participantNames || []) === JSON.stringify(Array.isArray(participantNames) ? participantNames : [])
+        && String(existing.notes || '').trim() === String(notes || '').trim();
+      if (!samePayload) throw Object.assign(new Error('This Idempotency-Key was already used for a different booking request.'), { code: 'IDEMPOTENCY_KEY_CONFLICT', statusCode: 409 });
+    };
+
+    if (existingForIdempotency) {
+      try { validateIdempotencyPayload(existingForIdempotency); }
+      catch (error: any) { return res.status(409).json({ status: 'error', code: error.code, message: error.message }); }
+      return res.status(200).json(toPublicBookingResult(existingForIdempotency));
+    }
 
     // --- Basic required fields -------------------------------------------------
     if (!isNonEmptyString(activityId)) {
@@ -137,6 +158,7 @@ router.post('/', bookingCreationLimiter, async (req, res) => {
       idempotencyKeyHash,
       findExisting: (hash) => storage.getBookingByIdempotencyHash(hash),
       create: () => storage.createBooking(bookingData as any),
+      validateExisting: validateIdempotencyPayload,
     });
     if (!created) return res.status(200).json(toPublicBookingResult(booking));
 
@@ -161,7 +183,7 @@ Our team will confirm availability with you via WhatsApp shortly.
 
 Thank you for choosing MarrakechDunes! 🏜️`.trim();
 
-      freeNotificationQueue.addNotification({
+      await freeNotificationQueue.addNotificationDurable({
         type: 'booking_confirmation',
         customerPhone: bookingData.customerPhone,
         customerName: bookingData.customerName,
@@ -169,6 +191,7 @@ Thank you for choosing MarrakechDunes! 🏜️`.trim();
         whatsappLink: freeNotificationQueue.generateWhatsAppLink(bookingData.customerPhone, message),
         priority: 'high',
           bookingId: booking._id || booking.id,
+        dedupeKey: `${booking._id || booking.id}:booking_request:${requestedDate.toISOString().slice(0, 10)}`,
         metadata: {
           activityName,
           date: requestedDate.toISOString(),
@@ -182,6 +205,9 @@ Thank you for choosing MarrakechDunes! 🏜️`.trim();
 
     return res.status(201).json(toPublicBookingResult(booking));
   } catch (error) {
+    if ((error as any)?.code === 'IDEMPOTENCY_KEY_CONFLICT') {
+      return res.status(409).json({ status: 'error', code: 'IDEMPOTENCY_KEY_CONFLICT', message: (error as Error).message });
+    }
     console.error('[BOOKINGS] Error creating booking:', error);
     return res.status(500).json({
       status: 'error',

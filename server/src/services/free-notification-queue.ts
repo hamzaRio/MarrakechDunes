@@ -3,6 +3,8 @@
  * Stores pending WhatsApp messages that admins can send via clickable links
  * 100% Free - No API costs, no subscriptions
  */
+import mongoose from 'mongoose';
+import { NotificationQueueModel } from '../models/NotificationQueue.js';
 
 export interface PendingNotification {
   id: string;
@@ -22,6 +24,8 @@ export interface PendingNotification {
     confidence?: number; // Auto-response confidence level
     needsReview?: boolean; // If true, admin should review before sending
   };
+  dedupeKey?: string;
+  status?: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED';
 }
 
 class FreeNotificationQueue {
@@ -31,15 +35,28 @@ class FreeNotificationQueue {
   /**
    * Add notification to queue
    */
-  addNotification(notification: Omit<PendingNotification, 'id' | 'createdAt'>): string {
+  async addNotificationDurable(notification: Omit<PendingNotification, 'id' | 'createdAt'>): Promise<string> {
     const id = `notif_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    if (process.env.NODE_ENV === 'production' && mongoose.connection.readyState !== 1) {
+      console.error('[FREE NOTIFICATIONS] Durable queue unavailable; notification not enqueued');
+      return id;
+    }
     const pendingNotif: PendingNotification = {
       ...notification,
       id,
       createdAt: new Date()
     };
 
-    this.queue.unshift(pendingNotif); // Add to beginning
+    if (mongoose.connection.readyState === 1) {
+      try {
+        await NotificationQueueModel.create({ ...pendingNotif, dedupeKey: notification.dedupeKey, status: 'PENDING' });
+      } catch (error: any) {
+        if (error?.code !== 11000) console.error('[FREE NOTIFICATIONS] Durable enqueue failed:', error?.name || 'Error');
+        return id;
+      }
+    }
+
+    this.queue.unshift(pendingNotif); // Add to beginning for development compatibility
 
     // Keep queue size manageable
     if (this.queue.length > this.maxQueueSize) {
@@ -47,6 +64,15 @@ class FreeNotificationQueue {
     }
 
     console.log(`[FREE NOTIFICATIONS] Added to queue: ${notification.type}`);
+    return id;
+  }
+
+  /** Development/test compatibility wrapper. Production callers use addNotificationDurable. */
+  addNotification(notification: Omit<PendingNotification, 'id' | 'createdAt'>): string {
+    const id = `notif_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const pendingNotif: PendingNotification = { ...notification, id, createdAt: new Date() };
+    this.queue.unshift(pendingNotif);
+    if (this.queue.length > this.maxQueueSize) this.queue = this.queue.slice(0, this.maxQueueSize);
     return id;
   }
 
@@ -127,6 +153,33 @@ class FreeNotificationQueue {
     const encodedMessage = encodeURIComponent(message);
     return `https://wa.me/${cleanPhone}?text=${encodedMessage}`;
   }
+
+  async getQueueDurable(limit?: number): Promise<PendingNotification[]> {
+    if (mongoose.connection.readyState !== 1) return process.env.NODE_ENV === 'production' ? [] : this.getQueue(limit);
+    try {
+      const rows = await NotificationQueueModel.find({ status: 'PENDING', expiresAt: { $gt: new Date() } }).sort({ createdAt: -1 }).limit(limit || 100).lean();
+      return rows.map((row: any) => ({ ...row, id: String(row._id), createdAt: new Date(row.createdAt) }));
+    } catch { return process.env.NODE_ENV === 'production' ? [] : this.getQueue(limit); }
+  }
+
+  async getStatsDurable() {
+    const rows = await this.getQueueDurable(1000);
+    return {
+      total: rows.length,
+      byType: Object.fromEntries(['booking_confirmation', 'reminder_24h', 'reminder_2h', 'payment_confirmation', 'reschedule', 'cancellation', 'auto_response'].map((type) => [type, rows.filter((row) => row.type === type).length])),
+      byPriority: Object.fromEntries(['high', 'medium', 'low'].map((priority) => [priority, rows.filter((row) => row.priority === priority).length])),
+    };
+  }
+
+  async removeNotificationDurable(id: string): Promise<boolean> {
+    if (mongoose.connection.readyState === 1) {
+      try {
+        const result = await NotificationQueueModel.updateOne({ _id: id, status: 'PENDING' }, { $set: { status: 'COMPLETED' } });
+        if (result.modifiedCount === 1) { this.removeNotification(id); return true; }
+      } catch { /* compatibility fallback below */ }
+    }
+    return process.env.NODE_ENV === 'production' ? false : this.removeNotification(id);
+  }
 }
 
 export const freeNotificationQueue = new FreeNotificationQueue();
@@ -137,6 +190,7 @@ const notificationCleanupTimer = setInterval(() => {
   if (removed > 0) {
     console.log(`[FREE NOTIFICATIONS] Cleaned up ${removed} old notifications`);
   }
+
 }, 60 * 60 * 1000);
 notificationCleanupTimer.unref?.();
 

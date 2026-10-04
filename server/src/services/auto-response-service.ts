@@ -319,22 +319,26 @@ We'll respond as soon as possible! 😊`,
     this.addMessage(customerMsg);
 
     // Add response to notification queue for admin to review/send
-    freeNotificationQueue.addNotification({
-      type: 'auto_response',
-      customerPhone: phone,
-      customerName: customerName || 'Customer',
-      message: response.message,
-      whatsappLink: freeNotificationQueue.generateWhatsAppLink(phone, response.message),
-      priority: response.type === 'needs_review' ? 'high' : response.confidence > 0.8 ? 'medium' : 'low',
-      bookingId: customerMsg.bookingId,
-      metadata: {
-        activityName: upcomingBooking ? 'Check booking' : undefined,
-        date: customerMsg.timestamp.toString(),
-        originalMessage: message,
-        confidence: response.confidence,
-        needsReview: response.type === 'needs_review'
-      }
-    });
+    try {
+      await freeNotificationQueue.addNotificationDurable({
+        type: 'auto_response',
+        customerPhone: phone,
+        customerName: customerName || 'Customer',
+        message: response.message,
+        whatsappLink: freeNotificationQueue.generateWhatsAppLink(phone, response.message),
+        priority: response.type === 'needs_review' ? 'high' : response.confidence > 0.8 ? 'medium' : 'low',
+        bookingId: customerMsg.bookingId,
+        metadata: {
+          activityName: upcomingBooking ? 'Check booking' : undefined,
+          date: customerMsg.timestamp.toString(),
+          originalMessage: message,
+          confidence: response.confidence,
+          needsReview: response.type === 'needs_review'
+        }
+      });
+    } catch (error) {
+      console.error('[AUTO-RESPONSE] Durable notification enqueue failed:', error instanceof Error ? error.name : 'UnknownError');
+    }
 
     return response;
   }

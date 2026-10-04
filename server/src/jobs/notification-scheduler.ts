@@ -8,11 +8,15 @@ import { whatsappService } from '../whatsapp-service.js';
 import type { BookingWithActivity } from 'marrakechdunes-shared/schema';
 import { formatBookingDateOnly } from '../utils/booking-date.js';
 import { getCasablancaCalendarDate } from '../utils/booking-query.js';
+import { acquireSchedulerLease, releaseSchedulerLease, schedulerOwner } from '../services/scheduler-lease.js';
 
 // Simple scheduler using setInterval (can be replaced with node-cron later)
 class NotificationScheduler {
   private intervalId: NodeJS.Timeout | null = null;
   private isRunning = false;
+  private readonly owner = schedulerOwner();
+  private inFlight: Promise<void> | null = null;
+  private leaseHeld = false;
 
   /**
    * Start the scheduler
@@ -36,18 +40,23 @@ class NotificationScheduler {
     }, 60 * 60 * 1000); // Every hour
 
     // Run immediately on startup
-    this.processReminders();
+    void this.processReminders().catch((error) => console.error('[SCHEDULER] Startup processing failed:', error instanceof Error ? error.name : 'UnknownError'));
   }
 
   /**
    * Stop the scheduler
    */
-  stop(): void {
+  async stop(): Promise<void> {
     if (this.intervalId) {
       clearInterval(this.intervalId);
       this.intervalId = null;
     }
     this.isRunning = false;
+    if (this.inFlight) await this.inFlight;
+    if (this.leaseHeld) {
+      try { await releaseSchedulerLease('notification-reminders', this.owner); } catch (error) { console.error('[SCHEDULER] Lease release failed:', error instanceof Error ? error.name : 'UnknownError'); }
+      this.leaseHeld = false;
+    }
     console.log('[SCHEDULER] Scheduler stopped');
   }
 
@@ -55,9 +64,16 @@ class NotificationScheduler {
    * Process all pending reminders
    */
   private async processReminders(): Promise<void> {
+    if (this.inFlight) return this.inFlight;
+    this.inFlight = this.runReminders();
+    try { await this.inFlight; } finally { this.inFlight = null; }
+  }
+
+  private async runReminders(): Promise<void> {
     console.log('[SCHEDULER] Processing reminders...');
-    
     try {
+      if (!(await acquireSchedulerLease('notification-reminders', this.owner))) return;
+      this.leaseHeld = true;
       const now = new Date();
       // Bookings carry a calendar date, not an appointment time. Queue one
       // reminder for tomorrow instead of manufacturing 24h/2h precision.
@@ -90,6 +106,10 @@ class NotificationScheduler {
       console.log('[SCHEDULER] Reminders processing completed');
     } catch (error) {
       console.error('[SCHEDULER] Error processing reminders:', error);
+      if (this.leaseHeld) {
+        try { await releaseSchedulerLease('notification-reminders', this.owner); } catch (releaseError) { console.error('[SCHEDULER] Lease release failed:', releaseError instanceof Error ? releaseError.name : 'UnknownError'); }
+        this.leaseHeld = false;
+      }
     }
   }
 
@@ -148,7 +168,7 @@ class NotificationScheduler {
 
 See you soon! 🏜️`.trim();
 
-    freeNotificationQueue.addNotification({
+    await freeNotificationQueue.addNotificationDurable({
       type: type === '24h' ? 'reminder_24h' : 'reminder_2h',
       customerPhone: booking.customerPhone,
       customerName: booking.customerName,
@@ -156,6 +176,7 @@ See you soon! 🏜️`.trim();
       whatsappLink: freeNotificationQueue.generateWhatsAppLink(booking.customerPhone, message),
       priority: type === '2h' ? 'high' : 'medium',
       bookingId: booking._id || booking.id,
+      dedupeKey: `${booking._id || booking.id}:tomorrow-reminder:${new Date(booking.preferredDate).toISOString().slice(0, 10)}`,
       metadata: {
         activityName,
         date: booking.preferredDate.toString()

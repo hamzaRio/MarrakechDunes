@@ -1,6 +1,7 @@
 import * as Sentry from "@sentry/node";
 import "@sentry/tracing";
 import pino from 'pino';
+import mongoose from 'mongoose';
 import { runtimeConfig } from './config/env.js';
 import { runStartupSeeding } from './bootstrap/bootstrap-policy.js';
 import { requireSuperAdmin } from './middleware/admin-auth.js';
@@ -58,6 +59,7 @@ import { sessionSecurity } from "./security-middleware.js";
 import sessionRouter from "./routes/session.js";
 import { createGracefulShutdown } from './utils/graceful-shutdown.js';
 import { isAllowedCorsOrigin } from './utils/cors-origins.js';
+import { runtimeState } from './runtime-state.js';
 
 // CORS origins are defined below in FRONT_ORIGINS
 
@@ -93,7 +95,7 @@ const log = (
 
 const app = express();
 let httpServer: HttpServer | null = null;
-let stopScheduler: (() => void) | null = null;
+let stopScheduler: (() => void | Promise<void>) | null = null;
 let disconnectCache: (() => Promise<void>) | null = null;
 let closeLogging: (() => Promise<void>) | null = null;
 let stopNotificationCleanup: (() => void) | null = null;
@@ -104,8 +106,8 @@ const gracefulShutdown = createGracefulShutdown({
       await new Promise<void>((resolve) => httpServer!.close(() => resolve()));
     }
   },
-  stopTimers: () => {
-    stopScheduler?.();
+  stopTimers: async () => {
+    await stopScheduler?.();
     stopNotificationCleanup?.();
   },
   closeLogging: async () => { if (closeLogging) await closeLogging(); },
@@ -118,19 +120,20 @@ const gracefulShutdown = createGracefulShutdown({
     process.exit(1);
   },
 });
+const shutdownWithReadiness = async () => { runtimeState.markShuttingDown(); await gracefulShutdown(); };
 
-process.once('SIGTERM', () => { console.warn('[shutdown] Received SIGTERM'); void gracefulShutdown(); });
-process.once('SIGINT', () => { console.warn('[shutdown] Received SIGINT'); void gracefulShutdown(); });
+process.once('SIGTERM', () => { console.warn('[shutdown] Received SIGTERM'); void shutdownWithReadiness(); });
+process.once('SIGINT', () => { console.warn('[shutdown] Received SIGINT'); void shutdownWithReadiness(); });
 process.on('unhandledRejection', (reason) => {
   const error = reason instanceof Error ? reason : new Error('Unhandled promise rejection');
   console.error('[process] Unhandled rejection:', error.name);
   Sentry.captureException(error);
-  void gracefulShutdown().then(() => { process.exitCode = 1; });
+  void shutdownWithReadiness().then(() => { process.exitCode = 1; });
 });
 process.on('uncaughtException', (error) => {
   console.error('[process] Uncaught exception:', error.name);
   Sentry.captureException(error);
-  void gracefulShutdown().then(() => { process.exitCode = 1; });
+  void shutdownWithReadiness().then(() => { process.exitCode = 1; });
 });
 
 // Initialize Sentry for error tracking
@@ -411,6 +414,11 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 });
 
 // Health endpoint - Render expects /api/health
+app.get('/api/health/live', (_req, res) => res.status(200).json({ status: 'ok' }));
+app.get('/api/health/ready', (_req, res) => {
+  const ready = runtimeState.isReady() && mongoose.connection.readyState === 1;
+  return res.status(ready ? 200 : 503).json({ status: ready ? 'ready' : 'not_ready' });
+});
 app.get("/api/health", (_req, res) => res.status(200).json({ status: "ok" }));
 
 // CORS test endpoint
@@ -752,19 +760,35 @@ app.use((req, res, next) => {
   // Start server
   const PORT = process.env.PORT || 10000;
 
+  // Correctness-critical indexes must exist before accepting traffic.
+  try {
+    const [{ initializeBookingIndexes }, { initializeNotificationQueueIndexes }, { initializeSchedulerLeaseIndexes }] = await Promise.all([
+      import('./storage.js'),
+      import('./models/NotificationQueue.js'),
+      import('./services/scheduler-lease.js'),
+    ]);
+    await Promise.all([initializeBookingIndexes(), initializeNotificationQueueIndexes(), initializeSchedulerLeaseIndexes()]);
+  } catch (error) {
+    console.error('[startup] Required coordination indexes failed to initialize:', error instanceof Error ? error.message : 'UnknownError');
+    await shutdownWithReadiness();
+    process.exitCode = 1;
+    return;
+  }
+
   // Start notification scheduler for automated reminders
   try {
     const { notificationScheduler } = await import('./jobs/notification-scheduler.js');
-    notificationScheduler.start();
+    if (runtimeConfig.role !== 'api') notificationScheduler.start();
     stopScheduler = () => notificationScheduler.stop();
     const queue = await import('./services/free-notification-queue.js');
     stopNotificationCleanup = queue.stopNotificationQueueCleanup;
-    log(`⏰ Notification scheduler started`);
+    log(`⏰ Notification scheduler ${runtimeConfig.role === 'api' ? 'disabled (ROLE=api)' : 'started'}`);
   } catch (error) {
     console.warn('⚠️ Failed to start notification scheduler:', error);
   }
 
   httpServer = app.listen(PORT, () => {
+    runtimeState.markReady();
     console.log(`[server] listening on ${PORT}`);
     console.log(`[assets] Static assets served by frontend at /images/`);
     console.log(`[routers] /api/session mounted`);

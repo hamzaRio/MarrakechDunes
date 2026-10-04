@@ -12,14 +12,19 @@ export async function resolveIdempotentCreate<T>({
   idempotencyKeyHash,
   findExisting,
   create,
+  validateExisting,
 }: {
   idempotencyKeyHash?: string;
   findExisting: (hash: string) => Promise<T | null>;
   create: () => Promise<T>;
+  validateExisting?: (existing: T) => void | Promise<void>;
 }): Promise<{ booking: T; created: boolean }> {
   if (idempotencyKeyHash) {
     const existing = await findExisting(idempotencyKeyHash);
-    if (existing) return { booking: existing, created: false };
+    if (existing) {
+      await validateExisting?.(existing);
+      return { booking: existing, created: false };
+    }
   }
 
   try {
@@ -27,7 +32,10 @@ export async function resolveIdempotentCreate<T>({
   } catch (error) {
     if (idempotencyKeyHash && isDuplicateKeyError(error)) {
       const winner = await findExisting(idempotencyKeyHash);
-      if (winner) return { booking: winner, created: false };
+      if (winner) {
+        await validateExisting?.(winner);
+        return { booking: winner, created: false };
+      }
     }
     throw error;
   }
