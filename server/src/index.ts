@@ -1,11 +1,7 @@
-import { fileURLToPath } from "url";
-import path from "path";
-import dotenvFlow from 'dotenv-flow';
 import * as Sentry from "@sentry/node";
 import "@sentry/tracing";
 import pino from 'pino';
-import { validateProductionEnvironment, getSecurityRecommendations } from './production-validator.js';
-import { config as serverEnv } from './env.js';
+import { runtimeConfig } from './config/env.js';
 import { requireSuperAdmin } from './middleware/admin-auth.js';
 
 // Fix UTF-8 console encoding for emojis and French characters
@@ -33,89 +29,7 @@ const logger = pino({
   }
 });
 
-// Get the project root directory (one level up from server/src)
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const serverDir = path.resolve(__dirname, '../');
-
-// Load environment variables from project root using dotenv-flow
-// In production (Docker), environment variables are set by deployment platform
-try {
-  dotenvFlow.config({
-    path: serverDir,
-    silent: true // Don't error if .env files are missing in production
-  });
-} catch (error) {
-  console.log('📝 Note: .env files not found (expected in production Docker deployment)');
-}
-
-// Debug: Check if environment variables are loaded
-console.log('?? Environment loading check:');
-console.log('  DATABASE_URL:', process.env.DATABASE_URL ? 'SET' : 'NOT SET');
-console.log('  NODE_ENV:', process.env.NODE_ENV || 'not set');
-console.log('  SESSION_SECRET:', process.env.SESSION_SECRET ? 'SET' : 'NOT SET');
-
-// Environment variables should be loaded by dotenv-flow above
-
-
-// Environment validation - flexible for development
-const isProduction = process.env.NODE_ENV === 'production';
-
-// Set default PORT if not provided
-if (!process.env.PORT) {
-  process.env.PORT = '10000';
-}
-const criticalEnvVars = [
-  'DATABASE_URL',
-  'JWT_SECRET',
-  'ADMIN_PASSWORD', 
-  'SUPERADMIN_PASSWORD',
-  'SESSION_SECRET',
-  'CLIENT_URL'
-];
-
-// Only enforce critical env vars in production
-if (isProduction) {
-  const missingVars = criticalEnvVars.filter(envVar => !process.env[envVar]);
-  if (missingVars.length > 0) {
-    console.error('? Missing critical environment variables:', missingVars);
-    console.error('? Server cannot start without these variables');
-    console.error('? Please check your Render environment variables');
-    process.exit(1);
-  }
-} else {
-  // For development, set only non-secret defaults; env.ts requires authentication values.
-  if (!process.env.DATABASE_URL) {
-    process.env.DATABASE_URL = 'mongodb://localhost:27017/marrakechdunes';
-    console.warn('??  Using default DATABASE_URL for development');
-  }
-  if (!process.env.CLIENT_URL) {
-    process.env.CLIENT_URL = 'http://localhost:5173,https://marrakech-dunes.vercel.app,https://marrakech-dunes-*.vercel.app';
-    console.warn('??  Using default CLIENT_URL for development');
-  }
-}
-
-// Additional validation for SESSION_SECRET length in production
-if (process.env.NODE_ENV === 'production' && process.env.SESSION_SECRET && process.env.SESSION_SECRET.length < 32) {
-  throw new Error('SESSION_SECRET must be at least 32 characters long in production');
-}
-
-// Production environment validation
-const envValidation = validateProductionEnvironment();
-if (!envValidation.isValid) {
-  console.error('❌ Environment validation failed');
-  if (process.env.NODE_ENV === 'production') {
-    process.exit(1);
-  } else {
-    console.log('⚠️ Continuing in development mode with warnings');
-  }
-}
-
-// Security recommendations
-if (process.env.NODE_ENV === 'production') {
-  console.log('🔒 Security recommendations:');
-  getSecurityRecommendations().forEach(rec => console.log(`  � ${rec}`));
-}
+const isProduction = runtimeConfig.nodeEnv === 'production';
 
 // Now import modules that depend on environment variables
 import express, { type Request, type Response, type NextFunction, type CookieOptions, type RequestHandler } from "express";
@@ -142,7 +56,7 @@ import { notFoundHandler, globalErrorHandler } from "./error-handler.js";
 import { sessionSecurity } from "./security-middleware.js";
 import sessionRouter from "./routes/session.js";
 import { createGracefulShutdown } from './utils/graceful-shutdown.js';
-import { isAllowedCorsOrigin, isMarrakechDunesAdminPreviewOrigin, isMarrakechDunesPreviewOrigin } from './utils/cors-origins.js';
+import { isAllowedCorsOrigin } from './utils/cors-origins.js';
 
 // CORS origins are defined below in FRONT_ORIGINS
 
@@ -241,35 +155,14 @@ if (process.env.NODE_ENV === 'production' && process.env.SENTRY_DSN) {
 }
 
 // Set trust proxy at the top before any middleware
-app.set("trust proxy", 1);
+app.set("trust proxy", runtimeConfig.trustProxy);
 
 // Root probes for GetYourGuide portal - must be first
 app.get("/", (_req, res) => res.json({ ok: true }));
 app.head("/", (_req, res) => res.status(200).end());
 
 // CORS configuration - must be defined BEFORE all other middleware
-const configuredOrigins = (process.env.CLIENT_URL || "")
-  .split(",")
-  .map((origin) => origin.trim())
-  .filter((origin) =>
-    origin === "https://marrakech-dunes.vercel.app" ||
-    origin === "https://marrakech-dunes-admin.vercel.app" ||
-    (!isProduction && /^http:\/\/localhost:\d+$/.test(origin)) ||
-    isMarrakechDunesPreviewOrigin(origin) ||
-    isMarrakechDunesAdminPreviewOrigin(origin)
-  );
-const developmentOrigins = isProduction ? [] : ["http://localhost:5173", "http://localhost:5174"];
-const previewOrigins = (process.env.VERCEL_PREVIEW_ORIGINS || "")
-  .split(",")
-  .map((origin) => origin.trim())
-  .filter((origin) => isMarrakechDunesPreviewOrigin(origin));
-const allowedOrigins = Array.from(new Set([
-  ...configuredOrigins,
-  ...developmentOrigins,
-  "https://marrakech-dunes.vercel.app",
-  "https://marrakech-dunes-admin.vercel.app",
-  ...previewOrigins,
-]));
+const allowedOrigins = runtimeConfig.cors.allowedOrigins;
 
 console.log('?? CORS Configuration:');
 console.log('  CLIENT_URL:', process.env.CLIENT_URL);
@@ -301,7 +194,7 @@ const corsOptions: cors.CorsOptions = {
     }
     
     // Check exact matches first
-    if (isAllowedCorsOrigin(origin, allowedOrigins, isProduction)) {
+    if (isAllowedCorsOrigin(origin, allowedOrigins, isProduction, runtimeConfig.cors.patterns)) {
       return callback(null, true);
     }
     

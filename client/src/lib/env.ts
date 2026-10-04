@@ -1,21 +1,6 @@
-﻿// Validate critical frontend environment variables
-const criticalFrontendEnvVars = [
-  'VITE_API_URL'
-];
+import { browserApiBaseUrl } from './api-url';
 
-for (const envVar of criticalFrontendEnvVars) {
-  if (!import.meta.env[envVar] && import.meta.env.MODE === 'production') {
-    console.warn(`Warning: ${envVar} is not set in production mode. This may break API requests.`);
-  }
-}
-
-// In production, VITE_API_URL should point to https://marrakechdunes-sppy.onrender.com
-const apiUrl = (import.meta.env.VITE_API_URL || '').trim();
-if (!apiUrl) {
-  throw new Error('VITE_API_URL must be defined');
-}
-
-export const API_URL = apiUrl;
+export const API_URL = browserApiBaseUrl();
 
 // Static assets are served from client/public/images
 const ASSETS_BASE = '/images';

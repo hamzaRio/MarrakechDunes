@@ -6,6 +6,7 @@ import session from 'express-session';
 import { Request, Response, NextFunction } from 'express';
 import { resolveDatabaseUrl, getRedactedDatabaseUrl } from './utils/database-url.js';
 import crypto from 'crypto';
+import { runtimeConfig } from './config/env.js';
 
 const isProduction = process.env.NODE_ENV === 'production';
 const sessionSecret = process.env.SESSION_SECRET;
@@ -397,12 +398,6 @@ const createEnhancedSessionStore = () => {
   }
 };
 
-// Session security configuration - environment-aware
-const sessionCookieConfig = {
-  sameSite: isProduction ? 'none' as const : 'lax' as const,
-  secure: isProduction,
-};
-
 export const sessionSecurity = {
   name: 'marrakech.session',
   secret: sessionSecret,
@@ -410,17 +405,17 @@ export const sessionSecurity = {
   saveUninitialized: false,
   store: createEnhancedSessionStore(),
   cookie: {
-    sameSite: sessionCookieConfig.sameSite,
-    secure: sessionCookieConfig.secure,
+    sameSite: runtimeConfig.cookie.sameSite,
+    secure: runtimeConfig.cookie.secure,
     httpOnly: true,
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days for better persistence
     path: "/",
     // Enhanced cross-site cookie support for Vercel ↔ Render
-    domain: undefined, // Let browser handle domain
+    domain: runtimeConfig.cookie.domain,
   },
   // Enhanced session configuration for cross-site authentication
   rolling: true, // Reset expiration on activity
-  proxy: true, // Trust proxy for secure cookies
+  proxy: runtimeConfig.trustProxy > 0,
   // Add session ID regeneration for security
   genid: () => {
     return crypto.randomBytes(16).toString('hex');

@@ -1,48 +1,22 @@
-// Backend env validation for Render with API keys
+import dotenvFlow from 'dotenv-flow';
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
+import { parseRuntimeConfig } from './runtime-config.js';
 
-const required = [
-  'DATABASE_URL',
-  'SESSION_SECRET',
-];
+// The deployment environment wins over local files. This is the only
+// application startup path that loads and validates server configuration.
+const serverRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
+dotenvFlow.config({ path: serverRoot, silent: true });
 
-for (const key of required) {
-  if (!process.env[key]) {
-    throw new Error(`❌ Missing required env var: ${key}`);
-  }
+if (!process.env.PORT) process.env.PORT = '10000';
+if (process.env.NODE_ENV !== 'production') {
+  if (!process.env.DATABASE_URL) process.env.DATABASE_URL = 'mongodb://localhost:27017/marrakechdunes';
+  if (!process.env.CLIENT_URL && !process.env.CORS_ALLOWED_ORIGINS) process.env.CLIENT_URL = 'http://localhost:5173';
 }
 
-export const ENV = {
-  NODE_ENV: process.env.NODE_ENV || 'development',
-  DATABASE_URL: process.env.DATABASE_URL!,
-  SESSION_SECRET: process.env.SESSION_SECRET!,
-  
-  // GetYourGuide API Configuration
-  GYG_PARTNER_API_BASE: process.env.GYG_PARTNER_API_BASE,
-  GYG_PARTNER_API_TOKEN: process.env.GYG_PARTNER_API_TOKEN,
-  GYG_PARTNER_API_LANGUAGE: process.env.GYG_PARTNER_API_LANGUAGE || 'en',
-  GYG_PARTNER_API_CURRENCY: process.env.GYG_PARTNER_API_CURRENCY || 'MAD',
-  GYG_SUPPLIER_BASE: process.env.GYG_SUPPLIER_BASE,
-  GYG_SUPPLIER_USER: process.env.GYG_SUPPLIER_USER,
-  GYG_SUPPLIER_PASS: process.env.GYG_SUPPLIER_PASS,
-  GYG_ENABLE_LIVE_SEARCH: process.env.GYG_ENABLE_LIVE_SEARCH || 'false',
-
-  // Viator Partner API (server-side only)
-  VIATOR_API_BASE: process.env.VIATOR_API_BASE,
-  VIATOR_API_KEY: process.env.VIATOR_API_KEY,
-  VIATOR_API_LANGUAGE: process.env.VIATOR_API_LANGUAGE || 'en-US',
-  VIATOR_API_CURRENCY: process.env.VIATOR_API_CURRENCY || 'EUR',
-  VIATOR_MARKET_INTELLIGENCE_ENABLED: process.env.VIATOR_MARKET_INTELLIGENCE_ENABLED || 'false',
-  
-  // Rezdy API Configuration
-  REZDY_API_KEY: process.env.REZDY_API_KEY,
-  
-  // Client URL for CORS
-  CLIENT_URL: process.env.CLIENT_URL || 'http://localhost:5173',
-};
-
-console.log('[Env] Loaded server variables OK:', {
-  NODE_ENV: ENV.NODE_ENV,
-  GYG_ENABLED: ENV.GYG_ENABLE_LIVE_SEARCH === 'true',
-  REZDY_ENABLED: !!ENV.REZDY_API_KEY,
-  CLIENT_URL: ENV.CLIENT_URL,
+export const runtimeConfig = parseRuntimeConfig(process.env);
+console.log('[Env] Server configuration validated:', {
+  NODE_ENV: runtimeConfig.nodeEnv,
+  PORT: runtimeConfig.port,
+  CORS_SOURCE: runtimeConfig.cors.source,
 });
