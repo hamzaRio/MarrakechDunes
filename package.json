@@ -14,6 +14,7 @@
     "build:public": "npm --prefix client run build:public",
     "build:admin": "npm --prefix client run build:admin",
     "build:server": "npm --prefix server run build",
+    "bootstrap": "npm --prefix server run bootstrap",
     "start:server": "powershell -NoProfile -ExecutionPolicy Bypass -Command \". .\\\\scripts\\\\load-env.ps1; node server/dist/index.js\"",
     "start": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"$env:NODE_ENV='production'; cd server; npm run start:build\"",
     "dev": "concurrently \"npm run dev:client\" \"npm run dev:server\"",

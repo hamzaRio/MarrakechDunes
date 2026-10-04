@@ -39,3 +39,11 @@ The root `.env.example` is the canonical template. Frontend `VITE_API_URL` is bu
 - CSRF_TOKEN_SECRET: older example value, no active CSRF consumer; current CSRF uses the existing cookie/header token flow. Candidate for later removal.
 - GYG_API_KEY and GYG_API_SECRET: older comprehensive-template names; official Partner API uses GYG_PARTNER_API_TOKEN. Legacy/unused candidate, not removed from production.
 - WHATSAPP_API_URL and TWILIO_*: older template values; active messaging is the manual queue. No new sending integration is implied.
+
+## Phase 3 staff bootstrap and demo data
+
+- **Existing MarrakechDunes production:** `LEGACY_STARTUP_SEEDING` defaults to `true` for this migration release. API startup still calls the original `seedInitialData()` path, including its existing named staff-account and activity behavior. Do not change the flag until staff credentials and deployment configuration have been reviewed for a coordinated cutover.
+- **New installation:** set `LEGACY_STARTUP_SEEDING=false`, set `BOOTSTRAP_ADMIN_USERNAME` and `BOOTSTRAP_ADMIN_PASSWORD`, build the server, and run `npm run bootstrap` once against the new installation's MongoDB. The command creates one initial Superadmin only when no staff users exist. It never replaces a populated installation's passwords or roles. If staff users exist without a Superadmin, it stops for manual recovery.
+- **Normal start in new mode:** with `LEGACY_STARTUP_SEEDING=false`, API startup does not create, delete, or reset staff users. `ADMIN_PASSWORD` and `SUPERADMIN_PASSWORD` are only required by the legacy startup mode and remain supported during migration. `SESSION_SECRET`, `JWT_SECRET`, and `DATABASE_URL` remain required by the current server configuration.
+- **Demo data:** `SEED_DEMO_DATA=true` opts the new mode into the existing MarrakechDunes sample activities. Its default is `false`; once seeded, subsequent starts do not duplicate them. Legacy mode retains its original sample-activity behavior for compatibility. The flag is not a production-data migration or deletion tool.
+- **Password ownership:** the one-shot bootstrap password is passed to the existing storage `createUser` path and hashed there once. The bootstrap variables are initialization inputs; a later API restart in new mode does not read them or overwrite a password changed through the staff UI.

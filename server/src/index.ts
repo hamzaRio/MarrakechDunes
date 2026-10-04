@@ -2,6 +2,7 @@ import * as Sentry from "@sentry/node";
 import "@sentry/tracing";
 import pino from 'pino';
 import { runtimeConfig } from './config/env.js';
+import { runStartupSeeding } from './bootstrap/bootstrap-policy.js';
 import { requireSuperAdmin } from './middleware/admin-auth.js';
 
 // Fix UTF-8 console encoding for emojis and French characters
@@ -452,10 +453,14 @@ app.use((req, res, next) => {
   // ? Connect to MongoDB before starting the server
   await connectToDatabase();
 
-  // ? Seed initial data (admin users, activities, etc.)
+  // Preserve legacy startup seeding by default during the migration release.
+  // New installations explicitly disable it and bootstrap staff once.
   const { storage } = await import('./storage.js');
-  await storage.seedInitialData();
-  console.log('[server] Initial data seeding completed');
+  const seedingMode = await runStartupSeeding(runtimeConfig.seeding, {
+    runLegacy: () => storage.seedInitialData(),
+    seedDemo: () => storage.seedDemoData(),
+  });
+  console.log(`[server] Startup seeding mode: ${seedingMode}`);
 
   // ? Initialize cache service
   const { cacheService } = await import('./services/cache-service.js');

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { resolveCorsPolicy } from '../utils/cors-origins.js';
+import { resolveStartupSeedingPolicy } from '../bootstrap/bootstrap-policy.js';
 
 const schema = z.object({
   NODE_ENV: z.string().default('development'),
@@ -15,8 +16,13 @@ const schema = z.object({
   COOKIE_SAMESITE: z.enum(['strict', 'lax', 'none']).optional(),
   COOKIE_DOMAIN: z.string().trim().optional(),
   TRUST_PROXY: z.coerce.number().int().min(0).max(10).optional(),
+  LEGACY_STARTUP_SEEDING: z.enum(['true', 'false']).optional(),
+  SEED_DEMO_DATA: z.enum(['true', 'false']).optional(),
 }).superRefine((env, context) => {
-  for (const key of ['DATABASE_URL', 'JWT_SECRET', 'SESSION_SECRET', 'ADMIN_PASSWORD', 'SUPERADMIN_PASSWORD'] as const) {
+  const required = env.LEGACY_STARTUP_SEEDING === 'false'
+    ? ['DATABASE_URL', 'JWT_SECRET', 'SESSION_SECRET'] as const
+    : ['DATABASE_URL', 'JWT_SECRET', 'SESSION_SECRET', 'ADMIN_PASSWORD', 'SUPERADMIN_PASSWORD'] as const;
+  for (const key of required) {
     if (!env[key]) context.addIssue({ code: z.ZodIssueCode.custom, path: [key], message: 'is required' });
   }
   if (!env.CLIENT_URL && !env.CORS_ALLOWED_ORIGINS) {
@@ -61,5 +67,6 @@ export function parseRuntimeConfig(env: NodeJS.ProcessEnv) {
     cors: resolveCorsPolicy(env, production),
     cookie: { secure: cookieSecure, sameSite: cookieSameSite, domain: cookieDomain },
     trustProxy: values.TRUST_PROXY ?? 1,
+    seeding: resolveStartupSeedingPolicy(env),
   };
 }

@@ -4,6 +4,7 @@ import { cacheService } from './services/cache-service.js';
 import { loggingService } from './services/logging-service.js';
 import { normalizeBookingPagination } from './utils/booking-query.js';
 import { hashPasswordForPersistence, prepareUserUpdateForPersistence } from './utils/password-hashing.js';
+import { runDemoSeed, type StaffBootstrapState } from './bootstrap/bootstrap-policy.js';
 import type {
   UserType,
   ActivityType,
@@ -223,6 +224,8 @@ export interface IStorage {
   updateReviewApproval(id: string, approved: boolean): Promise<ReviewType | null>;
   getActivityRating(activityId: string): Promise<{ averageRating: number; totalReviews: number }>;
   seedInitialData(): Promise<void>;
+  seedDemoData(options?: { legacyRefresh?: boolean }): Promise<void>;
+  getStaffBootstrapState(): Promise<StaffBootstrapState>;
   getEarningsAnalytics(): Promise<any>;
   getActivityAnalytics(): Promise<any>;
   getBookingAnalytics(): Promise<any>;
@@ -1473,21 +1476,36 @@ class MongoStorage implements IStorage {
         allUsersAfterSeeding.map(u => ({ username: u.username, role: u.role }))
       );
 
-      // Check if we need to update existing activities with new image filenames
-      const existingSeeded = await Activity.findOne({ isSeeded: true });
-      
-      // If activities exist but have old image filenames, update them
-      const needsUpdate = existingSeeded && existingSeeded.imageUrls && 
-        existingSeeded.imageUrls.some(url => url.includes('175112') || url.includes('175648'));
-      
-      if (!existingSeeded || needsUpdate) {
-        // If updating, delete old activities first
-        if (needsUpdate) {
-          console.log('🔄 Updating existing activities with new image filenames...');
+      await this.seedDemoData({ legacyRefresh: true });
+
+      console.log('✅ MongoDB seed data initialized successfully');
+    } catch (error) {
+      console.error('âŒ Error seeding data:', error);
+    }
+  }
+
+  async getStaffBootstrapState(): Promise<StaffBootstrapState> {
+    const anyStaff = await User.exists({});
+    if (!anyStaff) return 'empty';
+    const owner = await User.exists({ role: 'superadmin' });
+    return owner ? 'owned' : 'missing-owner';
+  }
+
+  async seedDemoData({ legacyRefresh = false }: { legacyRefresh?: boolean } = {}): Promise<void> {
+    const existingSeeded = await Activity.findOne({ isSeeded: true });
+    const needsLegacyImageRefresh = Boolean(existingSeeded?.imageUrls?.some(
+      (url: string) => url.includes('175112') || url.includes('175648')
+    ));
+    await runDemoSeed(
+      { exists: Boolean(existingSeeded), needsLegacyImageRefresh },
+      legacyRefresh,
+      {
+        deleteSeeded: async () => {
+          console.log('Refreshing legacy demo activity images');
           await Activity.deleteMany({ isSeeded: true });
-        }
-        // Seed with unique images per activity from assets
-        const activities = [
+        },
+        insert: async () => {
+          const activities = [
           {
             name: "Montgolfière (Hot Air Balloon)",
             description: "Experience the magic of Marrakech from above with a sunrise hot air balloon ride over the Atlas Mountains and traditional Berber villages.",
@@ -1607,20 +1625,16 @@ class MongoStorage implements IStorage {
             }],
             availability: "Daily 9:00 AM - 5:00 PM"
           }
-        ];
-
-        await Activity.insertMany(activities);
-        console.log(`✅ Created ${activities.length} initial activities`);
-        
-        // Force clear any cached data by updating the database timestamp
-        await Activity.updateMany({}, { $set: { updatedAt: new Date() } });
-        console.log('🔄 Database cache cleared - activities updated with new image filenames');
-      }
-
-      console.log('✅ MongoDB seed data initialized successfully');
-    } catch (error) {
-      console.error('âŒ Error seeding data:', error);
-    }
+          ];
+          await Activity.insertMany(activities);
+          console.log(`Created ${activities.length} initial activities`);
+        },
+        touchAll: async () => {
+          await Activity.updateMany({}, { $set: { updatedAt: new Date() } });
+          console.log('Database cache cleared - activities updated with new image filenames');
+        },
+      },
+    );
   }
 
   // Analytics methods - Optimized with aggregation

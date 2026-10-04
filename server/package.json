@@ -6,6 +6,7 @@
     "prebuild": "npm --prefix ../shared run build",
     "dev": "tsx watch src/index.ts",
     "build": "tsc -p tsconfig.json",
+    "bootstrap": "npm run build && node dist/bootstrap/cli.js",
     "start": "node dist/index.js",
     "start:build": "npm run build && node dist/index.js"
   },
