@@ -20,6 +20,7 @@ server/dist/
 .env.test
 .env.staging
 .env.production
+.env.compose
 
 # Keep only safe examples under Git
 !/.env.example
@@ -83,6 +84,7 @@ temp/
 # === Database dumps ===
 *.db
 *.sqlite
+backups/
 
 # === Uploads (but keep attached_assets for project) ===
 uploads/
