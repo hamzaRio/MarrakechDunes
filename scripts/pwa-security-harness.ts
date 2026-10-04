@@ -17,6 +17,8 @@ const cleanup = await readFile(`${publicOutput}/pwa-cache-cleanup.js`, 'utf8');
 const publicApp = await readFile('client/src/PublicApp.tsx', 'utf8');
 const bookingForm = await readFile('client/src/pages/booking-fixed.tsx', 'utf8');
 
+assert.doesNotMatch(sw, /config\.js/, 'Runtime config must not be precached');
+
 assert.match(sw, /importScripts\(["']\/pwa-cache-cleanup\.js["']\)/);
 assert.ok(!/api-cache|static-files|marrakechdunes-sppy\.onrender\.com/i.test(sw), 'Generated worker must not contain a legacy API cache or API hostname');
 assert.equal((sw.match(/\.registerRoute\(/g) || []).length, 2, 'Only navigation and Google Fonts runtime routes are expected');

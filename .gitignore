@@ -96,7 +96,6 @@ uploads/
 *.backup
 
 # === Docker ===
-.dockerignore
 
 # === Hosting configs (keep only Render + Vercel) ===
 .vercel

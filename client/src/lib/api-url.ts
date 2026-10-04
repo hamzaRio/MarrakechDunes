@@ -7,7 +7,7 @@ export interface ApiUrlInputs {
 }
 
 export function resolveApiBaseUrl(inputs: ApiUrlInputs): string {
-  const configured = inputs.configured?.trim() || inputs.injected?.trim();
+  const configured = inputs.injected?.trim() || inputs.configured?.trim();
   let base = configured?.replace(/\/+$/, '');
   if (!base) {
     if (inputs.production) throw new Error('VITE_API_URL is required for production API access');
