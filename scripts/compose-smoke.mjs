@@ -35,21 +35,35 @@ const composeBase = spawnSync('docker', ['compose', 'version'], { env: hostEnv, 
   : (existsSync(composePlugin) ? [composePlugin] : ['docker-compose']);
 const compose = (...args) => execFileSync(composeBase[0], [...composeBase.slice(1), '--env-file', envFile, '-p', project, '-f', path.join(root, 'compose.yaml'), ...args], { cwd: root, stdio: 'inherit', env: hostEnv });
 const request = async (url, options = {}) => { const response = await fetch(url, options); return { response, text: await response.text() }; };
-const waitFor = async (url, timeout = 120000) => { const end = Date.now() + timeout; while (Date.now() < end) { try { const result = await request(url); if (result.response.ok) return result; } catch {} await new Promise((resolve) => setTimeout(resolve, 2000)); } throw new Error(`Timed out waiting for ${url}`); };
+const waitForHttp = async (url, expectedStatus, timeout = 120000) => {
+  const end = Date.now() + timeout;
+  let lastError = null;
+  while (Date.now() < end) {
+    try {
+      const result = await request(url);
+      if (result.response.status === expectedStatus) return result;
+      throw new Error(`HTTP ${result.response.status}`);
+    } catch (error) {
+      if (error instanceof Error && /^HTTP \d+$/.test(error.message)) throw error;
+      lastError = error;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+  }
+  throw new Error(`Timed out waiting for ${url} (${lastError instanceof Error ? lastError.message : 'no response'})`);
+};
 try {
   if (!existsSync(path.join(root, 'compose.yaml'))) throw new Error('compose.yaml is missing');
   compose('config', '--quiet');
   compose('build');
   compose('up', '-d', 'mongo', 'api', 'web-public', 'web-admin');
-  await waitFor('http://localhost:10000/api/health/live');
-  await waitFor('http://localhost:10000/api/health/ready');
-  const publicHome = await request('http://localhost:8080/');
-  const publicRoute = await request('http://localhost:8080/activities');
-  const adminLogin = await request('http://localhost:8081/admin/login');
-  const adminSw = await request('http://localhost:8081/sw.js');
-  const publicConfig = await request('http://localhost:8080/config.js');
-  const adminConfig = await request('http://localhost:8081/config.js');
-  if (!publicHome.response.ok || !publicRoute.response.ok || !adminLogin.response.ok || adminSw.response.status !== 404) throw new Error('web smoke failed');
+  await waitForHttp('http://localhost:10000/api/health/live', 200);
+  await waitForHttp('http://localhost:10000/api/health/ready', 200);
+  const publicHome = await waitForHttp('http://localhost:8080/', 200);
+  const publicRoute = await waitForHttp('http://localhost:8080/activities', 200);
+  const adminLogin = await waitForHttp('http://localhost:8081/admin/login', 200);
+  const adminSw = await waitForHttp('http://localhost:8081/sw.js', 404);
+  const publicConfig = await waitForHttp('http://localhost:8080/config.js', 200);
+  const adminConfig = await waitForHttp('http://localhost:8081/config.js', 200);
   for (const config of [publicConfig, adminConfig]) {
     const context = { window: {} };
     runInNewContext(config.text, context, { timeout: 1000 });
@@ -93,7 +107,7 @@ try {
   if (newPassword.response.ok) throw new Error('second bootstrap password unexpectedly worked');
   compose('down');
   compose('up', '-d', 'mongo', 'api', 'web-public', 'web-admin');
-  await waitFor('http://localhost:10000/api/health/ready');
+  await waitForHttp('http://localhost:10000/api/health/ready', 200);
   const afterRestart = await login(firstPassword);
   if (!afterRestart.response.ok) throw new Error('original password failed after restart');
   console.log('Compose smoke PASS: config, builds, health, web routes, CORS, session init, authenticated user, logout invalidation, bootstrap no-op/password preservation, and Mongo volume persistence');
