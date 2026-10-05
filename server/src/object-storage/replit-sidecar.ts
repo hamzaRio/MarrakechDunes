@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import type { ObjectStorageProvider, ObjectUploadGrant } from './types.js';
+import type { ObjectStorageProvider, ObjectUploadGrant, ObjectUploadRequest } from './types.js';
 
 const DEFAULT_SIDECAR_ENDPOINT = 'http://127.0.0.1:1106';
 
@@ -21,13 +21,14 @@ function parseObjectPath(path: string): { bucketName: string; objectName: string
 export class ReplitSidecarObjectStorageProvider implements ObjectStorageProvider {
   constructor(private readonly endpoint = process.env.OBJECT_STORAGE_SIDECAR_ENDPOINT?.trim() || DEFAULT_SIDECAR_ENDPOINT) {}
 
-  async createUploadGrant(): Promise<ObjectUploadGrant> {
+  async createUploadGrant(_request?: ObjectUploadRequest): Promise<ObjectUploadGrant> {
     const objectPath = `${privateObjectDir()}/uploads/${randomUUID()}`;
     const { bucketName, objectName } = parseObjectPath(objectPath);
     const response = await fetch(`${this.endpoint}/object-storage/signed-object-url`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ bucket_name: bucketName, object_name: objectName, method: 'PUT', expires_at: new Date(Date.now() + 15 * 60 * 1000).toISOString() }),
+      signal: AbortSignal.timeout(10_000),
     });
     if (!response.ok) throw new Error(`Object upload URL signing failed with HTTP ${response.status}`);
     const result = await response.json() as { signed_url?: unknown };

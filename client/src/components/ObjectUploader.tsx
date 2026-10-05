@@ -10,9 +10,11 @@ import { Button } from "@/components/ui/button";
 interface ObjectUploaderProps {
   maxNumberOfFiles?: number;
   maxFileSize?: number;
-  onGetUploadParameters: () => Promise<{
+  onGetUploadParameters: (file: { type?: string; size?: number }) => Promise<{
     method: "PUT";
     url: string;
+    headers?: Record<string, string>;
+    publicUrl?: string;
   }>;
   onComplete?: (
     result: UploadResult<Record<string, unknown>, Record<string, unknown>>
@@ -46,12 +48,19 @@ export function ObjectUploader({
     })
       .use(AwsS3, {
         shouldUseMultipart: false,
-        getUploadParameters: onGetUploadParameters,
+        getUploadParameters: async (file) => {
+          const params = await onGetUploadParameters({ type: file.type, size: file.size });
+          if (params.publicUrl) file.meta.publicUrl = params.publicUrl;
+          return params;
+        },
       })
       .on("complete", (result) => {
         onComplete?.(result);
         if (onUpload && result.successful) {
-          const urls = result.successful.map(file => file.uploadURL).filter((url): url is string => Boolean(url));
+          const urls = result.successful.map(file => {
+            const meta = file.meta as { publicUrl?: unknown } | undefined;
+            return typeof meta?.publicUrl === 'string' ? meta.publicUrl : file.uploadURL;
+          }).filter((url): url is string => Boolean(url));
           onUpload(urls);
         }
         setShowModal(false);

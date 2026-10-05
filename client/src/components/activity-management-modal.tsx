@@ -634,14 +634,17 @@ export default function ActivityManagementModal({
                     <ObjectUploader
                       maxNumberOfFiles={3}
                       maxFileSize={5242880}
-                      onGetUploadParameters={async () => {
+                      onGetUploadParameters={async (file) => {
                         const res = await apiRequest("/objects/upload", {
-                          method: "POST"
+                          method: "POST",
+                          body: JSON.stringify({ contentType: file.type, size: file.size }),
                         });
                         const data = await res.json();
                         return {
                           method: "PUT" as const,
                           url: data.uploadURL,
+                          headers: data.headers,
+                          publicUrl: data.publicUrl,
                         };
                       }}
                       onComplete={(result) => {

@@ -24,6 +24,7 @@
     "dev:backend": "npm run dev:server",
     "build:frontend": "npm run build -w client",
     "build:backend": "npm run build -w server",
+    "test:object-storage": "tsx scripts/object-storage-harness.ts",
     "test": "npm run test -w client",
     "test:e2e": "powershell -ExecutionPolicy Bypass -File scripts\\\\e2e.ps1",
     "check": "tsc",

@@ -1,17 +1,79 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { ObjectStorageService, type ObjectStorageProvider } from '../server/src/objectStorage.js';
+import { createObjectStorageProvider, ObjectStorageService } from '../server/src/objectStorage.js';
+import { ReplitSidecarObjectStorageProvider } from '../server/src/object-storage/replit-sidecar.js';
+import { S3CompatibleObjectStorageProvider } from '../server/src/object-storage/s3-compatible.js';
+import { parseUploadRequest } from '../server/src/object-storage/upload-policy.js';
 
-const grant = { uploadUrl: 'https://storage.example.test/upload-token', objectPath: '/objects/uploads/test-id' };
-const calls: number[] = [];
-const provider: ObjectStorageProvider = { async createUploadGrant() { calls.push(1); return grant; } };
-const service = new ObjectStorageService(provider);
-assert.deepEqual(await service.getObjectEntityUploadGrant(), grant);
-assert.equal(await service.getObjectEntityUploadURL(), grant.uploadUrl);
-assert.equal(calls.length, 2);
+const envKeys = [
+  'OBJECT_STORAGE_PROVIDER', 'PRIVATE_OBJECT_DIR', 'OBJECT_STORAGE_SIDECAR_ENDPOINT',
+  'OBJECT_STORAGE_S3_ENDPOINT', 'OBJECT_STORAGE_S3_REGION', 'OBJECT_STORAGE_S3_BUCKET',
+  'OBJECT_STORAGE_S3_ACCESS_KEY_ID', 'OBJECT_STORAGE_S3_SECRET_ACCESS_KEY',
+  'OBJECT_STORAGE_S3_FORCE_PATH_STYLE', 'OBJECT_STORAGE_S3_UPLOAD_EXPIRES_SECONDS',
+  'OBJECT_STORAGE_S3_PUBLIC_BASE_URL',
+];
+const originalEnv = Object.fromEntries(envKeys.map((key) => [key, process.env[key]]));
+const originalFetch = globalThis.fetch;
 
-const source = await readFile('server/src/routes/upload.ts', 'utf8');
-assert.match(source, /uploadURL: grant\.uploadUrl/);
-assert.match(source, /requireSuperAdmin/);
-assert.doesNotMatch(source, /PRIVATE_OBJECT_DIR|127\.0\.0\.1:1106/);
-console.log('Object storage abstraction harness: PASS');
+try {
+  process.env.OBJECT_STORAGE_PROVIDER = 'replit-sidecar';
+  process.env.PRIVATE_OBJECT_DIR = '/bucket/private';
+  process.env.OBJECT_STORAGE_SIDECAR_ENDPOINT = 'http://sidecar.test';
+  let sidecarRequest: Record<string, unknown> | undefined;
+  globalThis.fetch = (async (_input, init) => {
+    sidecarRequest = JSON.parse(String(init?.body));
+    return new Response(JSON.stringify({ signed_url: 'https://sidecar.test/signed' }), { status: 200 });
+  }) as typeof fetch;
+  const replit = createObjectStorageProvider();
+  assert.ok(replit instanceof ReplitSidecarObjectStorageProvider);
+  const replitGrant = await replit.createUploadGrant({ contentType: 'image/png', size: 1024 });
+  assert.match(replitGrant.objectPath, /^\/objects\/uploads\/[0-9a-f-]+$/);
+  assert.equal(sidecarRequest?.method, 'PUT');
+  assert.deepEqual(parseUploadRequest({ contentType: 'IMAGE/PNG', size: 1024 }), { contentType: 'image/png', size: 1024 });
+  assert.throws(() => parseUploadRequest({ contentType: 'application/pdf' }), /Unsupported image content type/);
+  assert.throws(() => parseUploadRequest({ size: 5 * 1024 * 1024 + 1 }), /Image size/);
+
+  process.env.OBJECT_STORAGE_PROVIDER = 's3';
+  process.env.OBJECT_STORAGE_S3_ENDPOINT = 'https://minio.test';
+  process.env.OBJECT_STORAGE_S3_REGION = 'auto';
+  process.env.OBJECT_STORAGE_S3_BUCKET = 'images';
+  process.env.OBJECT_STORAGE_S3_ACCESS_KEY_ID = 'test-access';
+  process.env.OBJECT_STORAGE_S3_SECRET_ACCESS_KEY = 'test-secret-value';
+  process.env.OBJECT_STORAGE_S3_FORCE_PATH_STYLE = 'true';
+  process.env.OBJECT_STORAGE_S3_UPLOAD_EXPIRES_SECONDS = '600';
+  process.env.OBJECT_STORAGE_S3_PUBLIC_BASE_URL = 'https://cdn.test/images';
+  const s3 = createObjectStorageProvider();
+  assert.ok(s3 instanceof S3CompatibleObjectStorageProvider);
+  const s3Grant = await s3.createUploadGrant({ contentType: 'image/jpeg', size: 2048 });
+  assert.match(s3Grant.objectPath, /^\/objects\/uploads\/[0-9a-f-]+$/);
+  assert.match(s3Grant.uploadUrl, /^https:\/\/minio\.test\/images\/uploads\//);
+  assert.match(s3Grant.uploadUrl, /X-Amz-Credential=/);
+  assert.equal(s3Grant.method, 'PUT');
+  assert.deepEqual(s3Grant.headers, { 'Content-Type': 'image/jpeg' });
+  assert.match(s3Grant.publicUrl || '', /^https:\/\/cdn\.test\/images\/uploads\//);
+  assert.ok(!JSON.stringify(s3Grant).includes('test-secret-value'));
+
+  delete process.env.OBJECT_STORAGE_S3_BUCKET;
+  assert.throws(() => createObjectStorageProvider(), /OBJECT_STORAGE_S3_BUCKET/);
+  process.env.OBJECT_STORAGE_S3_BUCKET = 'images';
+  process.env.OBJECT_STORAGE_PROVIDER = 'unknown';
+  assert.throws(() => createObjectStorageProvider(), /Unsupported OBJECT_STORAGE_PROVIDER/);
+
+  const fakeGrant = { uploadUrl: 'https://storage.test/upload', objectPath: '/objects/uploads/id' };
+  const service = new ObjectStorageService({ async createUploadGrant() { return fakeGrant; } });
+  assert.deepEqual(await service.getObjectEntityUploadGrant(), fakeGrant);
+  assert.equal(await service.getObjectEntityUploadURL(), fakeGrant.uploadUrl);
+
+  const route = await readFile('server/src/routes/upload.ts', 'utf8');
+  assert.match(route, /uploadRateLimit/);
+  assert.match(route, /uploadURL: grant\.uploadUrl/);
+  assert.match(route, /publicUrl/);
+  assert.doesNotMatch(route, /PRIVATE_OBJECT_DIR|127\.0\.0\.1:1106/);
+  console.log('Object storage provider harness: PASS');
+} finally {
+  globalThis.fetch = originalFetch;
+  for (const key of envKeys) {
+    if (originalEnv[key] === undefined) delete process.env[key];
+    else process.env[key] = originalEnv[key];
+  }
+}

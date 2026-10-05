@@ -389,14 +389,17 @@ export default function SimpleActivityForm({
               <ObjectUploader
                 maxNumberOfFiles={5}
                 maxFileSize={10485760} // 10MB
-                onGetUploadParameters={async () => {
+                onGetUploadParameters={async (file) => {
                   const res = await apiRequest("/objects/upload", {
-                    method: "POST"
+                    method: "POST",
+                    body: JSON.stringify({ contentType: file.type, size: file.size }),
                   });
                   const data = await res.json();
                   return {
                     method: "PUT" as const,
                     url: data.uploadURL,
+                    headers: data.headers,
+                    publicUrl: data.publicUrl,
                   };
                 }}
                 onUpload={handleImageUpload}
