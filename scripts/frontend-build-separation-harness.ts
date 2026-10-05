@@ -14,8 +14,16 @@ for (const route of ["/admin", "/admin/dashboard", "/admin/ceo", "/admin/busines
 assert.match(adminApp, /AdminRoute/);
 assert.match(adminApp, /AutoLogout/);
 assert.doesNotMatch(portal, /useAuth/);
-assert.match(vercelConfig, /"source": "\/\(\.\*\)"/);
-assert.match(vercelConfig, /"destination": "\/"/);
+const vercel = JSON.parse(vercelConfig) as {
+  routes?: Array<{ handle?: string; src?: string; dest?: string; status?: number }>;
+  rewrites?: unknown;
+};
+assert.equal(vercel.rewrites, undefined);
+assert.deepEqual(vercel.routes, [
+  { handle: "filesystem" },
+  { src: "/(?:sw\\.js|manifest\\.webmanifest|workbox-.*)", status: 404 },
+  { src: "/(.*)", dest: "/" },
+]);
 const navbar = await readFile("client/src/components/navbar.tsx", "utf8");
 assert.doesNotMatch(navbar, /staffSpace|\/admin|ADMIN_URL|admin-url/);
 await assert.rejects(access("client/src/lib/admin-url.ts"), { code: "ENOENT" });
@@ -33,6 +41,7 @@ for (const file of ["client/public/config.js", "client/dist/config.js", "client/
 // Inspect actual build source graphs rather than confusing shared guards/PWA deny rules with AdminApp.
 for (const [directory, admin] of [["client/dist", false], ["client/dist-admin", true]] as const) {
   await access(`${directory}/index.html`);
+  const rootFiles = await readdir(directory);
   const assets = await readdir(`${directory}/assets`);
   const maps = assets.filter(name => name.endsWith(".js.map"));
   assert.ok(maps.length > 0, `Build ${directory} first; source maps are required`);
@@ -48,7 +57,12 @@ assert.equal(sources.some(source => /\/PublicApp\.tsx$/.test(source)), !admin);
     for (const forbidden of ["robots.txt", "sitemap.xml", "sw.js", "manifest.webmanifest"]) {
       await assert.rejects(access(`${directory}/${forbidden}`), { code: "ENOENT" });
     }
+    assert.equal(rootFiles.some(name => name.startsWith("workbox-")), false);
   } else {
+    for (const required of ["sw.js", "manifest.webmanifest"]) {
+      await access(`${directory}/${required}`);
+    }
+    assert.ok(rootFiles.some(name => name.startsWith("workbox-")), "Public build must retain Workbox output");
     for (const name of assets.filter(name => name.endsWith(".js"))) {
       const source = await readFile(`${directory}/assets/${name}`, "utf8");
       assert.doesNotMatch(source, /ADMIN_URL|__ADMIN_URL__|\/admin\/login|AdminApp|staffSpace|Staff area/);
