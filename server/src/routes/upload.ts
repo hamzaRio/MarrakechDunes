@@ -11,10 +11,12 @@ const objectStorage = new ObjectStorageService();
  */
 router.post('/objects/upload', requireSuperAdmin, async (req: Request, res: Response) => {
   try {
-    const uploadURL = await objectStorage.getObjectEntityUploadURL();
+    const grant = await objectStorage.getObjectEntityUploadGrant();
     return res.status(200).json({
       status: 'success',
-      uploadUrl: uploadURL
+      uploadURL: grant.uploadUrl,
+      uploadUrl: grant.uploadUrl,
+      objectPath: grant.objectPath,
     });
   } catch (error) {
     console.error('[UPLOAD] Error generating upload URL:', error);
