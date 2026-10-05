@@ -9,8 +9,6 @@ import { Button } from "@/components/ui/button";
 
 import { Clock, MapPin } from "lucide-react";
 
-import { useAuth } from "@/hooks/use-auth";
-
 import ActivityPreview from "./activity-preview";
 
 import { getActivityFallbackImage, handleImageError, getActivityImages } from "@/lib/image-utils";
@@ -34,15 +32,7 @@ interface ActivityCardProps {
 export default function ActivityCard({ activity, showDescription = false }: ActivityCardProps) {
 
   const [, setLocation] = useLocation();
-  const { user } = useAuth();
-
   const [showPreview, setShowPreview] = useState(false);
-
-
-
-  // Only show admin features to authenticated admins
-
-  const isAdmin = user && (user.role === 'admin' || user.role === 'superadmin');
 
 
 
@@ -207,48 +197,6 @@ export default function ActivityCard({ activity, showDescription = false }: Acti
           </div>
 
         </div>
-
-
-
-        {/* Price Comparison Summary - Admin Only */}
-
-        {isAdmin && (
-
-          <div className="bg-blue-50 p-3 rounded-lg mb-4 border border-blue-200">
-
-            <div className="text-sm font-medium text-moroccan-blue mb-2">Price Comparison</div>
-
-            <div className="grid grid-cols-2 gap-3 text-xs">
-
-              <div>
-
-                <div className="text-green-700 font-medium">Our Price</div>
-
-                <div className="text-lg font-bold text-green-600">{activity.price} MAD</div>
-
-              </div>
-
-              <div>
-
-                <div className="text-orange-700 font-medium">Market reference</div>
-
-                <div className="text-lg font-bold text-orange-600">{activity.getyourguidePrice ? `${activity.getyourguidePrice} MAD` : 'N/A'}</div>
-
-                <div className="text-xs text-gray-500">Stored source requires verification</div>
-
-              </div>
-
-            </div>
-
-            <div className="text-center mt-2 text-xs text-gray-500 font-medium">
-
-              Market references are informational only.
-
-            </div>
-
-          </div>
-
-        )}
 
 
 

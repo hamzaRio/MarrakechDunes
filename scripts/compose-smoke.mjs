@@ -2,6 +2,8 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import { mkdtempSync, writeFileSync, rmSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import assert from 'node:assert/strict';
+import { runInNewContext } from 'node:vm';
 
 const root = process.cwd();
 const project = 'marrakechdunes-phase6-smoke';
@@ -48,7 +50,12 @@ try {
   const publicConfig = await request('http://localhost:8080/config.js');
   const adminConfig = await request('http://localhost:8081/config.js');
   if (!publicHome.response.ok || !publicRoute.response.ok || !adminLogin.response.ok || adminSw.response.status !== 404) throw new Error('web smoke failed');
-  if (!publicConfig.text.includes('localhost:10000/api') || !adminConfig.text.includes('localhost:10000/api')) throw new Error('runtime config failed');
+  for (const config of [publicConfig, adminConfig]) {
+    const context = { window: {} };
+    runInNewContext(config.text, context, { timeout: 1000 });
+    assert.deepEqual(Object.keys(context.window), ['__API_URL__']);
+    assert.equal(context.window.__API_URL__, 'http://localhost:10000/api');
+  }
   const session = await request('http://localhost:10000/api/session/init', { headers: { Origin: 'http://localhost:8080' } });
   if (!session.response.ok || !session.text.includes('csrfToken')) throw new Error('session init failed');
   const sessionCookies = session.response.headers.getSetCookie?.() || (session.response.headers.get('set-cookie') || '').split(/,(?=[^;]+?=)/);

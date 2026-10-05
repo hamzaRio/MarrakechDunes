@@ -24,7 +24,7 @@ Public navigation contains:
 - Booking
 - Reviews
 
-Staff access is provided separately through **Staff area / Espace équipe** at `/admin/login`.
+The Public Web is customer-facing only. Staff use the independently deployed Admin Web at `/admin/login`.
 
 The public `POST /api/bookings` route remains unauthenticated and creates every new booking with status `PENDING`. Public booking creation is the exact booking route exempt from CSRF verification.
 

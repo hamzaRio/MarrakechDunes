@@ -9,6 +9,8 @@ assert.match(api, /USER node/);
 assert.match(api, /health\/ready/);
 assert.doesNotMatch(api, /client\/dist|dist-admin/);
 assert.match(web, /ARG APP=public/);
+assert.doesNotMatch(await readFile('docker/web-entrypoint.sh', 'utf8'), /ADMIN_URL|__ADMIN_URL__/);
+assert.doesNotMatch(await readFile('compose.yaml', 'utf8'), /PUBLIC_ADMIN_URL|\bADMIN_URL\b/);
 assert.match(web, /build:\$\{APP\}/);
 assert.match(ignore, /\.env/);
 assert.match(await readFile('docker/nginx-admin.conf', 'utf8'), /return 404/);

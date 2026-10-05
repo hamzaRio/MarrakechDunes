@@ -69,12 +69,6 @@ export default function Navbar() {
               </DropdownMenuContent>
             </DropdownMenu>
             
-            {/* Staff access stays separate from public tourism navigation. */}
-            <Link href="/admin/login">
-              <span className="text-sm text-gray-500 hover:text-moroccan-red transition-colors cursor-pointer">
-                {t('nav.staffSpace')}
-              </span>
-            </Link>
           </div>
 
           {/* Mobile Navigation Trigger */}
@@ -105,16 +99,6 @@ export default function Navbar() {
                       </div>
                     </Link>
                   ))}
-                  <div className="border-t pt-4 mt-4">
-                    <Link href="/admin/login">
-                      <div
-                        className="text-sm text-gray-500 hover:text-moroccan-red transition-colors cursor-pointer p-2 rounded"
-                        onClick={() => setIsOpen(false)}
-                      >
-                        {t('nav.staffSpace')}
-                      </div>
-                    </Link>
-                  </div>
 
                   {/* Contact Info */}
                   <div className="border-t pt-4 mt-4 space-y-3">
@@ -136,4 +120,3 @@ export default function Navbar() {
     </nav>
   );
 }
-

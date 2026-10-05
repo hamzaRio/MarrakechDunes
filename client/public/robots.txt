@@ -2,8 +2,7 @@
 User-agent: *
 Allow: /
 
-# Disallow admin routes
-Disallow: /admin
+# Disallow API routes
 Disallow: /api
 
 # Sitemap location

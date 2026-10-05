@@ -2,6 +2,9 @@ import Axios from 'axios';
 import { browserApiBaseUrl } from './api-url';
 
 const apiBaseURL = browserApiBaseUrl();
+const redirectToAdminLogin = import.meta.env.MODE === 'admin'
+  ? () => import('./admin-auth-redirect').then(({ redirectToAdminLogin }) => redirectToAdminLogin())
+  : null;
 
 // Only log in development to reduce console noise in production
 if (import.meta.env.DEV) {
@@ -62,8 +65,9 @@ axios.interceptors.response.use(
       const isAuthCheck = requestMethod === 'GET' &&
         (requestUrl === '/auth/user' || requestUrl.endsWith('/api/auth/user') || requestUrl.endsWith('/auth/user'));
       const currentPath = window.location.pathname;
-      const isAdminRoute = currentPath.startsWith('/admin') || currentPath.startsWith('/admin/');
-      const isLoginPage = currentPath === '/admin/login' || currentPath === '/admin/Login';
+      const isAdminBuild = import.meta.env.MODE === 'admin';
+      const isAdminRoute = isAdminBuild && (currentPath.startsWith('/admin') || currentPath.startsWith('/admin/'));
+      const isLoginPage = isAdminBuild && (currentPath === '/admin/login' || currentPath === '/admin/Login');
       
       // Only log authentication errors if not on login page
       if (!isLoginPage) {
@@ -76,7 +80,7 @@ axios.interceptors.response.use(
       }
       
       // Only the authoritative GET /auth/user check can invalidate an admin session.
-      if (status === 401 && isAuthCheck && isAdminRoute && !isLoginPage) {
+      if (import.meta.env.MODE === 'admin' && status === 401 && isAuthCheck && isAdminRoute && !isLoginPage) {
         console.log('[API] Admin route authentication error - clearing auth data');
         csrfToken = null;
         
@@ -91,7 +95,7 @@ axios.interceptors.response.use(
         });
         
         console.log('[API] Redirecting to login page...');
-        window.location.href = '/admin/login';
+        void redirectToAdminLogin?.();
       } else if (status === 403) {
         console.warn('[API] Authorization or CSRF error - keeping authentication state');
       } else if (status === 401) {
@@ -286,7 +290,7 @@ if (typeof window !== 'undefined') {
   (window as any).clearAuthData = clearAuthData;
   (window as any).forceLogout = () => {
     clearAuthData();
-    window.location.href = '/admin/login';
+    void redirectToAdminLogin?.();
   };
 }
 
