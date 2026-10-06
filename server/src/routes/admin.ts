@@ -129,6 +129,25 @@ router.get('/bookings/summary', async (req: Request, res: Response) => {
 });
 
 /**
+ * GET /api/admin/bookings/action-required
+ * Return bounded actionable booking samples with real category totals.
+ */
+router.get('/bookings/action-required', async (req: Request, res: Response) => {
+  try {
+    const start = parseBookingDateOnly(req.query.from, false);
+    const end = parseBookingDateOnly(req.query.to, true);
+    if (!start || !end || start > end) {
+      return res.status(400).json({ status: 'error', message: 'Valid from and to dates are required' });
+    }
+    const result = await storage.getActionRequiredBookings({ start, end });
+    return res.status(200).json(result);
+  } catch (error) {
+    console.error('[ADMIN] Error fetching action-required bookings:', error);
+    return res.status(500).json({ status: 'error', message: 'Failed to fetch action-required bookings' });
+  }
+});
+
+/**
  * GET /api/admin/bookings/:id
  * Get single booking (admin only)
  */

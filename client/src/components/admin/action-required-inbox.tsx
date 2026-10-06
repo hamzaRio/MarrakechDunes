@@ -9,6 +9,7 @@ import { formatCasablancaDateOnly, formatLocalDateOnly, getBookingDateOnly, getB
 
 interface ActionRequiredInboxProps {
   bookings: BookingType[];
+  counts: { pending: number; paymentAttention: number; upcoming: number };
   isLoading: boolean;
   isError: boolean;
   onRetry: () => void;
@@ -52,7 +53,7 @@ function BookingItem({ booking, onViewBookings }: { booking: BookingType; onView
   );
 }
 
-export default function ActionRequiredInbox({ bookings, isLoading, isError, onRetry, onViewBookings }: ActionRequiredInboxProps) {
+export default function ActionRequiredInbox({ bookings, counts, isLoading, isError, onRetry, onViewBookings }: ActionRequiredInboxProps) {
   const today = formatCasablancaDateOnly();
   const tomorrowDate = new Date(`${today}T00:00:00`);
   tomorrowDate.setDate(tomorrowDate.getDate() + 1);
@@ -67,7 +68,7 @@ export default function ActionRequiredInbox({ bookings, isLoading, isError, onRe
     const key = dateKey(booking.preferredDate);
     return key === today || key === tomorrow;
   });
-  const totalActions = pending.length + paymentAttention.length + upcoming.length;
+  const totalActions = counts.pending + counts.paymentAttention + counts.upcoming;
 
   return (
     <Card className="border-amber-200 bg-amber-50/40">
@@ -97,9 +98,9 @@ export default function ActionRequiredInbox({ bookings, isLoading, isError, onRe
           </div>
         ) : (
           <div className="grid gap-4 lg:grid-cols-3">
-            <InboxCategory title="Réservations en attente" icon={<AlertCircle className="h-4 w-4 text-orange-600" />} items={pending} onViewBookings={onViewBookings} />
-            <InboxCategory title="Paiement à suivre" icon={<CreditCard className="h-4 w-4 text-red-600" />} items={paymentAttention} onViewBookings={onViewBookings} />
-            <InboxCategory title="Aujourd'hui / demain" icon={<CalendarClock className="h-4 w-4 text-blue-600" />} items={upcoming} onViewBookings={onViewBookings} />
+            <InboxCategory title="Réservations en attente" icon={<AlertCircle className="h-4 w-4 text-orange-600" />} count={counts.pending} items={pending} onViewBookings={onViewBookings} />
+            <InboxCategory title="Paiement à suivre" icon={<CreditCard className="h-4 w-4 text-red-600" />} count={counts.paymentAttention} items={paymentAttention} onViewBookings={onViewBookings} />
+            <InboxCategory title="Aujourd'hui / demain" icon={<CalendarClock className="h-4 w-4 text-blue-600" />} count={counts.upcoming} items={upcoming} onViewBookings={onViewBookings} />
           </div>
         )}
       </CardContent>
@@ -107,10 +108,10 @@ export default function ActionRequiredInbox({ bookings, isLoading, isError, onRe
   );
 }
 
-function InboxCategory({ title, icon, items, onViewBookings }: { title: string; icon: ReactNode; items: BookingType[]; onViewBookings: () => void }) {
+function InboxCategory({ title, icon, count, items, onViewBookings }: { title: string; icon: ReactNode; count: number; items: BookingType[]; onViewBookings: () => void }) {
   return (
     <section aria-label={title}>
-      <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold text-gray-800">{icon}{title}<span className="text-gray-500">({items.length})</span></h3>
+      <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold text-gray-800">{icon}{title}<span className="text-gray-500">({count})</span></h3>
       {items.length === 0 ? <p className="rounded-md border border-dashed border-gray-300 bg-white/70 p-3 text-sm text-gray-500">Rien à traiter.</p> : (
         <ul className="space-y-2">{items.slice(0, MAX_ITEMS).map((booking) => <BookingItem key={String(booking._id || booking.id || `${booking.customerName}-${booking.preferredDate}`)} booking={booking} onViewBookings={onViewBookings} />)}</ul>
       )}

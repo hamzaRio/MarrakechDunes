@@ -196,6 +196,11 @@ export interface IStorage {
     collectedPayments: number;
     outstandingAmount: number;
   }>;
+  getActionRequiredBookings(dateRange: { start: Date; end: Date }): Promise<{
+    pending: { total: number; bookings: BookingWithActivity[] };
+    paymentAttention: { total: number; bookings: BookingWithActivity[] };
+    upcoming: { total: number; bookings: BookingWithActivity[] };
+  }>;
   getBooking(id: string): Promise<BookingWithActivity | null>;
   createBooking(booking: InsertBooking): Promise<BookingType>;
   getBookingByIdempotencyHash(hash: string): Promise<BookingType | null>;
@@ -599,6 +604,8 @@ class MongoStorage implements IStorage {
       filter.$or = [
         { customerName: { $regex: escaped, $options: 'i' } },
         { customerPhone: { $regex: escaped, $options: 'i' } },
+        { customerEmail: { $regex: escaped, $options: 'i' } },
+        { bookingReference: { $regex: escaped, $options: 'i' } },
         { activityId: { $in: activityIds.map((activity) => activity._id) } },
       ];
     }
@@ -836,6 +843,40 @@ class MongoStorage implements IStorage {
       collectedPayments: summary.collectedPayments || 0,
       outstandingAmount: summary.outstandingAmount || 0,
     };
+  }
+
+  async getActionRequiredBookings(dateRange: { start: Date; end: Date }): Promise<{
+    pending: { total: number; bookings: BookingWithActivity[] };
+    paymentAttention: { total: number; bookings: BookingWithActivity[] };
+    upcoming: { total: number; bookings: BookingWithActivity[] };
+  }> {
+    const pendingFilter = { status: { $in: ['PENDING', 'pending'] } };
+    const paymentFilter = {
+      status: { $nin: ['CANCELLED', 'cancelled'] },
+      paymentStatus: { $in: ['unpaid', 'deposit_paid'] },
+    };
+    const upcomingFilter = {
+      status: { $nin: ['CANCELLED', 'cancelled'] },
+      preferredDate: { $gte: dateRange.start, $lte: dateRange.end },
+    };
+
+    const loadCategory = async (filter: Record<string, any>) => {
+      const [bookings, total] = await Promise.all([
+        Booking.find(filter)
+          .populate('activityId', 'name price imageUrls category')
+          .sort({ preferredDate: 1, createdAt: -1 })
+          .limit(5),
+        Booking.countDocuments(filter),
+      ]);
+      return { total, bookings: await this.processBookingsWithActivities(bookings) };
+    };
+
+    const [pending, paymentAttention, upcoming] = await Promise.all([
+      loadCategory(pendingFilter),
+      loadCategory(paymentFilter),
+      loadCategory(upcomingFilter),
+    ]);
+    return { pending, paymentAttention, upcoming };
   }
 
   async getBookingByIdempotencyHash(hash: string): Promise<BookingType | null> {

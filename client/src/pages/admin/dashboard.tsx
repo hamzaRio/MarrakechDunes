@@ -17,7 +17,7 @@ import { Link } from "wouter";
 import { getActivityFallbackImage } from "@/lib/image-utils";
 import { ensureArray } from "@/lib/ensureArray";
 import { getAssetUrl } from "@/lib/utils";
-import { formatLocalDateOnly } from "@/lib/booking-utils";
+import { formatCasablancaDateOnly, formatLocalDateOnly } from "@/lib/booking-utils";
 import BookingManagement from "@/components/admin/booking-management";
 import { WhatsAppNotificationPanel } from "@/components/whatsapp-notification-panel";
 import FreeNotificationPanel from "@/components/free-notification-panel";
@@ -72,10 +72,18 @@ function AdminDashboardContent() {
     staleTime: 60_000,
   });
 
-  const { data: actionBookings = [], isLoading: actionBookingsLoading, isError: actionBookingsError, refetch: retryActionBookings } = useQuery<{ bookings: BookingType[] }>({
-    queryKey: ["/admin/bookings", "action-required"],
+  const actionFrom = formatCasablancaDateOnly();
+  const actionToDate = new Date(`${actionFrom}T00:00:00`);
+  actionToDate.setDate(actionToDate.getDate() + 1);
+  const actionTo = formatLocalDateOnly(actionToDate);
+  const { data: actionInbox, isLoading: actionBookingsLoading, isError: actionBookingsError, refetch: retryActionBookings } = useQuery<{
+    pending: { total: number; bookings: BookingType[] };
+    paymentAttention: { total: number; bookings: BookingType[] };
+    upcoming: { total: number; bookings: BookingType[] };
+  }>({
+    queryKey: ["/admin/bookings/action-required", actionFrom, actionTo],
     enabled: !!user,
-    queryFn: async () => (await api.get("/admin/bookings?page=1&limit=50&sortField=preferredDate&sortOrder=asc")).data,
+    queryFn: async () => (await api.get(`/admin/bookings/action-required?from=${actionFrom}&to=${actionTo}`)).data,
     staleTime: 60_000,
   });
 
@@ -452,7 +460,16 @@ function AdminDashboardContent() {
 
           <div className="mb-8">
             <ActionRequiredInbox
-              bookings={actionBookings}
+              bookings={[
+                ...(actionInbox?.pending.bookings || []),
+                ...(actionInbox?.paymentAttention.bookings || []),
+                ...(actionInbox?.upcoming.bookings || []),
+              ]}
+              counts={{
+                pending: actionInbox?.pending.total || 0,
+                paymentAttention: actionInbox?.paymentAttention.total || 0,
+                upcoming: actionInbox?.upcoming.total || 0,
+              }}
               isLoading={actionBookingsLoading}
               isError={actionBookingsError}
               onRetry={() => { void retryActionBookings(); }}
