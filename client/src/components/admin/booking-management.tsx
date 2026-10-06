@@ -468,9 +468,17 @@ export default function BookingManagement({
 
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Filter className="h-5 w-5" />
-            Recherche et Filtres
+          <CardTitle className="flex flex-wrap items-center justify-between gap-2 text-lg">
+            <span className="flex items-center gap-2">
+              <Filter className="h-5 w-5" />
+              Recherche et Filtres
+            </span>
+            {filtersActive ? (
+              <Button disabled={isBusy} variant="ghost" size="sm" onClick={resetFilters}>
+                <X className="mr-1 h-4 w-4" />
+                Réinitialiser
+              </Button>
+            ) : null}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -605,12 +613,6 @@ export default function BookingManagement({
                 onCheckedChange={(checked) => handleSelectAll(checked === true)}
               />
               <Label htmlFor="select-visible-bookings">Sélectionner tout sur cette page ({bookings.length})</Label>
-              {filtersActive ? (
-                <Button disabled={isBusy} variant="ghost" size="sm" onClick={resetFilters}>
-                  <X className="mr-1 h-4 w-4" />
-                  Réinitialiser
-                </Button>
-              ) : null}
             </div>
           </CardTitle>
         </CardHeader>

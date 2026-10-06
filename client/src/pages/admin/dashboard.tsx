@@ -53,6 +53,7 @@ interface BookingSummary {
 function AdminDashboardContent() {
   const { user } = useAuth();
   const isSuperAdmin = user?.role === 'superadmin';
+  const [activeTab, setActiveTab] = useState("bookings");
   // const { t } = useLanguage();
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -73,7 +74,7 @@ function AdminDashboardContent() {
   // Fetch only INTERNAL activities (not GetYourGuide activities) for management
   const { data: activities = [] } = useQuery<ActivityType[]>({
     queryKey: ["/admin/activities"],
-    enabled: !!user, // Only fetch if user is authenticated
+    enabled: !!user && activeTab === "activities", // Load the management list when its view is opened
     queryFn: async () => {
       const response = await api.get("/admin/activities");
       return response.data || [];
@@ -92,7 +93,7 @@ function AdminDashboardContent() {
 
   const { data: auditLogs = [] } = useQuery<AuditLogType[]>({
     queryKey: ["/admin/audit-logs"],
-    enabled: user?.role === 'superadmin',
+    enabled: user?.role === 'superadmin' && activeTab === "audit",
     retry: (failureCount, error: any) => {
       if (error?.response?.status === 401 || error?.response?.status === 403) {
         console.warn('[DASHBOARD] Audit logs fetch failed - authentication issue:', error?.response?.status);
@@ -111,7 +112,7 @@ function AdminDashboardContent() {
   const reportQuery = reportFrom && reportTo ? `?from=${reportFrom}&to=${reportTo}` : "";
   const { data: reportSummary, isLoading: reportSummaryLoading, isError: reportSummaryError } = useQuery<BookingSummary>({
     queryKey: ["/admin/bookings/summary", reportFrom, reportTo],
-    enabled: !!user,
+    enabled: !!user && activeTab === "reports",
     queryFn: async () => (await api.get(`/admin/bookings/summary${reportQuery}`)).data,
     staleTime: 60_000,
   });
@@ -126,7 +127,7 @@ function AdminDashboardContent() {
   const outstandingAmount = bookingSummary?.outstandingAmount ?? 0;
   const { data: latestBookingPage } = useQuery<{ bookings: BookingType[] }>({
     queryKey: ["/admin/bookings", "latest"],
-    enabled: !!user,
+    enabled: !!user && activeTab === "whatsapp",
     queryFn: async () => (await api.get("/admin/bookings?page=1&limit=1&sortField=createdAt&sortOrder=desc")).data,
     staleTime: 60_000,
   });
@@ -493,7 +494,7 @@ function AdminDashboardContent() {
                     </Card>
                   </div>
 
-          <Tabs defaultValue="bookings" className="space-y-6">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
             <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1 bg-white p-1 border-2 border-gray-200">
               <TabsTrigger value="bookings" className="data-[state=active]:bg-moroccan-blue data-[state=active]:text-white">📋 Réservations</TabsTrigger>
               <TabsTrigger value="activities" className="data-[state=active]:bg-moroccan-blue data-[state=active]:text-white">🎯 Activités</TabsTrigger>
