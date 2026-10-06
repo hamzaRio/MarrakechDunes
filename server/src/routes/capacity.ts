@@ -1,7 +1,16 @@
 import express from 'express';
 import { capacityManagementSystem } from '../utils/capacity-management.js';
 import { storage } from '../storage.js';
+import { requireAdmin } from '../middleware/admin-auth.js';
 
+// M5: this router is NOT currently mounted anywhere in server/src/index.ts
+// (confirmed via grep - there is no app.use('/api/capacity', ...) or
+// equivalent), so none of these routes are reachable in production today.
+// It is hardened here anyway in case it is wired up later: waitlist
+// read/removal, waitlist processing, and capacity-policy changes are
+// admin/internal operations and previously had no auth at all on any of
+// them (only the customer-facing "join the waitlist" POST should stay
+// public).
 const router = express.Router();
 
 // Check capacity for a booking
@@ -98,8 +107,8 @@ router.post('/:activityId/waitlist', async (req, res) => {
   }
 });
 
-// Get waitlist for an activity
-router.get('/:activityId/waitlist', async (req, res) => {
+// Get waitlist for an activity (admin-only: contains customer PII)
+router.get('/:activityId/waitlist', requireAdmin, async (req, res) => {
   try {
     const { activityId } = req.params;
     const waitlist = capacityManagementSystem.getWaitlist(activityId);
@@ -110,8 +119,8 @@ router.get('/:activityId/waitlist', async (req, res) => {
   }
 });
 
-// Remove from waitlist
-router.delete('/:activityId/waitlist/:entryId', async (req, res) => {
+// Remove from waitlist (admin-only)
+router.delete('/:activityId/waitlist/:entryId', requireAdmin, async (req, res) => {
   try {
     const { activityId, entryId } = req.params;
     const removed = capacityManagementSystem.removeFromWaitlist(activityId, entryId);
@@ -127,8 +136,8 @@ router.delete('/:activityId/waitlist/:entryId', async (req, res) => {
   }
 });
 
-// Process waitlist when spots become available
-router.post('/:activityId/process-waitlist', async (req, res) => {
+// Process waitlist when spots become available (admin-only)
+router.post('/:activityId/process-waitlist', requireAdmin, async (req, res) => {
   try {
     const { activityId } = req.params;
     const { availableSpots, date } = req.body;
@@ -160,8 +169,8 @@ router.get('/policy', (req, res) => {
   res.json(policy);
 });
 
-// Update capacity policy
-router.put('/policy', (req, res) => {
+// Update capacity policy (admin-only - this changes a platform-wide setting)
+router.put('/policy', requireAdmin, (req, res) => {
   try {
     const newPolicy = req.body;
     capacityManagementSystem.updatePolicy(newPolicy);
