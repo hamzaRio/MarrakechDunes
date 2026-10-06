@@ -152,8 +152,10 @@ try {
     headers: { 'Content-Type': 'image/jpeg' },
     body: new Uint8Array(testImage),
   });
+  const mismatchBody = await mismatchPut.text();
   assert.equal(mismatchPut.ok, false, 'PUT with a different signed Content-Type unexpectedly succeeded');
   assert.equal(mismatchPut.status, 403);
+  assert.match(mismatchBody, /SignatureDoesNotMatch/i, 'MinIO did not report a signature mismatch');
   await assert.rejects(
     () => client!.send(new HeadObjectCommand({ Bucket: bucket, Key: mismatchKey })),
     (error: unknown) => typeof error === 'object' && error !== null && '$metadata' in error,
@@ -180,7 +182,7 @@ try {
     }
   }
   client?.destroy();
-  docker(['rm', '--force', containerName], true);
+  docker(['rm', '--force', '-v', containerName], true);
   docker(['network', 'rm', networkName], true);
   for (const key of envKeys) {
     if (originalEnv[key] === undefined) delete process.env[key];

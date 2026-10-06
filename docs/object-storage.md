@@ -29,7 +29,36 @@ the browser.
 
 Provider-specific signing code is isolated under `server/src/object-storage/`.
 
+## Lifecycle and migration readiness
+
+Upload grants include an additive provider-neutral `objectKey` when available;
+the existing `objectPath`, upload URL fields, and `imageUrls: string[]` remain
+unchanged. S3-compatible storage supports `statObject` (HEAD) and
+`deleteObject` for validated keys under `uploads/`. The Replit sidecar exposes no
+supported read/delete endpoint, so those capabilities are reported as
+unsupported rather than emulated.
+
+The five-megabyte limit validates browser-declared metadata before a grant is
+issued, but exact provider-side byte enforcement is not guaranteed. A future
+finalize step may verify S3 size/type before changing a database reference; it
+is deferred so existing Replit uploads remain unchanged.
+
+`scripts/object-storage-migration-plan.ts` is a non-destructive planner. Given
+fixture records and `OBJECT_STORAGE_S3_PUBLIC_BASE_URL`, it classifies URLs and
+emits deterministic manifest entries without uploading, deleting, connecting to
+MongoDB, or rewriting records. Only relative `/objects/` URLs or absolute URLs
+whose origin is explicitly listed in `OBJECT_STORAGE_LEGACY_PUBLIC_ORIGINS` are
+planned; external and unknown URLs are skipped. Future migration must copy and verify targets before
+updating references and must retain original URLs for rollback.
+
+Direct browser PUTs require bucket CORS for the deployed origins, `PUT`, and the
+signed `Content-Type` header. Do not use wildcard origins for credentialed
+production storage. AWS S3 and Cloudflare R2 remain implementation-compatible
+but externally untested; MinIO has a real integration harness.
+
 There is currently no active API read or delete route for stored objects; the
-application consumes the URLs returned by the upload flow. Production storage
-migration is deferred: no bucket is created, no existing objects are copied,
-and no production provider setting is changed by this phase.
+application consumes the URLs returned by the upload flow. The lifecycle
+methods are provider-service primitives for verification and future migration,
+not automatic activity deletion behavior. Production storage migration is
+deferred: no bucket is created, no existing objects are copied, and no
+production provider setting is changed by this phase.

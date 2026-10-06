@@ -19,6 +19,7 @@ router.post('/objects/upload', uploadRateLimit, requireSuperAdmin, async (req: R
       uploadURL: grant.uploadUrl,
       uploadUrl: grant.uploadUrl,
       objectPath: grant.objectPath,
+      ...(grant.objectKey ? { objectKey: grant.objectKey } : {}),
       ...(grant.method ? { method: grant.method } : {}),
       ...(grant.headers ? { headers: grant.headers } : {}),
       ...(grant.expiresAt ? { expiresAt: grant.expiresAt } : {}),

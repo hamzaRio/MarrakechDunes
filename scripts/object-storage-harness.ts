@@ -49,6 +49,7 @@ try {
   const s3Grant = await s3.createUploadGrant({ contentType: 'image/jpeg', size: 2048 });
   const signedUrl = new URL(s3Grant.uploadUrl);
   assert.match(s3Grant.objectPath, /^\/objects\/uploads\/[0-9a-f-]+$/);
+  assert.match(s3Grant.objectKey || '', /^uploads\/[0-9a-f-]+$/);
   assert.match(s3Grant.uploadUrl, /^https:\/\/minio\.test\/images\/uploads\//);
   assert.match(s3Grant.uploadUrl, /X-Amz-Credential=/);
   assert.equal(signedUrl.searchParams.has('x-amz-checksum-crc32'), false);
@@ -78,6 +79,8 @@ try {
   const service = new ObjectStorageService({ async createUploadGrant() { return fakeGrant; } });
   assert.deepEqual(await service.getObjectEntityUploadGrant(), fakeGrant);
   assert.equal(await service.getObjectEntityUploadURL(), fakeGrant.uploadUrl);
+  await assert.rejects(() => service.statObject('uploads/example'), /not supported/);
+  await assert.rejects(() => service.deleteObject('uploads/example'), /not supported/);
 
   assert.equal(getDurableObjectUrl({ uploadURL: 'https://upload.test/presigned' }), 'https://upload.test/presigned');
   assert.equal(getDurableObjectUrl({

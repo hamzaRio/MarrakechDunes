@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
-import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { DeleteObjectCommand, HeadObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import type { ObjectStorageProvider, ObjectUploadGrant, ObjectUploadRequest } from './types.js';
+import type { ObjectStat, ObjectStorageProvider, ObjectUploadGrant, ObjectUploadRequest } from './types.js';
 import { requireAllowedImageContentType } from './upload-policy.js';
 
 const DEFAULT_EXPIRES_SECONDS = 900;
@@ -26,6 +26,14 @@ function expiresSeconds(): number {
 
 function publicUrl(base: string, key: string): string {
   return `${base.replace(/\/+$/, '')}/${key.split('/').map(encodeURIComponent).join('/')}`;
+}
+
+function requireObjectKey(objectKey: string): string {
+  const value = objectKey.trim();
+  if (!/^uploads\/[A-Za-z0-9][A-Za-z0-9._/-]*$/.test(value) || value.includes('..') || value.endsWith('/')) {
+    throw new Error('Invalid object key');
+  }
+  return value;
 }
 
 export class S3CompatibleObjectStorageProvider implements ObjectStorageProvider {
@@ -70,10 +78,24 @@ export class S3CompatibleObjectStorageProvider implements ObjectStorageProvider 
     return {
       uploadUrl,
       objectPath: `/objects/${key}`,
+      objectKey: key,
       method: 'PUT',
       headers: { 'Content-Type': contentType },
       expiresAt,
       publicUrl: publicUrl(this.publicBaseUrl, key),
     };
+  }
+
+  async statObject(objectKey: string): Promise<ObjectStat> {
+    const result = await this.client.send(new HeadObjectCommand({ Bucket: this.bucket, Key: requireObjectKey(objectKey) }));
+    return {
+      ...(typeof result.ContentLength === 'number' ? { size: result.ContentLength } : {}),
+      ...(result.ContentType ? { contentType: result.ContentType } : {}),
+      ...(result.ETag ? { etag: result.ETag } : {}),
+    };
+  }
+
+  async deleteObject(objectKey: string): Promise<void> {
+    await this.client.send(new DeleteObjectCommand({ Bucket: this.bucket, Key: requireObjectKey(objectKey) }));
   }
 }
