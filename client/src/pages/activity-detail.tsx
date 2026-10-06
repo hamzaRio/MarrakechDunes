@@ -163,7 +163,7 @@ export default function ActivityDetail() {
       />
       
       {/* Beautiful Enhanced Header with Gradient and Decorative Elements */}
-      <div className="relative bg-gradient-to-br from-moroccan-blue via-blue-700 via-blue-800 to-moroccan-blue text-white py-20 shadow-2xl overflow-hidden">
+      <div className="relative bg-gradient-to-br from-moroccan-blue via-blue-700 via-blue-800 to-moroccan-blue text-white py-12 sm:py-16 shadow-2xl overflow-hidden">
         {/* Decorative Background Pattern */}
         <div className="absolute inset-0 opacity-10">
           <div className="absolute top-0 left-0 w-96 h-96 bg-white rounded-full blur-3xl transform -translate-x-1/2 -translate-y-1/2"></div>
@@ -187,7 +187,7 @@ export default function ActivityDetail() {
           <Button
             variant="ghost"
             onClick={() => setLocation("/activities")}
-            className="mb-8 text-white hover:bg-white/20 backdrop-blur-sm border border-white/20 transition-all duration-300 hover:scale-105"
+            className="mb-6 text-white hover:bg-white/20 backdrop-blur-sm border border-white/20 transition-all duration-300 hover:scale-105"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Activities
@@ -196,7 +196,7 @@ export default function ActivityDetail() {
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
             <div className="flex-1">
               <div className="flex items-center gap-4 mb-4 flex-wrap">
-                <h1 className="text-5xl md:text-6xl font-bold font-playfair drop-shadow-lg">
+                <h1 className="text-3xl sm:text-5xl md:text-6xl leading-tight font-bold font-playfair drop-shadow-lg">
                   {activity.name}
                 </h1>
                 {activity.category && (
@@ -233,7 +233,7 @@ export default function ActivityDetail() {
             <div className="bg-gradient-to-br from-moroccan-gold via-yellow-500 to-moroccan-gold text-white px-8 py-6 rounded-2xl shadow-2xl border-2 border-white/30 backdrop-blur-sm transform hover:scale-105 transition-transform duration-300">
               <div className="text-center">
                 <div className="text-sm font-medium mb-1 opacity-90">Starting from</div>
-                <div className="text-4xl font-bold">{Number(activity.price || 0).toLocaleString()} MAD</div>
+                <div className="text-3xl sm:text-4xl font-bold">{Number(activity.price || 0).toLocaleString()} MAD</div>
                 <div className="text-sm font-medium mt-1 opacity-90">per person</div>
               </div>
             </div>
@@ -244,7 +244,7 @@ export default function ActivityDetail() {
         <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-gray-50 to-transparent"></div>
       </div>
 
-      <div className="container mx-auto px-4 py-12">
+      <div className="container mx-auto px-4 py-8 sm:py-12 pb-28 md:pb-12">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content Area */}
           <div className="lg:col-span-2 space-y-6">
@@ -252,11 +252,13 @@ export default function ActivityDetail() {
             <Card className="overflow-hidden shadow-xl border-0">
               <CardContent className="p-0">
                 {/* Main Image Display */}
-                <div className="relative h-[500px] md:h-[600px] bg-gray-900 overflow-hidden group">
+                <div className="relative aspect-[4/3] sm:h-[500px] md:h-[600px] bg-gray-900 overflow-hidden group">
                   <img
                     src={getImageUrl(currentImage)}
                     alt={`${activity.name} - Image ${selectedImageIndex + 1}`}
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    width={1200}
+                    height={900}
                     onError={(e) => {
                       const target = e.target as HTMLImageElement;
                       const fallback = getImageUrl(fallbackImage);
@@ -277,7 +279,8 @@ export default function ActivityDetail() {
                       <Button
                         variant="ghost"
                         size="lg"
-                        className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                        aria-label="Previous activity image"
+                        className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
                         onClick={prevImage}
                       >
                         <ChevronLeft className="w-8 h-8" />
@@ -286,7 +289,8 @@ export default function ActivityDetail() {
                       <Button
                         variant="ghost"
                         size="lg"
-                        className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                        aria-label="Next activity image"
+                        className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
                         onClick={nextImage}
                       >
                         <ChevronRight className="w-8 h-8" />
@@ -313,6 +317,9 @@ export default function ActivityDetail() {
                             src={getImageUrl(image)}
                             alt={`${activity.name} - Thumbnail ${index + 1}`}
                             className="w-24 h-24 object-cover"
+                            width={96}
+                            height={96}
+                            loading="lazy"
                             onError={(e) => {
                               const target = e.target as HTMLImageElement;
                               target.src = getImageUrl(fallbackImage);
@@ -575,6 +582,22 @@ export default function ActivityDetail() {
               </CardContent>
             </Card>
           </div>
+        </div>
+      </div>
+
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-gray-200 bg-white/95 px-4 py-3 shadow-[0_-8px_24px_rgba(15,23,42,0.12)] backdrop-blur md:hidden" style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
+        <div className="mx-auto flex max-w-lg items-center gap-3">
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-xs font-medium text-gray-500">From</div>
+            <div className="text-lg font-bold text-moroccan-blue">{Number(activity.price || 0).toLocaleString()} MAD <span className="text-xs font-medium text-gray-500">/ person</span></div>
+          </div>
+          <Button
+            className="min-h-12 shrink-0 bg-moroccan-red px-6 text-base font-bold text-white shadow-md hover:bg-red-600"
+            onClick={() => setLocation(`/booking?activity=${activity._id || activity.id}`)}
+          >
+            <Calendar className="mr-2 h-5 w-5" />
+            Book Now
+          </Button>
         </div>
       </div>
 

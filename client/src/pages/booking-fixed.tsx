@@ -855,7 +855,7 @@ export default function BookingFixed() {
             </div>
 
             {/* Booking Summary */}
-            <div className="lg:col-span-1">
+            <div className="order-first lg:order-last lg:col-span-1">
               <div className="sticky top-8">
                 <Card className="shadow-xl bg-white/95 backdrop-blur-sm border-2 border-gray-200">
                   <CardHeader className="bg-moroccan-blue/5 border-b border-moroccan-blue/20">

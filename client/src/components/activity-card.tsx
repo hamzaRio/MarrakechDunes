@@ -188,13 +188,12 @@ export default function ActivityCard({ activity, showDescription = false }: Acti
 
           </div>
 
-          <div className="flex items-center">
-
-            <MapPin className="h-4 w-4 mr-1" />
-
-            <span>Marrakech</span>
-
-          </div>
+          {activity.location && (
+            <div className="flex min-w-0 items-center justify-end text-right">
+              <MapPin className="h-4 w-4 mr-1 shrink-0" />
+              <span className="truncate">{activity.location}</span>
+            </div>
+          )}
 
         </div>
 
