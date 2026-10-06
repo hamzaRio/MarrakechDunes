@@ -37,8 +37,13 @@ type LazyComponent = LazyExoticComponent<ComponentType<Record<string, unknown>>>
 type SecurityOptions = Partial<ComponentProps<typeof SecurityWrapper>>;
 
 const PAGE_FALLBACK = (
-  <div className="flex min-h-[40vh] items-center justify-center text-muted-foreground">
-    Loading experience...
+  <div className="flex min-h-[40vh] items-center justify-center px-6" role="status" aria-live="polite">
+    <div className="w-full max-w-3xl space-y-4" aria-label="Loading page">
+      <div className="h-8 w-2/3 animate-pulse rounded-md bg-muted" />
+      <div className="h-4 w-full animate-pulse rounded-md bg-muted/80" />
+      <div className="h-4 w-5/6 animate-pulse rounded-md bg-muted/80" />
+      <span className="sr-only">Loading experience...</span>
+    </div>
   </div>
 );
 
@@ -78,14 +83,14 @@ function Router() {
       <Route path="/contact" component={withSecurity(Contact, PUBLIC_ROUTE)} />
             <Route path="/booking">
               {() => (
-                <Suspense fallback={<div className="flex min-h-[40vh] items-center justify-center text-muted-foreground">Loading...</div>}>
+                <Suspense fallback={PAGE_FALLBACK}>
                   <Booking />
                 </Suspense>
               )}
             </Route>
             <Route path="/confirmation-and-pay">
               {() => (
-                <Suspense fallback={<div className="flex min-h-[40vh] items-center justify-center text-muted-foreground">Loading...</div>}>
+                <Suspense fallback={PAGE_FALLBACK}>
                   <BookingConfirmationPage />
                 </Suspense>
               )}
