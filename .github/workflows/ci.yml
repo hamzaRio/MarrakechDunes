@@ -1,0 +1,73 @@
+name: CI
+
+# M9: there was no CI at all - the only way to find out a change broke the
+# build, the TypeScript types, or reintroduced a dependency vulnerability
+# was to deploy it. This reproduces the hardening gates that matter most
+# and are cheap to run on every push/PR: install, typecheck/build both
+# workspaces, and a dependency-vulnerability gate equivalent to the one
+# used during this hardening pass (0 critical / 0 high on production
+# dependencies). It intentionally does NOT attempt the heavier gates that
+# need a real MongoDB replica set or a browser (capacity-concurrency test,
+# Chromium CSP/portability test, backup/restore rehearsal) - those are
+# documented in docs/handoff-runbook.md as manual/staging steps.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build shared package
+        run: npm run build:shared
+
+      - name: Typecheck + build server
+        run: npm run build:server
+
+      - name: Build client (public)
+        run: npm run build:public
+        env:
+          VITE_API_URL: https://api.example.com
+          VITE_SITE_URL: https://www.example.com
+
+      - name: Build client (admin)
+        run: npm run build:admin
+        env:
+          VITE_API_URL: https://api.example.com
+
+  dependency-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      # NOTE: as of this hardening pass, this is expected to still report
+      # findings (see docs/handoff-runbook.md's M8 status - several
+      # transitive client-build-toolchain dependencies are not yet fully
+      # remediated). continue-on-error keeps the gate visible in every run
+      # without blocking merges on pre-existing findings; flip it to a hard
+      # failure once `npm audit --omit=dev` is verified to report 0
+      # critical/0 high from a clean `npm ci`.
+      - name: Report critical/high production vulnerabilities
+        continue-on-error: true
+        run: npm audit --omit=dev --audit-level=high
