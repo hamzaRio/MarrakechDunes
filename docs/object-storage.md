@@ -46,10 +46,12 @@ is deferred so existing Replit uploads remain unchanged.
 `scripts/object-storage-migration-plan.ts` is a non-destructive planner. Given
 fixture records and `OBJECT_STORAGE_S3_PUBLIC_BASE_URL`, it classifies URLs and
 emits deterministic manifest entries without uploading, deleting, connecting to
-MongoDB, or rewriting records. Only relative `/objects/` URLs or absolute URLs
-whose origin is explicitly listed in `OBJECT_STORAGE_LEGACY_PUBLIC_ORIGINS` are
-planned; external and unknown URLs are skipped. Future migration must copy and verify targets before
-updating references and must retain original URLs for rollback.
+MongoDB, or rewriting records. Only relative `/objects/` URLs, absolute URLs
+whose origin is explicitly listed in `OBJECT_STORAGE_LEGACY_PUBLIC_ORIGINS`, or
+exact bucket/path prefixes listed in `OBJECT_STORAGE_LEGACY_URL_PREFIXES` are
+planned; external and unknown URLs are skipped. Future migration must copy and
+verify targets before updating references and must retain original URLs for
+rollback. See `docs/object-storage-migration.md` for the disposable rehearsal.
 
 Direct browser PUTs require bucket CORS for the deployed origins, `PUT`, and the
 signed `Content-Type` header. Do not use wildcard origins for credentialed

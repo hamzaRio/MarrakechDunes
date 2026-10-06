@@ -1,21 +1,39 @@
 import assert from 'node:assert/strict';
 import { classifyImageUrl, deterministicTargetKey, planMigration } from './object-storage-migration.js';
 
-const records = [{ recordId: 'activity/1', imageUrls: [
-  'https://marrakech.example/objects/uploads/old-image',
-  'https://images.example/external.jpg',
-  'not-a-url',
-] }];
-assert.equal(classifyImageUrl(records[0].imageUrls[0], ['https://marrakech.example']), 'replit-object');
-assert.equal(classifyImageUrl(records[0].imageUrls[0]), 'external');
-assert.equal(classifyImageUrl(records[0].imageUrls[1]), 'external');
-assert.equal(classifyImageUrl(records[0].imageUrls[2]), 'unknown');
-assert.equal(deterministicTargetKey('activity/1', records[0].imageUrls[0]), deterministicTargetKey('activity/1', records[0].imageUrls[0]));
-const manifest = planMigration(records, 'https://cdn.example/images', ['https://marrakech.example']);
-assert.equal(manifest.length, 3);
+const knownOrigin = 'https://marrakech.example';
+const gcsPrefix = 'https://storage.googleapis.com/example-bucket/example-directory/uploads/';
+const managed = `${knownOrigin}/objects/uploads/old-image`;
+assert.equal(classifyImageUrl(managed, [knownOrigin]), 'replit-object');
+assert.equal(classifyImageUrl('https://MARRAKECH.EXAMPLE/objects/uploads/old-image', [knownOrigin]), 'replit-object');
+assert.equal(classifyImageUrl('https://marrakech.example:443/objects/uploads/old-image', [knownOrigin]), 'replit-object');
+assert.equal(classifyImageUrl('http://marrakech.example/objects/uploads/old-image', [knownOrigin]), 'external');
+assert.equal(classifyImageUrl('https://marrakech.example:8443/objects/uploads/old-image', [knownOrigin]), 'external');
+assert.equal(classifyImageUrl('https://user:pass@marrakech.example/objects/uploads/old-image', [knownOrigin]), 'external');
+assert.equal(classifyImageUrl('https://third-party.example/objects/uploads/old-image', [knownOrigin]), 'external');
+assert.equal(classifyImageUrl('https://marrakech.example/admin/objects/uploads/old-image', [knownOrigin]), 'external');
+assert.equal(classifyImageUrl('javascript:alert(1)', [knownOrigin]), 'unknown');
+assert.equal(classifyImageUrl('', [knownOrigin]), 'unknown');
+assert.equal(classifyImageUrl('//third-party.example/objects/uploads/old-image', [knownOrigin]), 'unknown');
+assert.equal(classifyImageUrl('not-a-url', [knownOrigin]), 'unknown');
+assert.equal(classifyImageUrl(`${gcsPrefix}id`, [], [gcsPrefix]), 'legacy-gcs');
+assert.equal(classifyImageUrl('https://storage.googleapis.com/other-bucket/example-directory/uploads/id', [], [gcsPrefix]), 'external');
+assert.equal(classifyImageUrl('https://storage.googleapis.com/example-bucket/other/uploads/id', [], [gcsPrefix]), 'external');
+assert.equal(classifyImageUrl(`${gcsPrefix}id?X-Amz-Signature=secret`, [], [gcsPrefix]), 'unknown');
+
+const records = [{ recordId: 'activity/1', imageUrls: [managed, `${gcsPrefix}gcs-image`, 'https://images.example/external.jpg', 'not-a-url', `${managed}?Signature=secret`] }];
+const manifest = planMigration(records, 'https://cdn.example/images', [knownOrigin], [gcsPrefix]);
+assert.equal(manifest.length, 5);
 assert.equal(manifest[0].migrationState, 'planned');
-assert.match(manifest[0].targetPublicUrl || '', /^https:\/\/cdn\.example\/images\/migrated\//);
-assert.equal(manifest[1].migrationState, 'skipped');
-assert.equal(manifest[2].migrationState, 'skipped');
+assert.match(manifest[0].targetObjectKey || '', /^uploads\/migrated\/activity_1\/[0-9a-f]{32}$/);
+assert.match(manifest[0].targetPublicUrl || '', /^https:\/\/cdn\.example\/images\/uploads\/migrated\//);
+assert.equal(manifest[1].sourceClassification, 'legacy-gcs');
+assert.equal(manifest[1].migrationState, 'planned');
+assert.equal(manifest[2].skipReason, 'external-url');
+assert.equal(manifest[3].skipReason, 'unknown-url');
+assert.equal(manifest[4].skipReason, 'signed-url');
 assert.equal(JSON.stringify(manifest).includes('secret'), false);
+assert.equal(deterministicTargetKey('activity/1', managed), deterministicTargetKey('activity/1', managed));
+assert.match(deterministicTargetKey('activity/1', managed), /^uploads\//);
+assert.equal(planMigration([{ recordId: ' ', imageUrls: [managed] }], 'https://cdn.example/images', [knownOrigin])[0].skipReason, 'invalid-record-id');
 console.log('Object storage migration harness: PASS');

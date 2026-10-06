@@ -11,4 +11,5 @@ if (!inputPath || !publicBaseUrl) {
 const records = JSON.parse(await readFile(inputPath, 'utf8')) as Array<{ recordId: string; imageUrls: string[] }>;
 if (!Array.isArray(records)) throw new Error('Input must be an array of records');
 const knownOrigins = (process.env.OBJECT_STORAGE_LEGACY_PUBLIC_ORIGINS || '').split(',').map((value) => value.trim()).filter(Boolean);
-process.stdout.write(`${JSON.stringify(planMigration(records, publicBaseUrl, knownOrigins), null, 2)}\n`);
+const legacyPrefixes = (process.env.OBJECT_STORAGE_LEGACY_URL_PREFIXES || '').split(',').map((value) => value.trim()).filter(Boolean);
+process.stdout.write(`${JSON.stringify(planMigration(records, publicBaseUrl, knownOrigins, legacyPrefixes), null, 2)}\n`);
