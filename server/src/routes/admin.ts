@@ -86,8 +86,16 @@ router.get('/bookings', async (req: Request, res: Response) => {
       return res.status(200).json(result);
     }
     
-    // Otherwise return all (backward compatible)
-    const bookings = await storage.getBookings();
+    // M10: the "no pagination params" path previously called
+    // storage.getBookings() with no options at all, which loads and
+    // returns the ENTIRE bookings collection - unbounded, and growing
+    // without limit as the business takes more bookings. Keep the same
+    // response shape (a plain array) for compatibility, but route it
+    // through getBookingsPaginated so normalizeBookingPagination's bound
+    // (max 100 per page) applies instead of truly unbounded; a client that
+    // needs more than one page should use the documented page/limit query
+    // params.
+    const { bookings } = await storage.getBookingsPaginated({ page: 1, limit: 100 });
     return res.status(200).json(bookings);
   } catch (error) {
     console.error('[ADMIN] Error fetching bookings:', error);
