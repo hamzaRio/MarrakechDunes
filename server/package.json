@@ -8,6 +8,7 @@
     "build": "tsc -p tsconfig.json",
     "bootstrap": "npm run build && node dist/bootstrap/cli.js",
     "db:ensure-indexes": "npm run build && node dist/scripts/ensure-indexes.js",
+    "test:capacity-concurrency": "tsx src/scripts/capacity-concurrency-harness.ts",
     "start": "node dist/index.js",
     "start:build": "npm run build && node dist/index.js"
   },
@@ -72,6 +73,7 @@
     "@types/supertest": "^6.0.3",
     "@types/ws": "^8.18.1",
     "dotenv": "^17.2.1",
+    "mongodb-memory-server": "^11.3.0",
     "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",
     "tsx": "^4.7.0",
