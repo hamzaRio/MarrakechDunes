@@ -8,6 +8,22 @@ import fetch from 'node-fetch';
  * MIGRATION NOTE: This service now uses SMTP_* variables as canonical.
  * Legacy EMAIL_* variables are supported for backward compatibility.
  */
+// M6: buildHtml() wraps a plain-text message (which can contain a customer
+// name or activity name typed by the customer) in HTML, previously with no
+// escaping beyond \n -> <br>. A customer name of `<script>alert(1)</script>`
+// or `<img src=x onerror=alert(1)>` would execute in whatever mail client
+// renders the HTML. The whole message is HTML-escaped before the <br>
+// substitution, so plain text content (including names with `&`, `"`, `'`,
+// `<tag>`) is always shown literally.
+function escapeHtml(value: unknown): string {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 class EmailService {
   private transporter: Transporter | null = null;
 
@@ -75,7 +91,7 @@ class EmailService {
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #059669;">Marrakech Dunes</h2>
         <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
-          ${message.replace(/\n/g, '<br>')}
+          ${escapeHtml(message).replace(/\n/g, '<br>')}
         </div>
         <p style="color: #666; font-size: 14px;">
           Cordialement,<br>
