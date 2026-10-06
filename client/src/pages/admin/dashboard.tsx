@@ -51,49 +51,11 @@ interface BookingSummary {
 }
 
 function AdminDashboardContent() {
-  const { user, isLoading: authLoading, isAuthRejected } = useAuth();
+  const { user } = useAuth();
   const isSuperAdmin = user?.role === 'superadmin';
   // const { t } = useLanguage();
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  
-  // ENHANCED SECURITY: Multiple authentication checks - NO BYPASSING
-  if (!authLoading && !user && isAuthRejected) {
-    if (import.meta.env.DEV) {
-      console.warn('[SECURITY] Dashboard access denied - no user');
-    }
-    localStorage.removeItem('user');
-    localStorage.removeItem('auth-token');
-    sessionStorage.clear();
-    window.location.replace('/admin/login');
-    return null;
-  }
-
-  // Additional role verification
-  if (!authLoading && user && user.role !== 'admin' && user.role !== 'superadmin') {
-    if (import.meta.env.DEV) {
-      console.warn('[SECURITY] Dashboard access denied - invalid role:', user.role);
-    }
-    // Clear authentication data
-    localStorage.removeItem('user');
-    localStorage.removeItem('auth-token');
-    sessionStorage.clear();
-    // Force redirect
-    window.location.replace('/admin/login');
-    return null;
-  }
-  
-  // Show loading while checking authentication
-  if (authLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-moroccan-blue mx-auto mb-4"></div>
-          <p className="text-moroccan-blue">Vérification de l'authentification...</p>
-        </div>
-      </div>
-    );
-  }
   
   const [deleteActivityDialogOpen, setDeleteActivityDialogOpen] = useState(false);
   const [activityToDelete, setActivityToDelete] = useState<{ id: string; name: string } | null>(null);
@@ -532,7 +494,7 @@ function AdminDashboardContent() {
                   </div>
 
           <Tabs defaultValue="bookings" className="space-y-6">
-            <TabsList className={`grid w-full ${isSuperAdmin ? 'grid-cols-7' : 'grid-cols-5'} bg-white border-2 border-gray-200`}>
+            <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1 bg-white p-1 border-2 border-gray-200">
               <TabsTrigger value="bookings" className="data-[state=active]:bg-moroccan-blue data-[state=active]:text-white">📋 Réservations</TabsTrigger>
               <TabsTrigger value="activities" className="data-[state=active]:bg-moroccan-blue data-[state=active]:text-white">🎯 Activités</TabsTrigger>
               <TabsTrigger value="gyg-reference" className="data-[state=active]:bg-moroccan-blue data-[state=active]:text-white">🔍 Market Reference</TabsTrigger>
@@ -1048,7 +1010,24 @@ function AdminDashboardContent() {
 export default function AdminDashboard() {
   return (
     <AdminRoute>
-      <AdminDashboardContent />
+      <AdminDashboardAuthGate />
     </AdminRoute>
   );
+}
+
+function AdminDashboardAuthGate() {
+  const { user, isLoading: authLoading, isAuthRejected } = useAuth();
+
+  if (authLoading) {
+    return <div className="flex min-h-screen items-center justify-center"><p className="text-moroccan-blue">Vérification de l'authentification...</p></div>;
+  }
+  if (isAuthRejected || !user || (user.role !== 'admin' && user.role !== 'superadmin')) {
+    if (import.meta.env.DEV) console.warn('[SECURITY] Dashboard access denied');
+    localStorage.removeItem('user');
+    localStorage.removeItem('auth-token');
+    sessionStorage.clear();
+    window.location.replace('/admin/login');
+    return null;
+  }
+  return <AdminDashboardContent />;
 }
