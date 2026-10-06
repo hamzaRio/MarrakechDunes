@@ -2,10 +2,11 @@ import EmailModal from "@/components/EmailModal";
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
-import { getBookingDate, getBookingDateOnly, getBookingPaymentSummary, normalizeBookingStatus } from "@/lib/booking-utils";
+import { getBookingDate, getBookingDateOnly, getBookingPaymentSummary, getNextPossibleStatuses, normalizeBookingStatus } from "@/lib/booking-utils";
 import {
   Calendar,
   Clock,
@@ -23,13 +24,14 @@ import {
 } from "lucide-react";
 import type { BookingWithActivity } from "marrakechdunes-shared/schema";
 
-interface BookingDetailsModalProps {
+interface BookingDetailDrawerProps {
   booking: BookingWithActivity;
   isOpen: boolean;
   onClose: () => void;
   onContactCustomer?: () => void;
   onSendWhatsApp?: () => void;
   onManagePayment: () => void;
+  onStatusChange?: (status: "PENDING" | "CONFIRMED" | "COMPLETED" | "CANCELLED") => void;
 }
 
 function bookingStatusClass(status: string): string {
@@ -60,15 +62,17 @@ function paymentStatusClass(status: string): string {
   }
 }
 
-export default function BookingDetailsModal({
+export default function BookingDetailDrawer({
   booking,
   isOpen,
   onClose,
   onContactCustomer,
   onSendWhatsApp,
   onManagePayment,
-}: BookingDetailsModalProps) {
+  onStatusChange,
+}: BookingDetailDrawerProps) {
   const [copied, setCopied] = useState(false);
+  const [cancelOpen, setCancelOpen] = useState(false);
   const bookingStatus = normalizeBookingStatus(booking.status);
   const { paymentStatus, totalAmount, paidAmount, remainingAmount, depositAmount, paymentMethod, progress } = getBookingPaymentSummary(booking);
   const bookingDate = getBookingDateOnly(booking.preferredDate);
@@ -76,6 +80,7 @@ export default function BookingDetailsModal({
   const marketReferencePrice = Number(booking.activity?.getyourguidePrice) || 0;
   const internalBookingId = String(booking._id || booking.id || '');
   const bookingReference = internalBookingId ? internalBookingId.slice(-8).toUpperCase() : 'Unavailable';
+  const nextStatuses = getNextPossibleStatuses(bookingStatus) as Array<"PENDING" | "CONFIRMED" | "COMPLETED" | "CANCELLED">;
   const copyInternalId = async () => {
     if (!internalBookingId) return;
     await navigator.clipboard.writeText(internalBookingId);
@@ -83,17 +88,18 @@ export default function BookingDetailsModal({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent
-        className="max-h-[90vh] max-w-4xl overflow-y-auto bg-white text-gray-900"
+    <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <SheetContent
+        side="right"
+        className="w-full overflow-y-auto bg-white text-gray-900 sm:max-w-2xl"
         aria-describedby="booking-details-description"
       >
-        <DialogHeader>
-          <DialogTitle className="text-xl font-bold text-gray-800">Détails de la Réservation</DialogTitle>
-          <DialogDescription id="booking-details-description">
+        <SheetHeader>
+          <SheetTitle className="text-xl font-bold text-gray-800">Détails de la Réservation</SheetTitle>
+          <SheetDescription id="booking-details-description">
             Vue opérationnelle complète de la réservation, du client et du paiement.
-          </DialogDescription>
-        </DialogHeader>
+          </SheetDescription>
+        </SheetHeader>
 
         <div className="space-y-4">
           <Card className="bg-white">
@@ -133,6 +139,19 @@ export default function BookingDetailsModal({
               </div>
             </CardContent>
           </Card>
+
+          {onStatusChange && nextStatuses.length > 0 ? (
+            <Card className="border-blue-100 bg-blue-50/40">
+              <CardHeader className="pb-3"><CardTitle className="text-base text-gray-900">Actions de statut</CardTitle></CardHeader>
+              <CardContent className="flex flex-wrap gap-2">
+                {nextStatuses.map((nextStatus) => nextStatus === "CANCELLED" ? (
+                  <Button key={nextStatus} variant="destructive" size="sm" onClick={() => setCancelOpen(true)}>Annuler la réservation</Button>
+                ) : (
+                  <Button key={nextStatus} size="sm" onClick={() => onStatusChange(nextStatus)}>{nextStatus === "CONFIRMED" ? "Confirmer" : "Marquer terminée"}</Button>
+                ))}
+              </CardContent>
+            </Card>
+          ) : null}
 
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <Card className="bg-white">
@@ -297,7 +316,19 @@ export default function BookingDetailsModal({
 
           <div className="flex justify-end pt-2"><Button variant="outline" onClick={onClose}>Fermer</Button></div>
         </div>
-      </DialogContent>
-    </Dialog>
+      </SheetContent>
+      <AlertDialog open={cancelOpen} onOpenChange={setCancelOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Annuler cette réservation ?</AlertDialogTitle>
+            <AlertDialogDescription>Cette action suit les règles de statut existantes et nécessite une confirmation.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Retour</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { setCancelOpen(false); onStatusChange?.("CANCELLED"); }}>Confirmer l'annulation</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </Sheet>
   );
 }

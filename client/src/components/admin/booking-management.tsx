@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
-import BookingDetailsModal from "@/components/booking-details-modal";
+import BookingDetailDrawer from "@/components/booking-detail-drawer";
 import PaymentManagement from "@/components/payment-management";
 import BookingRow, { type AdminBooking, type BookingLifecycleStatus } from "@/components/admin/booking-row";
 import {
@@ -31,6 +31,8 @@ interface BookingManagementProps {
   onExportBookingsPDF: () => void;
   canDeleteBookings: boolean;
   isSuperAdmin: boolean;
+  focusedBooking?: AdminBooking | null;
+  onFocusedBookingHandled?: () => void;
 }
 
 interface StatusOverrideRequest {
@@ -45,6 +47,8 @@ export default function BookingManagement({
   onExportBookingsPDF,
   canDeleteBookings,
   isSuperAdmin,
+  focusedBooking,
+  onFocusedBookingHandled,
 }: BookingManagementProps) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -54,6 +58,7 @@ export default function BookingManagement({
   const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date }>({});
   const [selectedBookingIds, setSelectedBookings] = useState<Set<string>>(() => new Set());
   const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);
+  const [focusedBookingState, setFocusedBookingState] = useState<AdminBooking | null>(null);
   const [paymentBookingId, setPaymentBookingId] = useState<string | null>(null);
   const [bookingToDelete, setBookingToDelete] = useState<AdminBooking | null>(null);
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
@@ -140,9 +145,17 @@ export default function BookingManagement({
   }, [selectedBookings, selectedBookingIds]);
 
   const selectedBooking = useMemo(
-    () => bookings.find((booking) => bookingIdOf(booking) === selectedBookingId) || null,
-    [bookings, selectedBookingId],
+    () => bookings.find((booking) => bookingIdOf(booking) === selectedBookingId)
+      || (focusedBookingState && bookingIdOf(focusedBookingState) === selectedBookingId ? focusedBookingState : null),
+    [bookings, focusedBookingState, selectedBookingId],
   );
+  useEffect(() => {
+    const id = focusedBooking && bookingIdOf(focusedBooking);
+    if (!id) return;
+    setFocusedBookingState(focusedBooking);
+    setSelectedBookingId(id);
+    onFocusedBookingHandled?.();
+  }, [focusedBooking, onFocusedBookingHandled]);
   const paymentBooking = bookings.find((booking) => bookingIdOf(booking) === paymentBookingId);
   const refreshBookings = async () => {
     await Promise.all([
@@ -675,13 +688,17 @@ export default function BookingManagement({
       </Card>
 
       {selectedBooking ? (
-        <BookingDetailsModal
+        <BookingDetailDrawer
           booking={selectedBooking}
-          isOpen={Boolean(selectedBookingId) && !paymentBooking}
-          onClose={() => setSelectedBookingId(null)}
+          isOpen={Boolean(selectedBookingId) && Boolean(selectedBooking) && !paymentBooking}
+          onClose={() => {
+            setSelectedBookingId(null);
+            setFocusedBookingState(null);
+          }}
           onContactCustomer={() => handleContactCustomer(selectedBooking.customerPhone)}
           onSendWhatsApp={() => handleSendWhatsApp(selectedBooking)}
           onManagePayment={() => setPaymentBookingId(bookingIdOf(selectedBooking))}
+          onStatusChange={(status) => handleBookingStatusUpdate(selectedBooking, status)}
         />
       ) : null}
 

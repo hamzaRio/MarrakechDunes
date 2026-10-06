@@ -19,6 +19,7 @@ import { ensureArray } from "@/lib/ensureArray";
 import { getAssetUrl } from "@/lib/utils";
 import { formatCasablancaDateOnly, formatLocalDateOnly } from "@/lib/booking-utils";
 import BookingManagement from "@/components/admin/booking-management";
+import type { AdminBooking } from "@/components/admin/booking-row";
 import { WhatsAppNotificationPanel } from "@/components/whatsapp-notification-panel";
 import FreeNotificationPanel from "@/components/free-notification-panel";
 import SimpleActivityForm from "@/components/simple-activity-form-v2";
@@ -55,6 +56,7 @@ function AdminDashboardContent() {
   const { user } = useAuth();
   const isSuperAdmin = user?.role === 'superadmin';
   const [activeTab, setActiveTab] = useState("bookings");
+  const [focusedBooking, setFocusedBooking] = useState<AdminBooking | null>(null);
   // const { t } = useLanguage();
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -473,7 +475,10 @@ function AdminDashboardContent() {
               isLoading={actionBookingsLoading}
               isError={actionBookingsError}
               onRetry={() => { void retryActionBookings(); }}
-              onViewBookings={() => setActiveTab("bookings")}
+              onViewBooking={(booking) => {
+                setFocusedBooking(booking as AdminBooking);
+                setActiveTab("bookings");
+              }}
             />
           </div>
 
@@ -550,6 +555,8 @@ function AdminDashboardContent() {
                 onExportBookingsPDF={handleExportBookingsPDF}
                 canDeleteBookings={isSuperAdmin}
                 isSuperAdmin={isSuperAdmin}
+                focusedBooking={focusedBooking}
+                onFocusedBookingHandled={() => setFocusedBooking(null)}
               />
             </TabsContent>
             <TabsContent value="activities" className="space-y-4">

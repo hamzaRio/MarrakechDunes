@@ -13,7 +13,7 @@ interface ActionRequiredInboxProps {
   isLoading: boolean;
   isError: boolean;
   onRetry: () => void;
-  onViewBookings: () => void;
+  onViewBooking: (booking: BookingType) => void;
 }
 
 const MAX_ITEMS = 5;
@@ -28,7 +28,7 @@ function formatBookingDate(value: BookingType["preferredDate"]): string {
   return date ? date.toLocaleDateString("fr-FR", { day: "numeric", month: "short" }) : "Date flexible";
 }
 
-function BookingItem({ booking, onViewBookings }: { booking: BookingType; onViewBookings: () => void }) {
+function BookingItem({ booking, onViewBooking }: { booking: BookingType; onViewBooking: (booking: BookingType) => void }) {
   const payment = getBookingPaymentSummary(booking);
   const status = normalizeBookingStatus(booking.status);
   return (
@@ -45,15 +45,15 @@ function BookingItem({ booking, onViewBookings }: { booking: BookingType; onView
           ) : null}
         </div>
       </div>
-      <Button variant="outline" size="sm" className="shrink-0 self-start sm:self-auto" onClick={onViewBookings}>
-        Voir les réservations
+      <Button variant="outline" size="sm" className="shrink-0 self-start sm:self-auto" onClick={() => onViewBooking(booking)}>
+        Voir le détail
         <ArrowRight className="ml-1 h-4 w-4" />
       </Button>
     </li>
   );
 }
 
-export default function ActionRequiredInbox({ bookings, counts, isLoading, isError, onRetry, onViewBookings }: ActionRequiredInboxProps) {
+export default function ActionRequiredInbox({ bookings, counts, isLoading, isError, onRetry, onViewBooking }: ActionRequiredInboxProps) {
   const today = formatCasablancaDateOnly();
   const tomorrowDate = new Date(`${today}T00:00:00`);
   tomorrowDate.setDate(tomorrowDate.getDate() + 1);
@@ -98,9 +98,9 @@ export default function ActionRequiredInbox({ bookings, counts, isLoading, isErr
           </div>
         ) : (
           <div className="grid gap-4 lg:grid-cols-3">
-            <InboxCategory title="Réservations en attente" icon={<AlertCircle className="h-4 w-4 text-orange-600" />} count={counts.pending} items={pending} onViewBookings={onViewBookings} />
-            <InboxCategory title="Paiement à suivre" icon={<CreditCard className="h-4 w-4 text-red-600" />} count={counts.paymentAttention} items={paymentAttention} onViewBookings={onViewBookings} />
-            <InboxCategory title="Aujourd'hui / demain" icon={<CalendarClock className="h-4 w-4 text-blue-600" />} count={counts.upcoming} items={upcoming} onViewBookings={onViewBookings} />
+            <InboxCategory title="Réservations en attente" icon={<AlertCircle className="h-4 w-4 text-orange-600" />} count={counts.pending} items={pending} onViewBooking={onViewBooking} />
+            <InboxCategory title="Paiement à suivre" icon={<CreditCard className="h-4 w-4 text-red-600" />} count={counts.paymentAttention} items={paymentAttention} onViewBooking={onViewBooking} />
+            <InboxCategory title="Aujourd'hui / demain" icon={<CalendarClock className="h-4 w-4 text-blue-600" />} count={counts.upcoming} items={upcoming} onViewBooking={onViewBooking} />
           </div>
         )}
       </CardContent>
@@ -108,12 +108,12 @@ export default function ActionRequiredInbox({ bookings, counts, isLoading, isErr
   );
 }
 
-function InboxCategory({ title, icon, count, items, onViewBookings }: { title: string; icon: ReactNode; count: number; items: BookingType[]; onViewBookings: () => void }) {
+function InboxCategory({ title, icon, count, items, onViewBooking }: { title: string; icon: ReactNode; count: number; items: BookingType[]; onViewBooking: (booking: BookingType) => void }) {
   return (
     <section aria-label={title}>
       <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold text-gray-800">{icon}{title}<span className="text-gray-500">({count})</span></h3>
       {items.length === 0 ? <p className="rounded-md border border-dashed border-gray-300 bg-white/70 p-3 text-sm text-gray-500">Rien à traiter.</p> : (
-        <ul className="space-y-2">{items.slice(0, MAX_ITEMS).map((booking) => <BookingItem key={String(booking._id || booking.id || `${booking.customerName}-${booking.preferredDate}`)} booking={booking} onViewBookings={onViewBookings} />)}</ul>
+        <ul className="space-y-2">{items.slice(0, MAX_ITEMS).map((booking) => <BookingItem key={String(booking._id || booking.id || `${booking.customerName}-${booking.preferredDate}`)} booking={booking} onViewBooking={onViewBooking} />)}</ul>
       )}
     </section>
   );

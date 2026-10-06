@@ -6,6 +6,7 @@ const route = await readFile(path.join(root, "server/src/routes/admin.ts"), "utf
 const storage = await readFile(path.join(root, "server/src/storage.ts"), "utf8");
 const dashboard = await readFile(path.join(root, "client/src/pages/admin/dashboard.tsx"), "utf8");
 const inbox = await readFile(path.join(root, "client/src/components/admin/action-required-inbox.tsx"), "utf8");
+const drawer = await readFile(path.join(root, "client/src/components/booking-detail-drawer.tsx"), "utf8");
 const bookingManagement = await readFile(path.join(root, "client/src/components/admin/booking-management.tsx"), "utf8");
 
 const assert = (condition: unknown, message: string) => {
@@ -22,6 +23,9 @@ assert(dashboard.includes("/admin/bookings/action-required?from="), "dashboard u
 assert(dashboard.includes("counts={{"), "dashboard passes real category totals to the inbox");
 assert(inbox.includes("Aucune action urgente"), "empty state is explicit");
 assert(inbox.includes("Réessayer"), "error state is recoverable");
+assert(inbox.includes("onViewBooking"), "inbox opens the selected booking directly");
+assert(drawer.includes("getNextPossibleStatuses"), "drawer reuses lifecycle transition helpers");
+assert(drawer.includes("AlertDialog"), "drawer confirms cancellation");
 assert(bookingManagement.includes("email, référence"), "booking search copy documents supported fields");
 
 console.log("Action-required inbox harness: PASS");
