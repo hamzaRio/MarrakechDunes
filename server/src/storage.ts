@@ -83,6 +83,10 @@ const bookingSchema = new mongoose.Schema({
   depositAmount: { type: Number },
   bookingReference: { type: String },
   idempotencyKeyHash: { type: String },
+  // M4: seats actually reserved against the capacity counter for this
+  // booking while CONFIRMED, so releaseBookingCapacity can decrement the
+  // exact amount even if numberOfPeople is edited afterwards.
+  capacityReserved: { type: Number, default: 0 },
 }, { timestamps: true });
 
 const auditLogSchema = new mongoose.Schema({
@@ -99,6 +103,20 @@ const reviewSchema = new mongoose.Schema({
   comment: { type: String, required: true },
   approved: { type: Boolean, default: false },
 }, { timestamps: true });
+
+// M4: atomic per-activity/per-day occupancy counter used to confirm bookings
+// without a race between the capacity check and the status write. The
+// previous flow read the confirmed-bookings sum, then wrote the new status
+// in a separate, unguarded operation - two concurrent confirmations could
+// both read "under capacity" and both write "confirmed", overbooking the
+// activity. Capacity is now enforced by a single, conditional $inc against
+// this document (see confirmBookingWithCapacity below).
+const capacityCounterSchema = new mongoose.Schema({
+  activityId: { type: String, required: true },
+  dateKey: { type: String, required: true }, // YYYY-MM-DD, activity-local calendar day
+  occupied: { type: Number, required: true, default: 0 },
+}, { timestamps: true });
+capacityCounterSchema.index({ activityId: 1, dateKey: 1 }, { unique: true });
 
 // Tour Business Performance Indexes - Enhanced for Production
 // Activity discovery for tourists
@@ -145,6 +163,11 @@ const Activity = mongoose.model('Activity', activitySchema);
 const Booking = mongoose.model('Booking', bookingSchema);
 const AuditLog = mongoose.model('AuditLog', auditLogSchema);
 const Review = mongoose.model('Review', reviewSchema);
+const CapacityCounter = mongoose.model('CapacityCounter', capacityCounterSchema);
+
+function capacityDateKey(date: Date): string {
+  return new Date(date).toISOString().slice(0, 10);
+}
 
 export interface IStorage {
   getUser(id: string): Promise<UserType | null>;
@@ -206,6 +229,8 @@ export interface IStorage {
   getBookingByIdempotencyHash(hash: string): Promise<BookingType | null>;
   updateBooking(id: string, updateData: Partial<InsertBooking>): Promise<BookingType | null>;
   updateBookingStatus(id: string, status: string): Promise<BookingType | null>;
+  confirmBookingWithCapacity(id: string, capacityLimit: number, options?: { force?: boolean }): Promise<{ ok: true; booking: BookingType | null; overbooked: boolean } | { ok: false; reason: 'CAPACITY_EXCEEDED' | 'NOT_FOUND' }>;
+  releaseBookingCapacity(bookingId: string): Promise<void>;
   updateBookingPayment(id: string, paymentData: {
     paymentStatus: string;
     paidAmount: number;
@@ -905,6 +930,90 @@ class MongoStorage implements IStorage {
       await cacheService.invalidateRelated('booking', id);
     }
     return this.transformDocument(booking);
+  }
+
+  // M4: atomically reserve capacity and confirm the booking in one
+  // operation. The capacity gate is a single conditional $inc against the
+  // per-activity/per-day counter document - under concurrent requests,
+  // MongoDB serializes writes to that one document, so only requests whose
+  // reservation keeps `occupied` within the limit can succeed; the rest see
+  // a null result and are rejected with CAPACITY_EXCEEDED. This replaces the
+  // earlier read-then-write pattern (check capacity, then separately write
+  // the new status) which raced under concurrency.
+  async confirmBookingWithCapacity(
+    id: string,
+    capacityLimit: number,
+    options?: { force?: boolean },
+  ): Promise<{ ok: true; booking: BookingType | null; overbooked: boolean } | { ok: false; reason: 'CAPACITY_EXCEEDED' | 'NOT_FOUND' }> {
+    const booking = await Booking.findById(id);
+    if (!booking) return { ok: false, reason: 'NOT_FOUND' };
+    if (String(booking.status).toUpperCase() === 'CONFIRMED') {
+      // Already confirmed (e.g. a retried request) - idempotent no-op.
+      return { ok: true, booking: this.transformDocument(booking), overbooked: false };
+    }
+    const people = Number(booking.numberOfPeople) || 0;
+    const dateKey = capacityDateKey(booking.preferredDate as unknown as Date);
+    const activityId = String(booking.activityId);
+    const force = options?.force === true;
+
+    // Unlimited capacity: skip the counter entirely.
+    if (!Number.isFinite(capacityLimit) || capacityLimit <= 0) {
+      const updated = await Booking.findByIdAndUpdate(id, { status: 'CONFIRMED', capacityReserved: 0 }, { new: true });
+      await cacheService.invalidateRelated('booking', id);
+      return { ok: true, booking: this.transformDocument(updated), overbooked: false };
+    }
+
+    // Ensure the counter document exists. A duplicate-key race here just
+    // means another request created it first, which is fine.
+    try {
+      await CapacityCounter.create({ activityId, dateKey, occupied: 0 });
+    } catch (e: any) {
+      if (e?.code !== 11000) throw e; // ignore "already exists" race
+    }
+
+    let overbooked = false;
+    let reserved = await CapacityCounter.findOneAndUpdate(
+      { activityId, dateKey, occupied: { $lte: capacityLimit - people } },
+      { $inc: { occupied: people } },
+      { new: true },
+    );
+    if (!reserved) {
+      if (!force) {
+        return { ok: false, reason: 'CAPACITY_EXCEEDED' };
+      }
+      // Authorized superadmin override: reserve unconditionally.
+      reserved = await CapacityCounter.findOneAndUpdate(
+        { activityId, dateKey },
+        { $inc: { occupied: people } },
+        { new: true },
+      );
+      overbooked = true;
+    }
+
+    const updated = await Booking.findByIdAndUpdate(
+      id,
+      { status: 'CONFIRMED', capacityReserved: people },
+      { new: true },
+    );
+    await cacheService.invalidateRelated('booking', id);
+    return { ok: true, booking: this.transformDocument(updated), overbooked };
+  }
+
+  // M4: releases previously-reserved capacity (call when a CONFIRMED
+  // booking is cancelled, deleted, or reverted) so the seats become
+  // available to other bookings for that activity/day again.
+  async releaseBookingCapacity(bookingId: string): Promise<void> {
+    const booking = await Booking.findById(bookingId);
+    if (!booking) return;
+    const reserved = Number(booking.capacityReserved) || 0;
+    if (reserved <= 0) return;
+    const dateKey = capacityDateKey(booking.preferredDate as unknown as Date);
+    const activityId = String(booking.activityId);
+    await CapacityCounter.findOneAndUpdate(
+      { activityId, dateKey },
+      { $inc: { occupied: -reserved } },
+    );
+    await Booking.findByIdAndUpdate(bookingId, { capacityReserved: 0 });
   }
 
   async updateBookingPayment(id: string, paymentData: {
