@@ -18,7 +18,9 @@ const client = new S3Client({ region: 'us-east-1', endpoint, forcePathStyle: tru
 let server: ReturnType<typeof createServer> | undefined;
 function docker(args: string[], allowFailure = false): void { const result = spawnSync('docker', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }); if (!allowFailure && result.status !== 0) throw new Error(`Docker failed: ${args[0]}`); }
 try {
-  await assert.rejects(() => downloadTrustedSource('http://127.0.0.1:9/private', { allowedPrefixes: ['http://127.0.0.1/'] }));
+  for (const address of ['127.0.0.1', '10.0.0.1', '172.16.0.1', '172.31.255.255', '192.168.1.1', '169.254.169.254', '100.64.0.1', '198.18.0.1', '224.0.0.1', '240.0.0.1', '0.0.0.0', '[::1]', '[fe80::1]', '[fc00::1]', '[ff02::1]', '[2001:db8::1]', '[::ffff:127.0.0.1]', '[::ffff:169.254.169.254]', '[::ffff:10.0.0.1]', '[::ffff:172.16.0.1]', '[::ffff:192.168.1.1]']) {
+    await assert.rejects(() => downloadTrustedSource(`http://${address}/private`, [`http://${address}/`]));
+  }
   await assert.rejects(() => readValidatedSourceResponse(new Response(Buffer.from('bad'), { headers: { 'content-type': 'image/png' } })));
   await assert.rejects(() => readValidatedSourceResponse(new Response('x', { headers: { 'content-type': 'image/png', 'content-length': String(5 * 1024 * 1024 + 1) } })));
   server = createServer((request, response) => { if (request.url === '/objects/uploads/source') { response.setHeader('Content-Type', 'image/png'); response.end(image); } else { response.statusCode = 404; response.end(); } });
