@@ -2,6 +2,7 @@
 // This service handles automated WhatsApp notifications to admins
 import CircuitBreaker from 'opossum';
 import { getAdminSiteUrl, getPublicSiteUrl, getSupportPhoneDisplay } from './utils/public-links.js';
+import { maskPhone } from './utils/log-redaction.js';
 
 export interface WhatsAppContact {
   name: string;
@@ -358,15 +359,22 @@ export class WhatsAppService {
     whatsappLinks: Array<{name: string; phone: string; link: string}>;
   }> {
     const message = this.formatPaymentConfirmationMessage(booking, paymentType);
-    
-    console.log('💰 SENDING PAYMENT CONFIRMATION TO ALL ADMINS');
-    console.log('==============================================');
-    
-    this.adminContacts.forEach(admin => {
-      console.log(`📱 Payment notification for ${admin.name} - ${admin.phone}:`);
-      console.log(message);
-      console.log('---');
-    });
+
+    // M11: this ran unconditionally (not gated behind a development check
+    // like the other debug logs in this file) and printed admin phone
+    // numbers plus the full message text - which itself contains the
+    // customer's name/phone - to stdout on every payment confirmation.
+    // Only a masked phone and the fact that a notification was queued are
+    // logged now; the full message/number pair is only ever printed in
+    // development.
+    console.log(`💰 Payment confirmation queued for ${this.adminContacts.length} admin(s)`);
+    if (process.env.NODE_ENV === 'development') {
+      this.adminContacts.forEach(admin => {
+        console.log(`📱 Payment notification for ${admin.name} - ${maskPhone(admin.phone)}:`);
+        console.log(message);
+        console.log('---');
+      });
+    }
 
     const whatsappLinks = this.adminContacts.map(admin => ({
       name: admin.name,
@@ -543,13 +551,9 @@ ${paymentType === 'deposit'
         return;
       }
 
-      // In production, would send via WhatsApp API
-      // For now, just log the reminder message
-      console.log('📱 WhatsApp Reminder Message:');
-      console.log(`To: ${booking.customerPhone}`);
-      console.log(reminderMessage);
-      
-      console.log(`✅ ${reminderType} reminder sent to customer: ${booking.customerName}`);
+      // M11: previously logged the customer's full phone number and
+      // message text unconditionally in production.
+      console.log(`📱 WhatsApp reminder (${reminderType}) queued for ${maskPhone(booking.customerPhone)}`);
     } catch (error) {
       console.error(`❌ Failed to send ${reminderType} reminder:`, error);
     }
@@ -596,12 +600,9 @@ MarrakechDunes - Aventures Authentiques`;
         return;
       }
 
-      // In production, would send via WhatsApp API
-      console.log('📱 WhatsApp Deposit Confirmation Message:');
-      console.log(`To: ${booking.customerPhone}`);
-      console.log(depositMessage);
-      
-      console.log(`✅ Deposit confirmation sent to customer: ${booking.customerName}`);
+      // M11: previously logged the customer's full phone number and
+      // message text unconditionally in production.
+      console.log(`📱 WhatsApp deposit confirmation queued for ${maskPhone(booking.customerPhone)}`);
     } catch (error) {
       console.error('❌ Failed to send deposit confirmation:', error);
     }
@@ -637,12 +638,9 @@ MarrakechDunes - Aventures Authentiques`;
         return;
       }
 
-      // In production, would send via WhatsApp API
-      console.log(`📱 WhatsApp Smart Notification (${templateId}):`);
-      console.log(`To: ${booking.customerPhone}`);
-      console.log(message);
-      
-      console.log(`✅ Smart notification (${templateId}) sent to customer: ${booking.customerName}`);
+      // M11: previously logged the customer's full phone number and
+      // message text unconditionally in production.
+      console.log(`📱 WhatsApp smart notification (${templateId}) queued for ${maskPhone(booking.customerPhone)}`);
     } catch (error) {
       console.error(`❌ Failed to send smart notification (${templateId}):`, error);
     }

@@ -9,6 +9,7 @@ import { z } from 'zod';
 import { autoResponseService } from '../services/auto-response-service.js';
 import { freeNotificationQueue } from '../services/free-notification-queue.js';
 import { requireAdmin, requireSuperAdmin } from '../middleware/admin-auth.js';
+import { maskPhone } from '../utils/log-redaction.js';
 
 const router = Router();
 
@@ -28,7 +29,7 @@ router.post('/incoming', async (req: Request, res: Response) => {
   try {
     const data = customerMessageSchema.parse(req.body);
     
-    console.log(`[AUTO-RESPONSE] Received message from ${data.phone}: ${data.message.substring(0, 50)}...`);
+    console.log(`[AUTO-RESPONSE] Received message from ${maskPhone(data.phone)}: ${data.message.substring(0, 50)}...`);
 
     // Analyze message and generate auto-response
     const response = await autoResponseService.analyzeAndRespond(

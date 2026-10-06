@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import emailService from '../utils/emailService.js';
+import { maskEmail } from '../utils/log-redaction.js';
 import { requireAdmin } from '../middleware/admin-auth.js';
 
 const router = Router();
@@ -171,7 +172,7 @@ router.post('/email/booking-confirmation', requireAdmin, async (req, res) => {
     );
 
     if (success) {
-      console.log(`[NOTIFICATIONS] Booking confirmation sent to: ${customerEmail}`);
+      console.log(`[NOTIFICATIONS] Booking confirmation sent to: ${maskEmail(customerEmail)}`);
       return res.status(200).json({
         success: true,
         message: 'L\'email de confirmation a été envoyé au client avec succès. Il devrait le recevoir dans les prochaines minutes.'

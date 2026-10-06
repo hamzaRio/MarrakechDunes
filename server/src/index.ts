@@ -43,6 +43,7 @@ import helmet from "helmet";
 import session from "express-session";
 import compression from "compression";
 import morgan from "morgan";
+import { requestIdMiddleware } from "./middleware/request-id.js";
 import { generateCSRFToken, verifyCSRFToken } from "./csrf-protection.js";
 import { 
   requestSizeLimit, 
@@ -271,8 +272,15 @@ app.use(compression({
   }
 }));
 
+// M11: assign/propagate a request ID before anything logs, so every log
+// line for a request (morgan access log, LoggingService, error-monitoring)
+// can be correlated by it.
+app.use(requestIdMiddleware);
+
+morgan.token('request-id', (req: Request) => (req as any).requestId || '-');
+
 // Request logging
-app.use(morgan('combined', {
+app.use(morgan(':request-id :method :url :status :res[content-length] - :response-time ms', {
   skip: (req: Request, res: Response) => {
     // Skip logging for health checks and static assets
     return req.url === '/api/health' || req.url.startsWith('/images/');
