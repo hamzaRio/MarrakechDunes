@@ -1,3 +1,9 @@
+// These "legacy" values matched the original developer's own Render/Vercel
+// project and must never be trusted automatically in production. They are
+// reached only through an explicit opt-in (LEGACY_OWNER_CORS_COMPAT=true),
+// which a new deployment owner would never set. See H1/M12 in the handoff
+// audit: production CORS now fails closed instead of silently trusting the
+// seller's old origins when CORS_ALLOWED_ORIGINS is unset.
 const legacyPublicOrigin = 'https://marrakech-dunes.vercel.app';
 const legacyAdminOrigin = 'https://marrakech-dunes-admin.vercel.app';
 const legacyPublicPreview = /^https:\/\/marrakech-dunes-[a-z0-9]+(?:-[a-z0-9]+)*-hamzarios-projects\.vercel\.app$/i;
@@ -57,8 +63,23 @@ export function resolveCorsPolicy(env: NodeJS.ProcessEnv, isProduction: boolean)
     return { allowedOrigins: [...new Set(origins)], patterns: patterns as RegExp[], source: 'configured' };
   }
 
-  // Compatibility path for the current Render/Vercel deployment. The old
-  // CLIENT_URL list may contain a literal wildcard; it is never trusted.
+  // H1/M12: production must configure CORS_ALLOWED_ORIGINS explicitly. It
+  // never silently falls back to the original developer's own Vercel
+  // origins. The only way to opt back into that legacy compatibility path
+  // is a deliberate flag a new owner would not set.
+  const legacyCompatAllowed = env.LEGACY_OWNER_CORS_COMPAT === 'true';
+  if (isProduction && !legacyCompatAllowed) {
+    throw new Error('CORS_ALLOWED_ORIGINS is required in production (set LEGACY_OWNER_CORS_COMPAT=true only to opt into the deprecated seller-origin fallback)');
+  }
+
+  if (!legacyCompatAllowed) {
+    const development = ['http://localhost:5173', 'http://localhost:5174'];
+    const devExact = splitList(env.CLIENT_URL).filter((origin) => isExactOrigin(origin, isProduction));
+    return { allowedOrigins: [...new Set([...devExact, ...development])], patterns: [], source: 'configured' };
+  }
+
+  // Deprecated compatibility path for the original Render/Vercel deployment.
+  // The old CLIENT_URL list may contain a literal wildcard; it is never trusted.
   const legacyExact = splitList(env.CLIENT_URL).filter((origin) =>
     isExactOrigin(origin, isProduction) && (
       origin === legacyPublicOrigin || origin === legacyAdminOrigin ||
@@ -79,7 +100,7 @@ export function isAllowedCorsOrigin(
   origin: string | undefined,
   allowedOrigins: readonly string[],
   isProduction: boolean,
-  patterns: readonly RegExp[] = [legacyPublicPreview, legacyAdminPreview],
+  patterns: readonly RegExp[] = [],
 ): boolean {
   if (!origin) return true;
   if (allowedOrigins.includes(origin)) return true;

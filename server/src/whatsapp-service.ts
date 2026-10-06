@@ -1,6 +1,7 @@
 // WhatsApp Business API Service for MarrakechDunes
 // This service handles automated WhatsApp notifications to admins
 import CircuitBreaker from 'opossum';
+import { getAdminSiteUrl, getPublicSiteUrl, getSupportPhoneDisplay } from './utils/public-links.js';
 
 export interface WhatsAppContact {
   name: string;
@@ -177,8 +178,8 @@ export class WhatsAppService {
       }
       
       message += `📞 *Need help?*\n`;
-      message += `Contact us: +212600623630\n`;
-      message += `Website: https://marrakech-dunes.vercel.app\n\n`;
+      if (getSupportPhoneDisplay()) message += `Contact us: ${getSupportPhoneDisplay()}\n`;
+      if (getPublicSiteUrl()) message += `Website: ${getPublicSiteUrl()}\n\n`;
       message += `Thank you for choosing MarrakechDunes! 🏜️`;
       
       const customerWhatsappLink = `https://wa.me/${responseData.customerPhone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(message)}`;
@@ -252,7 +253,7 @@ export class WhatsAppService {
       
       message += `📞 *Quick Actions:*\n`;
       message += `• Reply to customer: https://wa.me/${inquiry.customerPhone.replace(/[^0-9]/g, '')}\n`;
-      message += `• View booking: https://marrakech-dunes.vercel.app/admin\n\n`;
+      if (getAdminSiteUrl()) message += `• View booking: ${getAdminSiteUrl()}\n\n`;
       
       message += `⏰ *Received:* ${new Date().toLocaleString()}\n`;
       message += `Please respond promptly to maintain customer satisfaction! 🙏`;
@@ -417,8 +418,8 @@ ${booking.notes ? `📝 Notes spéciales: ${booking.notes}` : ''}
 
 📞 Contactez ${booking.customerName} au ${booking.customerPhone}
 
-✅ CONFIRMER: ${booking.confirmLink || 'https://marrakech-dunes.vercel.app/admin'}
-❌ REJETER: ${booking.rejectLink || 'https://marrakech-dunes.vercel.app/admin'}`;
+✅ CONFIRMER: ${booking.confirmLink || getAdminSiteUrl() || '(configurer ADMIN_SITE_URL)'}
+❌ REJETER: ${booking.rejectLink || getAdminSiteUrl() || '(configurer ADMIN_SITE_URL)'}`;
   }
 
   private formatCustomerConfirmation(booking: BookingNotificationData): string {
