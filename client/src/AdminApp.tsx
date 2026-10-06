@@ -1,5 +1,5 @@
 import { lazy, Suspense } from "react";
-import { Route, Switch, useLocation } from "wouter";
+import { Redirect, Route, Switch, useLocation } from "wouter";
 import AdminRoute from "@/components/admin-route";
 import AutoLogout from "@/components/auto-logout";
 import AppShell, { ADMIN_ROUTE, PAGE_FALLBACK, withSecurity } from "./AppShell";
@@ -24,6 +24,7 @@ function AdminRouter() {
     <>
       <StaffSessionRuntime />
       <Switch>
+        <Route path="/"><Redirect to="/admin/login" replace /></Route>
         <Route path="/admin/login" component={withSecurity(AdminLogin, ADMIN_ROUTE)} />
         <Route path="/admin/dashboard" component={withSecurity(AdminDashboard, ADMIN_ROUTE)} />
         <Route path="/admin" component={withSecurity(AdminDashboard, ADMIN_ROUTE)} />

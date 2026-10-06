@@ -10,6 +10,7 @@ assert.match(publicApp, /path="\/activities"/);
 assert.match(publicApp, /path="\/customer"/);
 assert.doesNotMatch(publicApp, /\/admin|AdminLogin|AdminDashboard|CEODashboard|BusinessIntelligence|AdminRoute|AutoLogout|useAuth/);
 assert.match(adminApp, /path="\/admin\/login"/);
+assert.match(adminApp, /path="\/".*<Redirect to="\/admin\/login" replace \/>/s);
 for (const route of ["/admin", "/admin/dashboard", "/admin/ceo", "/admin/business-intelligence", "/admin/activities/new", "/admin/access-guide"]) assert.ok(adminApp.includes(`path="${route}"`));
 assert.match(adminApp, /AdminRoute/);
 assert.match(adminApp, /AutoLogout/);
