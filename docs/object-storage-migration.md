@@ -22,6 +22,13 @@ The planner accepts exact `OBJECT_STORAGE_LEGACY_URL_PREFIXES` for known
 bucket/path prefixes and `OBJECT_STORAGE_LEGACY_PUBLIC_ORIGINS` for known
 Replit object origins. It does not discover production records.
 
+Configured legacy prefixes must use the exact path-boundary form and end with
+`/`; sibling buckets or paths are rejected. Signed AWS and Google V4 URLs are
+skipped rather than stripped and downloaded. Generated manifests belong under
+the ignored `.migration/` directory. They may contain record identifiers and
+byte-exact original URLs, so treat them as sensitive operator artifacts and
+never store credentials in them.
+
 ## Rehearsal
 
 Use the disposable command:
@@ -43,12 +50,15 @@ It deletes only its disposable test object and bucket during cleanup.
 3. Copy each source object to its deterministic target key.
 4. Verify target existence, size, type, and content before changing a record.
 5. Update only verified `imageUrls` references.
-6. Retain source objects through an operator-selected rollback window.
+6. Retain source objects through an operator-selected rollback window; do not
+   delete legacy sources during migration.
 7. Observe reads and errors; restore original URLs if rollback is required.
 8. Delete old objects only in a separately authorized operation after the window.
 
 The manifest states and original URL values provide audit and rollback data. No
 credentials, signed query strings, or provider secrets belong in it.
+The normal executor rejects private, loopback, link-local, and reserved source
+network targets, and rewrite is permitted only after a verified target copy.
 
 ## Current blockers before production execution
 

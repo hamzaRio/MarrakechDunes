@@ -99,6 +99,9 @@ uploads/
 
 # === Docker ===
 
+# === Generated migration artifacts (sensitive operator manifests) ===
+.migration/
+
 # === Hosting configs (keep only Render + Vercel) ===
 .vercel
 
