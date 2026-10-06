@@ -25,7 +25,7 @@ router.post('/objects/upload', uploadRateLimit, requireSuperAdmin, async (req: R
       ...(grant.publicUrl ? { publicUrl: grant.publicUrl } : {}),
     });
   } catch (error) {
-    if (error instanceof Error && /Unsupported image|Image size/.test(error.message)) {
+    if (error instanceof Error && /Unsupported image|Image content type|Image size/.test(error.message)) {
       return res.status(400).json({ status: 'error', message: error.message });
     }
     console.error('[UPLOAD] Error generating upload URL:', error);

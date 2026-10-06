@@ -388,7 +388,7 @@ export default function SimpleActivityForm({
               {/* File Upload */}
               <ObjectUploader
                 maxNumberOfFiles={5}
-                maxFileSize={10485760} // 10MB
+                maxFileSize={5242880} // 5MB server policy
                 onGetUploadParameters={async (file) => {
                   const res = await apiRequest("/objects/upload", {
                     method: "POST",

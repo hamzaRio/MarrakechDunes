@@ -6,6 +6,7 @@ import { DashboardModal } from "@uppy/react";
 import AwsS3 from "@uppy/aws-s3";
 import type { UploadResult } from "@uppy/core";
 import { Button } from "@/components/ui/button";
+import { getDurableObjectUrl } from "@/lib/object-upload";
 
 interface ObjectUploaderProps {
   maxNumberOfFiles?: number;
@@ -30,7 +31,7 @@ interface ObjectUploaderProps {
  */
 export function ObjectUploader({
   maxNumberOfFiles = 1,
-  maxFileSize = 10485760, // 10MB default
+  maxFileSize = 5242880, // 5MB server policy
   onGetUploadParameters,
   onComplete,
   onUpload,
@@ -38,34 +39,32 @@ export function ObjectUploader({
   children,
 }: ObjectUploaderProps) {
   const [showModal, setShowModal] = useState(false);
-  const [uppy] = useState(() =>
-    new Uppy({
+  const [uppy] = useState(() => {
+    const instance = new Uppy({
       restrictions: {
         maxNumberOfFiles,
         maxFileSize,
       },
       autoProceed: false,
-    })
-      .use(AwsS3, {
+    });
+    instance.use(AwsS3, {
         shouldUseMultipart: false,
         getUploadParameters: async (file) => {
           const params = await onGetUploadParameters({ type: file.type, size: file.size });
-          if (params.publicUrl) file.meta.publicUrl = params.publicUrl;
+          if (params.publicUrl) instance.setFileMeta(file.id, { publicUrl: params.publicUrl });
           return params;
         },
-      })
-      .on("complete", (result) => {
+      });
+    instance.on("complete", (result) => {
         onComplete?.(result);
         if (onUpload && result.successful) {
-          const urls = result.successful.map(file => {
-            const meta = file.meta as { publicUrl?: unknown } | undefined;
-            return typeof meta?.publicUrl === 'string' ? meta.publicUrl : file.uploadURL;
-          }).filter((url): url is string => Boolean(url));
+          const urls = result.successful.map(getDurableObjectUrl).filter((url): url is string => Boolean(url));
           onUpload(urls);
         }
         setShowModal(false);
-      })
-  );
+      });
+    return instance;
+  });
 
   return (
     <div>

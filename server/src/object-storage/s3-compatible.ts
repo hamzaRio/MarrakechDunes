@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import type { ObjectStorageProvider, ObjectUploadGrant, ObjectUploadRequest } from './types.js';
+import { requireAllowedImageContentType } from './upload-policy.js';
 
 const DEFAULT_EXPIRES_SECONDS = 900;
 
@@ -23,18 +24,19 @@ function expiresSeconds(): number {
   return raw;
 }
 
-function publicUrl(base: string | undefined, key: string): string | undefined {
-  if (!base?.trim()) return undefined;
-  return `${base.trim().replace(/\/+$/, '')}/${key.split('/').map(encodeURIComponent).join('/')}`;
+function publicUrl(base: string, key: string): string {
+  return `${base.replace(/\/+$/, '')}/${key.split('/').map(encodeURIComponent).join('/')}`;
 }
 
 export class S3CompatibleObjectStorageProvider implements ObjectStorageProvider {
   private readonly bucket: string;
   private readonly client: S3Client;
   private readonly expiresIn: number;
+  private readonly publicBaseUrl: string;
 
   constructor() {
     this.bucket = required('OBJECT_STORAGE_S3_BUCKET');
+    this.publicBaseUrl = required('OBJECT_STORAGE_S3_PUBLIC_BASE_URL');
     const region = required('OBJECT_STORAGE_S3_REGION');
     const endpoint = process.env.OBJECT_STORAGE_S3_ENDPOINT?.trim() || undefined;
     const accessKeyId = process.env.OBJECT_STORAGE_S3_ACCESS_KEY_ID?.trim();
@@ -46,27 +48,32 @@ export class S3CompatibleObjectStorageProvider implements ObjectStorageProvider 
       region,
       endpoint,
       forcePathStyle: booleanEnv('OBJECT_STORAGE_S3_FORCE_PATH_STYLE'),
+      requestChecksumCalculation: 'WHEN_REQUIRED',
       ...(accessKeyId && secretAccessKey ? { credentials: { accessKeyId, secretAccessKey } } : {}),
     });
     this.expiresIn = expiresSeconds();
   }
 
   async createUploadGrant(request: ObjectUploadRequest = {}): Promise<ObjectUploadGrant> {
+    const contentType = requireAllowedImageContentType(request.contentType);
     const key = `uploads/${randomUUID()}`;
     const expiresAt = new Date(Date.now() + this.expiresIn * 1000).toISOString();
     const command = new PutObjectCommand({
       Bucket: this.bucket,
       Key: key,
-      ...(request.contentType ? { ContentType: request.contentType } : {}),
+      ContentType: contentType,
     });
-    const uploadUrl = await getSignedUrl(this.client, command, { expiresIn: this.expiresIn });
+    const uploadUrl = await getSignedUrl(this.client, command, {
+      expiresIn: this.expiresIn,
+      signableHeaders: new Set(['content-type']),
+    });
     return {
       uploadUrl,
       objectPath: `/objects/${key}`,
       method: 'PUT',
-      ...(request.contentType ? { headers: { 'Content-Type': request.contentType } } : {}),
+      headers: { 'Content-Type': contentType },
       expiresAt,
-      publicUrl: publicUrl(process.env.OBJECT_STORAGE_S3_PUBLIC_BASE_URL, key),
+      publicUrl: publicUrl(this.publicBaseUrl, key),
     };
   }
 }

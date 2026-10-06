@@ -12,18 +12,20 @@ optional `OBJECT_STORAGE_SIDECAR_ENDPOINT`. The S3-compatible adapter uses
 `OBJECT_STORAGE_S3_ENDPOINT`, `OBJECT_STORAGE_S3_REGION`,
 `OBJECT_STORAGE_S3_BUCKET`, optional access-key credentials,
 `OBJECT_STORAGE_S3_FORCE_PATH_STYLE`, `OBJECT_STORAGE_S3_UPLOAD_EXPIRES_SECONDS`,
-and an optional `OBJECT_STORAGE_S3_PUBLIC_BASE_URL`. This same adapter is
+and `OBJECT_STORAGE_S3_PUBLIC_BASE_URL`. The public base URL is required for the
+S3 adapter because activity records need a stable URL; an expiring presigned PUT
+URL is never treated as a permanent image URL. This same adapter is
 configuration-compatible with AWS S3, Cloudflare R2, and MinIO; those providers
 have not been production-tested here.
 
 The API validates declared image MIME types (JPEG, PNG, WebP, or GIF) and a
-declared size up to 5 MB before issuing a grant. A presigned PUT binds the
-content type when supplied, but a declared size is not an exact cryptographic
+declared size up to 5 MB before issuing a grant. S3 grants require Content-Type
+and bind the declared value into the PUT signature. This validates the signed
+declaration, not the uploaded bytes themselves. A declared size is not an exact cryptographic
 provider limit for a browser-held PUT URL. The browser receives only the
 short-lived presigned URL and provider-neutral metadata; credentials are never
-returned. An optional configured public base URL produces a stable public URL.
-Without it, callers must not persist the expiring presigned URL as a permanent
-image URL.
+returned. The configured public base URL produces the stable URL persisted by
+the browser.
 
 Provider-specific signing code is isolated under `server/src/object-storage/`.
 

@@ -1,6 +1,13 @@
 export const MAX_UPLOAD_SIZE = 5 * 1024 * 1024;
 const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
 
+export function requireAllowedImageContentType(contentType: string | undefined): string {
+  const normalized = contentType?.trim().toLowerCase();
+  if (!normalized) throw new Error('Image content type is required');
+  if (!ALLOWED_IMAGE_TYPES.has(normalized)) throw new Error('Unsupported image content type');
+  return normalized;
+}
+
 export interface UploadRequestMetadata {
   contentType?: string;
   size?: number;

@@ -41,7 +41,6 @@ import GYGDirectRedirect from "@/components/admin/GYGDirectRedirect";
 import SimpleMarketIntelligence from "@/components/simple-market-intelligence";
 import MoroccoCompetitorSearch from "@/components/morocco-competitor-search";
 import type { ActivityType } from "marrakechdunes-shared/schema";
-import type { UploadResult } from "@uppy/core";
 
 const createActivityFormSchema = (t: (key: string) => string) => z.object({
   name: z.string().min(2, t("admin.activityNameRequired")),
@@ -647,9 +646,9 @@ export default function ActivityManagementModal({
                           publicUrl: data.publicUrl,
                         };
                       }}
-                      onComplete={(result) => {
-                        if (result.successful && result.successful.length > 0) {
-                          result.successful.forEach((file) => handleUploadComplete(file.uploadURL));
+                      onUpload={(uploadedUrls) => {
+                        if (uploadedUrls.length > 0) {
+                          uploadedUrls.forEach(handleUploadComplete);
                           toast({
                             title: "Image Uploaded",
                             description: "Activity image has been uploaded successfully.",
