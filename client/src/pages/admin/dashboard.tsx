@@ -35,6 +35,7 @@ import BusinessMetrics from "@/components/analytics/business-metrics";
 import SystemHealth from "@/components/analytics/system-health";
 import AdminManagement from "@/components/admin-management";
 import CEOOperationsDashboard from "@/components/ceo-operations-dashboard";
+import ActionRequiredInbox from "@/components/admin/action-required-inbox";
 // Removed duplicate market intelligence dashboard import
 
 import type { BookingType, ActivityType, AuditLogType } from "marrakechdunes-shared/schema";
@@ -68,6 +69,13 @@ function AdminDashboardContent() {
     queryKey: ["/admin/bookings/summary"],
     enabled: !!user,
     queryFn: async () => (await api.get("/admin/bookings/summary")).data,
+    staleTime: 60_000,
+  });
+
+  const { data: actionBookings = [], isLoading: actionBookingsLoading, isError: actionBookingsError, refetch: retryActionBookings } = useQuery<{ bookings: BookingType[] }>({
+    queryKey: ["/admin/bookings", "action-required"],
+    enabled: !!user,
+    queryFn: async () => (await api.get("/admin/bookings?page=1&limit=50&sortField=preferredDate&sortOrder=asc")).data,
     staleTime: 60_000,
   });
 
@@ -440,6 +448,16 @@ function AdminDashboardContent() {
                 </Button>
               </div>
             </div>
+          </div>
+
+          <div className="mb-8">
+            <ActionRequiredInbox
+              bookings={actionBookings}
+              isLoading={actionBookingsLoading}
+              isError={actionBookingsError}
+              onRetry={() => { void retryActionBookings(); }}
+              onViewBookings={() => setActiveTab("bookings")}
+            />
           </div>
 
                   {/* Cartes de Statistiques - Simplifiées */}
