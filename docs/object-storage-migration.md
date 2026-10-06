@@ -58,7 +58,9 @@ It deletes only its disposable test object and bucket during cleanup.
 The manifest states and original URL values provide audit and rollback data. No
 credentials, signed query strings, or provider secrets belong in it.
 The normal executor rejects private, loopback, link-local, and reserved source
-network targets, and rewrite is permitted only after a verified target copy.
+network targets, validates every resolved address, and pins the HTTP/TLS
+connection to the validated address. Rewrite is permitted only after a verified
+target copy.
 
 ## Current blockers before production execution
 

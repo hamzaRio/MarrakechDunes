@@ -66,16 +66,17 @@ export function deterministicTargetKey(recordId: string, sourceUrl: string): str
 export function planMigration(records: Array<{ recordId: string; imageUrls: string[] }>, publicBaseUrl: string, knownOrigins: readonly string[] = [], legacyPrefixes: readonly string[] = []): MigrationManifestEntry[] {
   const base = publicBaseUrl.replace(/\/+$/, '');
   return records.flatMap((record) => record.imageUrls.map((rawSourceUrl) => {
-    const sourceUrl = (() => { try { const url = new URL(rawSourceUrl); url.search = ''; url.hash = ''; return url.toString(); } catch { return rawSourceUrl; } })();
+    const sourceUrl = (() => { try { const url = new URL(rawSourceUrl); url.hash = ''; return url.toString(); } catch { return rawSourceUrl; } })();
     const sourceClassification = classifyImageUrl(rawSourceUrl, knownOrigins, legacyPrefixes);
     const canonicalId = record.recordId?.trim() || '';
     if (!canonicalId) return { recordId: '', sourceUrl, sourceClassification: 'unknown', skipReason: 'invalid-record-id', migrationState: 'skipped', verificationState: 'pending', originalUrl: rawSourceUrl };
     const signed = (() => { try { return isSignedQuery(new URL(rawSourceUrl)); } catch { return false; } })();
     if (sourceClassification !== 'replit-object' && sourceClassification !== 'legacy-gcs') {
       const skipReason = signed ? 'signed-url' : sourceClassification === 'external' ? 'external-url' : 'unknown-url';
-      return { recordId: canonicalId, sourceUrl, sourceClassification, skipReason, migrationState: 'skipped', verificationState: 'pending', originalUrl: sourceUrl };
+      const safeSourceUrl = signed ? (() => { try { const url = new URL(rawSourceUrl); url.search = ''; url.hash = ''; return url.toString(); } catch { return sourceUrl; } })() : sourceUrl;
+      return { recordId: canonicalId, sourceUrl: safeSourceUrl, sourceClassification, skipReason, migrationState: 'skipped', verificationState: 'pending', originalUrl: safeSourceUrl };
     }
-    const targetObjectKey = deterministicTargetKey(canonicalId, sourceUrl);
+    const targetObjectKey = deterministicTargetKey(canonicalId, rawSourceUrl);
     return { recordId: canonicalId, sourceUrl, sourceClassification, targetObjectKey, targetPublicUrl: `${base}/${targetObjectKey}`, migrationState: 'planned', verificationState: 'pending', originalUrl: rawSourceUrl };
   }));
 }

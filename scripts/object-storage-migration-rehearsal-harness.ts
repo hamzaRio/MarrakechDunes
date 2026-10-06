@@ -3,7 +3,7 @@ import { createServer } from 'node:http';
 import { randomUUID } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { CreateBucketCommand, DeleteBucketCommand, DeleteObjectCommand, S3Client } from '@aws-sdk/client-s3';
-import { copyAndVerifyObject, downloadTrustedSource, rollbackFixture, rewriteFixture } from './object-storage-migration-executor.js';
+import { copyAndVerifyObject, downloadTrustedSource, readValidatedSourceResponse, rollbackFixture, rewriteFixture } from './object-storage-migration-executor.js';
 import { planMigration } from './object-storage-migration.js';
 
 const image = Buffer.from([137,80,78,71,13,10,26,10,0,0,0,0]);
@@ -19,8 +19,8 @@ let server: ReturnType<typeof createServer> | undefined;
 function docker(args: string[], allowFailure = false): void { const result = spawnSync('docker', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }); if (!allowFailure && result.status !== 0) throw new Error(`Docker failed: ${args[0]}`); }
 try {
   await assert.rejects(() => downloadTrustedSource('http://127.0.0.1:9/private', { allowedPrefixes: ['http://127.0.0.1/'] }));
-  await assert.rejects(() => downloadTrustedSource('https://fixture.example/image', { allowedPrefixes: [], fetcher: async () => new Response(Buffer.from('bad'), { headers: { 'content-type': 'image/png' } }) }));
-  await assert.rejects(() => downloadTrustedSource('https://fixture.example/image', { allowedPrefixes: [], fetcher: async () => new Response('x', { headers: { 'content-type': 'image/png', 'content-length': String(5 * 1024 * 1024 + 1) } }) }));
+  await assert.rejects(() => readValidatedSourceResponse(new Response(Buffer.from('bad'), { headers: { 'content-type': 'image/png' } })));
+  await assert.rejects(() => readValidatedSourceResponse(new Response('x', { headers: { 'content-type': 'image/png', 'content-length': String(5 * 1024 * 1024 + 1) } })));
   server = createServer((request, response) => { if (request.url === '/objects/uploads/source') { response.setHeader('Content-Type', 'image/png'); response.end(image); } else { response.statusCode = 404; response.end(); } });
   await new Promise<void>((resolve, reject) => { server!.once('error', reject); server!.listen(port, '127.0.0.1', resolve); });
   docker(['run', '--detach', '--name', container, '--publish', `127.0.0.1:${port + 1}:9000`, '--env', `MINIO_ROOT_USER=${accessKeyId}`, '--env', `MINIO_ROOT_PASSWORD=${secretAccessKey}`, 'bitnamilegacy/minio@sha256:451fe6858cb770cc9d0e77ba811ce287420f781c7c1b806a386f6896471a349c']);
@@ -34,7 +34,8 @@ try {
   const planned = manifest.filter((entry) => entry.migrationState === 'planned');
   assert.equal(planned.length, 1);
   assert.match(planned[0].targetObjectKey || '', /^uploads\/migrated\//);
-  const downloaded = await downloadTrustedSource(sourceUrl, { allowedPrefixes: [], fetcher: (url, init) => fetch(url, init) });
+  const fixtureResponse = await fetch(sourceUrl, { redirect: 'manual' });
+  const downloaded = await readValidatedSourceResponse(fixtureResponse);
   const verified = await copyAndVerifyObject(minioClient, bucket, planned[0], downloaded);
   const verifiedManifest = manifest.map((entry) => entry === planned[0] ? verified : entry);
   const blocked = rewriteFixture(original, manifest);
