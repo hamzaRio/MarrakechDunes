@@ -1,6 +1,6 @@
 import { AlertCircle, ArrowRight, CalendarClock, CheckCircle2, CreditCard, RefreshCw } from "lucide-react";
 import type { ReactNode } from "react";
-import type { BookingType } from "marrakechdunes-shared/schema";
+import type { BookingType, BookingWithActivity } from "marrakechdunes-shared/schema";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { formatCasablancaDateOnly, formatLocalDateOnly, getBookingDateOnly, getBookingPaymentSummary, normalizeBookingStatus } from "@/lib/booking-utils";
 
 interface ActionRequiredInboxProps {
-  bookings: BookingType[];
+  bookings: BookingWithActivity[];
   counts: { pending: number; paymentAttention: number; upcoming: number };
   isLoading: boolean;
   isError: boolean;
@@ -28,7 +28,7 @@ function formatBookingDate(value: BookingType["preferredDate"]): string {
   return date ? date.toLocaleDateString("fr-FR", { day: "numeric", month: "short" }) : "Date flexible";
 }
 
-function BookingItem({ booking, onViewBooking }: { booking: BookingType; onViewBooking: (booking: BookingType) => void }) {
+function BookingItem({ booking, onViewBooking }: { booking: BookingWithActivity; onViewBooking: (booking: BookingType) => void }) {
   const payment = getBookingPaymentSummary(booking);
   const status = normalizeBookingStatus(booking.status);
   return (

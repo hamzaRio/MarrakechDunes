@@ -735,7 +735,7 @@ function AdminDashboardContent() {
                   <WhatsAppNotificationPanel 
                     booking={latestBooking ? {
                       ...latestBooking,
-                      activityName: latestBooking.activity?.name || 'N/A'
+                      activityName: activities.find((activity) => activity.id === latestBooking.activityId || activity._id === latestBooking.activityId)?.name || 'N/A'
                     } : undefined}
                     customerPhone={latestBooking?.customerPhone}
                   />

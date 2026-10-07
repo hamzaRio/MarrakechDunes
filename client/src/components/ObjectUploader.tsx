@@ -50,7 +50,7 @@ export function ObjectUploader({
     instance.use(AwsS3, {
         shouldUseMultipart: false,
         getUploadParameters: async (file) => {
-          const params = await onGetUploadParameters({ type: file.type, size: file.size });
+          const params = await onGetUploadParameters({ type: file.type, size: file.size ?? undefined });
           if (params.publicUrl) instance.setFileMeta(file.id, { publicUrl: params.publicUrl });
           return params;
         },

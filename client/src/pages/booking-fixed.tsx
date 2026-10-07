@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useForm, useFieldArray } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { ActivityType } from "marrakechdunes-shared/schema";
@@ -143,11 +143,6 @@ export default function BookingFixed() {
     }
   }, [activityList.length]);
 
-  const { fields, replace } = useFieldArray({
-    control: form.control,
-    name: "participantNames",
-  });
-
   // Get watched activity first
   const watchedActivityId = form.watch("activityId");
   const watchedActivity = useMemo(() => 
@@ -157,14 +152,15 @@ export default function BookingFixed() {
 
   // Memoize expensive calculations
   const numberOfPeopleValue = form.watch("numberOfPeople");
+  const participantNames = form.watch("participantNames");
   
   useEffect(() => {
     const names = Array(numberOfPeopleValue).fill("").map((_, i) => {
       const currentValue = form.getValues(`participantNames.${i}`);
       return currentValue || "";
     });
-    replace(names);
-  }, [numberOfPeopleValue, replace, form]);
+    form.setValue("participantNames", names);
+  }, [numberOfPeopleValue, form]);
   const totalAmount = useMemo(() => {
     return watchedActivity ? parseInt(watchedActivity.price) * numberOfPeopleValue : 0;
   }, [watchedActivity, numberOfPeopleValue]);
@@ -704,9 +700,9 @@ export default function BookingFixed() {
                           {/* Participant Names */}
                           <div className="space-y-4">
                             <h4 className="font-medium text-moroccan-blue">Participant Names</h4>
-                            {fields.map((field, index) => (
+                            {participantNames.map((name, index) => (
                               <FormField
-                                key={field.id}
+                                key={index}
                                 control={form.control}
                                 name={`participantNames.${index}`}
                                 render={({ field }) => (

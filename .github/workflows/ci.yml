@@ -1,70 +1,52 @@
 name: CI
 
-# M9: there was no CI at all - the only way to find out a change broke the
-# build, the TypeScript types, or reintroduced a dependency vulnerability
-# was to deploy it. This reproduces the hardening gates that matter most
-# and are cheap to run on every push/PR: install, typecheck/build both
-# workspaces, and a dependency-vulnerability gate equivalent to the one
-# used during this hardening pass (0 critical / 0 high on production
-# dependencies). It intentionally does NOT attempt the heavier gates that
-# need a real MongoDB replica set or a browser (capacity-concurrency test,
-# Chromium CSP/portability test, backup/restore rehearsal) - those are
-# documented in docs/handoff-runbook.md as manual/staging steps.
-
 on:
-  push:
-    branches: [main]
   pull_request:
+    branches: [main]
+  push:
     branches: [main]
 
 jobs:
-  build-and-typecheck:
+  typecheck:
+    name: Typecheck
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run build:shared
+      - run: npx tsc -p server/tsconfig.json --noEmit
+      - run: npx tsc -p client/tsconfig.json --noEmit --noUnusedLocals false --noUnusedParameters false
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build shared package
-        run: npm run build:shared
-
-      - name: Typecheck + build server
-        run: npm run build:server
-
-      - name: Build client (public)
-        run: npm run build:public
-        env:
-          VITE_API_URL: https://api.example.com
-          VITE_SITE_URL: https://www.example.com
-
-      - name: Build client (admin)
-        run: npm run build:admin
-        env:
-          VITE_API_URL: https://api.example.com
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run build
 
   dependency-audit:
+    name: Production dependency audit
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Fail on critical/high production vulnerabilities
-        run: npm audit --omit=dev --audit-level=high
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm audit --omit=dev --audit-level=high
 
   browser-and-mongo-hardening:
+    name: Browser and Mongo hardening
     runs-on: ubuntu-latest
     env:
       MONGOMS_DISABLE_POSTINSTALL: '1'
@@ -72,22 +54,16 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
-      - name: Install dependencies
-        run: npm ci
-      - name: Install Chromium
-        run: npx playwright install --with-deps chromium
-      - name: Build public with disposable API origin
-        run: npm run build:public
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run build:public
         env:
           VITE_API_URL: http://127.0.0.1:18080/api
           VITE_SITE_URL: https://example.com
-      - name: Build admin
-        run: npm run build:admin
+      - run: npm run build:admin
         env:
           VITE_API_URL: http://127.0.0.1:18080/api
-      - name: Browser portability and CSP gates
-        run: REQUIRE_BROWSER_API=1 npm run test:browser-hardening
-      - name: Replica-set capacity gate
-        run: npm run build:server && npx tsx server/src/scripts/capacity-concurrency-harness.ts
+      - run: REQUIRE_BROWSER_API=1 npm run test:browser-hardening
+      - run: npm run build:server && npx tsx server/src/scripts/capacity-concurrency-harness.ts

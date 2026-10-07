@@ -84,7 +84,7 @@ export default function AdminRoute({ children, requireSuperAdmin = false }: Admi
     }
 
     // Layer 4: Log successful admin access (DEV only)
-    if (import.meta.env.DEV) {
+    if (import.meta.env.DEV && user) {
       console.log('[SECURITY] Admin access granted:', {
         user: user.username || user.id,
         role: user.role,

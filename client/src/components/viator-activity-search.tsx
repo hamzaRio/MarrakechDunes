@@ -78,8 +78,9 @@ export default function ViatorActivitySearch({ onCompare, onUseAsTemplate, marke
         {activities.map((activity) => {
           const detail = details[activity.id];
           const productUrl = detail?.productUrl ?? activity.url;
-          const convertedMad = activity.price.currency === 'EUR' && Number.isFinite(activity.price.amount) && eurMadRate.data
-            ? Math.round(activity.price.amount * eurMadRate.data.rate)
+          const rate = eurMadRate.data;
+          const convertedMad = activity.price.currency === 'EUR' && Number.isFinite(activity.price.amount) && rate
+            ? Math.round(activity.price.amount * rate.rate)
             : null;
           return (
           <Card key={activity.id}>
@@ -89,7 +90,7 @@ export default function ViatorActivitySearch({ onCompare, onUseAsTemplate, marke
               {activity.description && <p className="text-xs text-gray-600 line-clamp-2">{activity.description}</p>}
               <div className="flex flex-wrap gap-3 text-xs text-gray-600">
                 <span className="font-semibold text-gray-900">{convertedMad != null ? `≈ ${convertedMad} MAD` : `${activity.price.amount} ${activity.price.currency}`}</span>
-                {convertedMad != null && <span title={`Approx. conversion using Bank Al-Maghrib reference rate (${eurMadRate.data.sourceDate})`}>{activity.price.amount} EUR · Viator</span>}
+                {convertedMad != null && rate && <span title={`Approx. conversion using Bank Al-Maghrib reference rate (${rate.sourceDate})`}>{activity.price.amount} EUR · Viator</span>}
                 {(detail?.rating ?? activity.rating) != null && <span className="flex items-center gap-1"><Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />{detail?.rating ?? activity.rating}{(detail?.reviewCount ?? activity.reviewCount) != null ? ` (${(detail?.reviewCount ?? activity.reviewCount)!.toLocaleString()})` : ''}</span>}
                 {activity.duration && <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{activity.duration}</span>}
                 {activity.location && <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{activity.location}</span>}
