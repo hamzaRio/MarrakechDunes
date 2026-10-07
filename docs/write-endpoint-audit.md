@@ -134,17 +134,10 @@ not independently re-verified line-by-line here.
 ### `/api/auto-response`
 | Method | Path | For | Auth |
 |---|---|---|---|
-| POST | /incoming | inbound customer message (effectively a webhook-style receiver) | **none** - flagged below |
+| POST | /incoming | inbound customer message (staff-triggered processing) | `requireAdmin` |
 | POST | /test | staff testing the auto-responder | `requireSuperAdmin` |
 
-**Flagged, not fixed in this pass:** `POST /incoming` has no authentication
-at all. If this is reachable from the public internet (vs. only called
-server-side), anyone can inject a fabricated "customer message" that the
-auto-responder will process and queue a reply for. This needs an owner
-decision - e.g. a shared-secret header check, or restricting it to a
-specific inbound webhook provider's signature - that depends on exactly
-which upstream (WhatsApp Business API, a form, etc.) is meant to call it,
-which is outside what this pass could determine confidently.
+`POST /incoming` is mounted behind `requireAdmin` and the global CSRF middleware, so anonymous callers cannot inject messages into the response queue. Any future external provider webhook must use a separately designed signature/shared-secret adapter rather than bypassing this staff route.
 
 ### `/api` (upload)
 | Method | Path | For | Auth | Rate limit |
