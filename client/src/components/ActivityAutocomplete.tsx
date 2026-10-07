@@ -26,7 +26,7 @@ export default function ActivityAutocomplete({
 }: ActivityAutocompleteProps) {
   const q = (value || '').trim();
 
-  const { data, isFetching } = useQuery({
+  const { data, isFetching } = useQuery<GYGActivityItem[]>({
     queryKey: ['gyg-suggest', q, city],
     enabled: q.length >= MIN,
     staleTime: 30_000,

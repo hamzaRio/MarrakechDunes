@@ -298,7 +298,7 @@ export default function BookingDetailDrawer({
               </CardHeader>
               <CardContent className="space-y-3 text-sm">
                 {booking.statusHistory?.length ? (
-                  booking.statusHistory.map((entry, index) => (
+                  booking.statusHistory.map((entry: NonNullable<typeof booking.statusHistory>[number], index: number) => (
                     <div key={`${entry.changedAt}-${index}`} className="flex items-start justify-between gap-3 border-b pb-2 last:border-0">
                       <div><div className="font-medium">{normalizeBookingStatus(entry.status)}</div><div className="text-xs text-gray-500">{entry.changedBy}</div>{entry.reason ? <p className="text-xs text-gray-500">{entry.reason}</p> : null}</div>
                       <div className="text-right text-xs text-gray-500">{getBookingDate(entry.changedAt)?.toLocaleString("fr-FR") || "Date indisponible"}</div>
