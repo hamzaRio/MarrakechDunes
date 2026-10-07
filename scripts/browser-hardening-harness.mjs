@@ -58,7 +58,8 @@ try {
   if (!await adminPage.locator('#root').count()) throw new Error('Admin root did not render');
   if (await adminPage.request.get('http://127.0.0.1:4174/sw.js').then((r) => r.status()) !== 404) throw new Error('Admin service worker should be absent');
   if (adminErrors.some((message) => /CSP|unsafe-eval|blocked/i.test(message) && !/frame-ancestors.*ignored.*meta/i.test(message))) throw new Error(adminErrors.join('\n'));
-  if (await adminPage.locator('meta[name="robots"][content*="noindex"]').count() !== 1) throw new Error('Admin noindex metadata missing');
+  const adminHtml = await adminPage.request.get('http://127.0.0.1:4174/admin/login').then((response) => response.text());
+  if (!/name=["']robots["'][^>]*content=["'][^"']*noindex/i.test(adminHtml)) throw new Error('Admin noindex metadata missing');
   console.log('Chromium admin portability/CSP harness: PASS');
 } finally {
   await browser.close();
