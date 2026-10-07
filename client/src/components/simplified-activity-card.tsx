@@ -54,7 +54,7 @@ export default function SimplifiedActivityCard({ activity }: SimplifiedActivityC
         {/* Image Navigation */}
         {images.length > 1 && (
           <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex gap-1">
-            {images.map((_, index) => (
+            {images.map((_: string, index: number) => (
               <button
                 key={index}
                 onClick={(e) => {

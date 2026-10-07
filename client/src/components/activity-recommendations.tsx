@@ -182,7 +182,7 @@ export default function ActivityRecommendations() {
           bestTimeSlots,
           groupDiscount
         };
-      }).sort((a, b) => b.score - a.score);
+      }).sort((a: ActivityRecommendation, b: ActivityRecommendation) => b.score - a.score);
     };
 
     setRecommendations(calculateRecommendations());

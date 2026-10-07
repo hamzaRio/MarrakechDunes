@@ -329,7 +329,7 @@ function BookingCard({ booking }: { booking: BookingType }) {
           </div>
           <div className="flex items-center gap-2">
             <Clock className="h-4 w-4 text-gray-500" />
-            <span className="text-sm">{booking.preferredTime || 'Time to be confirmed'}</span>
+            <span className="text-sm">{booking.preferredDate ? new Date(booking.preferredDate).toLocaleDateString() : 'Date to be confirmed'}</span>
           </div>
           <div className="flex items-center gap-2">
             <Users className="h-4 w-4 text-gray-500" />

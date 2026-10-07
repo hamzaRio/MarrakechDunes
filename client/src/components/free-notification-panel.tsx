@@ -16,7 +16,7 @@ import { MessageCircle, Send, Check, Clock, DollarSign, Calendar, Users, Externa
 
 interface Notification {
   id: string;
-  type: 'booking_confirmation' | 'reminder_24h' | 'reminder_2h' | 'payment_confirmation' | 'reschedule' | 'cancellation';
+  type: 'booking_confirmation' | 'reminder_24h' | 'reminder_2h' | 'payment_confirmation' | 'reschedule' | 'cancellation' | 'auto_response';
   customerPhone: string;
   customerName: string;
   message: string;
@@ -28,6 +28,9 @@ interface Notification {
     activityName?: string;
     date?: string;
     amount?: number;
+    originalMessage?: string;
+    confidence?: number;
+    needsReview?: boolean;
   };
 }
 
