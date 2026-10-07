@@ -5,10 +5,18 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
-const tools = process.env.MONGODB_DATABASE_TOOLS_DIR;
-if (!tools) throw new Error('MONGODB_DATABASE_TOOLS_DIR is required');
-const dump = path.join(tools, process.platform === 'win32' ? 'mongodump.exe' : 'mongodump');
-const restore = path.join(tools, process.platform === 'win32' ? 'mongorestore.exe' : 'mongorestore');
+const executable = process.platform === 'win32' ? '.exe' : '';
+function resolveTool(name) {
+  const explicit = process.env.MONGODB_DATABASE_TOOLS_DIR;
+  if (explicit) return path.join(explicit, `${name}${executable}`);
+  try {
+    return execFileSync(process.platform === 'win32' ? 'where.exe' : 'which', [`${name}${executable}`], { encoding: 'utf8' }).trim().split(/\r?\n/)[0];
+  } catch {
+    throw new Error(`MongoDB Database Tools not found: set MONGODB_DATABASE_TOOLS_DIR or put ${name}${executable} on PATH`);
+  }
+}
+const dump = resolveTool('mongodump');
+const restore = resolveTool('mongorestore');
 
 function withDatabase(baseUri, dbName) {
   const url = new URL(baseUri);
