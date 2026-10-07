@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  typecheck:
+    name: Typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Typecheck shared
+        run: npm run build:shared
+
+      - name: Typecheck server
+        run: npx tsc -p server/tsconfig.json --noEmit
+
+      - name: Typecheck client
+        # noUnusedLocals/noUnusedParameters are left on in tsconfig for editor feedback,
+        # but silenced here so CI blocks on real type errors, not unused imports.
+        run: npx tsc -p client/tsconfig.json --noEmit --noUnusedLocals false --noUnusedParameters false
+
+  # No "test" job yet: the repo has zero test files and `vitest` (referenced by
+  # client/package.json's test:run script) isn't even installed. Add it back
+  # once there's something real for it to run.
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build all packages
+        run: npm run build

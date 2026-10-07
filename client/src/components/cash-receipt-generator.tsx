@@ -5,9 +5,9 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { 
-  Receipt, 
-  Download, 
-  // Print, // Not available in lucide-react 
+  Receipt,
+  Download,
+  Printer,
   QrCode,
   MapPin,
   Phone,
@@ -311,7 +311,7 @@ Generated on: ${new Date().toLocaleString()}
               onClick={printReceipt}
               className="flex-1 bg-moroccan-red hover:bg-red-600 text-white"
             >
-              <Print className="w-4 h-4 mr-2" />
+              <Printer className="w-4 h-4 mr-2" />
               Print
             </Button>
           </div>

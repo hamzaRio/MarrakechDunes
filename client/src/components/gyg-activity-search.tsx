@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, MapPin, Clock, Star, ExternalLink, Wifi, WifiOff, Loader2 } from 'lucide-react';
+import { Search, MapPin, Clock, Star, Users, ExternalLink, Wifi, WifiOff, Loader2 } from 'lucide-react';
 import { searchGetYourGuideActivities, getGetYourGuideAPIStatus, type NormalizedGYGActivity } from '../lib/getyourguide-api';
 
 type GYGActivity = NormalizedGYGActivity;
