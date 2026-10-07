@@ -61,13 +61,5 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # NOTE: as of this hardening pass, this is expected to still report
-      # findings (see docs/handoff-runbook.md's M8 status - several
-      # transitive client-build-toolchain dependencies are not yet fully
-      # remediated). continue-on-error keeps the gate visible in every run
-      # without blocking merges on pre-existing findings; flip it to a hard
-      # failure once `npm audit --omit=dev` is verified to report 0
-      # critical/0 high from a clean `npm ci`.
-      - name: Report critical/high production vulnerabilities
-        continue-on-error: true
+      - name: Fail on critical/high production vulnerabilities
         run: npm audit --omit=dev --audit-level=high

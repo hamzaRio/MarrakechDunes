@@ -68,7 +68,6 @@
     "@types/node": "^24.3.1",
     "@types/opossum": "^8.0.0",
     "@types/redis": "^4.0.10",
-    "@types/request": "^2.48.13",
     "@types/serve-static": "^1.15.10",
     "@types/supertest": "^6.0.3",
     "@types/ws": "^8.18.1",

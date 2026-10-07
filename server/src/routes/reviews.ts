@@ -1,6 +1,7 @@
 import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
 import { storage } from '../storage.js';
+import { strictLimiter } from '../rate-limiters.js';
 
 const router = Router();
 
@@ -59,7 +60,7 @@ router.get('/:id', async (req: Request, res: Response) => {
  * POST /api/reviews
  * Create a new review
  */
-router.post('/', async (req: Request, res: Response) => {
+router.post('/', strictLimiter, async (req: Request, res: Response) => {
   try {
     const parsedReview = publicReviewSchema.safeParse(req.body);
     if (!parsedReview.success) {

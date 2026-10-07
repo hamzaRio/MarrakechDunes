@@ -10,11 +10,15 @@ const dynamicPreviewOrigin = "https://marrakech-dunes-test123-hamzarios-projects
 const adminOrigin = "https://marrakech-dunes-admin.vercel.app";
 const adminPreviewOrigin = "https://marrakech-dunes-admin-test123-hamzarios-projects.vercel.app";
 const allowedOrigins = [canonicalOrigin, envPreviewOrigin, adminOrigin];
+const allowedPatterns = [
+  /^https:\/\/marrakech-dunes-[a-z0-9]+(?:-[a-z0-9]+)*-hamzarios-projects\.vercel\.app$/i,
+  /^https:\/\/marrakech-dunes-admin-[a-z0-9]+(?:-[a-z0-9]+)*-hamzarios-projects\.vercel\.app$/i,
+];
 
 const app = express();
 app.use(cors({
   origin: (origin, callback) => {
-    if (isAllowedCorsOrigin(origin, allowedOrigins, true)) return callback(null, true);
+    if (isAllowedCorsOrigin(origin, allowedOrigins, true, allowedPatterns)) return callback(null, true);
     const error = new Error("Origin not allowed") as Error & { code?: string };
     error.code = "CORS_ORIGIN_DENIED";
     return callback(error);
