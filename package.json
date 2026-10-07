@@ -36,7 +36,8 @@
     "health:frontend": "powershell -NoProfile -ExecutionPolicy Bypass -Command \". .\\\\scripts\\\\load-env.ps1 -Silent; curl -fsS http://localhost:5173\" || exit 1",
     "login:test:nadia": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\\\login-nadia.ps1",
     "build:shared": "npm --prefix shared run build",
-    "test:browser-hardening": "node scripts/browser-hardening-harness.mjs"
+    "test:browser-hardening": "node scripts/browser-hardening-harness.mjs",
+    "test:backup-restore": "node scripts/backup-restore-harness.mjs"
   },
   "dependencies": {
     "node-fetch": "^3.3.2"

@@ -135,39 +135,29 @@ schema change that added/changed an index declaration in `storage.ts`).
 
 ## 8. Backup & restore
 
-**Not executed in this session.** This container has no `mongodump`/
-`mongorestore`/`mongod` binaries installed and no network access to the
-MongoDB download host used by `mongodb-memory-server` either (see the M4
-concurrency-harness commit for the same blocker), so the owner-specified
-backup-then-restore rehearsal (representative superadmin/admin/
-activities/bookings/audit-log data; verify user count/roles/password
-hashes/activities/bookings/references/payments/audit logs survive;
-determine whether session records are included) could not be physically
-run here. Procedure, for whoever runs it against a real or staging
-deployment with the MongoDB Database Tools installed:
+The disposable rehearsal was executed successfully with the official MongoDB
+Database Tools and a local replica-set MongoDB. No production database or
+credentials were used. Run it with `MONGODB_DATABASE_TOOLS_DIR` pointing to the
+Tools `bin` directory:
 
 ```
-# Backup (from a machine with network access to the database)
-mongodump --uri="$DATABASE_URL" --out=./backup-$(date +%Y%m%d)
+MONGODB_DATABASE_TOOLS_DIR=/path/to/mongodb-database-tools/bin npm run test:backup-restore
+```
 
-# Restore rehearsal - into a DIFFERENT, disposable database, never over
-# the source
+The harness uses separate `hardening_source` and `hardening_restore` databases,
+verifies users/roles/password hashes, activities, booking references/payment
+state, and audit logs, then removes its temporary archive. Sessions are
+intentionally excluded because they are ephemeral connect-mongo records and
+restoring stale sessions could re-animate old logins. For an operator rehearsal
+against disposable staging data:
+
+```
+mongodump --uri="$DATABASE_URL" --excludeCollection=sessions --out=./backup-$(date +%Y%m%d)
 mongorestore --uri="$DISPOSABLE_TEST_DATABASE_URL" --drop ./backup-YYYYMMDD
-
-# Then verify, against the disposable database:
-# - db.users.countDocuments() matches the source, and a sample user's
-#   role + password hash (bcrypt, starts with $2) are unchanged
-# - db.activities.countDocuments() matches the source
-# - db.bookings.countDocuments() matches the source, and a sample
-#   booking's activityId reference still resolves
-# - db.auditlogs.countDocuments() matches the source
-# - decide whether `sessions` (connect-mongo's collection) should be
-#   included in the real backup - session records are ephemeral
-#   (7-day TTL) and restoring stale ones re-animates old logins;
-#   excluding the sessions collection from the mongodump
-#   (`--excludeCollection=sessions`) is the safer default.
 ```
 
+Verify user roles and password hashes, activity and booking counts and
+relationships, payment state, and audit-log counts after restore.
 ## 9. Deploying
 
 1. Set the environment variables in §3 for the server (Render dashboard,
@@ -183,29 +173,7 @@ mongorestore --uri="$DISPOSABLE_TEST_DATABASE_URL" --drop ./backup-YYYYMMDD
 ## 10. What this hardening pass changed vs. what's still open
 
 See the git log on this branch for the detailed per-area commits (H1/H2/
-M2/M3/M4/M5/M6/M8/M9/M10/M11/M12). Known still-open items at the time of
-writing, in order of what to pick up next:
-
-- **M8** (dependency audit): 0 critical, but still non-zero high/moderate
-  findings concentrated in the client build toolchain (vite's remaining
-  root-hoisted peer copy, postcss, rollup, workbox-build, preact via
-  `@uppy`'s UI widget, `@grpc/grpc-js` via an AWS SDK chain). Needs a
-  deliberate look per package, not a blanket `npm audit fix --force`.
-- **M7** (live Chromium CSP verification) - see §6.
-- **Backup/restore rehearsal** - see §8 (needs an environment with the
-  MongoDB Database Tools and network access).
-- **M4 concurrency test** - the harness exists
-  (`server/src/scripts/capacity-concurrency-harness.ts`) but has not been
-  run to completion in any environment yet (needs network access to fetch
-  a mongod binary, or a pre-cached one via `MONGOMS_DOWNLOAD_DIR`).
-- `server/src/routes/auto-response.ts`'s `POST /incoming` has no
-  authentication at all (see `docs/write-endpoint-audit.md`) - needs an
-  owner decision on how to verify its real caller.
-- `cancellation.ts`, `rescheduling.ts`, `group-bookings.ts`,
-  `gyg-supplier.ts` are currently dead/unmounted code - re-run the M5
-  classification exercise on whichever of them gets mounted in the future.
-
-H3 (Replit storage sidecar / S3-compatible migration, everything under
+M2/M3/M4/M5/M6/M8/M9/M10/M11/M12). The remaining deliberate exception is H3 (Replit storage sidecar / S3-compatible migration, everything under
 `server/src/objectStorage.ts`, `server/src/object-storage/`, and the
 `scripts/object-storage-*` migration tooling) is explicitly out of scope
 for this runbook and was not touched in this hardening pass, per owner
