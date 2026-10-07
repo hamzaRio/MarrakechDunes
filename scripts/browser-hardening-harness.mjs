@@ -7,7 +7,8 @@ const root = join(process.cwd(), 'client');
 const requests = [];
 const api = createServer((req, res) => {
   requests.push(req.url);
-  res.setHeader('Access-Control-Allow-Origin', 'http://127.0.0.1:4173');
+  const origin = req.headers.origin;
+  if (origin === 'http://127.0.0.1:4173' || origin === 'http://127.0.0.1:4174') res.setHeader('Access-Control-Allow-Origin', origin);
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Content-Type', 'application/json');
   res.end(JSON.stringify(req.url?.includes('/activities') ? [] : {}));
@@ -48,7 +49,7 @@ try {
   console.log({ requests, consoleErrors });
   if (!await page.locator('#root').count()) throw new Error('Public root did not render');
   if (!requests.some((url) => url?.includes('/activities'))) throw new Error(`Configured API origin was not requested: ${requests.join(',')}`);
-  if (consoleErrors.some((message) => /CSP|unsafe-eval|blocked/i.test(message) && !/frame-ancestors.*meta/i.test(message))) throw new Error(consoleErrors.join('\n'));
+  if (consoleErrors.some((message) => /CSP|unsafe-eval|blocked/i.test(message) && !/frame-ancestors.*ignored.*meta/i.test(message))) throw new Error(consoleErrors.join('\n'));
   console.log('Chromium public portability/CSP harness: PASS');
   const adminPage = await browser.newPage();
   const adminErrors = [];
@@ -56,7 +57,7 @@ try {
   await adminPage.goto('http://127.0.0.1:4174/admin/login', { waitUntil: 'networkidle' });
   if (!await adminPage.locator('#root').count()) throw new Error('Admin root did not render');
   if (await adminPage.request.get('http://127.0.0.1:4174/sw.js').then((r) => r.status()) !== 404) throw new Error('Admin service worker should be absent');
-  if (adminErrors.some((message) => /CSP|unsafe-eval|blocked/i.test(message))) throw new Error(adminErrors.join('\n'));
+  if (adminErrors.some((message) => /CSP|unsafe-eval|blocked/i.test(message) && !/frame-ancestors.*ignored.*meta/i.test(message))) throw new Error(adminErrors.join('\n'));
   const adminHtml = await adminPage.locator('html').innerHTML();
   if (!adminHtml.includes('noindex')) throw new Error('Admin noindex metadata missing');
   console.log('Chromium admin portability/CSP harness: PASS');
