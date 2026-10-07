@@ -72,6 +72,4 @@ errors existed at the time). Treat it as stale notes, not a current source of tr
 - Node 24 (see Dockerfile). `npm ci` at the repo root installs all three workspaces.
 - `npm run build:shared` must run before typechecking server or client standalone — they import
   compiled output from `shared/dist`, not the TS source.
-- CI lives in `.github/workflows/`: `ci.yml` (typecheck + build), `claude.yml` (@claude mentions),
-  `claude-code-review.yml` (auto PR review). The latter two need an `ANTHROPIC_API_KEY` repo
-  secret to function.
+- CI lives in `.github/workflows/ci.yml` (typecheck + build). Claude Pro reviews are performed manually outside GitHub Actions.
