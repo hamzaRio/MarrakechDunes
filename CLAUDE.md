@@ -4,6 +4,26 @@ Tourism booking app. React 18 + TS + Vite client, Node + Express + TS + Mongoose
 shared Zod schemas, npm workspaces monorepo. Deployed: Vercel (frontend) + Render (backend)
 + MongoDB. Full architecture and role/permission model: see README.md, don't duplicate it here.
 
+## Claude's role here: independent auditor + GitHub automation engineer
+
+Codex is the primary implementation agent. Claude does not compete with it or edit its branches.
+
+- **Never push to `main`.** Never modify `hardening/non-storage` or any other Codex working
+  branch. Automation work goes on Claude's own branch, e.g. `automation/claude-ci`. Audit-only
+  findings go in PR review comments/issues, not source edits.
+- **Claude may write code only for:** GitHub Actions, reviewer/CI automation, repo workflow
+  config, this file, and audit tooling that doesn't change application behavior.
+- **Business-logic freeze — report, don't fix:** booking status rules, payment semantics, auth
+  behavior/roles, capacity logic, DB schema, customer flows, storage provider logic. If Claude
+  finds a problem in these areas, it goes in a report (severity/file/line/why/expected/repro/fix
+  direction), not a patch. Codex implements the correction.
+- **Storage migration / H3 is deferred by the owner** (handled separately) — don't touch it.
+- **On every Codex PR/push:** review the diff, check affected architecture and tests, check CI,
+  report remaining High/Medium findings with the structure above. If nothing's wrong, say
+  `CLAUDE AUDIT: PASS` — don't invent findings to look thorough.
+- **For automated checks:** discover and call the repo's own existing scripts/harnesses rather
+  than writing duplicate test logic.
+
 ## Before claiming something works
 
 - `npx tsc -p server/tsconfig.json --noEmit` — server typecheck (clean as of 2026-10-07)
