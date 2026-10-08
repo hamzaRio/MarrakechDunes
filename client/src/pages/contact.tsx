@@ -6,6 +6,7 @@ import SEOHead, { seoConfigs } from "@/components/seo-head";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Mail, MapPin, Phone } from "lucide-react";
 import { useLanguage } from "@/hooks/use-language";
+import { supportAddress, supportContacts, supportEmail, supportPhone } from "@/lib/support-config";
 
 export default function Contact() {
   const { language } = useLanguage();
@@ -41,23 +42,21 @@ export default function Contact() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4 text-muted-foreground">
-                  <p>54 Riad Zitoun Lakdim, Marrakech 40000</p>
+                  {supportAddress && <p>{supportAddress}</p>}
                   <div>
                     <p className="font-semibold text-moroccan-blue">Office Hours</p>
                     <p>Monday – Sunday: 08:00 – 20:00</p>
                   </div>
-                  <div className="space-y-2">
-                    <p className="flex items-center">
+                  {(supportPhone || supportEmail) && <div className="space-y-2">
+                    {supportPhone && <p className="flex items-center">
                       <Phone className="mr-2 h-4 w-4" />
-                      <a href="tel:+212600623630" className="hover:text-moroccan-red">+212 600 623 630</a>
-                    </p>
-                    <p className="flex items-center">
+                      <a href={`tel:${supportPhone}`} className="hover:text-moroccan-red">{supportPhone}</a>
+                    </p>}
+                    {supportEmail && <p className="flex items-center">
                       <Mail className="mr-2 h-4 w-4" />
-                      <a href="mailto:timedizzy45@gmail.com" className="hover:text-moroccan-red">
-                        timedizzy45@gmail.com
-                      </a>
-                    </p>
-                  </div>
+                      <a href={`mailto:${supportEmail}`} className="hover:text-moroccan-red">{supportEmail}</a>
+                    </p>}
+                  </div>}
                 </CardContent>
               </Card>
 
@@ -66,10 +65,9 @@ export default function Contact() {
                 <p className="text-muted-foreground">
                   Our adventure specialists are available on WhatsApp for quick answers.
                 </p>
-                <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                  <WhatsAppButton name="Ahmed" role="Desert Specialist" phone="+212600623630" />
-                  <WhatsAppButton name="Yahia" role="Mountain Guide" phone="+212693323368" />
-                </div>
+                {supportContacts.length > 0 && <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                  {supportContacts.map((contact) => <WhatsAppButton key={contact.phone} {...contact} />)}
+                </div>}
               </div>
             </div>
 

@@ -9,13 +9,14 @@ import { z } from 'zod';
 import { autoResponseService } from '../services/auto-response-service.js';
 import { freeNotificationQueue } from '../services/free-notification-queue.js';
 import { requireAdmin, requireSuperAdmin } from '../middleware/admin-auth.js';
+import { strictLimiter } from '../rate-limiters.js';
 
 const router = Router();
 
 const customerMessageSchema = z.object({
-  phone: z.string().min(1, 'Phone number is required'),
-  message: z.string().min(1, 'Message is required'),
-  name: z.string().optional(),
+  phone: z.string().trim().min(1, 'Phone number is required').max(50),
+  message: z.string().trim().min(1, 'Message is required').max(5000),
+  name: z.string().trim().max(200).optional(),
   source: z.enum(['whatsapp', 'sms', 'web', 'portal']).optional().default('whatsapp')
 });
 
@@ -24,11 +25,11 @@ const customerMessageSchema = z.object({
  * Receive customer message and generate auto-response
  * FREE MODE: Adds response to notification queue for admin review/sending
  */
-router.post('/incoming', async (req: Request, res: Response) => {
+router.post('/incoming', requireAdmin, strictLimiter, async (req: Request, res: Response) => {
   try {
     const data = customerMessageSchema.parse(req.body);
     
-    console.log(`[AUTO-RESPONSE] Received message from ${data.phone}: ${data.message.substring(0, 50)}...`);
+    console.log('[AUTO-RESPONSE] Processing an authenticated inbound message');
 
     // Analyze message and generate auto-response
     const response = await autoResponseService.analyzeAndRespond(

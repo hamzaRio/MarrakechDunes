@@ -107,12 +107,13 @@ const productionCore = {
   DATABASE_URL: 'mongodb://localhost:27017/test',
   JWT_SECRET: 'test-jwt-secret',
   SESSION_SECRET: 'test-session-secret-at-least-32-characters',
-  CLIENT_URL: 'https://marrakech-dunes.vercel.app',
+  CORS_ALLOWED_ORIGINS: 'https://www.example.com,https://admin.example.com',
 };
 assert.equal(parseRuntimeConfig({
   ...productionCore,
   ADMIN_PASSWORD: 'legacy-admin-password',
   SUPERADMIN_PASSWORD: 'legacy-superadmin-password',
+  LEGACY_STARTUP_SEEDING: 'true',
 }).seeding.legacyStartupSeeding, true);
 assert.throws(() => parseRuntimeConfig(productionCore), /ADMIN_PASSWORD/);
 assert.equal(parseRuntimeConfig({
@@ -177,7 +178,7 @@ try {
   Object.assign(activityModel, originalActivityMethods);
 }
 
-assert.equal(await runStartupSeeding(resolveStartupSeedingPolicy({}), {
+assert.equal(await runStartupSeeding(resolveStartupSeedingPolicy({ LEGACY_STARTUP_SEEDING: 'true' }), {
   runLegacy: async () => { legacyCalls++; },
   seedDemo: async () => { demoCalls++; },
 }), 'legacy');

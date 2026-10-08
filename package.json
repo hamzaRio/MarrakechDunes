@@ -15,6 +15,7 @@
     "build:admin": "npm --prefix client run build:admin",
     "build:server": "npm --prefix server run build",
     "bootstrap": "npm --prefix server run bootstrap",
+    "db:ensure-indexes": "npm --prefix server run db:ensure-indexes",
     "start:server": "powershell -NoProfile -ExecutionPolicy Bypass -Command \". .\\\\scripts\\\\load-env.ps1; node server/dist/index.js\"",
     "start": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"$env:NODE_ENV='production'; cd server; npm run start:build\"",
     "dev": "concurrently \"npm run dev:client\" \"npm run dev:server\"",
@@ -34,12 +35,18 @@
     "health:backend": "powershell -NoProfile -ExecutionPolicy Bypass -Command \". .\\\\scripts\\\\load-env.ps1 -Silent; curl -fsS http://localhost:10000/api/health\" || exit 1",
     "health:frontend": "powershell -NoProfile -ExecutionPolicy Bypass -Command \". .\\\\scripts\\\\load-env.ps1 -Silent; curl -fsS http://localhost:5173\" || exit 1",
     "login:test:nadia": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\\\login-nadia.ps1",
-    "build:shared": "npm --prefix shared run build"
+    "build:shared": "npm --prefix shared run build",
+    "test:browser-hardening": "node scripts/browser-hardening-harness.mjs",
+    "test:backup-restore": "node scripts/backup-restore-harness.mjs",
+    "test:email-escaping": "tsx scripts/email-escaping-harness.ts",
+    "test:log-privacy": "tsx scripts/log-privacy-harness.ts",
+    "test:owner-deidentification": "node scripts/owner-deidentification-harness.mjs"
   },
   "dependencies": {
     "node-fetch": "^3.3.2"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "concurrently": "^8.2.2",
     "tsx": "^4.19.2",
     "typescript": "5.6.3"

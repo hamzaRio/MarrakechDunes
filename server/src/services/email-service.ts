@@ -1,6 +1,13 @@
 import nodemailer, { type Transporter } from 'nodemailer';
 import type { NotificationData } from '../utils/notification-templates.js';
+import { getSupportPhoneDisplay } from '../utils/public-links.js';
+import { escapeHtml } from '../utils/html-escape.js';
 
+// M6: these HTML emails interpolate customer-supplied strings
+// (customerName, activityName, bookingId) directly into markup. Without
+// escaping, a customer name like `<script>alert(1)</script>` or
+// `<img src=x onerror=alert(1)>` would execute in whatever mail client
+// renders the HTML. escapeHtml() is applied to every such value below.
 export class EmailService {
   private transporter: Transporter | null = null;
 
@@ -101,13 +108,13 @@ export class EmailService {
             <h2>Booking Confirmation</h2>
           </div>
           <div class="content">
-            <p>Dear ${data.customerName},</p>
+            <p>Dear ${escapeHtml(data.customerName)},</p>
             <p>Thank you for booking with MarrakechDunes!</p>
             
             <div class="booking-details">
               <h3>Booking Details:</h3>
               <ul>
-                <li><strong>Activity:</strong> ${data.activityName}</li>
+                <li><strong>Activity:</strong> ${escapeHtml(data.activityName)}</li>
                 <li><strong>Date:</strong> ${data.preferredDate.toLocaleDateString()}</li>
                 <li><strong>Time:</strong> ${data.preferredDate.toLocaleTimeString()}</li>
                 <li><strong>Participants:</strong> ${data.numberOfPeople}</li>
@@ -152,17 +159,17 @@ export class EmailService {
             <h2>Payment Receipt</h2>
           </div>
           <div class="content">
-            <p>Dear ${data.customerName},</p>
+            <p>Dear ${escapeHtml(data.customerName)},</p>
             <p>Payment received for your MarrakechDunes booking!</p>
             
             <div class="receipt-details">
               <h3>Receipt Details:</h3>
               <ul>
-                <li><strong>Activity:</strong> ${data.activityName}</li>
+                <li><strong>Activity:</strong> ${escapeHtml(data.activityName)}</li>
                 <li><strong>Date:</strong> ${data.preferredDate.toLocaleDateString()}</li>
                 <li><strong>Amount:</strong> ${data.totalAmount} MAD</li>
                 <li><strong>Payment Method:</strong> Cash</li>
-                <li><strong>Receipt Number:</strong> ${data.bookingId || 'N/A'}</li>
+                <li><strong>Receipt Number:</strong> ${escapeHtml(data.bookingId || 'N/A')}</li>
               </ul>
             </div>
             
@@ -201,13 +208,13 @@ export class EmailService {
             <h2>Tour Reminder</h2>
           </div>
           <div class="content">
-            <p>Dear ${data.customerName},</p>
+            <p>Dear ${escapeHtml(data.customerName)},</p>
             <p>Your tour is coming up soon!</p>
             
             <div class="reminder-details">
               <h3>Tour Details:</h3>
               <ul>
-                <li><strong>Activity:</strong> ${data.activityName}</li>
+                <li><strong>Activity:</strong> ${escapeHtml(data.activityName)}</li>
                 <li><strong>Date:</strong> ${data.preferredDate.toLocaleDateString()}</li>
                 <li><strong>Time:</strong> ${data.preferredDate.toLocaleTimeString()}</li>
                 <li><strong>Participants:</strong> ${data.numberOfPeople}</li>
@@ -216,8 +223,8 @@ export class EmailService {
               <h3>Important Reminders:</h3>
               <ul>
                 <li>Please arrive 15 minutes early</li>
-                <li>Bring: ${this.getPackingList(data.activityName)}</li>
-                <li>Contact: +212600000000</li>
+                <li>Bring: ${escapeHtml(this.getPackingList(data.activityName))}</li>
+                ${getSupportPhoneDisplay() ? `<li>Contact: ${escapeHtml(getSupportPhoneDisplay())}</li>` : ''}
               </ul>
             </div>
             

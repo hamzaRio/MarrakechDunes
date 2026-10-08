@@ -1,6 +1,8 @@
 // WhatsApp Business API Service for MarrakechDunes
 // This service handles automated WhatsApp notifications to admins
 import CircuitBreaker from 'opossum';
+import { getAdminSiteUrl, getPublicSiteUrl, getSupportPhoneDisplay } from './utils/public-links.js';
+import { maskPhone } from './utils/log-redaction.js';
 
 export interface WhatsAppContact {
   name: string;
@@ -47,15 +49,13 @@ export class WhatsAppService {
 
   constructor() {
     // Read WhatsApp receivers from environment variable
-    const receiversEnv = process.env.WHATSAPP_RECEIVERS || "212600623630,212693323368,212654497354";
-    const receivers = receiversEnv.split(',').map(num => num.trim());
-    
-    // Map phone numbers to contacts with default names and roles
-    this.adminContacts = [
-      { name: "Ahmed", phone: `+${receivers[0] || "212600623630"}`, role: "admin" as const },
-      { name: "Yahia", phone: `+${receivers[1] || "212693323368"}`, role: "admin" as const },
-      { name: "Nadia", phone: `+${receivers[2] || "212654497354"}`, role: "superadmin" as const }
-    ].filter(contact => contact.phone !== "+");
+    const receivers = (process.env.WHATSAPP_RECEIVERS || '').split(',').map(num => num.trim()).filter(Boolean);
+    const names = (process.env.WHATSAPP_RECEIVER_NAMES || '').split(',').map(name => name.trim());
+    this.adminContacts = receivers.map((phone, index) => ({
+      name: names[index] || `Admin ${index + 1}`,
+      phone: phone.startsWith('+') ? phone : `+${phone}`,
+      role: index === receivers.length - 1 ? 'superadmin' as const : 'admin' as const,
+    }));
 
     // Initialize circuit breakers
     this.bookingNotificationBreaker = new CircuitBreaker(this.sendBookingNotificationInternal.bind(this), {
@@ -177,8 +177,8 @@ export class WhatsAppService {
       }
       
       message += `📞 *Need help?*\n`;
-      message += `Contact us: +212600623630\n`;
-      message += `Website: https://marrakech-dunes.vercel.app\n\n`;
+      if (getSupportPhoneDisplay()) message += `Contact us: ${getSupportPhoneDisplay()}\n`;
+      if (getPublicSiteUrl()) message += `Website: ${getPublicSiteUrl()}\n\n`;
       message += `Thank you for choosing MarrakechDunes! 🏜️`;
       
       const customerWhatsappLink = `https://wa.me/${responseData.customerPhone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(message)}`;
@@ -252,7 +252,7 @@ export class WhatsAppService {
       
       message += `📞 *Quick Actions:*\n`;
       message += `• Reply to customer: https://wa.me/${inquiry.customerPhone.replace(/[^0-9]/g, '')}\n`;
-      message += `• View booking: https://marrakech-dunes.vercel.app/admin\n\n`;
+      if (getAdminSiteUrl()) message += `• View booking: ${getAdminSiteUrl()}\n\n`;
       
       message += `⏰ *Received:* ${new Date().toLocaleString()}\n`;
       message += `Please respond promptly to maintain customer satisfaction! 🙏`;
@@ -357,15 +357,22 @@ export class WhatsAppService {
     whatsappLinks: Array<{name: string; phone: string; link: string}>;
   }> {
     const message = this.formatPaymentConfirmationMessage(booking, paymentType);
-    
-    console.log('💰 SENDING PAYMENT CONFIRMATION TO ALL ADMINS');
-    console.log('==============================================');
-    
-    this.adminContacts.forEach(admin => {
-      console.log(`📱 Payment notification for ${admin.name} - ${admin.phone}:`);
-      console.log(message);
-      console.log('---');
-    });
+
+    // M11: this ran unconditionally (not gated behind a development check
+    // like the other debug logs in this file) and printed admin phone
+    // numbers plus the full message text - which itself contains the
+    // customer's name/phone - to stdout on every payment confirmation.
+    // Only a masked phone and the fact that a notification was queued are
+    // logged now; the full message/number pair is only ever printed in
+    // development.
+    console.log(`💰 Payment confirmation queued for ${this.adminContacts.length} admin(s)`);
+    if (process.env.NODE_ENV === 'development') {
+      this.adminContacts.forEach(admin => {
+        console.log(`📱 Payment notification for ${admin.name} - ${maskPhone(admin.phone)}:`);
+        console.log(message);
+        console.log('---');
+      });
+    }
 
     const whatsappLinks = this.adminContacts.map(admin => ({
       name: admin.name,
@@ -417,8 +424,8 @@ ${booking.notes ? `📝 Notes spéciales: ${booking.notes}` : ''}
 
 📞 Contactez ${booking.customerName} au ${booking.customerPhone}
 
-✅ CONFIRMER: ${booking.confirmLink || 'https://marrakech-dunes.vercel.app/admin'}
-❌ REJETER: ${booking.rejectLink || 'https://marrakech-dunes.vercel.app/admin'}`;
+✅ CONFIRMER: ${booking.confirmLink || getAdminSiteUrl() || '(configurer ADMIN_SITE_URL)'}
+❌ REJETER: ${booking.rejectLink || getAdminSiteUrl() || '(configurer ADMIN_SITE_URL)'}`;
   }
 
   private formatCustomerConfirmation(booking: BookingNotificationData): string {
@@ -450,9 +457,7 @@ Bonjour ${booking.customerName},
 Nous vous contacterons sous peu pour confirmer le lieu et l'heure exacte de départ.
 
 📞 CONTACT:
-• Ahmed: +212600623630
-• Yahia: +212693323368
-• Nadia: +212654497354
+${this.adminContacts.map(contact => `• ${contact.name}: ${contact.phone}`).join('\n') || '• Contact details are configured by the deployment team.'}
 
 🎯 PROCHAINES ÉTAPES:
 1. Notre équipe vous contactera dans les 24h
@@ -542,13 +547,9 @@ ${paymentType === 'deposit'
         return;
       }
 
-      // In production, would send via WhatsApp API
-      // For now, just log the reminder message
-      console.log('📱 WhatsApp Reminder Message:');
-      console.log(`To: ${booking.customerPhone}`);
-      console.log(reminderMessage);
-      
-      console.log(`✅ ${reminderType} reminder sent to customer: ${booking.customerName}`);
+      // M11: previously logged the customer's full phone number and
+      // message text unconditionally in production.
+      console.log(`📱 WhatsApp reminder (${reminderType}) queued for ${maskPhone(booking.customerPhone)}`);
     } catch (error) {
       console.error(`❌ Failed to send ${reminderType} reminder:`, error);
     }
@@ -595,12 +596,9 @@ MarrakechDunes - Aventures Authentiques`;
         return;
       }
 
-      // In production, would send via WhatsApp API
-      console.log('📱 WhatsApp Deposit Confirmation Message:');
-      console.log(`To: ${booking.customerPhone}`);
-      console.log(depositMessage);
-      
-      console.log(`✅ Deposit confirmation sent to customer: ${booking.customerName}`);
+      // M11: previously logged the customer's full phone number and
+      // message text unconditionally in production.
+      console.log(`📱 WhatsApp deposit confirmation queued for ${maskPhone(booking.customerPhone)}`);
     } catch (error) {
       console.error('❌ Failed to send deposit confirmation:', error);
     }
@@ -636,12 +634,9 @@ MarrakechDunes - Aventures Authentiques`;
         return;
       }
 
-      // In production, would send via WhatsApp API
-      console.log(`📱 WhatsApp Smart Notification (${templateId}):`);
-      console.log(`To: ${booking.customerPhone}`);
-      console.log(message);
-      
-      console.log(`✅ Smart notification (${templateId}) sent to customer: ${booking.customerName}`);
+      // M11: previously logged the customer's full phone number and
+      // message text unconditionally in production.
+      console.log(`📱 WhatsApp smart notification (${templateId}) queued for ${maskPhone(booking.customerPhone)}`);
     } catch (error) {
       console.error(`❌ Failed to send smart notification (${templateId}):`, error);
     }

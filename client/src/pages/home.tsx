@@ -2,6 +2,7 @@
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
 import WhatsAppButton from "@/components/whatsapp-button";
+import { supportContacts } from "@/lib/support-config";
 import PhotoSlideshow from "@/components/photo-slideshow";
 import MapView from "@/components/MapView";
 import SEOHead, { seoConfigs } from "@/components/seo-head";
@@ -456,7 +457,7 @@ export default function Home() {
       </section>
 
       {/* WhatsApp Contact Section */}
-      <section className="py-20 bg-moroccan-blue text-white">
+      {supportContacts.length > 0 && <section className="py-20 bg-moroccan-blue text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="font-playfair text-4xl font-black mb-4 text-white" 
@@ -466,24 +467,10 @@ export default function Home() {
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <WhatsAppButton
-              name="Ahmed"
-              role="Desert Specialist"
-              phone="+212600623630"
-            />
-            <WhatsAppButton
-              name="Yahia"
-              role="Mountain Guide"
-              phone="+212693323368"
-            />
-            <WhatsAppButton
-              name="Nadia"
-              role="Cultural Expert"
-              phone="+212654497354"
-            />
+            {supportContacts.map((contact) => <WhatsAppButton key={contact.phone} {...contact} />)}
           </div>
         </div>
-      </section>
+      </section>}
 
 
 

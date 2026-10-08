@@ -43,6 +43,7 @@ import helmet from "helmet";
 import session from "express-session";
 import compression from "compression";
 import morgan from "morgan";
+import { requestIdMiddleware } from "./middleware/request-id.js";
 import { generateCSRFToken, verifyCSRFToken } from "./csrf-protection.js";
 import { 
   requestSizeLimit, 
@@ -237,7 +238,7 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://maps.googleapis.com", "https://*.googleapis.com", "https://vercel.live"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "https://maps.googleapis.com", "https://*.googleapis.com", "https://vercel.live"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://maps.googleapis.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
       imgSrc: [
@@ -271,8 +272,15 @@ app.use(compression({
   }
 }));
 
+// M11: assign/propagate a request ID before anything logs, so every log
+// line for a request (morgan access log, LoggingService, error-monitoring)
+// can be correlated by it.
+app.use(requestIdMiddleware);
+
+morgan.token('request-id', (req: Request) => (req as any).requestId || '-');
+
 // Request logging
-app.use(morgan('combined', {
+app.use(morgan(':request-id :method :url :status :res[content-length] - :response-time ms', {
   skip: (req: Request, res: Response) => {
     // Skip logging for health checks and static assets
     return req.url === '/api/health' || req.url.startsWith('/images/');
@@ -574,7 +582,7 @@ app.use((req, res, next) => {
         // Test email service
         const testData = {
           customerName: 'Test Customer',
-          customerPhone: '212600623630',
+          customerPhone: process.env.TEST_CUSTOMER_PHONE || '0000000000',
           activityName: 'Test Activity - Hot Air Balloon',
           numberOfPeople: 2,
           preferredDate: new Date(),
@@ -604,7 +612,7 @@ app.use((req, res, next) => {
         // Test WhatsApp service
         const testData = {
           customerName: 'Test Customer',
-          customerPhone: '212600623630',
+          customerPhone: process.env.TEST_CUSTOMER_PHONE || '0000000000',
           activityName: 'Test Activity - Desert Safari',
           numberOfPeople: 2,
           preferredDate: new Date(),

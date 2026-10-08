@@ -41,7 +41,14 @@ export async function connectToDatabase(): Promise<void> {
         connectTimeoutMS: 10000,
         family: 4,
         bufferCommands: false,
-        autoIndex: true,
+        // M10: building indexes on every connect is fine for a small/dev
+        // database but becomes a real write-lock/latency cost once a
+        // production collection has real volume. Production now leaves
+        // index management to an explicit step (`npm run db:ensure-indexes`),
+        // rather than doing it implicitly on every server boot. Set
+        // MONGO_AUTO_INDEX=true to opt back into the old always-on-connect
+        // behavior (e.g. for a throwaway staging database).
+        autoIndex: process.env.MONGO_AUTO_INDEX === 'true' || process.env.NODE_ENV !== 'production',
         autoCreate: true,
         maxIdleTimeMS: 30000,
         heartbeatFrequencyMS: 10000,

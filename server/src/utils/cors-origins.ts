@@ -1,16 +1,3 @@
-const legacyPublicOrigin = 'https://marrakech-dunes.vercel.app';
-const legacyAdminOrigin = 'https://marrakech-dunes-admin.vercel.app';
-const legacyPublicPreview = /^https:\/\/marrakech-dunes-[a-z0-9]+(?:-[a-z0-9]+)*-hamzarios-projects\.vercel\.app$/i;
-const legacyAdminPreview = /^https:\/\/marrakech-dunes-admin-[a-z0-9]+(?:-[a-z0-9]+)*-hamzarios-projects\.vercel\.app$/i;
-
-export function isMarrakechDunesPreviewOrigin(origin: string): boolean {
-  return legacyPublicPreview.test(origin);
-}
-
-export function isMarrakechDunesAdminPreviewOrigin(origin: string): boolean {
-  return legacyAdminPreview.test(origin);
-}
-
 function splitList(value: string | undefined): string[] {
   return (value || '').split(',').map((entry) => entry.trim()).filter(Boolean);
 }
@@ -38,7 +25,7 @@ function compileNarrowPattern(pattern: string): RegExp | null {
 export interface CorsPolicy {
   allowedOrigins: string[];
   patterns: RegExp[];
-  source: 'configured' | 'legacy';
+  source: 'configured';
 }
 
 export function resolveCorsPolicy(env: NodeJS.ProcessEnv, isProduction: boolean): CorsPolicy {
@@ -57,29 +44,19 @@ export function resolveCorsPolicy(env: NodeJS.ProcessEnv, isProduction: boolean)
     return { allowedOrigins: [...new Set(origins)], patterns: patterns as RegExp[], source: 'configured' };
   }
 
-  // Compatibility path for the current Render/Vercel deployment. The old
-  // CLIENT_URL list may contain a literal wildcard; it is never trusted.
-  const legacyExact = splitList(env.CLIENT_URL).filter((origin) =>
-    isExactOrigin(origin, isProduction) && (
-      origin === legacyPublicOrigin || origin === legacyAdminOrigin ||
-      isMarrakechDunesPreviewOrigin(origin) || isMarrakechDunesAdminPreviewOrigin(origin) ||
-      (!isProduction && /^http:\/\/localhost:\d+$/.test(origin))
-    )
-  );
-  const legacyPreview = splitList(env.VERCEL_PREVIEW_ORIGINS).filter(isMarrakechDunesPreviewOrigin);
-  const development = isProduction ? [] : ['http://localhost:5173', 'http://localhost:5174'];
-  return {
-    allowedOrigins: [...new Set([...legacyExact, ...development, legacyPublicOrigin, legacyAdminOrigin, ...legacyPreview])],
-    patterns: [legacyPublicPreview, legacyAdminPreview],
-    source: 'legacy',
-  };
+  if (isProduction) {
+    throw new Error('CORS_ALLOWED_ORIGINS is required in production');
+  }
+  const development = ['http://localhost:5173', 'http://localhost:5174'];
+  const devExact = splitList(env.CLIENT_URL).filter((origin) => isExactOrigin(origin, isProduction));
+  return { allowedOrigins: [...new Set([...devExact, ...development])], patterns: [], source: 'configured' };
 }
 
 export function isAllowedCorsOrigin(
   origin: string | undefined,
   allowedOrigins: readonly string[],
   isProduction: boolean,
-  patterns: readonly RegExp[] = [legacyPublicPreview, legacyAdminPreview],
+  patterns: readonly RegExp[] = [],
 ): boolean {
   if (!origin) return true;
   if (allowedOrigins.includes(origin)) return true;

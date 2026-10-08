@@ -83,6 +83,10 @@ const bookingSchema = new mongoose.Schema({
   depositAmount: { type: Number },
   bookingReference: { type: String },
   idempotencyKeyHash: { type: String },
+  // M4: seats actually reserved against the capacity counter for this
+  // booking while CONFIRMED, so releaseBookingCapacity can decrement the
+  // exact amount even if numberOfPeople is edited afterwards.
+  capacityReserved: { type: Number, default: 0 },
 }, { timestamps: true });
 
 const auditLogSchema = new mongoose.Schema({
@@ -99,6 +103,20 @@ const reviewSchema = new mongoose.Schema({
   comment: { type: String, required: true },
   approved: { type: Boolean, default: false },
 }, { timestamps: true });
+
+// M4: atomic per-activity/per-day occupancy counter used to confirm bookings
+// without a race between the capacity check and the status write. The
+// previous flow read the confirmed-bookings sum, then wrote the new status
+// in a separate, unguarded operation - two concurrent confirmations could
+// both read "under capacity" and both write "confirmed", overbooking the
+// activity. Capacity is now enforced by a single, conditional $inc against
+// this document (see confirmBookingWithCapacity below).
+const capacityCounterSchema = new mongoose.Schema({
+  activityId: { type: String, required: true },
+  dateKey: { type: String, required: true }, // YYYY-MM-DD, activity-local calendar day
+  occupied: { type: Number, required: true, default: 0 },
+}, { timestamps: true });
+capacityCounterSchema.index({ activityId: 1, dateKey: 1 }, { unique: true });
 
 // Tour Business Performance Indexes - Enhanced for Production
 // Activity discovery for tourists
@@ -145,6 +163,11 @@ const Activity = mongoose.model('Activity', activitySchema);
 const Booking = mongoose.model('Booking', bookingSchema);
 const AuditLog = mongoose.model('AuditLog', auditLogSchema);
 const Review = mongoose.model('Review', reviewSchema);
+const CapacityCounter = mongoose.model('CapacityCounter', capacityCounterSchema);
+
+function capacityDateKey(date: Date): string {
+  return new Date(date).toISOString().slice(0, 10);
+}
 
 export interface IStorage {
   getUser(id: string): Promise<UserType | null>;
@@ -206,13 +229,22 @@ export interface IStorage {
   getBookingByIdempotencyHash(hash: string): Promise<BookingType | null>;
   updateBooking(id: string, updateData: Partial<InsertBooking>): Promise<BookingType | null>;
   updateBookingStatus(id: string, status: string): Promise<BookingType | null>;
+  confirmBookingWithCapacity(id: string, capacityLimit: number, options?: { force?: boolean }): Promise<{ ok: true; booking: BookingType | null; overbooked: boolean } | { ok: false; reason: 'CAPACITY_EXCEEDED' | 'NOT_FOUND' }>;
+  releaseBookingCapacity(bookingId: string): Promise<void>;
   updateBookingPayment(id: string, paymentData: {
     paymentStatus: string;
     paidAmount: number;
     paymentMethod: string;
     depositAmount?: number;
   }): Promise<BookingType | null>;
+  updateBookingPaymentAtomic(id: string, paymentData: {
+    paymentStatus: string;
+    paidAmount: number;
+    paymentMethod: string;
+    depositAmount?: number;
+  }, audit: InsertAuditLog): Promise<BookingType | null>;
   deleteBooking(id: string): Promise<boolean>;
+  deleteBookingAtomic(id: string, audit: InsertAuditLog): Promise<{ deleted: boolean; booking: BookingWithActivity | null }>;
   createAuditLog(log: InsertAuditLog): Promise<AuditLogType>;
   getAuditLogs(): Promise<AuditLogType[]>;
   getAdmins(): Promise<any[]>;
@@ -890,7 +922,33 @@ class MongoStorage implements IStorage {
       throw new Error('Invalid payment method. Only "cash" or "cash_deposit" are allowed.');
     }
     
-    const booking = await Booking.findByIdAndUpdate(id, updateData, { new: true });
+    const session = await mongoose.startSession();
+    let booking: any = null;
+    try {
+      await session.withTransaction(async () => {
+        const before = await Booking.findById(id).session(session);
+        if (!before) return;
+        const leavingConfirmed = String(before.status).toUpperCase() === 'CONFIRMED'
+          && String(updateData.status ?? before.status).toUpperCase() !== 'CONFIRMED';
+        const nextUpdate: Record<string, unknown> = { ...updateData };
+        if (leavingConfirmed) {
+          const reserved = Number(before.capacityReserved) || 0;
+          if (reserved > 0) {
+            const dateKey = capacityDateKey(before.preferredDate as unknown as Date);
+            await CapacityCounter.findOneAndUpdate(
+              { activityId: String(before.activityId), dateKey },
+              { $inc: { occupied: -reserved } },
+              { session },
+            );
+          }
+          nextUpdate.capacityReserved = 0;
+        }
+        await Booking.updateOne({ _id: id }, nextUpdate, { session });
+        booking = await Booking.findById(id).session(session);
+      });
+    } finally {
+      await session.endSession();
+    }
     if (booking) {
       // Smart cache invalidation - only invalidate related caches
       await cacheService.invalidateRelated('booking', id);
@@ -905,6 +963,103 @@ class MongoStorage implements IStorage {
       await cacheService.invalidateRelated('booking', id);
     }
     return this.transformDocument(booking);
+  }
+
+  // M4: atomically reserve capacity and confirm the booking in one
+  // operation. The capacity gate is a single conditional $inc against the
+  // per-activity/per-day counter document - under concurrent requests,
+  // MongoDB serializes writes to that one document, so only requests whose
+  // reservation keeps `occupied` within the limit can succeed; the rest see
+  // a null result and are rejected with CAPACITY_EXCEEDED. This replaces the
+  // earlier read-then-write pattern (check capacity, then separately write
+  // the new status) which raced under concurrency.
+  async confirmBookingWithCapacity(
+    id: string,
+    capacityLimit: number,
+    options?: { force?: boolean },
+  ): Promise<{ ok: true; booking: BookingType | null; overbooked: boolean } | { ok: false; reason: 'CAPACITY_EXCEEDED' | 'NOT_FOUND' }> {
+    const booking = await Booking.findById(id);
+    if (!booking) return { ok: false, reason: 'NOT_FOUND' };
+    if (String(booking.status).toUpperCase() === 'CONFIRMED') {
+      // Already confirmed (e.g. a retried request) - idempotent no-op.
+      return { ok: true, booking: this.transformDocument(booking), overbooked: false };
+    }
+    const people = Number(booking.numberOfPeople) || 0;
+    const dateKey = capacityDateKey(booking.preferredDate as unknown as Date);
+    const activityId = String(booking.activityId);
+    const force = options?.force === true;
+
+    // Unlimited capacity: skip the counter entirely.
+    if (!Number.isFinite(capacityLimit) || capacityLimit <= 0) {
+      const updated = await Booking.findByIdAndUpdate(id, { status: 'CONFIRMED', capacityReserved: 0 }, { new: true });
+      await cacheService.invalidateRelated('booking', id);
+      return { ok: true, booking: this.transformDocument(updated), overbooked: false };
+    }
+
+    // First use must account for legacy confirmed bookings that predate the
+    // counter. Upsert with $setOnInsert makes initialization idempotent; a
+    // concurrent initializer either observes the inserted value or retries
+    // after the unique-key race without ever resetting occupancy to zero.
+    const dayStart = new Date(`${dateKey}T00:00:00.000Z`);
+    const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
+    const existingConfirmed = await Booking.aggregate([
+      { $match: { activityId: booking.activityId, preferredDate: { $gte: dayStart, $lt: dayEnd }, status: /^confirmed$/i } },
+      { $group: { _id: null, occupied: { $sum: '$numberOfPeople' } } },
+    ]);
+    const initialOccupied = Number(existingConfirmed[0]?.occupied) || 0;
+    try {
+      await CapacityCounter.findOneAndUpdate(
+        { activityId, dateKey },
+        { $setOnInsert: { activityId, dateKey, occupied: initialOccupied } },
+        { upsert: true, new: true },
+      );
+    } catch (e: any) {
+      if (e?.code !== 11000) throw e;
+    }
+
+    let overbooked = false;
+    let reserved = await CapacityCounter.findOneAndUpdate(
+      { activityId, dateKey, occupied: { $lte: capacityLimit - people } },
+      { $inc: { occupied: people } },
+      { new: true },
+    );
+    if (!reserved) {
+      if (!force) {
+        return { ok: false, reason: 'CAPACITY_EXCEEDED' };
+      }
+      // Authorized superadmin override: reserve unconditionally.
+      reserved = await CapacityCounter.findOneAndUpdate(
+        { activityId, dateKey },
+        { $inc: { occupied: people } },
+        { new: true },
+      );
+      overbooked = true;
+    }
+
+    const updated = await Booking.findByIdAndUpdate(
+      id,
+      { status: 'CONFIRMED', capacityReserved: people },
+      { new: true },
+    );
+    await cacheService.invalidateRelated('booking', id);
+    return { ok: true, booking: this.transformDocument(updated), overbooked };
+  }
+
+  // M4: releases previously-reserved capacity (call when a CONFIRMED
+  // booking is cancelled, deleted, or reverted) so the seats become
+  // available to other bookings for that activity/day again.
+  async releaseBookingCapacity(bookingId: string): Promise<void> {
+    const booking = await Booking.findById(bookingId);
+    if (!booking) return;
+    const reserved = Number(booking.capacityReserved) || 0;
+    if (reserved <= 0) return;
+    const dateKey = capacityDateKey(booking.preferredDate as unknown as Date);
+    const activityId = String(booking.activityId);
+    await CapacityCounter.findOneAndUpdate(
+      { activityId, dateKey },
+      { $inc: { occupied: -reserved } },
+    );
+    await Booking.findByIdAndUpdate(bookingId, { capacityReserved: 0 });
   }
 
   async updateBookingPayment(id: string, paymentData: {
@@ -926,6 +1081,30 @@ class MongoStorage implements IStorage {
     return this.transformDocument(booking);
   }
 
+  async updateBookingPaymentAtomic(id: string, paymentData: {
+    paymentStatus: string;
+    paidAmount: number;
+    paymentMethod: string;
+    depositAmount?: number;
+  }, audit: InsertAuditLog): Promise<BookingType | null> {
+    if (paymentData.paymentMethod && !['cash', 'cash_deposit'].includes(paymentData.paymentMethod)) {
+      throw new Error('Invalid payment method. Only "cash" or "cash_deposit" are allowed.');
+    }
+    const session = await mongoose.startSession();
+    let updated: any = null;
+    try {
+      await session.withTransaction(async () => {
+        updated = await Booking.findByIdAndUpdate(id, paymentData, { new: true, session });
+        if (!updated) return;
+        await AuditLog.create([audit], { session });
+      });
+    } finally {
+      await session.endSession();
+    }
+    if (updated) await cacheService.invalidateRelated('booking', id);
+    return this.transformDocument(updated);
+  }
+
   async deleteBooking(id: string): Promise<boolean> {
     const result = await Booking.findByIdAndDelete(id);
     if (result) {
@@ -934,6 +1113,38 @@ class MongoStorage implements IStorage {
       await cacheService.invalidateBookings();
     }
     return !!result;
+  }
+
+  async deleteBookingAtomic(id: string, audit: InsertAuditLog): Promise<{ deleted: boolean; booking: BookingWithActivity | null }> {
+    const session = await mongoose.startSession();
+    let before: any = null;
+    let deleted = false;
+    try {
+      await session.withTransaction(async () => {
+        before = await Booking.findById(id).session(session);
+        if (!before) return;
+        await AuditLog.create([audit], { session });
+        const reserved = Number(before.capacityReserved) || 0;
+        if (reserved > 0) {
+          const dateKey = capacityDateKey(before.preferredDate as unknown as Date);
+          await CapacityCounter.findOneAndUpdate(
+            { activityId: String(before.activityId), dateKey },
+            { $inc: { occupied: -reserved } },
+            { session },
+          );
+        }
+        const result = await Booking.deleteOne({ _id: id }, { session });
+        deleted = result.deletedCount === 1;
+        if (!deleted) throw new Error('Booking delete failed');
+      });
+    } finally {
+      await session.endSession();
+    }
+    if (deleted) {
+      await cacheService.invalidateRelated('booking', id);
+      await cacheService.invalidateBookings();
+    }
+    return { deleted, booking: before ? this.transformDocument(before) : null };
   }
 
   // Audit log operations
