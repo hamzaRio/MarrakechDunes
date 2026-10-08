@@ -3,7 +3,7 @@ import { rmSync } from 'node:fs';
 import { LoggingService } from '../server/src/services/logging-service.js';
 
 process.env.NODE_ENV = 'development';
-process.env.LOG_DIR = `${process.cwd()}/.tmp-log-privacy`; 
+process.env.LOG_DIR = `${process.cwd()}/.tmp-log-privacy`;
 const lines: string[] = [];
 const originalLog = console.log;
 console.log = (...args: unknown[]) => { lines.push(args.join(' ')); };
