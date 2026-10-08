@@ -67,3 +67,19 @@ jobs:
           VITE_API_URL: http://127.0.0.1:18080/api
       - run: REQUIRE_BROWSER_API=1 npm run test:browser-hardening
       - run: npm run build:server && npx tsx server/src/scripts/capacity-concurrency-harness.ts
+      - name: Download pinned MongoDB Database Tools
+        run: |
+          curl -fsSL https://fastdl.mongodb.org/tools/db/mongodb-database-tools-ubuntu2404-x86_64-100.12.2.tgz -o /tmp/mongodb-tools.tgz
+          mkdir -p /tmp/mongodb-tools
+          tar -xzf /tmp/mongodb-tools.tgz --strip-components=1 -C /tmp/mongodb-tools
+      - name: Backup and restore hardening
+        env:
+          MONGODB_DATABASE_TOOLS_DIR: /tmp/mongodb-tools/bin
+        run: npm run test:backup-restore
+      - name: Application hardening harnesses
+        run: |
+          npx tsx scripts/cors-harness.ts
+          npx tsx scripts/booking-lifecycle-override-harness.ts
+          npx tsx scripts/superadmin-password-harness.ts
+          npx tsx scripts/public-admin-auth-boundary-harness.ts
+          npx tsx scripts/pwa-security-harness.ts
