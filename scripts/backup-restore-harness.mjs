@@ -42,7 +42,7 @@ try {
   ]);
   const activity = await db.collection('activities').insertOne({ title: 'H4 synthetic activity' });
   await db.collection('bookings').insertOne({ bookingReference: 'BK-H4', activityId: activity.insertedId, paymentStatus: 'deposit_paid', paidAmount: 100 });
-  await db.collection('auditLogs').insertOne({ action: 'h4.synthetic', actor: 'h4-admin' });
+  await db.collection('auditlogs').insertOne({ action: 'h4.synthetic', actor: 'h4-admin' });
   await db.collection('sessions').insertOne({ marker: 'H4_SESSION_SHOULD_NOT_RESTORE' });
   await source.close();
 
@@ -56,7 +56,7 @@ try {
     rdb.collection('users').find({}).sort({ username: 1 }).toArray(),
     rdb.collection('activities').countDocuments(),
     rdb.collection('bookings').findOne({ bookingReference: 'BK-H4' }),
-    rdb.collection('auditLogs').countDocuments(),
+    rdb.collection('auditlogs').countDocuments(),
   ]);
   const restoredSession = await rdb.collection('sessions').findOne({ marker: 'H4_SESSION_SHOULD_NOT_RESTORE' });
   if (users.length !== 2 || users[1].username !== 'h4-superadmin' || users[1].role !== 'superadmin' || users[1].password !== passwordHash) throw new Error('user restore mismatch');
