@@ -237,7 +237,14 @@ export interface IStorage {
     paymentMethod: string;
     depositAmount?: number;
   }): Promise<BookingType | null>;
+  updateBookingPaymentAtomic(id: string, paymentData: {
+    paymentStatus: string;
+    paidAmount: number;
+    paymentMethod: string;
+    depositAmount?: number;
+  }, audit: InsertAuditLog): Promise<BookingType | null>;
   deleteBooking(id: string): Promise<boolean>;
+  deleteBookingAtomic(id: string, audit: InsertAuditLog): Promise<{ deleted: boolean; booking: BookingWithActivity | null }>;
   createAuditLog(log: InsertAuditLog): Promise<AuditLogType>;
   getAuditLogs(): Promise<AuditLogType[]>;
   getAdmins(): Promise<any[]>;
@@ -1048,6 +1055,30 @@ class MongoStorage implements IStorage {
     return this.transformDocument(booking);
   }
 
+  async updateBookingPaymentAtomic(id: string, paymentData: {
+    paymentStatus: string;
+    paidAmount: number;
+    paymentMethod: string;
+    depositAmount?: number;
+  }, audit: InsertAuditLog): Promise<BookingType | null> {
+    if (paymentData.paymentMethod && !['cash', 'cash_deposit'].includes(paymentData.paymentMethod)) {
+      throw new Error('Invalid payment method. Only "cash" or "cash_deposit" are allowed.');
+    }
+    const session = await mongoose.startSession();
+    let updated: any = null;
+    try {
+      await session.withTransaction(async () => {
+        updated = await Booking.findByIdAndUpdate(id, paymentData, { new: true, session });
+        if (!updated) return;
+        await AuditLog.create([audit], { session });
+      });
+    } finally {
+      await session.endSession();
+    }
+    if (updated) await cacheService.invalidateRelated('booking', id);
+    return this.transformDocument(updated);
+  }
+
   async deleteBooking(id: string): Promise<boolean> {
     const result = await Booking.findByIdAndDelete(id);
     if (result) {
@@ -1056,6 +1087,38 @@ class MongoStorage implements IStorage {
       await cacheService.invalidateBookings();
     }
     return !!result;
+  }
+
+  async deleteBookingAtomic(id: string, audit: InsertAuditLog): Promise<{ deleted: boolean; booking: BookingWithActivity | null }> {
+    const session = await mongoose.startSession();
+    let before: any = null;
+    let deleted = false;
+    try {
+      await session.withTransaction(async () => {
+        before = await Booking.findById(id).session(session);
+        if (!before) return;
+        await AuditLog.create([audit], { session });
+        const reserved = Number(before.capacityReserved) || 0;
+        if (reserved > 0) {
+          const dateKey = capacityDateKey(before.preferredDate as unknown as Date);
+          await CapacityCounter.findOneAndUpdate(
+            { activityId: String(before.activityId), dateKey },
+            { $inc: { occupied: -reserved } },
+            { session },
+          );
+        }
+        const result = await Booking.deleteOne({ _id: id }, { session });
+        deleted = result.deletedCount === 1;
+        if (!deleted) throw new Error('Booking delete failed');
+      });
+    } finally {
+      await session.endSession();
+    }
+    if (deleted) {
+      await cacheService.invalidateRelated('booking', id);
+      await cacheService.invalidateBookings();
+    }
+    return { deleted, booking: before ? this.transformDocument(before) : null };
   }
 
   // Audit log operations

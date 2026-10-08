@@ -390,46 +390,24 @@ router.delete('/bookings/:id', requireSuperAdmin, async (req: Request, res: Resp
   try {
     const { id } = req.params;
 
-    // M3: a hard delete is irreversible, so capture the record being
-    // removed (and who removed it) before it is gone.
     const bookingBeforeDelete = await storage.getBooking(id);
-    if (bookingBeforeDelete && String(bookingBeforeDelete.status).toUpperCase() === 'CONFIRMED') {
-      await storage.releaseBookingCapacity(id);
-    }
-
-    // Invalidate cache before deletion
-    const { cacheService } = await import('../services/cache-service.js');
-    await cacheService.invalidateRelated('booking', id);
-    await cacheService.invalidateBookings();
-
-    const deleted = await storage.deleteBooking(id);
-    if (!deleted) {
+    const result = await storage.deleteBookingAtomic(id, {
+      userId: String((req.session as any)?.userId || 'unknown'),
+      action: 'BOOKING_DELETE',
+      details: JSON.stringify({
+        bookingId: id,
+        bookingReference: bookingBeforeDelete?.bookingReference,
+        status: bookingBeforeDelete?.status,
+        totalAmount: bookingBeforeDelete?.totalAmount,
+        paidAmount: bookingBeforeDelete?.paidAmount,
+      }),
+    });
+    if (!result.deleted) {
       return res.status(404).json({
         status: 'error',
         message: 'Booking not found'
       });
     }
-
-    try {
-      await storage.createAuditLog({
-        userId: String((req.session as any)?.userId || 'unknown'),
-        action: 'BOOKING_DELETE',
-        details: JSON.stringify({
-          bookingId: id,
-          bookingReference: bookingBeforeDelete?.bookingReference,
-          customerName: bookingBeforeDelete?.customerName,
-          status: bookingBeforeDelete?.status,
-          totalAmount: bookingBeforeDelete?.totalAmount,
-          paidAmount: bookingBeforeDelete?.paidAmount,
-        }),
-      });
-    } catch (auditError) {
-      console.error('[ADMIN] Failed to record booking delete audit log:', auditError);
-    }
-
-    // Invalidate cache after deletion
-    await cacheService.invalidateRelated('booking', id);
-    await cacheService.invalidateBookings();
 
     return res.status(200).json({
       status: 'success',
@@ -923,7 +901,11 @@ const handleBookingPayment = async (req: Request, res: Response) => {
       }
     }
 
-    const newPaid = paidAmount !== undefined ? Math.min(total, Number(paidAmount)) : (Number(booking.paidAmount) || 0);
+    const requestedPaid = paidAmount !== undefined ? Number(paidAmount) : (Number(booking.paidAmount) || 0);
+    if (requestedPaid > total) {
+      return res.status(400).json({ status: 'error', message: 'Paid amount cannot exceed the booking total' });
+    }
+    const newPaid = requestedPaid;
 
     // Phase 4 §8/§16: paymentStatus must stay within the canonical
     // unpaid/deposit_paid/fully_paid vocabulary — an arbitrary client-supplied
@@ -949,6 +931,9 @@ const handleBookingPayment = async (req: Request, res: Response) => {
     } else {
       status = (booking.paymentStatus as 'unpaid' | 'deposit_paid' | 'fully_paid') || 'unpaid';
     }
+    if (status === 'fully_paid' && newPaid < total) {
+      return res.status(400).json({ status: 'error', message: 'Fully paid requires the full booking total' });
+    }
 
     // Normalize supported client/legacy values to the canonical stored values.
     const requestedPaymentMethod = paymentMethod ?? (type === 'DEPOSIT' ? 'DEPOSIT' : 'CASH');
@@ -968,33 +953,27 @@ const handleBookingPayment = async (req: Request, res: Response) => {
       });
     }
 
-    const updatedBooking = await storage.updateBookingPayment(id, {
+    const audit = {
+      userId: String((req.session as any)?.userId || 'unknown'),
+      action: 'BOOKING_PAYMENT_UPDATE',
+      details: JSON.stringify({
+        bookingId: id,
+        bookingReference: booking.bookingReference,
+        type,
+        previousPaidAmount,
+        newPaidAmount: newPaid,
+        previousPaymentStatus,
+        newPaymentStatus: status,
+        paymentMethod: finalPaymentMethod,
+        totalAmount: total,
+      }),
+    };
+    const updatedBooking = await storage.updateBookingPaymentAtomic(id, {
       paidAmount: newPaid,
       paymentStatus: status,
       paymentMethod: finalPaymentMethod,
       ...(normalizedDepositAmount !== undefined ? { depositAmount: normalizedDepositAmount } : {})
-    });
-
-    // M3: every payment mutation is audited (who, what booking, before/after).
-    try {
-      await storage.createAuditLog({
-        userId: String((req.session as any)?.userId || 'unknown'),
-        action: 'BOOKING_PAYMENT_UPDATE',
-        details: JSON.stringify({
-          bookingId: id,
-          bookingReference: booking.bookingReference,
-          type,
-          previousPaidAmount,
-          newPaidAmount: newPaid,
-          previousPaymentStatus,
-          newPaymentStatus: status,
-          paymentMethod: finalPaymentMethod,
-          totalAmount: total,
-        }),
-      });
-    } catch (auditError) {
-      console.error('[ADMIN] Failed to record payment audit log:', auditError);
-    }
+    }, audit);
 
     return res.status(200).json({
       success: true,
