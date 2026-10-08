@@ -43,10 +43,11 @@ try {
   const activity = await db.collection('activities').insertOne({ title: 'H4 synthetic activity' });
   await db.collection('bookings').insertOne({ bookingReference: 'BK-H4', activityId: activity.insertedId, paymentStatus: 'deposit_paid', paidAmount: 100 });
   await db.collection('auditLogs').insertOne({ action: 'h4.synthetic', actor: 'h4-admin' });
+  await db.collection('sessions').insertOne({ marker: 'H4_SESSION_SHOULD_NOT_RESTORE' });
   await source.close();
 
   execFileSync(dump, ['--uri', sourceUri, `--archive=${archive}`], { stdio: 'inherit' });
-  execFileSync(restore, ['--uri', restoreUri, `--archive=${archive}`, '--drop', '--nsInclude=hardening_source.*', '--nsFrom=hardening_source.*', '--nsTo=hardening_restore.*'], { stdio: 'inherit' });
+  execFileSync(restore, ['--uri', restoreUri, `--archive=${archive}`, '--drop', '--nsInclude=hardening_source.*', '--nsExclude=hardening_source.sessions', '--nsFrom=hardening_source.*', '--nsTo=hardening_restore.*'], { stdio: 'inherit' });
 
   const restored = new MongoClient(restoreUri);
   await restored.connect();
@@ -57,8 +58,10 @@ try {
     rdb.collection('bookings').findOne({ bookingReference: 'BK-H4' }),
     rdb.collection('auditLogs').countDocuments(),
   ]);
+  const restoredSession = await rdb.collection('sessions').findOne({ marker: 'H4_SESSION_SHOULD_NOT_RESTORE' });
   if (users.length !== 2 || users[1].username !== 'h4-superadmin' || users[1].role !== 'superadmin' || users[1].password !== passwordHash) throw new Error('user restore mismatch');
   if (activities !== 1 || !bookings || bookings.paymentStatus !== 'deposit_paid' || bookings.paidAmount !== 100 || audits !== 1) throw new Error('business data restore mismatch');
+  if (restoredSession) throw new Error('ephemeral session was restored');
   await restored.close();
   console.log('H4 backup/restore PASS (sessions intentionally excluded)');
 } finally {
