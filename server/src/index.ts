@@ -582,7 +582,7 @@ app.use((req, res, next) => {
         // Test email service
         const testData = {
           customerName: 'Test Customer',
-          customerPhone: '212600623630',
+          customerPhone: process.env.TEST_CUSTOMER_PHONE || '0000000000',
           activityName: 'Test Activity - Hot Air Balloon',
           numberOfPeople: 2,
           preferredDate: new Date(),
@@ -612,7 +612,7 @@ app.use((req, res, next) => {
         // Test WhatsApp service
         const testData = {
           customerName: 'Test Customer',
-          customerPhone: '212600623630',
+          customerPhone: process.env.TEST_CUSTOMER_PHONE || '0000000000',
           activityName: 'Test Activity - Desert Safari',
           numberOfPeople: 2,
           preferredDate: new Date(),

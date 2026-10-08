@@ -1,22 +1,3 @@
-// These "legacy" values matched the original developer's own Render/Vercel
-// project and must never be trusted automatically in production. They are
-// reached only through an explicit opt-in (LEGACY_OWNER_CORS_COMPAT=true),
-// which a new deployment owner would never set. See H1/M12 in the handoff
-// audit: production CORS now fails closed instead of silently trusting the
-// seller's old origins when CORS_ALLOWED_ORIGINS is unset.
-const legacyPublicOrigin = 'https://marrakech-dunes.vercel.app';
-const legacyAdminOrigin = 'https://marrakech-dunes-admin.vercel.app';
-const legacyPublicPreview = /^https:\/\/marrakech-dunes-[a-z0-9]+(?:-[a-z0-9]+)*-hamzarios-projects\.vercel\.app$/i;
-const legacyAdminPreview = /^https:\/\/marrakech-dunes-admin-[a-z0-9]+(?:-[a-z0-9]+)*-hamzarios-projects\.vercel\.app$/i;
-
-export function isMarrakechDunesPreviewOrigin(origin: string): boolean {
-  return legacyPublicPreview.test(origin);
-}
-
-export function isMarrakechDunesAdminPreviewOrigin(origin: string): boolean {
-  return legacyAdminPreview.test(origin);
-}
-
 function splitList(value: string | undefined): string[] {
   return (value || '').split(',').map((entry) => entry.trim()).filter(Boolean);
 }
@@ -44,7 +25,7 @@ function compileNarrowPattern(pattern: string): RegExp | null {
 export interface CorsPolicy {
   allowedOrigins: string[];
   patterns: RegExp[];
-  source: 'configured' | 'legacy';
+  source: 'configured';
 }
 
 export function resolveCorsPolicy(env: NodeJS.ProcessEnv, isProduction: boolean): CorsPolicy {
@@ -63,37 +44,12 @@ export function resolveCorsPolicy(env: NodeJS.ProcessEnv, isProduction: boolean)
     return { allowedOrigins: [...new Set(origins)], patterns: patterns as RegExp[], source: 'configured' };
   }
 
-  // H1/M12: production must configure CORS_ALLOWED_ORIGINS explicitly. It
-  // never silently falls back to the original developer's own Vercel
-  // origins. The only way to opt back into that legacy compatibility path
-  // is a deliberate flag a new owner would not set.
-  const legacyCompatAllowed = env.LEGACY_OWNER_CORS_COMPAT === 'true';
-  if (isProduction && !legacyCompatAllowed) {
-    throw new Error('CORS_ALLOWED_ORIGINS is required in production (set LEGACY_OWNER_CORS_COMPAT=true only to opt into the deprecated seller-origin fallback)');
+  if (isProduction) {
+    throw new Error('CORS_ALLOWED_ORIGINS is required in production');
   }
-
-  if (!legacyCompatAllowed) {
-    const development = ['http://localhost:5173', 'http://localhost:5174'];
-    const devExact = splitList(env.CLIENT_URL).filter((origin) => isExactOrigin(origin, isProduction));
-    return { allowedOrigins: [...new Set([...devExact, ...development])], patterns: [], source: 'configured' };
-  }
-
-  // Deprecated compatibility path for the original Render/Vercel deployment.
-  // The old CLIENT_URL list may contain a literal wildcard; it is never trusted.
-  const legacyExact = splitList(env.CLIENT_URL).filter((origin) =>
-    isExactOrigin(origin, isProduction) && (
-      origin === legacyPublicOrigin || origin === legacyAdminOrigin ||
-      isMarrakechDunesPreviewOrigin(origin) || isMarrakechDunesAdminPreviewOrigin(origin) ||
-      (!isProduction && /^http:\/\/localhost:\d+$/.test(origin))
-    )
-  );
-  const legacyPreview = splitList(env.VERCEL_PREVIEW_ORIGINS).filter(isMarrakechDunesPreviewOrigin);
-  const development = isProduction ? [] : ['http://localhost:5173', 'http://localhost:5174'];
-  return {
-    allowedOrigins: [...new Set([...legacyExact, ...development, legacyPublicOrigin, legacyAdminOrigin, ...legacyPreview])],
-    patterns: [legacyPublicPreview, legacyAdminPreview],
-    source: 'legacy',
-  };
+  const development = ['http://localhost:5173', 'http://localhost:5174'];
+  const devExact = splitList(env.CLIENT_URL).filter((origin) => isExactOrigin(origin, isProduction));
+  return { allowedOrigins: [...new Set([...devExact, ...development])], patterns: [], source: 'configured' };
 }
 
 export function isAllowedCorsOrigin(

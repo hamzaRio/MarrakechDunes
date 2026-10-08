@@ -14,15 +14,9 @@
 // (from server/, after `npm install` has pulled in the mongodb-memory-server
 // devDependency added for this test)
 //
-// KNOWN ENVIRONMENT LIMITATION (as of this hardening session): this
-// container's network allowlist does not include fastdl.mongodb.org, so
-// mongodb-memory-server cannot download a mongod binary here -
-// MongoMemoryReplSet.create() fails with a 403/"download failed" error
-// before any assertion runs. This script is correct and ready to run in
-// an environment with that network access (or a pre-cached mongod
-// binary via MONGOMS_DOWNLOAD_DIR) - it has NOT been successfully
-// executed in this session, and M4's concurrency claim rests on the code
-// review/atomic-$inc design in storage.ts, not on this test's output.
+// This is an executable integration gate. CI and local hardening runs use a
+// cached/downloaded mongod binary and fail closed if the replica set cannot
+// be created; no static-only concurrency claim is accepted.
 import mongoose from 'mongoose';
 import { MongoMemoryReplSet } from 'mongodb-memory-server';
 

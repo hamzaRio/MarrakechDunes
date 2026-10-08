@@ -49,15 +49,13 @@ export class WhatsAppService {
 
   constructor() {
     // Read WhatsApp receivers from environment variable
-    const receiversEnv = process.env.WHATSAPP_RECEIVERS || "212600623630,212693323368,212654497354";
-    const receivers = receiversEnv.split(',').map(num => num.trim());
-    
-    // Map phone numbers to contacts with default names and roles
-    this.adminContacts = [
-      { name: "Ahmed", phone: `+${receivers[0] || "212600623630"}`, role: "admin" as const },
-      { name: "Yahia", phone: `+${receivers[1] || "212693323368"}`, role: "admin" as const },
-      { name: "Nadia", phone: `+${receivers[2] || "212654497354"}`, role: "superadmin" as const }
-    ].filter(contact => contact.phone !== "+");
+    const receivers = (process.env.WHATSAPP_RECEIVERS || '').split(',').map(num => num.trim()).filter(Boolean);
+    const names = (process.env.WHATSAPP_RECEIVER_NAMES || '').split(',').map(name => name.trim());
+    this.adminContacts = receivers.map((phone, index) => ({
+      name: names[index] || `Admin ${index + 1}`,
+      phone: phone.startsWith('+') ? phone : `+${phone}`,
+      role: index === receivers.length - 1 ? 'superadmin' as const : 'admin' as const,
+    }));
 
     // Initialize circuit breakers
     this.bookingNotificationBreaker = new CircuitBreaker(this.sendBookingNotificationInternal.bind(this), {
@@ -459,9 +457,7 @@ Bonjour ${booking.customerName},
 Nous vous contacterons sous peu pour confirmer le lieu et l'heure exacte de départ.
 
 📞 CONTACT:
-• Ahmed: +212600623630
-• Yahia: +212693323368
-• Nadia: +212654497354
+${this.adminContacts.map(contact => `• ${contact.name}: ${contact.phone}`).join('\n') || '• Contact details are configured by the deployment team.'}
 
 🎯 PROCHAINES ÉTAPES:
 1. Notre équipe vous contactera dans les 24h

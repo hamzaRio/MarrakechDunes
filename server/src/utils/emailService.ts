@@ -1,5 +1,6 @@
 import nodemailer, { type SendMailOptions, type Transporter } from 'nodemailer';
 import fetch from 'node-fetch';
+import { escapeHtml } from './html-escape.js';
 
 /**
  * Email service for MarrakechDunes
@@ -15,15 +16,6 @@ import fetch from 'node-fetch';
 // renders the HTML. The whole message is HTML-escaped before the <br>
 // substitution, so plain text content (including names with `&`, `"`, `'`,
 // `<tag>`) is always shown literally.
-function escapeHtml(value: unknown): string {
-  return String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
 class EmailService {
   private transporter: Transporter | null = null;
 
@@ -213,7 +205,7 @@ class EmailService {
   async sendEmail(to: string, subject: string, message: string): Promise<boolean> {
     const html = this.buildHtml(message);
     const mailOptions = {
-      from: process.env.SMTP_FROM || process.env.EMAIL_FROM || '"Marrakech Dunes" <timedizzy45@gmail.com>',
+      from: process.env.SMTP_FROM || process.env.EMAIL_FROM || '"Marrakech Dunes" <notifications@example.invalid>',
       to,
       subject,
       text: message,

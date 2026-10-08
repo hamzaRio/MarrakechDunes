@@ -83,3 +83,8 @@ jobs:
           npx tsx scripts/superadmin-password-harness.ts
           npx tsx scripts/public-admin-auth-boundary-harness.ts
           npx tsx scripts/pwa-security-harness.ts
+          npx tsx scripts/email-escaping-harness.ts
+          npx tsx scripts/log-privacy-harness.ts
+          node scripts/owner-deidentification-harness.mjs
+          npx tsx scripts/config-portability-harness.ts
+          npx tsx scripts/frontend-build-separation-harness.ts

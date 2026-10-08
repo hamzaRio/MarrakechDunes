@@ -14,3 +14,7 @@ export function getAdminSiteUrl(): string {
 export function getSupportPhoneDisplay(): string {
   return (process.env.SUPPORT_PHONE || '').trim();
 }
+
+export function getSupportEmail(): string {
+  return (process.env.SUPPORT_EMAIL || '').trim();
+}

@@ -17,6 +17,7 @@ import {
   Share2,
   MessageCircle
 } from 'lucide-react';
+import { supportContacts, supportEmail } from '@/lib/support-config';
 
 interface PaymentConfirmationProps {
   booking: {
@@ -224,30 +225,22 @@ export default function EnhancedPaymentConfirmation({
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <h4 className="font-semibold">Notre Équipe</h4>
-              <div className="space-y-1 text-sm">
-                <div className="flex items-center gap-2">
-                  <Phone className="w-4 h-4 text-gray-600" />
-                  <span>Ahmed: +212 600 623 630</span>
+              {supportContacts.length > 0 && <div className="space-y-2">
+                <h4 className="font-semibold">Notre Équipe</h4>
+                <div className="space-y-1 text-sm">
+                  {supportContacts.map((contact) => <div key={contact.phone} className="flex items-center gap-2">
+                    <Phone className="w-4 h-4 text-gray-600" />
+                    <span>{contact.name}: {contact.phone}</span>
+                  </div>)}
                 </div>
-                <div className="flex items-center gap-2">
-                  <Phone className="w-4 h-4 text-gray-600" />
-                  <span>Yahia: +212 693 323 368</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Phone className="w-4 h-4 text-gray-600" />
-                  <span>Nadia: +212 654 497 354</span>
-                </div>
-              </div>
-            </div>
-            <div className="space-y-2">
+              </div>}
+            {supportEmail && <div className="space-y-2">
               <h4 className="font-semibold">Email</h4>
               <div className="flex items-center gap-2 text-sm">
                 <Mail className="w-4 h-4 text-gray-600" />
-                <span>timedizzy45@gmail.com</span>
+                <span>{supportEmail}</span>
               </div>
-            </div>
+            </div>}
           </div>
         </CardContent>
       </Card>

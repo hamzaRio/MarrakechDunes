@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import express from "express";
 import cors from "cors";
 import type { AddressInfo } from "node:net";
-import { isAllowedCorsOrigin, isMarrakechDunesAdminPreviewOrigin, isMarrakechDunesPreviewOrigin } from "../server/src/utils/cors-origins.js";
+import { isAllowedCorsOrigin } from "../server/src/utils/cors-origins.js";
 
 const canonicalOrigin = "https://marrakech-dunes.vercel.app";
 const envPreviewOrigin = "https://marrakech-dunes-env123-hamzarios-projects.vercel.app";
@@ -92,8 +92,6 @@ try {
     assert.equal((await rejected.json()).code, "CORS_ORIGIN_DENIED");
   }
 
-  assert.equal(isMarrakechDunesPreviewOrigin(dynamicPreviewOrigin), true);
-  assert.equal(isMarrakechDunesAdminPreviewOrigin(adminPreviewOrigin), true);
   assert.equal(isAllowedCorsOrigin(undefined, allowedOrigins, true), true);
   console.log("CORS runtime harness: PASS");
 } finally {

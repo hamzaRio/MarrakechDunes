@@ -35,11 +35,11 @@ and `render.yaml` for the full list.
 
 | Variable | Why it matters now |
 |---|---|
-| `CORS_ALLOWED_ORIGINS` | **Required in production.** The server refuses to start without this (or the explicit `LEGACY_OWNER_CORS_COMPAT=true` opt-in) - see §5. |
+| `CORS_ALLOWED_ORIGINS` | **Required in production.** The server refuses to start without deployment-owned exact origins - see §5. |
 | `VITE_API_URL` (client build-time) | Required for both `build:public` and `build:admin` - baked into the CSP and the runtime API base URL. |
 | `VITE_SITE_URL` (client build-time, public build only) | Used for the public build's OG tags, `sitemap.xml`, `robots.txt`. Optional but recommended. |
 | `LEGACY_STARTUP_SEEDING` | Now defaults to `false`. Leave it unset/false; see §4. |
-| `PUBLIC_SITE_URL`, `ADMIN_SITE_URL`, `SUPPORT_PHONE` | Optional. Shown to customers/admins in WhatsApp/email notifications when set; omitted entirely when unset (never falls back to the original developer's own values). |
+| `PUBLIC_SITE_URL`, `ADMIN_SITE_URL`, `SUPPORT_PHONE`, `SUPPORT_EMAIL`, `WHATSAPP_RECEIVERS` | Optional deployment-owned contact/link settings. Shown to customers/admins when set; omitted when unset. |
 | `BOOTSTRAP_ADMIN_USERNAME`, `BOOTSTRAP_ADMIN_PASSWORD` | Used once, by `npm run bootstrap` (§4). |
 | `MONGO_AUTO_INDEX` | Leave unset in production (defaults to off). Set `true` only for a disposable staging database. |
 
@@ -73,9 +73,8 @@ is cross-site from the cookie's perspective:
 - `CORS_ALLOWED_ORIGINS` (comma-separated, exact origins, e.g.
   `https://app.example.com,https://admin.example.com`) is **required** in
   production. `server/src/utils/cors-origins.ts` fails closed: no
-  `CORS_ALLOWED_ORIGINS` and no `LEGACY_OWNER_CORS_COMPAT=true` means the
-  server refuses requests from everywhere in production rather than
-  silently falling back to the original developer's own domains.
+  `CORS_ALLOWED_ORIGINS` means the server refuses requests from everywhere in
+  production rather than silently falling back to another deployment's domains.
 - The session cookie (`server/src/security-middleware.ts`,
   `sessionSecurity`) is `httpOnly`, 7-day rolling, and its `secure`/
   `sameSite` are derived from `COOKIE_SECURE`/`COOKIE_SAMESITE`

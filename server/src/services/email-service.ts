@@ -1,20 +1,13 @@
 import nodemailer, { type Transporter } from 'nodemailer';
 import type { NotificationData } from '../utils/notification-templates.js';
+import { getSupportPhoneDisplay } from '../utils/public-links.js';
+import { escapeHtml } from '../utils/html-escape.js';
 
 // M6: these HTML emails interpolate customer-supplied strings
 // (customerName, activityName, bookingId) directly into markup. Without
 // escaping, a customer name like `<script>alert(1)</script>` or
 // `<img src=x onerror=alert(1)>` would execute in whatever mail client
 // renders the HTML. escapeHtml() is applied to every such value below.
-function escapeHtml(value: unknown): string {
-  return String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
 export class EmailService {
   private transporter: Transporter | null = null;
 
@@ -231,7 +224,7 @@ export class EmailService {
               <ul>
                 <li>Please arrive 15 minutes early</li>
                 <li>Bring: ${escapeHtml(this.getPackingList(data.activityName))}</li>
-                <li>Contact: +212600000000</li>
+                ${getSupportPhoneDisplay() ? `<li>Contact: ${escapeHtml(getSupportPhoneDisplay())}</li>` : ''}
               </ul>
             </div>
             

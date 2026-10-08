@@ -9,6 +9,15 @@ const SENSITIVE_KEY_PATTERN = /password|secret|token|authorization|auth[-_]?head
 const PHONE_KEY_PATTERN = /phone/i;
 const EMAIL_KEY_PATTERN = /email/i;
 
+export function redactUrl(value: string): string {
+  try {
+    const parsed = new URL(value, 'http://local.invalid');
+    return `${parsed.origin === 'http://local.invalid' ? '' : `${parsed.origin}`}${parsed.pathname}`;
+  } catch {
+    return value.split(/[?#]/, 1)[0];
+  }
+}
+
 export function maskPhone(value: string): string {
   const digits = value.replace(/\D/g, '');
   if (digits.length < 4) return '[redacted]';
@@ -36,6 +45,7 @@ export function redactLogValue(value: unknown, keyHint?: string): unknown {
     if (keyHint && SENSITIVE_KEY_PATTERN.test(keyHint)) return '[redacted]';
     if (keyHint && PHONE_KEY_PATTERN.test(keyHint)) return maskPhone(value);
     if (keyHint && EMAIL_KEY_PATTERN.test(keyHint)) return maskEmail(value);
+    if (keyHint && /url|endpoint/i.test(keyHint)) return redactUrl(value);
     return value;
   }
 
