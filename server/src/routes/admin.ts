@@ -934,6 +934,12 @@ const handleBookingPayment = async (req: Request, res: Response) => {
     if (status === 'fully_paid' && newPaid < total) {
       return res.status(400).json({ status: 'error', message: 'Fully paid requires the full booking total' });
     }
+    if (status === 'unpaid' && newPaid !== 0) {
+      return res.status(400).json({ status: 'error', message: 'Unpaid bookings cannot have a paid amount' });
+    }
+    if (status === 'deposit_paid' && (newPaid <= 0 || newPaid >= total)) {
+      return res.status(400).json({ status: 'error', message: 'Deposit paid requires a partial positive payment' });
+    }
 
     // Normalize supported client/legacy values to the canonical stored values.
     const requestedPaymentMethod = paymentMethod ?? (type === 'DEPOSIT' ? 'DEPOSIT' : 'CASH');
