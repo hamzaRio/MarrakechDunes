@@ -922,7 +922,33 @@ class MongoStorage implements IStorage {
       throw new Error('Invalid payment method. Only "cash" or "cash_deposit" are allowed.');
     }
     
-    const booking = await Booking.findByIdAndUpdate(id, updateData, { new: true });
+    const session = await mongoose.startSession();
+    let booking: any = null;
+    try {
+      await session.withTransaction(async () => {
+        const before = await Booking.findById(id).session(session);
+        if (!before) return;
+        const leavingConfirmed = String(before.status).toUpperCase() === 'CONFIRMED'
+          && String(updateData.status ?? before.status).toUpperCase() !== 'CONFIRMED';
+        const nextUpdate: Record<string, unknown> = { ...updateData };
+        if (leavingConfirmed) {
+          const reserved = Number(before.capacityReserved) || 0;
+          if (reserved > 0) {
+            const dateKey = capacityDateKey(before.preferredDate as unknown as Date);
+            await CapacityCounter.findOneAndUpdate(
+              { activityId: String(before.activityId), dateKey },
+              { $inc: { occupied: -reserved } },
+              { session },
+            );
+          }
+          nextUpdate.capacityReserved = 0;
+        }
+        await Booking.updateOne({ _id: id }, nextUpdate, { session });
+        booking = await Booking.findById(id).session(session);
+      });
+    } finally {
+      await session.endSession();
+    }
     if (booking) {
       // Smart cache invalidation - only invalidate related caches
       await cacheService.invalidateRelated('booking', id);
