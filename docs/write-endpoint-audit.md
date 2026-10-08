@@ -125,11 +125,9 @@ see M2). Routes marked **SA** also require `requireSuperAdmin`.
 | POST | /me/bookings/:id/cancel | the logged-in customer, own booking only | portal session |
 | POST | /logout | customer | portal session |
 
-**Recommendation for a follow-up pass (not done in this session, scope/time):**
-confirm `/me/bookings/:id/*` handlers check that the booking belongs to the
-authenticated portal session's customer, not just that *some* portal
-session exists - ownership-check logic lives inside each handler and was
-not independently re-verified line-by-line here.
+The portal mutation handlers verify that the target booking belongs to the
+authenticated portal session's customer phone before changing it; an
+unrelated booking returns 404 without revealing its existence.
 
 ### `/api/auto-response`
 | Method | Path | For | Auth |
