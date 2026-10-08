@@ -66,12 +66,9 @@ async function run(): Promise<boolean> {
         capacityReserved: 2,
       });
     }
-    // Seed the capacity counter to match (normally done lazily by
-    // confirmBookingWithCapacity's ensure-exists step, but we seed the
-    // occupied count directly here since the 8 are already CONFIRMED,
-    // not confirmed through the atomic path).
+    // Do not seed CapacityCounter: the production first-use path must
+    // reconcile these legacy confirmed bookings itself.
     const CapacityCounter = mongoose.model('CapacityCounter');
-    await CapacityCounter.create({ activityId: String(activity._id), dateKey: dateKey.slice(0, 10), occupied: 8 });
 
     const pendingA = await Booking.create({
       customerName: 'Pending A', customerPhone: '+1', activityId: activity._id,
@@ -90,9 +87,11 @@ async function run(): Promise<boolean> {
     const successes = [resultA, resultB].filter((r) => r.ok).length;
     const finalCounter = await CapacityCounter.findOne({ activityId: String(activity._id), dateKey: dateKey.slice(0, 10) });
     const occupied = finalCounter?.occupied ?? -1;
+    const confirmed = await Booking.find({ activityId: activity._id, status: 'CONFIRMED' });
+    const actualOccupied = confirmed.reduce((sum, item) => sum + Number(item.numberOfPeople || 0), 0);
 
-    const pass = successes === 1 && occupied === 10;
-    console.log(`[capacity-concurrency] successes=${successes} occupied=${occupied} -> ${pass ? 'PASS' : 'FAIL'}`);
+    const pass = successes === 1 && occupied === 10 && actualOccupied === occupied && actualOccupied <= 10;
+    console.log(`[capacity-concurrency] successes=${successes} occupied=${occupied} actual=${actualOccupied} -> ${pass ? 'PASS' : 'FAIL'}`);
     return pass;
   } finally {
     await mongoose.disconnect();

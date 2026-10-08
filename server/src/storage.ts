@@ -963,12 +963,25 @@ class MongoStorage implements IStorage {
       return { ok: true, booking: this.transformDocument(updated), overbooked: false };
     }
 
-    // Ensure the counter document exists. A duplicate-key race here just
-    // means another request created it first, which is fine.
+    // First use must account for legacy confirmed bookings that predate the
+    // counter. Upsert with $setOnInsert makes initialization idempotent; a
+    // concurrent initializer either observes the inserted value or retries
+    // after the unique-key race without ever resetting occupancy to zero.
+    const dayStart = new Date(`${dateKey}T00:00:00.000Z`);
+    const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
+    const existingConfirmed = await Booking.aggregate([
+      { $match: { activityId: booking.activityId, preferredDate: { $gte: dayStart, $lt: dayEnd }, status: /^confirmed$/i } },
+      { $group: { _id: null, occupied: { $sum: '$numberOfPeople' } } },
+    ]);
+    const initialOccupied = Number(existingConfirmed[0]?.occupied) || 0;
     try {
-      await CapacityCounter.create({ activityId, dateKey, occupied: 0 });
+      await CapacityCounter.findOneAndUpdate(
+        { activityId, dateKey },
+        { $setOnInsert: { activityId, dateKey, occupied: initialOccupied } },
+        { upsert: true, new: true },
+      );
     } catch (e: any) {
-      if (e?.code !== 11000) throw e; // ignore "already exists" race
+      if (e?.code !== 11000) throw e;
     }
 
     let overbooked = false;
