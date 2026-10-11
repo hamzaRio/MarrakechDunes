@@ -107,7 +107,20 @@ try {
   check(/request[- ]?id|x-request-id/i.test(output), 'request correlation id was not logged');
   console.log('[non-storage-integration] real Express auth/CSRF/payment/M7/M11 gates: PASS');
 } finally {
-  if (server) { server.kill('SIGTERM'); await Promise.race([once(server, 'exit'), new Promise((resolve) => setTimeout(resolve, 5000))]); }
+  if (server) {
+    server.kill('SIGTERM');
+    const exited = await Promise.race([
+      once(server, 'exit').then(() => true),
+      new Promise((resolve) => setTimeout(() => resolve(false), 5000)),
+    ]);
+    // A test-only child must never keep CI alive if graceful shutdown is
+    // delayed by a disposable Mongo process. Production shutdown behavior is
+    // exercised separately by the service's own signal handling.
+    if (!exited) {
+      server.kill('SIGKILL');
+      await Promise.race([once(server, 'exit'), new Promise((resolve) => setTimeout(resolve, 1000))]);
+    }
+  }
   await dbClient.close();
   await replSet.stop();
 }
