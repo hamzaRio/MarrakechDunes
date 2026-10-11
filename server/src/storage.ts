@@ -952,18 +952,25 @@ class MongoStorage implements IStorage {
         const before = await Booking.findById(id).session(session);
         if (!before) return;
         const beforeStatus = String(before.status).toUpperCase();
-        if (isCapacityConsumingStatus(beforeStatus) && (
+        const nextStatus = String(updateData.status ?? before.status).toUpperCase();
+        if (isCapacityConsumingStatus(beforeStatus) && isCapacityConsumingStatus(nextStatus) && (
           updateData.activityId !== undefined || updateData.preferredDate !== undefined || updateData.numberOfPeople !== undefined
         )) {
           throw new Error('Capacity-consuming bookings must use a dedicated atomic reschedule operation');
         }
-        const leavingConfirmed = isCapacityConsumingStatus(beforeStatus)
-          && !isCapacityConsumingStatus(String(updateData.status ?? before.status));
+        const leavingConfirmed = isCapacityConsumingStatus(beforeStatus) && !isCapacityConsumingStatus(nextStatus);
         const nextUpdate: Record<string, unknown> = { ...updateData };
         if (leavingConfirmed) {
           const counter = await ensureCapacityCounter(session, String(before.activityId), capacityDateKey(before.preferredDate as unknown as Date));
           const reserved = Number(before.capacityReserved) > 0 ? Number(before.capacityReserved) : Number(before.numberOfPeople) || 0;
-          if (reserved > 0) await CapacityCounter.updateOne({ _id: counter?._id, occupied: { $gte: reserved } }, { $inc: { occupied: -reserved } }, { session });
+          if (reserved > 0) {
+            const release = await CapacityCounter.updateOne(
+              { _id: counter?._id, occupied: { $gte: reserved } },
+              { $inc: { occupied: -reserved } },
+              { session },
+            );
+            if (release.modifiedCount !== 1) throw new Error('Capacity counter underflow prevented');
+          }
           nextUpdate.capacityReserved = 0;
         }
         await Booking.updateOne({ _id: id }, nextUpdate, { session });

@@ -1,5 +1,6 @@
 import nodemailer, { type SendMailOptions, type Transporter } from 'nodemailer';
 import fetch from 'node-fetch';
+import { appendFile } from 'node:fs/promises';
 import { escapeHtml } from './html-escape.js';
 
 /**
@@ -219,6 +220,15 @@ class EmailService {
       text: message,
       html
     };
+
+    // Disposable integration tests capture the fully rendered production email
+    // path without contacting an external provider. This branch is impossible
+    // outside NODE_ENV=test and never logs the recipient or message contents.
+    const captureFile = process.env.EMAIL_CAPTURE_FILE;
+    if (process.env.NODE_ENV === 'test' && captureFile) {
+      await appendFile(captureFile, `${html}\n`, 'utf8');
+      return true;
+    }
 
     // Try SMTP first (primary method)
     if (!this.transporter && this.hasSmtpCredentials()) {

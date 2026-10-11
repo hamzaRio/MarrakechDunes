@@ -5,6 +5,20 @@ import { reschedulingSystem } from '../utils/rescheduling-system.js';
 
 const router = Router();
 
+// Test-only session seeding keeps the real portal reschedule route covered in
+// disposable integration tests without re-enabling the disabled OTP flow.
+router.post('/__test/session', (req: Request, res: Response) => {
+  if (process.env.NODE_ENV !== 'test' || !process.env.TEST_PORTAL_SESSION_SECRET ||
+      req.get('X-Test-Session-Secret') !== process.env.TEST_PORTAL_SESSION_SECRET) {
+    return res.status(404).end();
+  }
+  const phone = typeof req.body?.phone === 'string' ? req.body.phone.trim() : '';
+  if (!phone || !req.session) return res.status(400).json({ status: 'error' });
+  (req.session as any).portalAuthenticated = true;
+  (req.session as any).portalPhone = phone;
+  return res.status(204).end();
+});
+
 /**
  * POST /api/portal/request-otp
  * Request OTP for customer portal login

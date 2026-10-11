@@ -23,8 +23,11 @@ cp server/.env.example server/.env   # fill in DATABASE_URL at minimum
 npm run dev   # or: npm --prefix server run dev (API) + npm --prefix client run dev (SPA)
 ```
 
-A local MongoDB is required (`docker run -p 27017:27017 mongo:7` works, or
-use a free MongoDB Atlas cluster). There is no seeded data by default as
+A transaction-capable MongoDB replica set is required. For local/reference
+use the existing single-node replica-set Compose setup (`docker compose up -d
+mongo`, then use its URI with `?replicaSet=rs0`) or a managed replica set/
+sharded deployment. A standalone `docker run -p 27017:27017 mongo:7` is
+unsupported and the API fails fast. There is no seeded data by default as
 of this hardening pass (see §4) - create a superadmin with the bootstrap
 flow below.
 

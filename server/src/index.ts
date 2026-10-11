@@ -290,9 +290,16 @@ app.use(compression({
 app.use(requestIdMiddleware);
 
 morgan.token('request-id', (req: Request) => (req as any).requestId || '-');
+morgan.token('safe-url', (req: Request) => {
+  try {
+    return new URL(req.originalUrl || req.url, 'http://localhost').pathname;
+  } catch {
+    return req.path;
+  }
+});
 
 // Request logging
-app.use(morgan(':request-id :method :url :status :res[content-length] - :response-time ms', {
+app.use(morgan(':request-id :method :safe-url :status :res[content-length] - :response-time ms', {
   skip: (req: Request, res: Response) => {
     // Skip logging for health checks and static assets
     return req.url === '/api/health' || req.url.startsWith('/images/');
