@@ -113,7 +113,7 @@ The dashboard displays operational metrics returned by the server. Its general s
 - Production session cookies are `HttpOnly`, `Secure`, and `SameSite=None` for the Vercel-to-Render deployment.
 - Session cookie lifetime, Mongo session-store TTL, and memory-store TTL are seven days.
 - Rolling sessions refresh their expiry during authenticated activity.
-- MongoDB stores production sessions when `DATABASE_URL` is configured; the local fallback is an in-memory store.
+- MongoDB stores production sessions when `DATABASE_URL` is configured; the API requires a transaction-capable replica set (including a single-node local replica set).
 - Unsafe requests use double-submit CSRF protection with the `marrakech.csrf` cookie and `X-CSRF-Token` header.
 - The frontend obtains the CSRF token from `GET /api/session/init` and keeps it in memory.
 - Existing valid CSRF tokens are reused; missing or invalid tokens are replaced with a cryptographically random 64-character hexadecimal token.

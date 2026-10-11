@@ -8,7 +8,7 @@ The root `.env.example` is the canonical template. Frontend `VITE_API_URL` is bu
 
 | Integration | Variables | Classification / secrecy | Missing behavior; current status | Buyer ownership / coupling / migration |
 |---|---|---|---|---|
-| MongoDB | DATABASE_URL | required, secret | startup fails; active | Buyer-owned; URL already replaceable. Keep current Mongo session store and indexes. |
+| MongoDB | DATABASE_URL | required, secret | startup fails unless replica-set/sharded transaction capability is advertised; active | Buyer-owned transaction-capable deployment; a single-node replica set is valid for local/reference use. |
 | Security/bootstrap | SESSION_SECRET, JWT_SECRET, ADMIN_PASSWORD, SUPERADMIN_PASSWORD | required, secret | startup fails; active validation/bootstrap | Buyer-supplied eventually. Current staff identities/passwords and seed behavior remain unchanged until Phase 3. |
 | Browser/CORS | VITE_API_URL, CORS_ALLOWED_ORIGINS, CORS_ALLOWED_ORIGIN_PATTERNS; development-only CLIENT_URL | required frontend URL + exact origin config, public | missing production browser URL errors; active | Buyer-owned domains; production fails closed without exact deployment-owned origins. No generic wildcard credentialed CORS. |
 | Cookie/proxy | COOKIE_SECURE, COOKIE_SAMESITE, COOKIE_DOMAIN, TRUST_PROXY | optional, public | production defaults secure/none/no domain/one proxy hop; active | Buyer-configurable for later domain topology; cookie name, lifetime, CSRF and session store unchanged. |

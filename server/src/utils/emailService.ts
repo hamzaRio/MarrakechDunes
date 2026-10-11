@@ -16,6 +16,21 @@ import { escapeHtml } from './html-escape.js';
 // renders the HTML. The whole message is HTML-escaped before the <br>
 // substitution, so plain text content (including names with `&`, `"`, `'`,
 // `<tag>`) is always shown literally.
+export function renderEmailHtml(message: string): string {
+  return `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #059669;">Marrakech Dunes</h2>
+        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          ${escapeHtml(message).replace(/\n/g, '<br>')}
+        </div>
+        <p style="color: #666; font-size: 14px;">
+          Cordialement,<br>
+          L'équipe Marrakech Dunes
+        </p>
+      </div>
+    `;
+}
+
 class EmailService {
   private transporter: Transporter | null = null;
 
@@ -79,20 +94,13 @@ class EmailService {
   }
 
   private buildHtml(message: string): string {
-    return `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #059669;">Marrakech Dunes</h2>
-        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
-          ${escapeHtml(message).replace(/\n/g, '<br>')}
-        </div>
-        <p style="color: #666; font-size: 14px;">
-          Cordialement,<br>
-          L'équipe Marrakech Dunes
-        </p>
-      </div>
-    `;
+    return renderEmailHtml(message);
   }
 
+  /** Exposed for the disposable rendering harness; delivery remains private. */
+  renderHtmlForTest(message: string): string {
+    return this.buildHtml(message);
+  }
   private async sendViaSMTP(mailOptions: SendMailOptions): Promise<boolean> {
     if (!this.transporter) {
       return false;

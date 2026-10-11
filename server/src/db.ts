@@ -65,6 +65,11 @@ export async function connectToDatabase(): Promise<void> {
         zlibCompressionLevel: 6,
       });
 
+      // Booking confirmation, capacity reservation, payment/audit, and
+      // destructive mutations all rely on MongoDB transactions. Refuse to
+      // advertise a healthy server when connected to a standalone mongod.
+      await assertTransactionCapability();
+
       console.log('[db] Connected to MongoDB - ready for tour bookings');
 
       mongoose.connection.on('error', (error) => {
@@ -96,6 +101,13 @@ export async function connectToDatabase(): Promise<void> {
       console.log(`[db] Retrying in ${retryDelay / 1000} seconds...`);
       await new Promise((resolve) => setTimeout(resolve, retryDelay));
     }
+  }
+}
+
+export async function assertTransactionCapability(): Promise<void> {
+  const hello = await mongoose.connection.db?.admin().command({ hello: 1 });
+  if (!hello?.setName && !hello?.msg?.includes('isdbgrid')) {
+    throw new Error('MongoDB transactions require a replica set or sharded deployment; standalone MongoDB is unsupported');
   }
 }
 

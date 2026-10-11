@@ -3,6 +3,7 @@ import { randomBytes } from 'crypto';
 import { cacheService } from './services/cache-service.js';
 import { loggingService } from './services/logging-service.js';
 import { normalizeBookingPagination } from './utils/booking-query.js';
+import { capacityDateKey, isCapacityConsumingStatus } from './utils/booking-capacity.js';
 import { hashPasswordForPersistence, prepareUserUpdateForPersistence } from './utils/password-hashing.js';
 import { runDemoSeed, type StaffBootstrapState } from './bootstrap/bootstrap-policy.js';
 import type {
@@ -165,8 +166,29 @@ const AuditLog = mongoose.model('AuditLog', auditLogSchema);
 const Review = mongoose.model('Review', reviewSchema);
 const CapacityCounter = mongoose.model('CapacityCounter', capacityCounterSchema);
 
-function capacityDateKey(date: Date): string {
-  return new Date(date).toISOString().slice(0, 10);
+async function ensureCapacityCounter(session: mongoose.ClientSession, activityId: string, dateKey: string): Promise<any> {
+  const existing = await CapacityCounter.findOne({ activityId, dateKey }).session(session);
+  const dayStart = new Date(`${dateKey}T00:00:00.000Z`);
+  const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
+  const aggregate = await Booking.aggregate([
+    { $match: { activityId: new mongoose.Types.ObjectId(activityId), preferredDate: { $gte: dayStart, $lt: dayEnd }, status: { $in: ['CONFIRMED', 'confirmed', 'COMPLETED', 'completed'] } } },
+    { $group: { _id: null, occupied: { $sum: { $convert: { input: '$numberOfPeople', to: 'double', onError: 0, onNull: 0 } } } } },
+  ]).session(session);
+  const occupied = Number(aggregate[0]?.occupied) || 0;
+  if (existing) {
+    // Reconcile every time the counter is touched. This repairs legacy rows
+    // that predate capacityReserved and keeps the counter derived from the
+    // canonical consuming booking set rather than from mutable bookkeeping.
+    await CapacityCounter.updateOne({ _id: existing._id }, { $set: { occupied } }, { session });
+    existing.occupied = occupied;
+    return existing;
+  }
+  try {
+    return await CapacityCounter.create([{ activityId, dateKey, occupied }], { session }).then((docs) => docs[0]);
+  } catch (error: any) {
+    if (error?.code !== 11000) throw error;
+    return CapacityCounter.findOne({ activityId, dateKey }).session(session);
+  }
 }
 
 export interface IStorage {
@@ -229,7 +251,8 @@ export interface IStorage {
   getBookingByIdempotencyHash(hash: string): Promise<BookingType | null>;
   updateBooking(id: string, updateData: Partial<InsertBooking>): Promise<BookingType | null>;
   updateBookingStatus(id: string, status: string): Promise<BookingType | null>;
-  confirmBookingWithCapacity(id: string, capacityLimit: number, options?: { force?: boolean }): Promise<{ ok: true; booking: BookingType | null; overbooked: boolean } | { ok: false; reason: 'CAPACITY_EXCEEDED' | 'NOT_FOUND' }>;
+  updateBookingStatusAtomic(id: string, status: string, options?: { audit?: InsertAuditLog }): Promise<BookingType | null>;
+  confirmBookingWithCapacity(id: string, capacityLimit: number, options?: { force?: boolean; audit?: InsertAuditLog }): Promise<{ ok: true; booking: BookingType | null; overbooked: boolean } | { ok: false; reason: 'CAPACITY_EXCEEDED' | 'NOT_FOUND' }>;
   releaseBookingCapacity(bookingId: string): Promise<void>;
   updateBookingPayment(id: string, paymentData: {
     paymentStatus: string;
@@ -928,19 +951,19 @@ class MongoStorage implements IStorage {
       await session.withTransaction(async () => {
         const before = await Booking.findById(id).session(session);
         if (!before) return;
-        const leavingConfirmed = String(before.status).toUpperCase() === 'CONFIRMED'
-          && String(updateData.status ?? before.status).toUpperCase() !== 'CONFIRMED';
+        const beforeStatus = String(before.status).toUpperCase();
+        if (isCapacityConsumingStatus(beforeStatus) && (
+          updateData.activityId !== undefined || updateData.preferredDate !== undefined || updateData.numberOfPeople !== undefined
+        )) {
+          throw new Error('Capacity-consuming bookings must use a dedicated atomic reschedule operation');
+        }
+        const leavingConfirmed = isCapacityConsumingStatus(beforeStatus)
+          && !isCapacityConsumingStatus(String(updateData.status ?? before.status));
         const nextUpdate: Record<string, unknown> = { ...updateData };
         if (leavingConfirmed) {
-          const reserved = Number(before.capacityReserved) || 0;
-          if (reserved > 0) {
-            const dateKey = capacityDateKey(before.preferredDate as unknown as Date);
-            await CapacityCounter.findOneAndUpdate(
-              { activityId: String(before.activityId), dateKey },
-              { $inc: { occupied: -reserved } },
-              { session },
-            );
-          }
+          const counter = await ensureCapacityCounter(session, String(before.activityId), capacityDateKey(before.preferredDate as unknown as Date));
+          const reserved = Number(before.capacityReserved) > 0 ? Number(before.capacityReserved) : Number(before.numberOfPeople) || 0;
+          if (reserved > 0) await CapacityCounter.updateOne({ _id: counter?._id, occupied: { $gte: reserved } }, { $inc: { occupied: -reserved } }, { session });
           nextUpdate.capacityReserved = 0;
         }
         await Booking.updateOne({ _id: id }, nextUpdate, { session });
@@ -957,12 +980,39 @@ class MongoStorage implements IStorage {
   }
 
   async updateBookingStatus(id: string, status: string): Promise<BookingType | null> {
-    const booking = await Booking.findByIdAndUpdate(id, { status }, { new: true });
-    if (booking) {
-      // Smart cache invalidation
-      await cacheService.invalidateRelated('booking', id);
+    // Keep the legacy storage interface safe for callers outside the admin
+    // router: all status changes must use the same transactional capacity path.
+    return this.updateBookingStatusAtomic(id, status);
+  }
+
+  async updateBookingStatusAtomic(id: string, status: string, options?: { audit?: InsertAuditLog }): Promise<BookingType | null> {
+    const session = await mongoose.startSession();
+    let updated: any = null;
+    try {
+      await session.withTransaction(async () => {
+        const before = await Booking.findById(id).session(session);
+        if (!before) return;
+        const current = String(before.status).toUpperCase();
+        const next = String(status).toUpperCase();
+        if (isCapacityConsumingStatus(current) && !isCapacityConsumingStatus(next)) {
+          const counter = await ensureCapacityCounter(session, String(before.activityId), capacityDateKey(before.preferredDate as unknown as Date));
+          const reserved = Number(before.capacityReserved) > 0 ? Number(before.capacityReserved) : Number(before.numberOfPeople) || 0;
+          if (reserved > 0) {
+            const release = await CapacityCounter.updateOne({ _id: counter?._id, occupied: { $gte: reserved } }, { $inc: { occupied: -reserved } }, { session });
+            if (release.modifiedCount !== 1) throw new Error('Capacity counter underflow prevented');
+          }
+          await Booking.updateOne({ _id: id }, { $set: { status: next, capacityReserved: 0 } }, { session });
+        } else {
+          await Booking.updateOne({ _id: id }, { $set: { status: next } }, { session });
+        }
+        if (options?.audit) await AuditLog.create([options.audit], { session });
+        updated = await Booking.findById(id).session(session);
+      });
+    } finally {
+      await session.endSession();
     }
-    return this.transformDocument(booking);
+    if (updated) await cacheService.invalidateRelated('booking', id);
+    return this.transformDocument(updated);
   }
 
   // M4: atomically reserve capacity and confirm the booking in one
@@ -976,71 +1026,40 @@ class MongoStorage implements IStorage {
   async confirmBookingWithCapacity(
     id: string,
     capacityLimit: number,
-    options?: { force?: boolean },
+    options?: { force?: boolean; audit?: InsertAuditLog },
   ): Promise<{ ok: true; booking: BookingType | null; overbooked: boolean } | { ok: false; reason: 'CAPACITY_EXCEEDED' | 'NOT_FOUND' }> {
-    const booking = await Booking.findById(id);
-    if (!booking) return { ok: false, reason: 'NOT_FOUND' };
-    if (String(booking.status).toUpperCase() === 'CONFIRMED') {
-      // Already confirmed (e.g. a retried request) - idempotent no-op.
-      return { ok: true, booking: this.transformDocument(booking), overbooked: false };
-    }
-    const people = Number(booking.numberOfPeople) || 0;
-    const dateKey = capacityDateKey(booking.preferredDate as unknown as Date);
-    const activityId = String(booking.activityId);
-    const force = options?.force === true;
-
-    // Unlimited capacity: skip the counter entirely.
-    if (!Number.isFinite(capacityLimit) || capacityLimit <= 0) {
-      const updated = await Booking.findByIdAndUpdate(id, { status: 'CONFIRMED', capacityReserved: 0 }, { new: true });
-      await cacheService.invalidateRelated('booking', id);
-      return { ok: true, booking: this.transformDocument(updated), overbooked: false };
-    }
-
-    // First use must account for legacy confirmed bookings that predate the
-    // counter. Upsert with $setOnInsert makes initialization idempotent; a
-    // concurrent initializer either observes the inserted value or retries
-    // after the unique-key race without ever resetting occupancy to zero.
-    const dayStart = new Date(`${dateKey}T00:00:00.000Z`);
-    const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
-    const existingConfirmed = await Booking.aggregate([
-      { $match: { activityId: booking.activityId, preferredDate: { $gte: dayStart, $lt: dayEnd }, status: /^confirmed$/i } },
-      { $group: { _id: null, occupied: { $sum: '$numberOfPeople' } } },
-    ]);
-    const initialOccupied = Number(existingConfirmed[0]?.occupied) || 0;
-    try {
-      await CapacityCounter.findOneAndUpdate(
-        { activityId, dateKey },
-        { $setOnInsert: { activityId, dateKey, occupied: initialOccupied } },
-        { upsert: true, new: true },
-      );
-    } catch (e: any) {
-      if (e?.code !== 11000) throw e;
-    }
-
+    const session = await mongoose.startSession();
+    let updated: any = null;
     let overbooked = false;
-    let reserved = await CapacityCounter.findOneAndUpdate(
-      { activityId, dateKey, occupied: { $lte: capacityLimit - people } },
-      { $inc: { occupied: people } },
-      { new: true },
-    );
-    if (!reserved) {
-      if (!force) {
-        return { ok: false, reason: 'CAPACITY_EXCEEDED' };
-      }
-      // Authorized superadmin override: reserve unconditionally.
-      reserved = await CapacityCounter.findOneAndUpdate(
-        { activityId, dateKey },
-        { $inc: { occupied: people } },
-        { new: true },
-      );
-      overbooked = true;
-    }
-
-    const updated = await Booking.findByIdAndUpdate(
-      id,
-      { status: 'CONFIRMED', capacityReserved: people },
-      { new: true },
-    );
+    let rejected = false;
+    try {
+      await session.withTransaction(async () => {
+        const booking = await Booking.findById(id).session(session);
+        if (!booking) return;
+        if (isCapacityConsumingStatus(booking.status)) { updated = booking; return; }
+        const people = Math.max(0, Number(booking.numberOfPeople) || 0);
+        const dateKey = capacityDateKey(booking.preferredDate as unknown as Date);
+        const counter = await ensureCapacityCounter(session, String(booking.activityId), dateKey);
+        const force = options?.force === true;
+        if (Number.isFinite(capacityLimit) && capacityLimit > 0) {
+          const reserved = await CapacityCounter.findOneAndUpdate(
+            { _id: counter._id, occupied: { $lte: capacityLimit - people } },
+            { $inc: { occupied: people } },
+            { new: true, session },
+          );
+          if (!reserved) {
+            if (!force) { rejected = true; return; }
+            await CapacityCounter.updateOne({ _id: counter._id }, { $inc: { occupied: people } }, { session });
+            overbooked = true;
+          }
+        }
+        await Booking.updateOne({ _id: id }, { $set: { status: 'CONFIRMED', capacityReserved: people } }, { session });
+        if (options?.audit) await AuditLog.create([options.audit], { session });
+        updated = await Booking.findById(id).session(session);
+      });
+    } finally { await session.endSession(); }
+    if (rejected) return { ok: false, reason: 'CAPACITY_EXCEEDED' };
+    if (!updated) return { ok: false, reason: 'NOT_FOUND' };
     await cacheService.invalidateRelated('booking', id);
     return { ok: true, booking: this.transformDocument(updated), overbooked };
   }
@@ -1049,17 +1068,7 @@ class MongoStorage implements IStorage {
   // booking is cancelled, deleted, or reverted) so the seats become
   // available to other bookings for that activity/day again.
   async releaseBookingCapacity(bookingId: string): Promise<void> {
-    const booking = await Booking.findById(bookingId);
-    if (!booking) return;
-    const reserved = Number(booking.capacityReserved) || 0;
-    if (reserved <= 0) return;
-    const dateKey = capacityDateKey(booking.preferredDate as unknown as Date);
-    const activityId = String(booking.activityId);
-    await CapacityCounter.findOneAndUpdate(
-      { activityId, dateKey },
-      { $inc: { occupied: -reserved } },
-    );
-    await Booking.findByIdAndUpdate(bookingId, { capacityReserved: 0 });
+    await this.updateBookingStatusAtomic(bookingId, 'CANCELLED');
   }
 
   async updateBookingPayment(id: string, paymentData: {
@@ -1124,14 +1133,14 @@ class MongoStorage implements IStorage {
         before = await Booking.findById(id).session(session);
         if (!before) return;
         await AuditLog.create([audit], { session });
-        const reserved = Number(before.capacityReserved) || 0;
-        if (reserved > 0) {
+        if (isCapacityConsumingStatus(before.status)) {
           const dateKey = capacityDateKey(before.preferredDate as unknown as Date);
-          await CapacityCounter.findOneAndUpdate(
-            { activityId: String(before.activityId), dateKey },
-            { $inc: { occupied: -reserved } },
-            { session },
-          );
+          const counter = await ensureCapacityCounter(session, String(before.activityId), dateKey);
+          const reserved = Number(before.capacityReserved) > 0 ? Number(before.capacityReserved) : Number(before.numberOfPeople) || 0;
+          if (reserved > 0) {
+            const release = await CapacityCounter.updateOne({ _id: counter?._id, occupied: { $gte: reserved } }, { $inc: { occupied: -reserved } }, { session });
+            if (release.modifiedCount !== 1) throw new Error('Capacity counter underflow prevented');
+          }
         }
         const result = await Booking.deleteOne({ _id: id }, { session });
         deleted = result.deletedCount === 1;

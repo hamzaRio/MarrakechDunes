@@ -9,6 +9,8 @@
     "bootstrap": "npm run build && node dist/bootstrap/cli.js",
     "db:ensure-indexes": "npm run build && node dist/scripts/ensure-indexes.js",
     "test:capacity-concurrency": "tsx src/scripts/capacity-concurrency-harness.ts",
+    "test:capacity-legacy-lifecycle": "tsx src/scripts/capacity-legacy-lifecycle-harness.ts",
+    "test:capacity-override-rollback": "tsx src/scripts/capacity-override-rollback-harness.ts",
     "start": "node dist/index.js",
     "start:build": "npm run build && node dist/index.js"
   },

@@ -6,6 +6,11 @@ on:
   push:
     branches: [main]
 
+env:
+  # mongodb-memory-server downloads are installed explicitly by the
+  # integration job; dependency installation must remain network-bounded.
+  MONGOMS_DISABLE_POSTINSTALL: '1'
+
 jobs:
   typecheck:
     name: Typecheck
@@ -66,7 +71,12 @@ jobs:
         env:
           VITE_API_URL: http://127.0.0.1:18080/api
       - run: REQUIRE_BROWSER_API=1 npm run test:browser-hardening
-      - run: npm run build:server && npx tsx server/src/scripts/capacity-concurrency-harness.ts
+      - run: npm run build:server
+      - run: npx tsx server/src/scripts/capacity-concurrency-harness.ts
+      - run: npx tsx server/src/scripts/capacity-legacy-lifecycle-harness.ts
+      - run: npx tsx server/src/scripts/capacity-override-rollback-harness.ts
+      - run: npm run test:non-storage-integration
+      - run: npm run test:transaction-capability
       - name: Download pinned MongoDB Database Tools
         run: |
           curl -fsSL https://fastdl.mongodb.org/tools/db/mongodb-database-tools-ubuntu2404-x86_64-100.12.2.tgz -o /tmp/mongodb-tools.tgz

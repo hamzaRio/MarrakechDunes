@@ -6,7 +6,7 @@ import { consumeGYGRateLimit } from '../services/gyg-rate-limits.js';
 import { gygRequestKey, gygResilience, isGYGServiceUnavailable } from '../services/gyg-resilience.js';
 import { rankCandidateMatches, isComparableValidationState, type MatchableActivity, type ManualOverrideDecision } from '../services/gyg-matching.js';
 import { parseBookingDateOnly } from '../utils/booking-query.js';
-import { BOOKING_STATUSES, BookingStatusAuditError, evaluateBookingStatusChange, executeBookingStatusMutation, hasAuthorizedSuperadminOverride, normalizeOverrideReason, MAX_OVERRIDE_REASON_LENGTH } from '../utils/booking-status-override.js';
+import { BOOKING_STATUSES, BookingStatusAuditError, evaluateBookingStatusChange, hasAuthorizedSuperadminOverride, normalizeOverrideReason, MAX_OVERRIDE_REASON_LENGTH } from '../utils/booking-status-override.js';
 import type { BookingType } from 'marrakechdunes-shared/schema';
 
 const router = Router();
@@ -241,67 +241,40 @@ router.patch('/bookings/:id/status', async (req: Request, res: Response) => {
       const overbookingLimit = settings?.overbookingAllowed ? Number(settings.overbookingLimit) || 0 : 0;
       const effectiveLimit = capacityLimit > 0 ? capacityLimit + overbookingLimit : 0;
 
-      const result = await storage.confirmBookingWithCapacity(id, effectiveLimit, { force: hasExplicitSuperadminOverride });
+      const overrideAudit = (decision.forced || hasExplicitSuperadminOverride) ? {
+        userId: String((req.session as any).userId || 'unknown'),
+        action: 'BOOKING_STATUS_OVERRIDE',
+        details: JSON.stringify({
+          phase: 'authorized_override', bookingId: id, bookingReference: booking.bookingReference,
+          fromStatus: currentStatus, toStatus: normalizedStatus, reason: trimmedOverrideReason,
+          capacityOverridden: hasExplicitSuperadminOverride,
+        }),
+      } : undefined;
+      const result = await storage.confirmBookingWithCapacity(id, effectiveLimit, { force: hasExplicitSuperadminOverride, audit: overrideAudit });
       if (!result.ok) {
         return res.status(409).json({ status: 'error', code: 'BOOKING_CAPACITY_EXCEEDED', message: 'Cannot confirm this booking because the activity capacity is full for the selected date.' });
       }
       updatedBooking = result.booking;
       capacityOverridden = result.overbooked;
 
-      if (decision.forced || capacityOverridden) {
-        try {
-          await storage.createAuditLog({
-            userId: String((req.session as any).userId || 'unknown'),
-            action: 'BOOKING_STATUS_OVERRIDE',
-            details: JSON.stringify({
-              phase: 'authorized_override',
-              bookingId: id,
-              bookingReference: booking.bookingReference,
-              fromStatus: currentStatus,
-              toStatus: normalizedStatus,
-              reason: trimmedOverrideReason,
-              capacityOverridden,
-            }),
-          });
-        } catch (error) {
-          console.error('[ADMIN] Failed to audit booking status override:', error);
-          return res.status(500).json({ status: 'error', message: 'Failed to record booking status override' });
-        }
-      }
+      // Capacity and the override audit are committed by the same transaction.
     } else {
       const requiresOverrideAudit = decision.forced;
       try {
-        updatedBooking = await executeBookingStatusMutation({
-          requiresAudit: requiresOverrideAudit,
-          createAudit: async () => {
-            await storage.createAuditLog({
-              userId: String((req.session as any).userId || 'unknown'),
-              action: 'BOOKING_STATUS_OVERRIDE',
-              details: JSON.stringify({
-                phase: 'authorized_override',
-                bookingId: id,
-                bookingReference: booking.bookingReference,
-                fromStatus: currentStatus,
-                toStatus: normalizedStatus,
-                reason: trimmedOverrideReason,
-                capacityOverridden,
-              }),
-            });
-          },
-          updateStatus: () => storage.updateBookingStatus(id, normalizedStatus),
-        });
+        updatedBooking = await storage.updateBookingStatusAtomic(id, normalizedStatus, requiresOverrideAudit ? {
+          audit: {
+            userId: String((req.session as any).userId || 'unknown'),
+            action: 'BOOKING_STATUS_OVERRIDE',
+            details: JSON.stringify({ phase: 'authorized_override', bookingId: id, bookingReference: booking.bookingReference,
+              fromStatus: currentStatus, toStatus: normalizedStatus, reason: trimmedOverrideReason, capacityOverridden }),
+          }
+        } : undefined);
       } catch (error) {
         if (error instanceof BookingStatusAuditError) {
           console.error('[ADMIN] Failed to audit booking status override:', error);
           return res.status(500).json({ status: 'error', message: 'Failed to record booking status override' });
         }
         throw error;
-      }
-      // M4: releasing a CONFIRMED booking's reserved seats when it moves to
-      // any non-CONFIRMED status (cancelled, rejected, etc.) so those seats
-      // become available to other bookings again.
-      if (wasConfirmed && normalizedStatus !== 'CONFIRMED') {
-        await storage.releaseBookingCapacity(id);
       }
     }
     if (!updatedBooking) {
@@ -891,6 +864,9 @@ const handleBookingPayment = async (req: Request, res: Response) => {
     // Phase 4 §7: paidAmount cannot be negative or non-finite (NaN, Infinity).
     // This mirrors the finite/non-negative check already applied below to
     // depositAmount — previously only depositAmount was validated here.
+    if (paidAmount === null) {
+      return res.status(400).json({ status: 'error', message: 'Paid amount is required when supplied and cannot be null' });
+    }
     if (paidAmount !== undefined) {
       const numericPaidAmount = Number(paidAmount);
       if (!Number.isFinite(numericPaidAmount) || numericPaidAmount < 0) {

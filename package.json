@@ -40,7 +40,9 @@
     "test:backup-restore": "node scripts/backup-restore-harness.mjs",
     "test:email-escaping": "tsx scripts/email-escaping-harness.ts",
     "test:log-privacy": "tsx scripts/log-privacy-harness.ts",
-    "test:owner-deidentification": "node scripts/owner-deidentification-harness.mjs"
+    "test:owner-deidentification": "node scripts/owner-deidentification-harness.mjs",
+    "test:non-storage-integration": "node scripts/non-storage-integration-harness.mjs",
+    "test:transaction-capability": "node scripts/transaction-capability-harness.mjs"
   },
   "dependencies": {
     "node-fetch": "^3.3.2"
@@ -48,6 +50,7 @@
   "devDependencies": {
     "@playwright/test": "^1.63.0",
     "concurrently": "^8.2.2",
+    "supertest": "^7.1.4",
     "tsx": "^4.19.2",
     "typescript": "5.6.3"
   }
