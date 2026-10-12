@@ -80,8 +80,13 @@ try {
   const adminRecord = await db.collection('users').findOne({ _id: adminId });
   await db.collection('users').updateOne({ _id: adminId }, { $set: { role: 'customer' } });
   check((await admin.agent.get('/api/admin/bookings')).status === 401, 'stale admin session remained valid after demotion');
+  await db.collection('users').replaceOne({ _id: adminId }, adminRecord);
+  const deletedUserSession = await login('integration-admin');
+  check((await deletedUserSession.agent.get('/api/admin/bookings')).status === 200, 'fresh admin session was not valid before deletion');
   await db.collection('users').deleteOne({ _id: adminId });
-  check((await admin.agent.get('/api/admin/bookings')).status === 401, 'deleted user retained access in the same session');
+  const deletedUserResponse = await deletedUserSession.agent.get('/api/admin/bookings');
+  check(deletedUserResponse.status === 401, 'deleted user retained access in the same fresh session');
+  check(deletedUserResponse.body?.message === 'Session no longer valid', 'deleted-user response did not use the invalid-session branch');
   await db.collection('users').insertOne(adminRecord);
   const activeAdmin = await login('integration-admin');
 
