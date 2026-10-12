@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 
 const routing = await readFile("client/src/lib/admin-routing.ts", "utf8");
 const auth = await readFile("client/src/hooks/use-auth.ts", "utf8");
+const adminRoute = await readFile("client/src/components/admin-route.tsx", "utf8");
 const app = await readFile("client/src/App.tsx", "utf8");
 const portal = await readFile("client/src/pages/customer-portal.tsx", "utf8");
 
@@ -14,6 +15,10 @@ for (const path of adminPaths) assert.equal(isAdminPath(path), true, `admin path
 assert.match(routing, /pathname === "\/admin" \|\| pathname\.startsWith\("\/admin\/"\)/);
 assert.match(auth, /enabled:\s*isAdminRoute/);
 assert.match(auth, /isAdminRoute && !isAuthRejected/);
+assert.doesNotMatch(auth, /localStorage\.getItem\(['"]user['"]\)/);
+assert.doesNotMatch(auth, /serverUser\s*\|\|\s*localUser/);
+assert.doesNotMatch(adminRoute, /Check localStorage as fallback/);
+assert.doesNotMatch(adminRoute, /const localUser = JSON\.parse\(localStorage\.getItem/);
 assert.match(app, /function StaffSessionRuntime/);
 assert.match(app, /if \(!isAdminPath\(location\)\) return null/);
 assert.equal((app.match(/<AutoLogout timeoutMinutes=\{5\} warningMinutes=\{1\} \/>/g) || []).length, 1);

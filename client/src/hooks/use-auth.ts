@@ -44,20 +44,10 @@ export function useAuth() {
   const isAuthRejected = authStatus === 401;
   const serverUser = (data && 'user' in data && data.user) ? data.user : null;
   
-  // For admin routes, also check localStorage as fallback
-  let localUser: SessionUser | null = null;
-  if (isAdminRoute && !serverUser && !isLoading && !isAuthRejected) {
-    try {
-      const stored = localStorage.getItem('user');
-      if (stored) {
-        localUser = JSON.parse(stored) as SessionUser;
-      }
-    } catch (error) {
-      console.warn('[AUTH] Failed to parse stored user:', error);
-      localStorage.removeItem('user');
-    }
-  }
-  const finalUser = isAdminRoute && !isAuthRejected ? serverUser || localUser : null;
+  // The server session is the only authority for Admin access. Browser
+  // storage is cleared on rejection, but it must never grant access while the
+  // authoritative session check is unavailable or incomplete.
+  const finalUser = isAdminRoute && !isAuthRejected ? serverUser : null;
   
   // Clear persisted state only when the authoritative auth check explicitly returns 401.
   if (!isLoading && isAuthRejected && isAdminRoute) {
