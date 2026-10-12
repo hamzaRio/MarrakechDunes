@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { ExternalLink, MessageCircle, Phone, Users } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getBookingDateOnly } from '@/lib/booking-utils';
+import { supportContacts } from '@/lib/support-config';
 
 interface WhatsAppContact {
   name: string;
@@ -25,11 +26,7 @@ export function WhatsAppNotificationPanel({
   message, 
   customerMessage, 
   customerPhone,
-  adminContacts = [
-    { name: "Ahmed", phone: "+212600623630", role: "admin" },
-    { name: "Yahia", phone: "+212693323368", role: "admin" },
-    { name: "Nadia", phone: "+212654497354", role: "superadmin" }
-  ]
+  adminContacts = supportContacts.map((contact) => ({ ...contact, role: 'admin' as const }))
 }: WhatsAppNotificationPanelProps) {
   const { toast } = useToast();
   const [sentNotifications, setSentNotifications] = useState<string[]>([]);
@@ -117,9 +114,7 @@ POINT DE RENDEZ-VOUS:
 Nous vous contacterons sous peu pour confirmer le lieu et l'heure exacte de depart.
 
 CONTACT:
-- Ahmed: +212600623630
-- Yahia: +212693323368
-- Nadia: +212654497354
+${supportContacts.map((contact) => `- ${contact.name}: ${contact.phone}`).join('\n') || '- Contact details are configured by the deployment team.'}
 
 PROCHAINES ETAPES:
 1. Notre equipe vous contactera dans les 24h

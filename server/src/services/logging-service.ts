@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { createWriteStream, mkdirSync } from 'fs';
 import type { WriteStream } from 'fs';
 import { join } from 'path';
+import { redactLogValue } from '../utils/log-redaction.js';
 
 export interface LogEntry {
   timestamp: string;
@@ -51,14 +52,17 @@ export class LoggingService {
 
   private formatLogEntry(entry: LogEntry): string {
     const baseLog = `[${entry.timestamp}] [${entry.level.toUpperCase()}] ${entry.message}`;
-    
+
     if (entry.context) {
-      const contextStr = Object.entries(entry.context)
+      // M11: redact phone/email/auth-headers/cookies/tokens/passwords
+      // before anything is formatted into a log line.
+      const redactedContext = redactLogValue(entry.context) as Record<string, unknown>;
+      const contextStr = Object.entries(redactedContext)
         .map(([key, value]) => `${key}=${value}`)
         .join(' ');
       return `${baseLog} | ${contextStr}`;
     }
-    
+
     return baseLog;
   }
 
@@ -161,6 +165,7 @@ export class LoggingService {
   logRequest(req: Request, res: Response, duration: number): void {
     const accessLog = {
       timestamp: new Date().toISOString(),
+      requestId: (req as any).requestId,
       method: req.method,
       url: req.url,
       statusCode: res.statusCode,
@@ -170,7 +175,11 @@ export class LoggingService {
       userId: (req as any).session?.user?.id
     };
 
-    const formattedLog = Object.entries(accessLog)
+    // M11: ip/userAgent are kept (operationally useful, not a credential),
+    // but anything that could carry a credential or PII through this path
+    // still gets redacted defensively.
+    const redactedAccessLog = redactLogValue(accessLog) as Record<string, unknown>;
+    const formattedLog = Object.entries(redactedAccessLog)
       .map(([key, value]) => `${key}=${value}`)
       .join(' ');
 

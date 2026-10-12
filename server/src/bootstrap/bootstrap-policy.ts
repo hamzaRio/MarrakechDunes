@@ -4,7 +4,7 @@ export interface StartupSeedingPolicy {
 }
 
 export function resolveStartupSeedingPolicy(env: NodeJS.ProcessEnv): StartupSeedingPolicy {
-  const legacy = env.LEGACY_STARTUP_SEEDING ?? 'true';
+  const legacy = env.LEGACY_STARTUP_SEEDING ?? 'false';
   const demo = env.SEED_DEMO_DATA ?? 'false';
   if (!['true', 'false'].includes(legacy)) throw new Error('LEGACY_STARTUP_SEEDING must be true or false');
   if (!['true', 'false'].includes(demo)) throw new Error('SEED_DEMO_DATA must be true or false');

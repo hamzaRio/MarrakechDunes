@@ -1,4 +1,12 @@
-const HEALTH = process.env.BACKEND_HEALTH || 'https://marrakechdunes.onrender.com/health';
+// M12: no owner-specific deployment URL is hardcoded here. BACKEND_HEALTH
+// must be supplied by whoever runs this script (CI, a deploy hook, etc.);
+// falling back to a real owner domain would silently probe someone else's
+// deployment instead of failing loudly.
+const HEALTH = process.env.BACKEND_HEALTH;
+if (!HEALTH) {
+  console.error('[wait-backend] BACKEND_HEALTH env var is required (e.g. https://your-api-host/health)');
+  process.exit(1);
+}
 const TIMEOUT_MS = Number(process.env.WAIT_TIMEOUT_MS || 10 * 60 * 1000); // 10 min
 const INTERVAL_MS = 5000;
 

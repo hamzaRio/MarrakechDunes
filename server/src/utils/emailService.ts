@@ -1,5 +1,7 @@
 import nodemailer, { type SendMailOptions, type Transporter } from 'nodemailer';
 import fetch from 'node-fetch';
+import { appendFile } from 'node:fs/promises';
+import { escapeHtml } from './html-escape.js';
 
 /**
  * Email service for MarrakechDunes
@@ -8,6 +10,28 @@ import fetch from 'node-fetch';
  * MIGRATION NOTE: This service now uses SMTP_* variables as canonical.
  * Legacy EMAIL_* variables are supported for backward compatibility.
  */
+// M6: buildHtml() wraps a plain-text message (which can contain a customer
+// name or activity name typed by the customer) in HTML, previously with no
+// escaping beyond \n -> <br>. A customer name of `<script>alert(1)</script>`
+// or `<img src=x onerror=alert(1)>` would execute in whatever mail client
+// renders the HTML. The whole message is HTML-escaped before the <br>
+// substitution, so plain text content (including names with `&`, `"`, `'`,
+// `<tag>`) is always shown literally.
+export function renderEmailHtml(message: string): string {
+  return `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #059669;">Marrakech Dunes</h2>
+        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          ${escapeHtml(message).replace(/\n/g, '<br>')}
+        </div>
+        <p style="color: #666; font-size: 14px;">
+          Cordialement,<br>
+          L'équipe Marrakech Dunes
+        </p>
+      </div>
+    `;
+}
+
 class EmailService {
   private transporter: Transporter | null = null;
 
@@ -71,20 +95,13 @@ class EmailService {
   }
 
   private buildHtml(message: string): string {
-    return `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #059669;">Marrakech Dunes</h2>
-        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
-          ${message.replace(/\n/g, '<br>')}
-        </div>
-        <p style="color: #666; font-size: 14px;">
-          Cordialement,<br>
-          L'équipe Marrakech Dunes
-        </p>
-      </div>
-    `;
+    return renderEmailHtml(message);
   }
 
+  /** Exposed for the disposable rendering harness; delivery remains private. */
+  renderHtmlForTest(message: string): string {
+    return this.buildHtml(message);
+  }
   private async sendViaSMTP(mailOptions: SendMailOptions): Promise<boolean> {
     if (!this.transporter) {
       return false;
@@ -197,12 +214,21 @@ class EmailService {
   async sendEmail(to: string, subject: string, message: string): Promise<boolean> {
     const html = this.buildHtml(message);
     const mailOptions = {
-      from: process.env.SMTP_FROM || process.env.EMAIL_FROM || '"Marrakech Dunes" <timedizzy45@gmail.com>',
+      from: process.env.SMTP_FROM || process.env.EMAIL_FROM || '"Marrakech Dunes" <notifications@example.invalid>',
       to,
       subject,
       text: message,
       html
     };
+
+    // Disposable integration tests capture the fully rendered production email
+    // path without contacting an external provider. This branch is impossible
+    // outside NODE_ENV=test and never logs the recipient or message contents.
+    const captureFile = process.env.EMAIL_CAPTURE_FILE;
+    if (process.env.NODE_ENV === 'test' && captureFile) {
+      await appendFile(captureFile, `${html}\n`, 'utf8');
+      return true;
+    }
 
     // Try SMTP first (primary method)
     if (!this.transporter && this.hasSmtpCredentials()) {

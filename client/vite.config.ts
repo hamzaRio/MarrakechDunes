@@ -1,7 +1,29 @@
-﻿import { defineConfig, loadEnv } from 'vite';
+﻿import { defineConfig, loadEnv, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import path from 'path';
+
+// H1/M12: the CSP connect-src and OG/Twitter URLs used to hardcode the
+// original developer's own Render/Vercel hostnames. A deployment owner now
+// sets VITE_API_URL (required) and optionally VITE_SITE_URL, and this
+// plugin fills the __CSP_CONNECT_SRC__ / __OG_URL__ / __OG_IMAGE__
+// placeholders in index.html/admin.html at build time. No source edit is
+// needed to point a rebuilt site at a different domain.
+function htmlPortabilityPlugin(apiUrl: string, siteUrl: string): Plugin {
+  let apiOrigin = '';
+  try { apiOrigin = apiUrl ? new URL(apiUrl).origin : ''; } catch { apiOrigin = ''; }
+  const ogUrl = siteUrl ? siteUrl.replace(/\/+$/, '') + '/' : '';
+  const ogImage = siteUrl ? `${siteUrl.replace(/\/+$/, '')}/images/riad-kheirredine_1756041288677.jpg` : '';
+  return {
+    name: 'html-portability',
+    transformIndexHtml(html) {
+      return html
+        .replaceAll('__CSP_CONNECT_SRC__', apiOrigin)
+        .replaceAll('__OG_URL__', ogUrl)
+        .replaceAll('__OG_IMAGE__', ogImage);
+    },
+  };
+}
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
@@ -9,6 +31,7 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [
       react(),
+      htmlPortabilityPlugin(env.VITE_API_URL || '', env.VITE_SITE_URL || ''),
       ...(mode === 'admin' ? [] : [VitePWA({
         registerType: 'prompt',
         includeAssets: ['favicon.ico'],

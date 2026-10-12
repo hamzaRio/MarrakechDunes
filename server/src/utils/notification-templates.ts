@@ -1,4 +1,5 @@
 import type { NotificationTemplate } from "marrakechdunes-shared/schema";
+import { getPublicSiteUrl, getSupportPhoneDisplay } from './public-links.js';
 
 export interface NotificationData {
   customerName: string;
@@ -150,8 +151,8 @@ function getVariableValue(variable: string, data: NotificationData): string {
     preferredDate: data.preferredDate.toLocaleDateString(),
     preferredTime: data.preferredDate.toLocaleTimeString(),
     meetingPoint: data.meetingPoint || 'TBD',
-    guideContact: data.guideContact || '+212600000000',
-    emergencyContact: data.emergencyContact || '+212700000000',
+    guideContact: data.guideContact || getSupportPhoneDisplay(),
+    emergencyContact: data.emergencyContact || getSupportPhoneDisplay(),
     paymentMethod: data.paymentMethod || 'Cash',
     paymentStatus: data.paymentStatus || 'Pending',
     status: data.status || 'PENDING',
@@ -159,8 +160,8 @@ function getVariableValue(variable: string, data: NotificationData): string {
     bookingId: data.bookingId || 'N/A',
     packingList: getPackingList(data.activityName),
     guideName: 'Your Guide',
-    reviewLink: 'https://marrakech-dunes.vercel.app/reviews',
-    websiteLink: 'https://marrakech-dunes.vercel.app',
+    reviewLink: getPublicSiteUrl() ? `${getPublicSiteUrl()}/reviews` : '',
+    websiteLink: getPublicSiteUrl(),
     weatherCondition: 'Sunny with clear skies',
     weatherRecommendation: 'Perfect weather for outdoor activities'
   };

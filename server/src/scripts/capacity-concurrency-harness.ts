@@ -1,0 +1,110 @@
+// M4 verification: proves storage.confirmBookingWithCapacity() does not
+// overbook under concurrent confirmation requests, using a disposable
+// MongoDB replica set (transactions/causal consistency require a replica
+// set, which is why this isn't a plain standalone mongod).
+//
+// Scenario (matches the owner-specified acceptance test): an activity with
+// capacity=10, 8 seats already CONFIRMED, and two PENDING bookings of 2
+// people each are confirmed at the same time. Exactly one confirmation
+// must succeed and the other must be rejected with CAPACITY_EXCEEDED - the
+// occupied total must end at exactly 10, never 12. Repeated 5 times with a
+// fresh replica set each run.
+//
+// Run with: npx tsx src/scripts/capacity-concurrency-harness.ts
+// (from server/, after `npm install` has pulled in the mongodb-memory-server
+// devDependency added for this test)
+//
+// This is an executable integration gate. CI and local hardening runs use a
+// cached/downloaded mongod binary and fail closed if the replica set cannot
+// be created; no static-only concurrency claim is accepted.
+import mongoose from 'mongoose';
+import { MongoMemoryReplSet } from 'mongodb-memory-server';
+
+async function run(): Promise<boolean> {
+  const replSet = await MongoMemoryReplSet.create({ replSet: { count: 1, storageEngine: 'wiredTiger' } });
+  const uri = replSet.getUri('capacity_test');
+  await mongoose.connect(uri);
+
+  try {
+    // Register schemas/models (storage.ts does this as a module side effect).
+    const storageModule = await import('../storage.js');
+    const storage: any = storageModule.storage;
+
+    const Activity = mongoose.model('Activity');
+    const Booking = mongoose.model('Booking');
+
+    const activity = await Activity.create({
+      name: 'Concurrency Test Activity',
+      description: 'test',
+      category: 'test',
+      location: 'test',
+      price: 100,
+      duration: '1h',
+      maxParticipants: 10,
+      capacitySettings: { maxParticipants: 10, overbookingAllowed: false },
+      isActive: true,
+      approvalStatus: 'approved',
+    });
+
+    const dateKey = '2030-01-01T00:00:00.000Z';
+    // 8 seats already confirmed via 4 separate bookings (realistic shape).
+    for (let i = 0; i < 4; i++) {
+      await Booking.create({
+        customerName: `Existing ${i}`,
+        customerPhone: '+00000000',
+        activityId: activity._id,
+        numberOfPeople: 2,
+        preferredDate: new Date(dateKey),
+        status: 'CONFIRMED',
+        totalAmount: '100',
+        capacityReserved: 2,
+      });
+    }
+    // Do not seed CapacityCounter: the production first-use path must
+    // reconcile these legacy confirmed bookings itself.
+    const CapacityCounter = mongoose.model('CapacityCounter');
+
+    const pendingA = await Booking.create({
+      customerName: 'Pending A', customerPhone: '+1', activityId: activity._id,
+      numberOfPeople: 2, preferredDate: new Date(dateKey), status: 'PENDING', totalAmount: '100',
+    });
+    const pendingB = await Booking.create({
+      customerName: 'Pending B', customerPhone: '+2', activityId: activity._id,
+      numberOfPeople: 2, preferredDate: new Date(dateKey), status: 'PENDING', totalAmount: '100',
+    });
+
+    const [resultA, resultB] = await Promise.all([
+      storage.confirmBookingWithCapacity(String(pendingA._id), 10),
+      storage.confirmBookingWithCapacity(String(pendingB._id), 10),
+    ]);
+
+    const successes = [resultA, resultB].filter((r) => r.ok).length;
+    const finalCounter = await CapacityCounter.findOne({ activityId: String(activity._id), dateKey: dateKey.slice(0, 10) });
+    const occupied = finalCounter?.occupied ?? -1;
+    const confirmed = await Booking.find({ activityId: activity._id, status: 'CONFIRMED' });
+    const actualOccupied = confirmed.reduce((sum, item) => sum + Number(item.numberOfPeople || 0), 0);
+
+    const pass = successes === 1 && occupied === 10 && actualOccupied === occupied && actualOccupied <= 10;
+    console.log(`[capacity-concurrency] successes=${successes} occupied=${occupied} actual=${actualOccupied} -> ${pass ? 'PASS' : 'FAIL'}`);
+    return pass;
+  } finally {
+    await mongoose.disconnect();
+    await replSet.stop();
+  }
+}
+
+async function main() {
+  const results: boolean[] = [];
+  for (let i = 1; i <= 5; i++) {
+    console.log(`[capacity-concurrency] run ${i}/5`);
+    results.push(await run());
+  }
+  const allPass = results.every(Boolean);
+  console.log(allPass ? '[capacity-concurrency] ALL RUNS PASSED' : '[capacity-concurrency] FAILED - overbooking or wrong success count occurred');
+  process.exitCode = allPass ? 0 : 1;
+}
+
+main().catch((error) => {
+  console.error('[capacity-concurrency] harness error:', error);
+  process.exitCode = 1;
+});

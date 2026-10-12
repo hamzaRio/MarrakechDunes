@@ -273,7 +273,10 @@ export const validateInput = (req: Request, res: Response, next: NextFunction) =
   next();
 };
 
-// Helmet configuration for security headers
+// Helmet configuration for security headers.
+// NOTE: this export is currently unused (server/src/index.ts applies its own
+// helmet() configuration directly); kept de-identified in case it is wired
+// up again, so it never reintroduces an owner-specific origin.
 export const securityHeaders = helmet({
   contentSecurityPolicy: process.env.NODE_ENV === 'production' ? {
     directives: {
@@ -281,8 +284,8 @@ export const securityHeaders = helmet({
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://maps.googleapis.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
       imgSrc: ["'self'", "data:", "https:", "blob:", "https://www.openstreetmap.org", "https://tile.openstreetmap.org", "https://*.tile.openstreetmap.org", "https://images.unsplash.com", "https://*.unsplash.com"],
-      scriptSrc: ["'self'", "'unsafe-eval'"],
-      connectSrc: ["'self'", "https://marrakechdunes-sppy.onrender.com", "https://api.whatsapp.com"],
+      scriptSrc: ["'self'"],
+      connectSrc: ["'self'", "https://api.whatsapp.com"],
       frameSrc: ["'self'", "https://www.openstreetmap.org"],
       objectSrc: ["'none'"],
       upgradeInsecureRequests: [],

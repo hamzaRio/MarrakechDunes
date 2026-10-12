@@ -3,6 +3,7 @@ import { randomBytes } from 'crypto';
 import { cacheService } from './services/cache-service.js';
 import { loggingService } from './services/logging-service.js';
 import { normalizeBookingPagination } from './utils/booking-query.js';
+import { capacityDateKey, isCapacityConsumingStatus } from './utils/booking-capacity.js';
 import { hashPasswordForPersistence, prepareUserUpdateForPersistence } from './utils/password-hashing.js';
 import { runDemoSeed, type StaffBootstrapState } from './bootstrap/bootstrap-policy.js';
 import type {
@@ -83,6 +84,10 @@ const bookingSchema = new mongoose.Schema({
   depositAmount: { type: Number },
   bookingReference: { type: String },
   idempotencyKeyHash: { type: String },
+  // M4: seats actually reserved against the capacity counter for this
+  // booking while CONFIRMED, so releaseBookingCapacity can decrement the
+  // exact amount even if numberOfPeople is edited afterwards.
+  capacityReserved: { type: Number, default: 0 },
 }, { timestamps: true });
 
 const auditLogSchema = new mongoose.Schema({
@@ -99,6 +104,20 @@ const reviewSchema = new mongoose.Schema({
   comment: { type: String, required: true },
   approved: { type: Boolean, default: false },
 }, { timestamps: true });
+
+// M4: atomic per-activity/per-day occupancy counter used to confirm bookings
+// without a race between the capacity check and the status write. The
+// previous flow read the confirmed-bookings sum, then wrote the new status
+// in a separate, unguarded operation - two concurrent confirmations could
+// both read "under capacity" and both write "confirmed", overbooking the
+// activity. Capacity is now enforced by a single, conditional $inc against
+// this document (see confirmBookingWithCapacity below).
+const capacityCounterSchema = new mongoose.Schema({
+  activityId: { type: String, required: true },
+  dateKey: { type: String, required: true }, // YYYY-MM-DD, activity-local calendar day
+  occupied: { type: Number, required: true, default: 0 },
+}, { timestamps: true });
+capacityCounterSchema.index({ activityId: 1, dateKey: 1 }, { unique: true });
 
 // Tour Business Performance Indexes - Enhanced for Production
 // Activity discovery for tourists
@@ -145,6 +164,32 @@ const Activity = mongoose.model('Activity', activitySchema);
 const Booking = mongoose.model('Booking', bookingSchema);
 const AuditLog = mongoose.model('AuditLog', auditLogSchema);
 const Review = mongoose.model('Review', reviewSchema);
+const CapacityCounter = mongoose.model('CapacityCounter', capacityCounterSchema);
+
+async function ensureCapacityCounter(session: mongoose.ClientSession, activityId: string, dateKey: string): Promise<any> {
+  const existing = await CapacityCounter.findOne({ activityId, dateKey }).session(session);
+  const dayStart = new Date(`${dateKey}T00:00:00.000Z`);
+  const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
+  const aggregate = await Booking.aggregate([
+    { $match: { activityId: new mongoose.Types.ObjectId(activityId), preferredDate: { $gte: dayStart, $lt: dayEnd }, status: { $in: ['CONFIRMED', 'confirmed', 'COMPLETED', 'completed'] } } },
+    { $group: { _id: null, occupied: { $sum: { $convert: { input: '$numberOfPeople', to: 'double', onError: 0, onNull: 0 } } } } },
+  ]).session(session);
+  const occupied = Number(aggregate[0]?.occupied) || 0;
+  if (existing) {
+    // Reconcile every time the counter is touched. This repairs legacy rows
+    // that predate capacityReserved and keeps the counter derived from the
+    // canonical consuming booking set rather than from mutable bookkeeping.
+    await CapacityCounter.updateOne({ _id: existing._id }, { $set: { occupied } }, { session });
+    existing.occupied = occupied;
+    return existing;
+  }
+  try {
+    return await CapacityCounter.create([{ activityId, dateKey, occupied }], { session }).then((docs) => docs[0]);
+  } catch (error: any) {
+    if (error?.code !== 11000) throw error;
+    return CapacityCounter.findOne({ activityId, dateKey }).session(session);
+  }
+}
 
 export interface IStorage {
   getUser(id: string): Promise<UserType | null>;
@@ -206,13 +251,23 @@ export interface IStorage {
   getBookingByIdempotencyHash(hash: string): Promise<BookingType | null>;
   updateBooking(id: string, updateData: Partial<InsertBooking>): Promise<BookingType | null>;
   updateBookingStatus(id: string, status: string): Promise<BookingType | null>;
+  updateBookingStatusAtomic(id: string, status: string, options?: { audit?: InsertAuditLog }): Promise<BookingType | null>;
+  confirmBookingWithCapacity(id: string, capacityLimit: number, options?: { force?: boolean; audit?: InsertAuditLog }): Promise<{ ok: true; booking: BookingType | null; overbooked: boolean } | { ok: false; reason: 'CAPACITY_EXCEEDED' | 'NOT_FOUND' }>;
+  releaseBookingCapacity(bookingId: string): Promise<void>;
   updateBookingPayment(id: string, paymentData: {
     paymentStatus: string;
     paidAmount: number;
     paymentMethod: string;
     depositAmount?: number;
   }): Promise<BookingType | null>;
+  updateBookingPaymentAtomic(id: string, paymentData: {
+    paymentStatus: string;
+    paidAmount: number;
+    paymentMethod: string;
+    depositAmount?: number;
+  }, audit: InsertAuditLog): Promise<BookingType | null>;
   deleteBooking(id: string): Promise<boolean>;
+  deleteBookingAtomic(id: string, audit: InsertAuditLog): Promise<{ deleted: boolean; booking: BookingWithActivity | null }>;
   createAuditLog(log: InsertAuditLog): Promise<AuditLogType>;
   getAuditLogs(): Promise<AuditLogType[]>;
   getAdmins(): Promise<any[]>;
@@ -890,7 +945,40 @@ class MongoStorage implements IStorage {
       throw new Error('Invalid payment method. Only "cash" or "cash_deposit" are allowed.');
     }
     
-    const booking = await Booking.findByIdAndUpdate(id, updateData, { new: true });
+    const session = await mongoose.startSession();
+    let booking: any = null;
+    try {
+      await session.withTransaction(async () => {
+        const before = await Booking.findById(id).session(session);
+        if (!before) return;
+        const beforeStatus = String(before.status).toUpperCase();
+        const nextStatus = String(updateData.status ?? before.status).toUpperCase();
+        if (isCapacityConsumingStatus(beforeStatus) && isCapacityConsumingStatus(nextStatus) && (
+          updateData.activityId !== undefined || updateData.preferredDate !== undefined || updateData.numberOfPeople !== undefined
+        )) {
+          throw new Error('Capacity-consuming bookings must use a dedicated atomic reschedule operation');
+        }
+        const leavingConfirmed = isCapacityConsumingStatus(beforeStatus) && !isCapacityConsumingStatus(nextStatus);
+        const nextUpdate: Record<string, unknown> = { ...updateData };
+        if (leavingConfirmed) {
+          const counter = await ensureCapacityCounter(session, String(before.activityId), capacityDateKey(before.preferredDate as unknown as Date));
+          const reserved = Number(before.capacityReserved) > 0 ? Number(before.capacityReserved) : Number(before.numberOfPeople) || 0;
+          if (reserved > 0) {
+            const release = await CapacityCounter.updateOne(
+              { _id: counter?._id, occupied: { $gte: reserved } },
+              { $inc: { occupied: -reserved } },
+              { session },
+            );
+            if (release.modifiedCount !== 1) throw new Error('Capacity counter underflow prevented');
+          }
+          nextUpdate.capacityReserved = 0;
+        }
+        await Booking.updateOne({ _id: id }, nextUpdate, { session });
+        booking = await Booking.findById(id).session(session);
+      });
+    } finally {
+      await session.endSession();
+    }
     if (booking) {
       // Smart cache invalidation - only invalidate related caches
       await cacheService.invalidateRelated('booking', id);
@@ -899,12 +987,95 @@ class MongoStorage implements IStorage {
   }
 
   async updateBookingStatus(id: string, status: string): Promise<BookingType | null> {
-    const booking = await Booking.findByIdAndUpdate(id, { status }, { new: true });
-    if (booking) {
-      // Smart cache invalidation
-      await cacheService.invalidateRelated('booking', id);
+    // Keep the legacy storage interface safe for callers outside the admin
+    // router: all status changes must use the same transactional capacity path.
+    return this.updateBookingStatusAtomic(id, status);
+  }
+
+  async updateBookingStatusAtomic(id: string, status: string, options?: { audit?: InsertAuditLog }): Promise<BookingType | null> {
+    const session = await mongoose.startSession();
+    let updated: any = null;
+    try {
+      await session.withTransaction(async () => {
+        const before = await Booking.findById(id).session(session);
+        if (!before) return;
+        const current = String(before.status).toUpperCase();
+        const next = String(status).toUpperCase();
+        if (isCapacityConsumingStatus(current) && !isCapacityConsumingStatus(next)) {
+          const counter = await ensureCapacityCounter(session, String(before.activityId), capacityDateKey(before.preferredDate as unknown as Date));
+          const reserved = Number(before.capacityReserved) > 0 ? Number(before.capacityReserved) : Number(before.numberOfPeople) || 0;
+          if (reserved > 0) {
+            const release = await CapacityCounter.updateOne({ _id: counter?._id, occupied: { $gte: reserved } }, { $inc: { occupied: -reserved } }, { session });
+            if (release.modifiedCount !== 1) throw new Error('Capacity counter underflow prevented');
+          }
+          await Booking.updateOne({ _id: id }, { $set: { status: next, capacityReserved: 0 } }, { session });
+        } else {
+          await Booking.updateOne({ _id: id }, { $set: { status: next } }, { session });
+        }
+        if (options?.audit) await AuditLog.create([options.audit], { session });
+        updated = await Booking.findById(id).session(session);
+      });
+    } finally {
+      await session.endSession();
     }
-    return this.transformDocument(booking);
+    if (updated) await cacheService.invalidateRelated('booking', id);
+    return this.transformDocument(updated);
+  }
+
+  // M4: atomically reserve capacity and confirm the booking in one
+  // operation. The capacity gate is a single conditional $inc against the
+  // per-activity/per-day counter document - under concurrent requests,
+  // MongoDB serializes writes to that one document, so only requests whose
+  // reservation keeps `occupied` within the limit can succeed; the rest see
+  // a null result and are rejected with CAPACITY_EXCEEDED. This replaces the
+  // earlier read-then-write pattern (check capacity, then separately write
+  // the new status) which raced under concurrency.
+  async confirmBookingWithCapacity(
+    id: string,
+    capacityLimit: number,
+    options?: { force?: boolean; audit?: InsertAuditLog },
+  ): Promise<{ ok: true; booking: BookingType | null; overbooked: boolean } | { ok: false; reason: 'CAPACITY_EXCEEDED' | 'NOT_FOUND' }> {
+    const session = await mongoose.startSession();
+    let updated: any = null;
+    let overbooked = false;
+    let rejected = false;
+    try {
+      await session.withTransaction(async () => {
+        const booking = await Booking.findById(id).session(session);
+        if (!booking) return;
+        if (isCapacityConsumingStatus(booking.status)) { updated = booking; return; }
+        const people = Math.max(0, Number(booking.numberOfPeople) || 0);
+        const dateKey = capacityDateKey(booking.preferredDate as unknown as Date);
+        const counter = await ensureCapacityCounter(session, String(booking.activityId), dateKey);
+        const force = options?.force === true;
+        if (Number.isFinite(capacityLimit) && capacityLimit > 0) {
+          const reserved = await CapacityCounter.findOneAndUpdate(
+            { _id: counter._id, occupied: { $lte: capacityLimit - people } },
+            { $inc: { occupied: people } },
+            { new: true, session },
+          );
+          if (!reserved) {
+            if (!force) { rejected = true; return; }
+            await CapacityCounter.updateOne({ _id: counter._id }, { $inc: { occupied: people } }, { session });
+            overbooked = true;
+          }
+        }
+        await Booking.updateOne({ _id: id }, { $set: { status: 'CONFIRMED', capacityReserved: people } }, { session });
+        if (options?.audit) await AuditLog.create([options.audit], { session });
+        updated = await Booking.findById(id).session(session);
+      });
+    } finally { await session.endSession(); }
+    if (rejected) return { ok: false, reason: 'CAPACITY_EXCEEDED' };
+    if (!updated) return { ok: false, reason: 'NOT_FOUND' };
+    await cacheService.invalidateRelated('booking', id);
+    return { ok: true, booking: this.transformDocument(updated), overbooked };
+  }
+
+  // M4: releases previously-reserved capacity (call when a CONFIRMED
+  // booking is cancelled, deleted, or reverted) so the seats become
+  // available to other bookings for that activity/day again.
+  async releaseBookingCapacity(bookingId: string): Promise<void> {
+    await this.updateBookingStatusAtomic(bookingId, 'CANCELLED');
   }
 
   async updateBookingPayment(id: string, paymentData: {
@@ -926,6 +1097,30 @@ class MongoStorage implements IStorage {
     return this.transformDocument(booking);
   }
 
+  async updateBookingPaymentAtomic(id: string, paymentData: {
+    paymentStatus: string;
+    paidAmount: number;
+    paymentMethod: string;
+    depositAmount?: number;
+  }, audit: InsertAuditLog): Promise<BookingType | null> {
+    if (paymentData.paymentMethod && !['cash', 'cash_deposit'].includes(paymentData.paymentMethod)) {
+      throw new Error('Invalid payment method. Only "cash" or "cash_deposit" are allowed.');
+    }
+    const session = await mongoose.startSession();
+    let updated: any = null;
+    try {
+      await session.withTransaction(async () => {
+        updated = await Booking.findByIdAndUpdate(id, paymentData, { new: true, session });
+        if (!updated) return;
+        await AuditLog.create([audit], { session });
+      });
+    } finally {
+      await session.endSession();
+    }
+    if (updated) await cacheService.invalidateRelated('booking', id);
+    return this.transformDocument(updated);
+  }
+
   async deleteBooking(id: string): Promise<boolean> {
     const result = await Booking.findByIdAndDelete(id);
     if (result) {
@@ -934,6 +1129,38 @@ class MongoStorage implements IStorage {
       await cacheService.invalidateBookings();
     }
     return !!result;
+  }
+
+  async deleteBookingAtomic(id: string, audit: InsertAuditLog): Promise<{ deleted: boolean; booking: BookingWithActivity | null }> {
+    const session = await mongoose.startSession();
+    let before: any = null;
+    let deleted = false;
+    try {
+      await session.withTransaction(async () => {
+        before = await Booking.findById(id).session(session);
+        if (!before) return;
+        await AuditLog.create([audit], { session });
+        if (isCapacityConsumingStatus(before.status)) {
+          const dateKey = capacityDateKey(before.preferredDate as unknown as Date);
+          const counter = await ensureCapacityCounter(session, String(before.activityId), dateKey);
+          const reserved = Number(before.capacityReserved) > 0 ? Number(before.capacityReserved) : Number(before.numberOfPeople) || 0;
+          if (reserved > 0) {
+            const release = await CapacityCounter.updateOne({ _id: counter?._id, occupied: { $gte: reserved } }, { $inc: { occupied: -reserved } }, { session });
+            if (release.modifiedCount !== 1) throw new Error('Capacity counter underflow prevented');
+          }
+        }
+        const result = await Booking.deleteOne({ _id: id }, { session });
+        deleted = result.deletedCount === 1;
+        if (!deleted) throw new Error('Booking delete failed');
+      });
+    } finally {
+      await session.endSession();
+    }
+    if (deleted) {
+      await cacheService.invalidateRelated('booking', id);
+      await cacheService.invalidateBookings();
+    }
+    return { deleted, booking: before ? this.transformDocument(before) : null };
   }
 
   // Audit log operations

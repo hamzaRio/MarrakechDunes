@@ -41,7 +41,14 @@ export async function connectToDatabase(): Promise<void> {
         connectTimeoutMS: 10000,
         family: 4,
         bufferCommands: false,
-        autoIndex: true,
+        // M10: building indexes on every connect is fine for a small/dev
+        // database but becomes a real write-lock/latency cost once a
+        // production collection has real volume. Production now leaves
+        // index management to an explicit step (`npm run db:ensure-indexes`),
+        // rather than doing it implicitly on every server boot. Set
+        // MONGO_AUTO_INDEX=true to opt back into the old always-on-connect
+        // behavior (e.g. for a throwaway staging database).
+        autoIndex: process.env.MONGO_AUTO_INDEX === 'true' || process.env.NODE_ENV !== 'production',
         autoCreate: true,
         maxIdleTimeMS: 30000,
         heartbeatFrequencyMS: 10000,
@@ -57,6 +64,11 @@ export async function connectToDatabase(): Promise<void> {
         compressors: ['zlib'],
         zlibCompressionLevel: 6,
       });
+
+      // Booking confirmation, capacity reservation, payment/audit, and
+      // destructive mutations all rely on MongoDB transactions. Refuse to
+      // advertise a healthy server when connected to a standalone mongod.
+      await assertTransactionCapability();
 
       console.log('[db] Connected to MongoDB - ready for tour bookings');
 
@@ -89,6 +101,13 @@ export async function connectToDatabase(): Promise<void> {
       console.log(`[db] Retrying in ${retryDelay / 1000} seconds...`);
       await new Promise((resolve) => setTimeout(resolve, retryDelay));
     }
+  }
+}
+
+export async function assertTransactionCapability(): Promise<void> {
+  const hello = await mongoose.connection.db?.admin().command({ hello: 1 });
+  if (!hello?.setName && !hello?.msg?.includes('isdbgrid')) {
+    throw new Error('MongoDB transactions require a replica set or sharded deployment; standalone MongoDB is unsupported');
   }
 }
 

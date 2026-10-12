@@ -1,15 +1,12 @@
 import type { BookingType, ActivityType } from "marrakechdunes-shared/schema";
+import { supportContacts } from "./support-config";
 
 interface WhatsAppContact {
   name: string;
   phone: string;
 }
 
-const whatsappContacts: WhatsAppContact[] = [
-  { name: "Ahmed", phone: "+212600623630" },
-  { name: "Yahia", phone: "+212693323368" },
-  { name: "Nadia", phone: "+212654497354" },
-];
+const whatsappContacts: WhatsAppContact[] = supportContacts.map(({ name, phone }) => ({ name, phone }));
 
 export async function sendWhatsAppBooking(booking: BookingType, activity: ActivityType) {
   const message = `🌟 NEW BOOKING ALERT 🌟
@@ -36,7 +33,7 @@ Please contact the customer to confirm the booking!`;
     }
     
     // Open WhatsApp for the first contact as a demo
-    if (contact.name === "Ahmed") {
+    if (contact === whatsappContacts[0]) {
       setTimeout(() => {
         window.open(whatsappUrl, '_blank');
       }, 1000);
@@ -48,7 +45,7 @@ export function openWhatsAppChat(contactName: string, customMessage?: string) {
   const contact = whatsappContacts.find(c => c.name.toLowerCase() === contactName.toLowerCase());
   
   if (!contact) {
-    console.error(`Contact ${contactName} not found`);
+    console.error(`Configured WhatsApp contact ${contactName} not found`);
     return;
   }
 

@@ -12,18 +12,20 @@ const production = {
   SESSION_SECRET: secret,
   ADMIN_PASSWORD: 'test-only-admin-password',
   SUPERADMIN_PASSWORD: 'test-only-superadmin-password',
-  CLIENT_URL: 'https://marrakech-dunes.vercel.app',
+  CORS_ALLOWED_ORIGINS: 'https://marrakech-dunes.vercel.app,https://marrakech-dunes-admin.vercel.app',
+  CORS_ALLOWED_ORIGIN_PATTERNS: 'https://marrakech-dunes-*-hamzarios-projects.vercel.app',
 };
-const legacy = parseRuntimeConfig(production);
-assert.equal(legacy.cors.source, 'legacy');
-assert.equal(legacy.cookie.secure, true);
-assert.equal(legacy.cookie.sameSite, 'none');
-assert.equal(legacy.cookie.domain, undefined);
-assert.equal(legacy.trustProxy, 1);
-assert.ok(isAllowedCorsOrigin('https://marrakech-dunes.vercel.app', legacy.cors.allowedOrigins, true, legacy.cors.patterns));
-assert.ok(isAllowedCorsOrigin('https://marrakech-dunes-admin.vercel.app', legacy.cors.allowedOrigins, true, legacy.cors.patterns));
-assert.ok(!isAllowedCorsOrigin('https://attacker.vercel.app', legacy.cors.allowedOrigins, true, legacy.cors.patterns));
-assert.ok(!isAllowedCorsOrigin('https://evil.example.com', legacy.cors.allowedOrigins, true, legacy.cors.patterns));
+const configuredProduction = parseRuntimeConfig(production);
+assert.equal(configuredProduction.cors.source, 'configured');
+assert.equal(configuredProduction.cookie.secure, true);
+assert.equal(configuredProduction.cookie.sameSite, 'none');
+assert.equal(configuredProduction.cookie.domain, undefined);
+assert.equal(configuredProduction.trustProxy, 1);
+assert.ok(isAllowedCorsOrigin('https://marrakech-dunes.vercel.app', configuredProduction.cors.allowedOrigins, true, configuredProduction.cors.patterns));
+assert.ok(isAllowedCorsOrigin('https://marrakech-dunes-admin.vercel.app', configuredProduction.cors.allowedOrigins, true, configuredProduction.cors.patterns));
+assert.ok(isAllowedCorsOrigin('https://marrakech-dunes-pr123-hamzarios-projects.vercel.app', configuredProduction.cors.allowedOrigins, true, configuredProduction.cors.patterns));
+assert.ok(!isAllowedCorsOrigin('https://attacker.vercel.app', configuredProduction.cors.allowedOrigins, true, configuredProduction.cors.patterns));
+assert.ok(!isAllowedCorsOrigin('https://evil.example.com', configuredProduction.cors.allowedOrigins, true, configuredProduction.cors.patterns));
 
 const configured = parseRuntimeConfig({
   ...production,

@@ -22,8 +22,12 @@ export default function SEOHead({
 
   useEffect(() => {
     // Base site information
+    // M12: no hardcoded owner domain. VITE_SITE_URL is an optional,
+    // deployment-owned override; otherwise this falls back to wherever the
+    // page is actually being served from.
     const siteName = 'MarrakechDunes';
-    const baseUrl = 'https://marrakech-dunes.vercel.app';
+    const baseUrl = (import.meta.env.VITE_SITE_URL as string | undefined)?.replace(/\/+$/, '')
+      || (typeof window !== 'undefined' ? window.location.origin : '');
     const defaultImage = `${baseUrl}/images/riad-kheirredine_1756041288677.jpg`;
     
     // Construct full title

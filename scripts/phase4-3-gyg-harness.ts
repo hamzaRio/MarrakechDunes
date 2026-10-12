@@ -3,6 +3,7 @@ import { calculateVerifiedMetrics, normalizeGYGOffer } from '../server/src/servi
 import { normalizeOfficialTour } from '../server/src/providers/gyg.js';
 import gygRouter from '../server/src/routes/getyourguide.js';
 import { requireAdmin, requireSuperAdmin } from '../server/src/middleware/admin-auth.js';
+import { storage } from '../server/src/storage.js';
 
 const response = () => {
   const result: any = { statusCode: 200, body: null };
@@ -12,7 +13,13 @@ const response = () => {
 };
 const runMiddleware = async (middleware: any, role: string) => {
   const res = response(); let nextCalled = false;
-  await middleware({ session: { authenticated: true, role } } as any, res as any, () => { nextCalled = true; });
+  const originalGetUser = storage.getUser;
+  storage.getUser = (async () => ({ id: 'harness-user', role })) as any;
+  try {
+    await middleware({ session: { authenticated: true, role, userId: 'harness-user', destroy: (callback: () => void) => callback() } } as any, res as any, () => { nextCalled = true; });
+  } finally {
+    storage.getUser = originalGetUser;
+  }
   return { res, nextCalled };
 };
 const adminRead = await runMiddleware(requireAdmin, 'admin');

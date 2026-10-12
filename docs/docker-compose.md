@@ -30,10 +30,12 @@ The localhost reference stack intentionally runs the API with
 posture, including Secure-cookie and HSTS behavior, and is not the recommended
 final production deployment.
 
-The single unauthenticated Mongo container is suitable for local/reference
-evaluation only. It is not high availability and is not the recommended
-production database architecture; use managed MongoDB or a secured production
-Mongo deployment for real workloads.
+The local Mongo container runs as a single-node replica set (`rs0`) because the
+API uses multi-document transactions for booking capacity, payment/audit, and
+delete operations. It is suitable for local/reference evaluation only and is
+not high availability; use a managed MongoDB replica set or a secured
+production Mongo deployment for real workloads. A standalone `mongod` is not
+supported and the API fails startup capability validation against it.
 
 ## Build, start, and bootstrap
 
@@ -70,8 +72,8 @@ production project. A basic backup/restore uses MongoDB tools from a disposable
 client container:
 
 ```sh
-docker run --rm --network container:marrakechdunes-mongo-1 -v "$PWD/backups:/backup" mongo:7 mongodump --uri mongodb://127.0.0.1:27017/marrakechdunes --out /backup/dump
-docker run --rm --network container:marrakechdunes-mongo-1 -v "$PWD/backups:/backup" mongo:7 mongorestore --uri mongodb://127.0.0.1:27017/marrakechdunes /backup/dump/marrakechdunes
+docker run --rm --network container:marrakechdunes-mongo-1 -v "$PWD/backups:/backup" mongo:7 mongodump --uri 'mongodb://127.0.0.1:27017/marrakechdunes?replicaSet=rs0' --out /backup/dump
+docker run --rm --network container:marrakechdunes-mongo-1 -v "$PWD/backups:/backup" mongo:7 mongorestore --uri 'mongodb://127.0.0.1:27017/marrakechdunes?replicaSet=rs0' /backup/dump/marrakechdunes
 ```
 
 The API image supports `ROLE=all`, `ROLE=api`, and `ROLE=worker`, but this

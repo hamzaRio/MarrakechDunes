@@ -21,6 +21,7 @@ import {
 import { useLanguage } from "@/hooks/use-language";
 import type { ActivityType } from "marrakechdunes-shared/schema";
 import { getBookingDateOnly } from "@/lib/booking-utils";
+import { supportAddress, supportContacts, supportEmail } from "@/lib/support-config";
 
 interface BookingConfirmationData {
   activity: ActivityType;
@@ -235,12 +236,8 @@ export default function BookingConfirmationPage() {
                   </p>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  {[
-                    { name: "Ahmed", role: "Desert Specialist", phone: "+212600623630" },
-                    { name: "Yahia", role: "Mountain Guide", phone: "+212693323368" },
-                    { name: "Nadia", role: "Guest Experience", phone: "+212654497354" },
-                  ].map((contact) => {
+                {supportContacts.length > 0 && <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  {supportContacts.map((contact) => {
                     const message = encodeURIComponent(
                       `Hello ${contact.name}, I just booked ${bookingData.activity?.name || 'an activity'} on MarrakechDunes.`
                     );
@@ -266,19 +263,19 @@ export default function BookingConfirmationPage() {
                       </div>
                     );
                   })}
-                </div>
+                </div>}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="p-4 bg-white rounded-lg border flex items-center gap-3">
                     <Mail className="w-5 h-5 text-green-600" />
                     <div>
                       <p className="font-semibold text-gray-900">Agency Email</p>
-                      <a
-                        href="mailto:timedizzy45@gmail.com"
+                      {supportEmail ? <a
+                        href={`mailto:${supportEmail}`}
                         className="text-sm text-green-700 hover:text-green-900 underline"
                       >
-                        timedizzy45@gmail.com
-                      </a>
+                        {supportEmail}
+                      </a> : <p className="text-sm text-gray-600">Email support is configured by the deployment team.</p>}
                       <p className="text-xs text-gray-500">We respond within the same day.</p>
                     </div>
                   </div>
@@ -299,7 +296,7 @@ export default function BookingConfirmationPage() {
                     <p className="font-semibold">Where to meet & pay</p>
                   </div>
                   <p className="text-sm text-gray-700">
-                    <strong>Agency & Payment Center:</strong> 54 Riad Zitoun Lakdim, Marrakech 40000. You can visit this office to ask questions or pay your deposit in cash before the activity.
+                    {supportAddress ? <><strong>Agency & Payment Center:</strong> {supportAddress}. You can visit this office to ask questions or pay your deposit in cash before the activity.</> : 'Your meeting and payment location will be confirmed by our team.'}
                   </p>
                   <p className="text-sm text-gray-700 mt-2">
                     <strong>Activity Meeting Point:</strong> {bookingData.activity?.location || "Confirmed by our team during the follow-up call"}.

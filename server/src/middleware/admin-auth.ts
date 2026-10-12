@@ -25,17 +25,31 @@ export const requireAdmin = async (req: Request, res: Response, next: NextFuncti
       });
     }
 
-    // Optionally verify user still exists in database
+    // M2: re-verify the user's CURRENT role in the database on every request,
+    // not just that the account still exists. A session is a long-lived
+    // (rolling, up to 7 days) cookie claim; if the account was demoted or
+    // deleted after login, the stale session claim must not keep working.
     const userId = (req.session as any).userId;
     if (userId) {
       const user = await storage.getUser(userId);
-      if (!user) {
+      if (!user || (user.role !== 'admin' && user.role !== 'superadmin')) {
         req.session.destroy(() => {});
         return res.status(401).json({
           status: 'error',
-          message: 'User not found'
+          message: 'Session no longer valid'
         });
       }
+      // Keep the session's role claim in sync with the database so
+      // downstream checks (e.g. requireSuperAdmin reading session role)
+      // see the current role, not a stale one.
+      (req.session as any).role = user.role;
+    } else {
+      // No userId on the session at all - nothing to revalidate against.
+      req.session.destroy(() => {});
+      return res.status(401).json({
+        status: 'error',
+        message: 'Session no longer valid'
+      });
     }
 
     next();
