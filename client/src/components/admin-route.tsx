@@ -20,7 +20,8 @@ export default function AdminRoute({ children, requireSuperAdmin = false }: Admi
       return; // Wait for authentication to complete
     }
 
-    // Preserve a valid local session while the authoritative check is unavailable.
+    // Never grant access from a local fallback when the authoritative check is
+    // unavailable. The server session remains the only authorization source.
     if (error && !isAuthRejected) {
       return;
     }
@@ -30,36 +31,32 @@ export default function AdminRoute({ children, requireSuperAdmin = false }: Admi
       if (import.meta.env.DEV) {
         console.warn('[SECURITY] Unauthenticated access attempt blocked');
       }
+
+      // Clear ALL authentication data immediately
+      localStorage.removeItem('user');
+      localStorage.removeItem('auth-token');
+      localStorage.removeItem('admin_session');
+      sessionStorage.clear();
       
-      // Check localStorage as fallback
-      const localUser = JSON.parse(localStorage.getItem('user') || 'null');
-      if (!localUser) {
-        // Clear ALL authentication data immediately
-        localStorage.removeItem('user');
-        localStorage.removeItem('auth-token');
-        localStorage.removeItem('admin_session');
-        sessionStorage.clear();
-        
-        // Clear all cookies
-        document.cookie.split(";").forEach(function(c) { 
-          document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
-        });
-        
-        // Clear axios headers
-        if (typeof window !== 'undefined' && (window as any).clearAuthData) {
-          (window as any).clearAuthData();
-        }
-        
-        toast({
-          title: "🔒 Access Denied",
-          description: "Authentication required to access admin area",
-          variant: "destructive",
-        });
-        
-        // Force redirect to login
-        window.location.href = "/admin/login";
-        return;
+      // Clear all cookies
+      document.cookie.split(";").forEach(function(c) {
+        document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+      });
+
+      // Clear axios headers
+      if (typeof window !== 'undefined' && (window as any).clearAuthData) {
+        (window as any).clearAuthData();
       }
+
+      toast({
+        title: "🔒 Access Denied",
+        description: "Authentication required to access admin area",
+        variant: "destructive",
+      });
+
+      // Force redirect to login
+      window.location.href = "/admin/login";
+      return;
     }
 
     // Layer 3: Verify user has valid role
