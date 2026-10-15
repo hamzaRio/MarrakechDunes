@@ -31,6 +31,7 @@ interface PaymentConfirmationProps {
       duration: string;
       location: string;
     };
+    activitySnapshot?: { name: string };
     numberOfPeople: number;
     preferredDate: string;
     totalAmount: number;
