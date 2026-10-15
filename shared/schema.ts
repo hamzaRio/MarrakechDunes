@@ -55,6 +55,7 @@ export interface BookingType {
   customerPhone: string;
   customerEmail?: string;
   activityId: string;
+  activitySnapshot?: { name: string; price: string; currency: string };
   numberOfPeople: number;
   preferredDate: Date;
   participantNames?: string[];

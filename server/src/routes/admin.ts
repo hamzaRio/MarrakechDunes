@@ -523,12 +523,15 @@ router.delete('/activities/:id', requireSuperAdmin, async (req: Request, res: Re
   } catch (error: any) {
     console.error('[ADMIN] Error deleting activity:', error);
     
-    // Return specific error message if activity has bookings
-    if (error.message && error.message.includes('booking')) {
-      return res.status(400).json({
+    if (error.code === 'ACTIVITY_HAS_BOOKINGS') {
+      return res.status(409).json({
         status: 'error',
+        code: error.code,
         message: error.message
       });
+    }
+    if (error.code === 'ACTIVITY_NOT_FOUND') {
+      return res.status(404).json({ status: 'error', message: error.message });
     }
     
     return res.status(500).json({

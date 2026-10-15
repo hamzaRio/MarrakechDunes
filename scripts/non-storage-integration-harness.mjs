@@ -91,6 +91,11 @@ try {
   const activeAdmin = await login('integration-admin');
 
   const superadmin = await login('integration-superadmin');
+  const adminDelete = await activeAdmin.agent.delete(`/api/admin/activities/${activityId}`).set('X-CSRF-Token', activeAdmin.csrf);
+  check(adminDelete.status === 403, 'admin was allowed to delete an activity');
+  const referencedDelete = await superadmin.agent.delete(`/api/admin/activities/${activityId}`).set('X-CSRF-Token', superadmin.csrf);
+  check(referencedDelete.status === 409 && referencedDelete.body?.code === 'ACTIVITY_HAS_BOOKINGS', 'referenced activity deletion was not rejected clearly');
+  check(await db.collection('activities').findOne({ _id: activityId }), 'referenced activity was deleted');
   const publicAgent = request.agent(`http://127.0.0.1:${port}`);
   const publicCsrf = (await publicAgent.get('/api/session/init')).body.csrfToken;
   const transmittedMarkers = await app.get('/api/health/live?token=SECRET_QUERY_TOKEN_123')

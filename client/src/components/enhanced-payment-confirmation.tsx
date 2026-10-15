@@ -31,6 +31,7 @@ interface PaymentConfirmationProps {
       duration: string;
       location: string;
     };
+    activitySnapshot?: { name: string };
     numberOfPeople: number;
     preferredDate: string;
     totalAmount: number;
@@ -94,7 +95,7 @@ export default function EnhancedPaymentConfirmation({
             <div className="space-y-3">
               <div>
                 <p className="text-sm text-gray-600">Activité</p>
-                <p className="font-semibold text-lg">{booking.activity.name}</p>
+                <p className="font-semibold text-lg">{booking.activity?.name || booking.activitySnapshot?.name || 'Activité supprimée ou indisponible'}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-600">Date</p>

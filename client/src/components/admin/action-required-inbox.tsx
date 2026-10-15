@@ -35,7 +35,7 @@ function BookingItem({ booking, onViewBooking }: { booking: BookingWithActivity;
     <li className="flex flex-col gap-2 rounded-md border border-gray-200 bg-white p-3 sm:flex-row sm:items-center sm:justify-between">
       <div className="min-w-0">
         <p className="truncate font-medium text-gray-900">{booking.customerName}</p>
-        <p className="truncate text-sm text-gray-600">{booking.activity?.name || "Activité non trouvée"}</p>
+        <p className="truncate text-sm text-gray-600">{booking.activity?.name || booking.activitySnapshot?.name || "Activité supprimée ou indisponible"}</p>
         <div className="mt-1 flex flex-wrap gap-2 text-xs text-gray-500">
           <span>{formatBookingDate(booking.preferredDate)}</span>
           <span>{booking.numberOfPeople} participant{booking.numberOfPeople === 1 ? "" : "s"}</span>

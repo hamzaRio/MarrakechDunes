@@ -487,14 +487,14 @@ function AdminDashboardContent() {
                     <Card className="bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-200 shadow-lg hover:shadow-xl transition-shadow">
                       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium text-green-700 flex items-center gap-2">
-                          💰 Revenus Encaissés
+                          💰 Paiements enregistrés
                         </CardTitle>
                         <TrendingUp className="h-4 w-4 text-green-600" />
                       </CardHeader>
                       <CardContent>
                         <div className="text-2xl font-bold text-green-900">{summaryValue(collectedPayments, " MAD")}</div>
                         <p className="text-xs text-green-600 mt-1">
-                          Montant réellement encaissé selon le résumé serveur
+                          Somme des paiements enregistrés, y compris sur les réservations annulées ; remboursements non déduits.
                         </p>
                         <p className="text-xs text-green-700 mt-1">
                           Valeur brute : {summaryValue(grossBookingValue, " MAD")} · Reste à encaisser : {summaryValue(outstandingAmount, " MAD")}
@@ -735,7 +735,7 @@ function AdminDashboardContent() {
                   <WhatsAppNotificationPanel 
                     booking={latestBooking ? {
                       ...latestBooking,
-                      activityName: activities.find((activity) => activity.id === latestBooking.activityId || activity._id === latestBooking.activityId)?.name || 'N/A'
+                      activityName: latestBooking.activitySnapshot?.name || activities.find((activity) => activity.id === latestBooking.activityId || activity._id === latestBooking.activityId)?.name || 'Activité supprimée ou indisponible'
                     } : undefined}
                     customerPhone={latestBooking?.customerPhone}
                   />
@@ -817,7 +817,7 @@ function AdminDashboardContent() {
                 <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-200">
                   <CardHeader>
                     <CardTitle className="text-blue-700 flex items-center gap-2">
-                      📈 Revenus Encaissés
+                      📈 Paiements enregistrés
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
@@ -827,6 +827,7 @@ function AdminDashboardContent() {
                     <p className="text-sm text-blue-600 mt-1">
                       Valeur brute : {reportSummaryLoading ? "…" : reportSummaryError ? "Indisponible" : `${(reportSummary?.grossBookingValue ?? 0).toLocaleString()} MAD`} · Reste à encaisser : {reportSummaryLoading ? "…" : reportSummaryError ? "Indisponible" : `${(reportSummary?.outstandingAmount ?? 0).toLocaleString()} MAD`}
                     </p>
+                    <p className="text-xs text-blue-600 mt-1">Inclut les paiements des réservations annulées ; remboursements non déduits.</p>
                   </CardContent>
                 </Card>
 

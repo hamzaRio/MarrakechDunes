@@ -109,7 +109,7 @@ export default function BookingRow({
 
         <div className="min-w-0 space-y-1">
           <div className="truncate font-semibold text-gray-900">{booking.customerName}</div>
-          <div className="truncate text-sm text-gray-600">{booking.activity?.name || "Activity not found"}</div>
+          <div className="truncate text-sm text-gray-600">{booking.activity?.name || booking.activitySnapshot?.name || "Activité supprimée ou indisponible"}</div>
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
             <span className="flex items-center gap-1">
               <CalendarDays className="h-3.5 w-3.5" />

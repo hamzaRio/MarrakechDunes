@@ -64,7 +64,8 @@ const activitySchema = new mongoose.Schema({
   availability: { type: String },
   duration: { type: String },
   maxParticipants: { type: Number },
-  capacitySettings: { type: mongoose.Schema.Types.Mixed }
+  capacitySettings: { type: mongoose.Schema.Types.Mixed },
+  bookingCreateFence: { type: Number, default: 0 }
 }, { timestamps: true });
 
 const bookingSchema = new mongoose.Schema({
@@ -72,6 +73,11 @@ const bookingSchema = new mongoose.Schema({
   customerPhone: { type: String, required: true },
   customerEmail: { type: String, default: '' },
   activityId: { type: mongoose.Schema.Types.ObjectId, ref: 'Activity', required: true },
+  activitySnapshot: {
+    name: { type: String },
+    price: { type: String },
+    currency: { type: String },
+  },
   numberOfPeople: { type: Number, required: true },
   preferredDate: { type: Date, required: true },
   participantNames: { type: [String], default: [] },
@@ -573,18 +579,21 @@ class MongoStorage implements IStorage {
   }
 
   async deleteActivity(id: string): Promise<void> {
-    // Check if there are bookings for this activity
-    const bookingsCount = await Booking.countDocuments({ activityId: id });
-    
-    if (bookingsCount > 0) {
-      // Prevent deletion if bookings exist to avoid orphaned bookings
-      throw new Error(
-        `Cannot delete activity: ${bookingsCount} booking(s) are associated with this activity. ` +
-        `Please delete or reassign the bookings first, or delete the activity manually if you're sure.`
-      );
+    const session = await mongoose.startSession();
+    try {
+      await session.withTransaction(async () => {
+        // Booking creation writes the same Activity document in its transaction.
+        // A concurrent create/delete therefore conflicts instead of orphaning a booking.
+        const activity = await Activity.findById(id).session(session);
+        if (!activity) throw Object.assign(new Error('Activity not found'), { code: 'ACTIVITY_NOT_FOUND' });
+        if (await Booking.exists({ activityId: activity._id }).session(session)) {
+          throw Object.assign(new Error('Cette activité est liée à des réservations. Désactivez-la au lieu de la supprimer.'), { code: 'ACTIVITY_HAS_BOOKINGS' });
+        }
+        await Activity.deleteOne({ _id: activity._id }, { session });
+      });
+    } finally {
+      await session.endSession();
     }
-    
-    await Activity.findByIdAndDelete(id);
     
     // Invalidate related caches
     await cacheService.invalidateRelated('activity', id);
@@ -607,7 +616,7 @@ class MongoStorage implements IStorage {
         'bookings',
         'all',
         async () => {
-          const bookings = await Booking.find().populate('activityId').sort({ createdAt: -1 });
+          const bookings = await Booking.find().sort({ createdAt: -1 });
           return this.processBookingsWithActivities(bookings);
         },
         60
@@ -661,6 +670,7 @@ class MongoStorage implements IStorage {
         { customerPhone: { $regex: escaped, $options: 'i' } },
         { customerEmail: { $regex: escaped, $options: 'i' } },
         { bookingReference: { $regex: escaped, $options: 'i' } },
+        { 'activitySnapshot.name': { $regex: escaped, $options: 'i' } },
         { activityId: { $in: activityIds.map((activity) => activity._id) } },
       ];
     }
@@ -675,7 +685,6 @@ class MongoStorage implements IStorage {
       Booking.find()
         .find(filter)
         .select(projection)
-        .populate('activityId', 'name price imageUrls category') // Only fetch needed activity fields
         .sort(sortObj)
         .skip(skip)
         .limit(limit),
@@ -708,7 +717,9 @@ class MongoStorage implements IStorage {
         
         // Extract activityId as string
         if (rawActivityId) {
-          if (typeof rawActivityId === 'object' && rawActivityId._id) {
+          if (rawActivityId instanceof mongoose.Types.ObjectId) {
+            activityIdToUse = rawActivityId.toString();
+          } else if (typeof rawActivityId === 'object' && rawActivityId._id) {
             activityIdToUse = rawActivityId._id.toString();
             // If it's an object, use it as activity
             bookingObj.activity = this.transformDocument(rawActivityId);
@@ -731,17 +742,24 @@ class MongoStorage implements IStorage {
           }
         }
         
+        // A booking-time snapshot takes precedence over the mutable activity record.
+        // Legacy bookings without one retain an explicit unknown-name fallback.
+        const snapshot = bookingObj.activitySnapshot;
+        if (bookingObj.activity && snapshot?.name) {
+          bookingObj.activity.name = snapshot.name;
+          bookingObj.activity.price = snapshot.price || bookingObj.activity.price;
+          bookingObj.activity.currency = snapshot.currency || bookingObj.activity.currency;
+        }
         // If still no activity, create a placeholder so booking shows in dashboard
         if (!bookingObj.activity) {
           bookingObj.activity = {
             _id: activityIdToUse || 'unknown',
             id: activityIdToUse || 'unknown',
-            name: activityIdToUse ? 'Activity Deleted' : 'Activity Not Found',
-            price: '0',
-            description: activityIdToUse 
-              ? 'This activity has been removed from the system' 
-              : 'Activity reference is missing',
-            category: 'Deleted',
+            name: snapshot?.name || 'Activité supprimée ou indisponible',
+            price: snapshot?.price || '',
+            currency: snapshot?.currency || 'MAD',
+            description: '',
+            category: '',
             imageUrls: [],
             isActive: false
           } as any;
@@ -760,32 +778,9 @@ class MongoStorage implements IStorage {
   }
 
   async getBooking(id: string): Promise<BookingWithActivity | null> {
-    const booking = await Booking.findById(id).populate('activityId');
+    const booking = await Booking.findById(id);
     if (!booking) return null;
-    
-    const bookingObj = this.transformDocument(booking);
-    
-    // If activity was populated successfully
-    if (bookingObj.activityId && typeof bookingObj.activityId === 'object') {
-      bookingObj.activity = this.transformDocument(bookingObj.activityId);
-      if (bookingObj.activity && bookingObj.activity._id) {
-        bookingObj.activityId = bookingObj.activity._id;
-      }
-    }
-    // If populate failed, try manual fetch
-    else if (bookingObj.activityId && typeof bookingObj.activityId === 'string') {
-      try {
-        const activity = await this.getActivity(bookingObj.activityId);
-        if (activity) {
-          bookingObj.activity = activity;
-          bookingObj.activityId = activity._id || bookingObj.activityId;
-        }
-      } catch (error) {
-        console.error('[STORAGE] Error fetching activity for booking:', bookingObj.activityId, error);
-      }
-    }
-    
-    return bookingObj;
+    return (await this.processBookingsWithActivities([booking]))[0];
   }
 
   async createBooking(bookingData: InsertBooking): Promise<BookingType> {
@@ -801,11 +796,27 @@ class MongoStorage implements IStorage {
         bookingData.paymentMethod = 'cash';
       }
       
-      const booking = new Booking({
-        ...bookingData,
-        bookingReference: bookingData.bookingReference || `MD-${randomBytes(5).toString('hex').toUpperCase()}`,
-      });
-      const savedBooking = await booking.save();
+      const session = await mongoose.startSession();
+      let savedBooking: any;
+      try {
+        await session.withTransaction(async () => {
+          // A write fence on Activity serializes booking creation with hard deletion.
+          const activity = await Activity.findOneAndUpdate(
+            { _id: bookingData.activityId, isActive: { $ne: false } },
+            { $inc: { bookingCreateFence: 1 } },
+            { new: true, session }
+          );
+          if (!activity) throw Object.assign(new Error('Activity is unavailable for booking'), { code: 'ACTIVITY_UNAVAILABLE' });
+          const booking = new Booking({
+            ...bookingData,
+            activitySnapshot: { name: activity.name, price: activity.price, currency: activity.currency || 'MAD' },
+            bookingReference: bookingData.bookingReference || `MD-${randomBytes(5).toString('hex').toUpperCase()}`,
+          });
+          savedBooking = await booking.save({ session });
+        });
+      } finally {
+        await session.endSession();
+      }
       
       // Invalidate bookings cache
       await cacheService.invalidateBookings();
@@ -831,7 +842,6 @@ class MongoStorage implements IStorage {
 
   async getBookingsByCustomerPhone(phone: string): Promise<BookingWithActivity[]> {
     const bookings = await Booking.find({ customerPhone: phone })
-      .populate('activityId', 'name price imageUrls category')
       .sort({ createdAt: -1 });
     return this.processBookingsWithActivities(bookings);
   }
@@ -848,7 +858,6 @@ class MongoStorage implements IStorage {
       preferredDate: { $gte: startOfDayUTC, $lte: endOfDayUTC },
       status: { $in: normalizedStatuses },
     })
-      .populate('activityId', 'name')
       .sort({ preferredDate: 1, createdAt: -1 });
     return this.processBookingsWithActivities(bookings);
   }
@@ -918,7 +927,6 @@ class MongoStorage implements IStorage {
     const loadCategory = async (filter: Record<string, any>) => {
       const [bookings, total] = await Promise.all([
         Booking.find(filter)
-          .populate('activityId', 'name price imageUrls category')
           .sort({ preferredDate: 1, createdAt: -1 })
           .limit(5),
         Booking.countDocuments(filter),
@@ -1226,8 +1234,8 @@ class MongoStorage implements IStorage {
       booking.customerName || '',
       booking.customerPhone || '',
       booking.customerEmail || '',
-      booking.activity?.name || 'Unknown Activity',
-      booking.activity?.price || 0,
+      booking.activity?.name || booking.activitySnapshot?.name || 'Activité supprimée ou indisponible',
+      booking.activity?.price || booking.activitySnapshot?.price || '',
       booking.numberOfPeople || 1,
       new Date(booking.preferredDate).toLocaleDateString('en-CA'),
       booking.totalAmount || 0,
@@ -1370,7 +1378,7 @@ class MongoStorage implements IStorage {
       doc.text(truncate(booking._id || booking.id || '', 8), 20, yPosition);
       doc.text(truncate(booking.customerName || '', 20), 35, yPosition);
       doc.text(truncate(booking.customerPhone || '', 15), 80, yPosition);
-      doc.text(truncate(booking.activity?.name || 'Unknown', 25), 110, yPosition);
+      doc.text(truncate(booking.activity?.name || booking.activitySnapshot?.name || 'Activité supprimée ou indisponible', 25), 110, yPosition);
       doc.text(new Date(booking.preferredDate).toLocaleDateString('en-CA'), 150, yPosition);
       doc.text(String(booking.numberOfPeople || 1), 170, yPosition);
       doc.text(`${Number(booking.totalAmount || 0).toLocaleString()}`, 185, yPosition);
@@ -2045,9 +2053,9 @@ class MongoStorage implements IStorage {
         $gte: startOfDay,
         $lte: endOfDay
       }
-    }).populate('activity');
+    });
 
-    return bookings.map(booking => this.transformDocument(booking));
+    return this.processBookingsWithActivities(bookings);
   }
 
   /**

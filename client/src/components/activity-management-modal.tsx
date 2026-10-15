@@ -230,6 +230,10 @@ export default function ActivityManagementModal({
       const res = await apiRequest(`/admin/activities/${activity?._id}`, {
         method: "DELETE"
       });
+      if (!res.ok) {
+        const details = await res.json().catch(() => ({}));
+        throw new Error(details.message || "Impossible de supprimer cette activité. Vous pouvez la désactiver.");
+      }
       return res.json();
     },
     onSuccess: () => {
@@ -306,7 +310,7 @@ export default function ActivityManagementModal({
             <DialogHeader>
               <DialogTitle>Delete Activity</DialogTitle>
               <DialogDescription id="delete-activity-description">
-                Are you sure you want to delete "{activity?.name}"? This action cannot be undone.
+                Supprimer « {activity?.name} » ? Les activités liées à des réservations doivent être désactivées, pas supprimées.
               </DialogDescription>
             </DialogHeader>
             <div className="flex justify-end space-x-2 mt-4">

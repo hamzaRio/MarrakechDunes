@@ -406,7 +406,7 @@ export default function BookingManagement({
       booking.customerName,
       booking.customerPhone,
       booking.customerEmail || "",
-      booking.activity?.name || "",
+      booking.activity?.name || booking.activitySnapshot?.name || "Activité supprimée ou indisponible",
       getBookingDateOnly(booking.preferredDate)?.toLocaleDateString() || "Flexible",
       booking.numberOfPeople,
       normalizeBookingStatus(booking.status),
@@ -437,7 +437,8 @@ export default function BookingManagement({
   };
 
   const handleSendWhatsApp = (booking: AdminBooking) => {
-    if (!booking.activity) {
+    const activityName = booking.activity?.name || booking.activitySnapshot?.name || "Activité supprimée ou indisponible";
+    if (!booking.activity && !booking.activitySnapshot) {
       toast({
         title: "Erreur",
         description: "Activity information not available for this booking",
@@ -446,7 +447,7 @@ export default function BookingManagement({
       return;
     }
 
-    const message = `Hello ${booking.customerName}, regarding your booking for ${booking.activity.name} for ${booking.numberOfPeople} people. Status: ${booking.status}. Total: ${booking.totalAmount} MAD.`;
+    const message = `Hello ${booking.customerName}, regarding your booking for ${activityName} for ${booking.numberOfPeople} people. Status: ${booking.status}. Total: ${booking.totalAmount} MAD.`;
     const phone = booking.customerPhone.replace(/[^0-9]/g, "");
     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(message)}`, "_blank", "noopener,noreferrer");
   };
