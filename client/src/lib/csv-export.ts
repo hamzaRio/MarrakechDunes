@@ -30,7 +30,7 @@ export class CSVExportService {
       'Booking ID': booking._id,
       'Customer Name': booking.customerName,
       'Customer Phone': booking.customerPhone,
-      'Activity': booking.activity?.name || 'N/A',
+      'Activity': booking.activity?.name || booking.activitySnapshot?.name || 'Activité supprimée ou indisponible',
       'Date': new Date(booking.preferredDate).toLocaleDateString(),
       'Time': new Date(booking.preferredDate).toLocaleTimeString(),
       'Participants': booking.numberOfPeople,

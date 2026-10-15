@@ -289,7 +289,7 @@ export default function SmartNotifications() {
                     className="rounded"
                   />
                   <span className="text-sm">
-                    {booking.customerName} - {booking.activity?.name} ({booking.preferredDate})
+                    {booking.customerName} - {booking.activity?.name || booking.activitySnapshot?.name || "Activité supprimée ou indisponible"} ({booking.preferredDate})
                   </span>
                 </label>
               ))}

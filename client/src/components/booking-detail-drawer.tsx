@@ -187,7 +187,7 @@ export default function BookingDetailDrawer({
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3 text-sm">
-                <div className="font-medium">{booking.activity?.name || "Activity not found"}</div>
+                <div className="font-medium">{booking.activity?.name || booking.activitySnapshot?.name || "Activité supprimée ou indisponible"}</div>
                 <div className="flex items-center gap-3">
                   <Users className="h-4 w-4 text-gray-500" />
                   <span>{booking.numberOfPeople} personne{booking.numberOfPeople !== 1 ? "s" : ""}</span>

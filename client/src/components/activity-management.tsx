@@ -135,9 +135,14 @@ export default function ActivityManagement() {
   // Delete activity mutation
   const deleteActivityMutation = useMutation({
     mutationFn: async (activityId: string) => {
-      return apiFetch(`/admin/activities/${activityId}`, {
+      const response = await apiFetch(`/admin/activities/${activityId}`, {
         method: "DELETE"
       });
+      if (!response.ok) {
+        const details = await response.json().catch(() => ({}));
+        throw new Error(details.message || "Impossible de supprimer cette activité. Vous pouvez la désactiver.");
+      }
+      return response;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/admin/activities/all"] });
@@ -637,7 +642,7 @@ export default function ActivityManagement() {
                     <AlertDialogHeader>
                       <AlertDialogTitle>Delete Activity</AlertDialogTitle>
                       <AlertDialogDescription>
-                        Are you sure you want to delete "{activity.name}"? This action cannot be undone.
+                        Supprimer « {activity.name} » ? Si des réservations y sont liées, la suppression sera refusée. Vous pouvez désactiver l'activité pour arrêter les nouvelles réservations.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>

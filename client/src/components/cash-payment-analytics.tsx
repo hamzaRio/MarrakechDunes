@@ -62,7 +62,7 @@ export default function CashPaymentAnalytics({ bookings }: CashPaymentAnalyticsP
 
   // Activity performance
   const activityStats = filteredBookings.reduce((acc, booking) => {
-    const activityName = booking.activity.name;
+    const activityName = booking.activity?.name || booking.activitySnapshot?.name || 'Activité supprimée ou indisponible';
     if (!acc[activityName]) {
       acc[activityName] = { bookings: 0, revenue: 0 };
     }
@@ -85,7 +85,7 @@ export default function CashPaymentAnalytics({ bookings }: CashPaymentAnalyticsP
     const csvData = filteredBookings.map(booking => ({
       'Customer Name': booking.customerName,
       'Phone': booking.customerPhone,
-      'Activity': booking.activity.name,
+      'Activity': booking.activity?.name || booking.activitySnapshot?.name || 'Activité supprimée ou indisponible',
       'Date': new Date(booking.preferredDate).toLocaleDateString(),
       'People': booking.numberOfPeople,
       'Total Amount': booking.totalAmount,

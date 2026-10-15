@@ -59,7 +59,7 @@ Email: ${booking.customerEmail || 'N/A'}
 =====================================
 BOOKING DETAILS
 =====================================
-Activity: ${booking.activity.name}
+Activity: ${booking.activity?.name || booking.activitySnapshot?.name || 'Activité supprimée ou indisponible'}
 Category: ${booking.activity.category}
 Date: ${new Date(booking.preferredDate).toLocaleDateString()}
 Participants: ${booking.numberOfPeople} people
@@ -242,7 +242,7 @@ Generated on: ${new Date().toLocaleString()}
               </div>
               <div className="flex justify-between">
                 <span>Activity:</span>
-                <span className="font-medium">{booking.activity.name}</span>
+                <span className="font-medium">{booking.activity?.name || booking.activitySnapshot?.name || 'Activité supprimée ou indisponible'}</span>
               </div>
               <div className="flex justify-between">
                 <span>Date:</span>
@@ -273,7 +273,7 @@ Generated on: ${new Date().toLocaleString()}
                 </div>
                 <div className="flex justify-between">
                   <span>Activity:</span>
-                  <span>{booking.activity.name}</span>
+                  <span>{booking.activity?.name || booking.activitySnapshot?.name || 'Activité supprimée ou indisponible'}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Total Amount:</span>

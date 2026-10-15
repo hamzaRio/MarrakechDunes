@@ -148,7 +148,7 @@ export default function CashBookingReminders() {
                     </div>
                     
                     <div className="text-sm">
-                      <span className="font-medium">{booking.activity.name}</span>
+                      <span className="font-medium">{booking.activity?.name || booking.activitySnapshot?.name || "Activité supprimée ou indisponible"}</span>
                       <span className="text-gray-500"> • {booking.numberOfPeople} people</span>
                     </div>
                   </div>

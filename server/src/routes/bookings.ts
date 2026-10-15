@@ -208,6 +208,9 @@ Thank you for choosing MarrakechDunes! 🏜️`.trim();
     if ((error as any)?.code === 'IDEMPOTENCY_KEY_CONFLICT') {
       return res.status(409).json({ status: 'error', code: 'IDEMPOTENCY_KEY_CONFLICT', message: (error as Error).message });
     }
+    if ((error as any)?.code === 'ACTIVITY_UNAVAILABLE') {
+      return res.status(409).json({ status: 'error', message: 'This activity is no longer available for booking. Please choose another activity.' });
+    }
     console.error('[BOOKINGS] Error creating booking:', error);
     return res.status(500).json({
       status: 'error',
