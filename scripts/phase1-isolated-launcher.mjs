@@ -31,6 +31,11 @@ const waitFor = async (check, label, timeout = 60_000) => {
   throw new Error(`${label} did not become ready${lastError ? `: ${lastError.message}` : ''}`);
 };
 
+const fetchWithTimeout = async (url, options = {}, timeout = 5_000) => {
+  const signal = AbortSignal.timeout(timeout);
+  return fetch(url, { ...options, signal });
+};
+
 const staticServer = async (directory, port) => {
   const server = createServer(async (req, res) => {
     const pathname = decodeURIComponent(new URL(req.url || '/', `http://${host}`).pathname);
@@ -76,19 +81,24 @@ try {
   const child = spawn(process.execPath, ['server/dist/index.js'], { cwd: root, env, stdio: ['ignore', 'pipe', 'pipe'] });
   processes.push(child);
   let output = '';
+  let childExit;
   child.stdout.on('data', (chunk) => { output += chunk.toString(); });
   child.stderr.on('data', (chunk) => { output += chunk.toString(); });
-  await waitFor(async () => (await fetch(`http://${host}:${apiPort}/api/health/live`)).ok, 'API health', 90_000);
+  child.once('exit', (code, signal) => { childExit = `code=${code ?? 'null'} signal=${signal ?? 'null'}`; });
+  await waitFor(async () => {
+    if (childExit) throw new Error(`API exited (${childExit})${output ? `: ${output.slice(-2000)}` : ''}`);
+    return (await fetchWithTimeout(`http://${host}:${apiPort}/api/health/live`)).ok;
+  }, 'API health', 90_000);
   await staticServer(join(root, 'client', 'dist'), publicPort);
   await staticServer(join(root, 'client', 'dist-admin'), adminPort);
-  const session = await fetch(`http://${host}:${apiPort}/api/session/init`);
+  const session = await fetchWithTimeout(`http://${host}:${apiPort}/api/session/init`);
   if (!session.ok) throw new Error(`session init failed: ${session.status}`);
   const csrf = (await session.json()).csrfToken;
   const cookies = session.headers.get('set-cookie')?.split(';')[0] || '';
-  const login = await fetch(`http://${host}:${apiPort}/api/auth/login`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-csrf-token': csrf, cookie: cookies }, body: JSON.stringify({ username: 'phase1-launcher-admin', password }) });
+  const login = await fetchWithTimeout(`http://${host}:${apiPort}/api/auth/login`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-csrf-token': csrf, cookie: cookies }, body: JSON.stringify({ username: 'phase1-launcher-admin', password }) });
   if (!login.ok) throw new Error(`admin login failed: ${login.status} ${await login.text()}`);
-  if (!(await fetch(`http://${host}:${publicPort}/`).then((response) => response.ok))) throw new Error('public frontend was not reachable');
-  if (!(await fetch(`http://${host}:${adminPort}/admin/login`).then((response) => response.ok))) throw new Error('admin frontend was not reachable');
+  if (!(await fetchWithTimeout(`http://${host}:${publicPort}/`)).ok) throw new Error('public frontend was not reachable');
+  if (!(await fetchWithTimeout(`http://${host}:${adminPort}/admin/login`)).ok) throw new Error('admin frontend was not reachable');
   console.log(`Phase 1 isolated launcher: PASS (api=${apiPort}, public=${publicPort}, admin=${adminPort})`);
 } catch (error) {
   console.error(error instanceof Error ? error.stack : error);
