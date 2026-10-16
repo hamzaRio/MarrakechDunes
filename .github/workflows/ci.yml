@@ -55,6 +55,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       MONGOMS_DISABLE_POSTINSTALL: '1'
+      MONGOMS_VERSION: '7.0.14'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -114,6 +115,7 @@ jobs:
       JWT_SECRET: phase1-ci-jwt-secret-only
       MONGOMS_DISABLE_POSTINSTALL: '1'
       REQUIRE_BROWSER_API: '1'
+      MONGOMS_VERSION: '7.0.14'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
