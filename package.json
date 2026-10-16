@@ -43,7 +43,8 @@
     "test:owner-deidentification": "node scripts/owner-deidentification-harness.mjs",
     "test:non-storage-integration": "node scripts/non-storage-integration-harness.mjs",
     "test:transaction-capability": "node scripts/transaction-capability-harness.mjs",
-    "test:booking-history": "tsx scripts/booking-history-integrity-harness.ts"
+    "test:booking-history": "tsx scripts/booking-history-integrity-harness.ts",
+    "test:admin-financial-market": "tsx scripts/admin-financial-market-integrity-harness.ts"
   },
   "dependencies": {
     "node-fetch": "^3.3.2"
@@ -56,3 +57,4 @@
     "typescript": "5.6.3"
   }
 }
+

@@ -103,7 +103,7 @@ export default function EnhancedPaymentConfirmation({
               </div>
               <div>
                 <p className="text-sm text-gray-600">Durée</p>
-                <p className="font-semibold">{booking.activity.duration}</p>
+                <p className="font-semibold">{booking.activity?.duration || 'N/A'}</p>
               </div>
             </div>
             <div className="space-y-3">
@@ -118,7 +118,7 @@ export default function EnhancedPaymentConfirmation({
                 <p className="text-sm text-gray-600">Lieu</p>
                 <p className="font-semibold flex items-center gap-1">
                   <MapPin className="w-4 h-4" />
-                  {booking.activity.location}
+                  {booking.activity?.location || 'N/A'}
                 </p>
               </div>
               <div>
@@ -291,3 +291,4 @@ export default function EnhancedPaymentConfirmation({
     </div>
   );
 }
+

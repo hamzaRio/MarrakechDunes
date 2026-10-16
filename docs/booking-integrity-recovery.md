@@ -20,4 +20,9 @@ Treat the database password shown in the earlier screenshot as exposed. The owne
 
 ## Payment summary meaning
 
-`collectedPayments` sums recorded `paidAmount`, including a paid cancelled booking; it is not net revenue and does not subtract refunds. `grossBookingValue` and `outstandingAmount` exclude cancelled bookings. A completed booking with `deposit_paid` can still have an outstanding balance and remains payment attention. Refund settlement must come from a separately verified accounting source.
+`collectedPayments` sums recorded `paidAmount`, including a paid cancelled booking; it is not net revenue and does not subtract refunds. `grossBookingValue` and `outstandingAmount` exclude cancelled bookings. The Admin dashboard and PDF export use these same definitions. A completed booking with `deposit_paid` can still have an outstanding balance and remains payment attention. Refund settlement must come from a separately verified accounting source; the cancellation flow calculates an estimate but does not record a completed refund transaction.
+
+## Legacy booking activity recovery
+
+An activity name may be restored only when a trustworthy source already contains the original relationship, such as an immutable booking snapshot or an access-controlled audit/backup record that identifies the same booking ID. Never infer it from price, date, customer, or a similarly named current activity. Run any proposed recovery as a dry run first, record the evidence and intended before/after values in an access-controlled operator artifact, and require explicit approval before changing production. When no evidence exists, retain the booking intact with the `Activité supprimée ou indisponible` historical fallback.
+

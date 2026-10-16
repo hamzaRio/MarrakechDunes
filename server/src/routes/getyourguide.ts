@@ -13,6 +13,7 @@ import { gygRequestKey, gygResilience, isGYGServiceUnavailable } from '../servic
 import { rankCandidateMatches, type MatchableActivity } from '../services/gyg-matching.js';
 import { isOfficialGYGConfigured, searchOfficialGYG } from '../providers/gyg.js';
 import { isViatorMarketIntelligenceEnabled } from '../providers/viator.js';
+import { GYG_LIVE_INTEGRATION_DISABLED_MESSAGE, isGYGLiveIntegrationEnabled } from '../services/gyg-live-integration.js';
 
 const router = Router();
 
@@ -20,6 +21,27 @@ const VIATOR_COMPARABLE_TTL_MS = 60 * 60 * 1000;
 
 const isTrueQueryValue = (value: unknown) =>
   value === 'true' || value === '1' || value === true;
+
+const sendLiveIntegrationDisabled = (res: Response) =>
+  res.status(503).json({
+    status: 'error',
+    code: 'GYG_LIVE_INTEGRATION_DISABLED',
+    message: GYG_LIVE_INTEGRATION_DISABLED_MESSAGE,
+  });
+
+// Manual comparables and cache-only workspace reads are part of the local
+// market-reference feature. Everything else in this router can initiate a
+// live provider call or present generated provider data, so it stays off
+// until an operator deliberately enables a future integration.
+router.use((req, res, next) => {
+  if (isGYGLiveIntegrationEnabled()) return next();
+  const cacheOnlyWorkspaceRead = req.path === '/search'
+    && req.query.useMyActivities === 'true'
+    && !isTrueQueryValue(req.query.forceRefresh);
+  const manualComparableRoute = req.path === '/comparables' || req.path.startsWith('/comparables/');
+  if (cacheOnlyWorkspaceRead || manualComparableRoute) return next();
+  return sendLiveIntegrationDisabled(res);
+});
 
 // Phase 3D-2: viewing the cache-first my-activities comparison workspace is
 // an Admin-level action; only an explicit live scrape (forceRefresh=true) is
@@ -1352,3 +1374,4 @@ router.get('/debug', requireSuperAdmin, async (req: Request, res: Response) => {
 
 
 export default router;
+

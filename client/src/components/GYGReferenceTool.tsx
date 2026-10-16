@@ -258,6 +258,10 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
   const { user } = useAuth();
   const [, setLocation] = useLocation();
   const canForceLiveRefresh = user?.role === 'superadmin';
+  // The operator has no working GYG integration. Keep historical/manual
+  // comparables visible, but do not expose controls that would issue live
+  // provider requests until an explicit future integration is enabled.
+  const liveGYGControlsEnabled = false;
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const providerStatusQuery = useQuery({
@@ -557,7 +561,7 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
           <Card className="border-slate-200 bg-slate-50">
             <CardContent className="p-4">
               <div className="flex items-center justify-between"><h3 className="font-semibold text-gray-900">GetYourGuide</h3><Badge variant="outline">Disabled</Badge></div>
-              <p className="mt-1 text-xs text-gray-600">Read-only legacy comparables remain visible. Official Partner API access is required for live search.</p>
+              <p className="mt-1 text-xs text-gray-600">Read-only legacy comparables remain visible. Live search and refresh are unavailable.</p>
             </CardContent>
           </Card>
         </div>
@@ -576,8 +580,8 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
           <div>
             <h3 className="text-lg font-semibold text-gray-900">Market Comparison</h3>
             <p className="text-sm text-gray-500">
-              Internal market intelligence for MarrakechDunes activities. Uses cached comparison data —
-              opening this workspace never sends live requests to GetYourGuide.
+              Internal market intelligence for MarrakechDunes activities. Uses stored and manually verified
+              comparisons; opening this workspace never sends a live provider request.
             </p>
           </div>
           <Button
@@ -778,7 +782,7 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
                             className="h-7 text-xs shrink-0"
                             onClick={() => window.open(offer.url!, '_blank', 'noopener,noreferrer')}
                           >
-                            <ExternalLink className="w-3 h-3 mr-1" /> Open on GetYourGuide
+                            <ExternalLink className="w-3 h-3 mr-1" /> Open source
                           </Button>
                         )}
                       </div>
@@ -947,7 +951,7 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
         </DialogContent>
       </Dialog>
 
-      {canForceLiveRefresh && <>
+      {liveGYGControlsEnabled && canForceLiveRefresh && <>
       <Separator />
 
       {/* ============================================================ */}
@@ -1228,3 +1232,4 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
     </div>
   );
 }
+
