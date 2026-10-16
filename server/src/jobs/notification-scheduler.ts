@@ -11,7 +11,7 @@ import { getCasablancaCalendarDate } from '../utils/booking-query.js';
 import { acquireSchedulerLease, releaseSchedulerLease, schedulerOwner } from '../services/scheduler-lease.js';
 
 export function depositExpirationEnabled(value = process.env.ENABLE_DEPOSIT_EXPIRATION): boolean {
-  return String(value || '').trim() === 'true';
+  return value === 'true';
 }
 
 // Simple scheduler using setInterval (can be replaced with node-cron later)
