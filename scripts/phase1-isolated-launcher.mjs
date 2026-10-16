@@ -36,6 +36,11 @@ const fetchWithTimeout = async (url, options = {}, timeout = 5_000) => {
   return fetch(url, { ...options, signal });
 };
 
+const withTimeout = (promise, label, timeout = 120_000) => Promise.race([
+  promise,
+  new Promise((_, reject) => setTimeout(() => reject(new Error(`${label} timed out after ${timeout}ms`)), timeout)),
+]);
+
 const staticServer = async (directory, port) => {
   const server = createServer(async (req, res) => {
     const pathname = decodeURIComponent(new URL(req.url || '/', `http://${host}`).pathname);
@@ -69,7 +74,9 @@ try {
     throw new Error('Build artifacts missing; run npm run build, npm run build:public, and npm run build:admin first');
   }
   const [apiPort, publicPort, adminPort] = await Promise.all([freePort(), freePort(), freePort()]);
-  replSet = await MongoMemoryReplSet.create({ replSet: { count: 1, storageEngine: 'wiredTiger' } });
+  console.log('Phase 1 isolated launcher: starting disposable Mongo replica set');
+  replSet = await withTimeout(MongoMemoryReplSet.create({ replSet: { count: 1, storageEngine: 'wiredTiger' } }), 'MongoMemoryReplSet startup');
+  console.log('Phase 1 isolated launcher: Mongo replica set ready');
   const mongoUri = replSet.getUri('phase1_launcher');
   mongoClient = new MongoClient(mongoUri);
   await mongoClient.connect();
