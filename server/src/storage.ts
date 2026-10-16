@@ -1,3 +1,4 @@
+import { calculateOperationsFinancials } from './utils/booking-query.js';
 import mongoose from 'mongoose';
 import { randomBytes } from 'crypto';
 import { cacheService } from './services/cache-service.js';
@@ -1405,64 +1406,10 @@ class MongoStorage implements IStorage {
   }
 
   async generateOperationsReport(): Promise<any> {
-    const bookings = await this.getBookings();
-    const activities = await this.getActivities();
-    const reviews = await this.getReviews();
-    
-    // Calculate metrics
-    const totalBookings = bookings.length;
-    const totalRevenue = bookings.reduce((sum, booking) => sum + parseInt(booking.totalAmount), 0);
-    const averageBookingValue = totalBookings > 0 ? totalRevenue / totalBookings : 0;
-    
-    // Activity performance
-    const activityPerformance = activities.map(activity => {
-      const activityBookings = bookings.filter(b => b.activity?._id === activity._id);
-      const activityRevenue = activityBookings.reduce((sum, booking) => sum + parseInt(booking.totalAmount), 0);
-      const activityRating = reviews
-        .filter(r => r.activityId === activity._id)
-        .reduce((sum, review, _, arr) => sum + review.rating / arr.length, 0);
-      
-      return {
-        name: activity.name,
-        bookings: activityBookings.length,
-        revenue: activityRevenue,
-        rating: activityRating || 0,
-        popularity: activityBookings.length / totalBookings * 100
-      };
-    });
-    
-    // Monthly trends
-    const monthlyData = Array.from({ length: 12 }, (_, i) => {
-      const month = new Date();
-      month.setMonth(month.getMonth() - i);
-      const monthBookings = bookings.filter(b => {
-        const bookingDate = new Date(b.createdAt);
-        return bookingDate.getMonth() === month.getMonth() && 
-               bookingDate.getFullYear() === month.getFullYear();
-      });
-      
-      return {
-        month: month.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
-        bookings: monthBookings.length,
-        revenue: monthBookings.reduce((sum, b) => sum + parseInt(b.totalAmount), 0)
-      };
-    }).reverse();
-    
-    return {
-      summary: {
-        totalBookings,
-        totalRevenue,
-        averageBookingValue,
-        totalActivities: activities.length,
-        averageRating: reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length || 0
-      },
-      activityPerformance,
-      monthlyTrends: monthlyData,
-      topActivities: activityPerformance
-        .sort((a, b) => b.revenue - a.revenue)
-        .slice(0, 5),
-      generatedAt: new Date().toISOString()
-    };
+    const bookings=await this.getBookings();const activities=await this.getActivities();const reviews=await this.getReviews();const financials=calculateOperationsFinancials(bookings);
+    const activityPerformance=activities.map(activity=>{const bs=bookings.filter(b=>b.activity?._id===activity._id);const af=calculateOperationsFinancials(bs);const rating=reviews.filter(r=>r.activityId===activity._id).reduce((sum,review,_,arr)=>sum+review.rating/arr.length,0);return {name:activity.name,bookings:bs.length,grossActiveBookingValue:af.grossActiveBookingValue,recordedPayments:af.recordedPayments,outstandingAmount:af.outstandingAmount,revenue:af.grossActiveBookingValue,rating:rating||0,popularity:bookings.length?bs.length/bookings.length*100:0};});
+    const monthlyTrends=Array.from({length:12},(_,i)=>{const month=new Date();month.setMonth(month.getMonth()-i);const bs=bookings.filter(b=>{const d=new Date(b.createdAt);return d.getMonth()===month.getMonth()&&d.getFullYear()===month.getFullYear();});const mf=calculateOperationsFinancials(bs);return {month:month.toLocaleDateString('en-US',{month:'short',year:'numeric'}),bookings:bs.length,grossActiveBookingValue:mf.grossActiveBookingValue,recordedPayments:mf.recordedPayments,outstandingAmount:mf.outstandingAmount,revenue:mf.grossActiveBookingValue};}).reverse();
+    return {summary:{totalBookings:bookings.length,grossActiveBookingValue:financials.grossActiveBookingValue,recordedPayments:financials.recordedPayments,outstandingAmount:financials.outstandingAmount,totalRevenue:financials.grossActiveBookingValue,averageBookingValue:financials.activeBookingCount?financials.grossActiveBookingValue/financials.activeBookingCount:0,totalActivities:activities.length,averageRating:reviews.length?reviews.reduce((sum,r)=>sum+r.rating,0)/reviews.length:0},activityPerformance,monthlyTrends,topActivities:[...activityPerformance].sort((x,y)=>y.grossActiveBookingValue-x.grossActiveBookingValue).slice(0,5),generatedAt:new Date().toISOString()};
   }
 
   async exportOperationsReportToPDF(reportData: any): Promise<Buffer> {
