@@ -129,7 +129,7 @@ try {
 
   const lifecycleId = new ObjectId();
   await db.collection('activities').updateOne({ _id: activityId }, { $set: { name: '<img src=x onerror=alert(1)>' } });
-  await db.collection('bookings').insertOne({ _id: lifecycleId, bookingReference: 'INT-LIFECYCLE-1', customerName: '<script>alert(1)</script> Hamza & Sons "quoted" \'apostrophe\' <tag>', customerPhone: '+491234567890', customerEmail: 'private-test@example.invalid', activityId, numberOfPeople: 2, preferredDate: new Date('2040-01-02T00:00:00.000Z'), status: 'PENDING', totalAmount: '100', paymentStatus: 'unpaid', paidAmount: 0, createdAt: new Date(), updatedAt: new Date() });
+  await db.collection('bookings').insertOne({ _id: lifecycleId, bookingReference: 'INT-LIFECYCLE-1', customerName: '<script>alert(1)</script> Hamza & Sons "quoted" \'apostrophe\' <tag>', customerPhone: '+491234567890', customerEmail: 'private-test@example.invalid', activityId, numberOfPeople: 2, preferredDate: new Date('2040-01-02T00:00:00.000Z'), status: 'PENDING', totalAmount: '100', paymentStatus: 'deposit_paid', paidAmount: 50, partnerAvailability: 'AVAILABLE', createdAt: new Date(), updatedAt: new Date() });
   const confirmed = await activeAdmin.agent.patch(`/api/admin/bookings/${lifecycleId}/status`).set('X-CSRF-Token', activeAdmin.csrf).send({ status: 'CONFIRMED' });
   check(confirmed.status === 200, `atomic confirm failed: ${confirmed.status}`);
   const emailHtml = await readFile(emailCaptureFile, 'utf8');
