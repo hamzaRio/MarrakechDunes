@@ -23,6 +23,9 @@ import {
 interface OperationsData {
   summary: {
     totalBookings: number;
+    grossActiveBookingValue: number;
+    recordedPayments: number;
+    outstandingAmount: number;
     totalRevenue: number;
     averageBookingValue: number;
     totalActivities: number;
@@ -31,6 +34,9 @@ interface OperationsData {
   activityPerformance: Array<{
     name: string;
     bookings: number;
+    grossActiveBookingValue: number;
+    recordedPayments: number;
+    outstandingAmount: number;
     revenue: number;
     rating: number;
     popularity: number;
@@ -38,6 +44,9 @@ interface OperationsData {
   monthlyTrends: Array<{
     month: string;
     bookings: number;
+    grossActiveBookingValue: number;
+    recordedPayments: number;
+    outstandingAmount: number;
     revenue: number;
   }>;
   topActivities: Array<{
@@ -171,13 +180,13 @@ export default function CEOOperationsDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Revenus Totaux</CardTitle>
+            <CardTitle className="text-sm font-medium">Valeur brute active</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{(operationsData as any)?.summary?.totalRevenue || 0} MAD</div>
+            <div className="text-2xl font-bold">{(operationsData as any)?.summary?.grossActiveBookingValue || 0} MAD</div>
             <p className="text-xs text-muted-foreground">
-              Moyenne: {(operationsData as any)?.summary?.averageBookingValue?.toFixed(2) || 0} MAD par réservation
+              Paiements enregistrés: {(operationsData as any)?.summary?.recordedPayments || 0} MAD · Solde: {(operationsData as any)?.summary?.outstandingAmount || 0} MAD
             </p>
           </CardContent>
         </Card>
@@ -251,7 +260,7 @@ export default function CEOOperationsDashboard() {
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="font-bold text-lg">{activity.revenue} MAD</p>
+                      <p className="font-bold text-lg">{activity.grossActiveBookingValue} MAD</p>
                       <div className="flex items-center space-x-2">
                         <Star className="h-4 w-4 text-yellow-500" />
                         <span className="text-sm">{activity.rating.toFixed(1)}/5</span>
@@ -279,7 +288,7 @@ export default function CEOOperationsDashboard() {
                     </div>
                     <div className="text-right">
                       <p className="font-bold">{month.bookings} réservations</p>
-                      <p className="text-sm text-gray-500">{month.revenue} MAD revenus</p>
+                      <p className="text-sm text-gray-500">{month.grossActiveBookingValue} MAD valeur brute active</p>
                     </div>
                   </div>
                 ))}
