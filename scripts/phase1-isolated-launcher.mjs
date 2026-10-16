@@ -1,0 +1,98 @@
+import { createServer } from 'node:http';
+import { readFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
+import { extname, join, normalize } from 'node:path';
+import { spawn } from 'node:child_process';
+import { MongoClient, ObjectId } from 'mongodb';
+import { MongoMemoryReplSet } from 'mongodb-memory-server';
+import bcrypt from 'bcrypt';
+
+const host = '127.0.0.1';
+const root = process.cwd();
+const password = 'Phase1-launcher-password-123!';
+const processes = [];
+const servers = [];
+let replSet;
+let mongoClient;
+
+const freePort = async () => new Promise((resolve, reject) => {
+  const probe = createServer();
+  probe.once('error', reject);
+  probe.listen(0, host, () => { const port = probe.address().port; probe.close(() => resolve(port)); });
+});
+
+const waitFor = async (check, label, timeout = 60_000) => {
+  const deadline = Date.now() + timeout;
+  let lastError;
+  while (Date.now() < deadline) {
+    try { if (await check()) return; } catch (error) { lastError = error; }
+    await new Promise((resolve) => setTimeout(resolve, 500));
+  }
+  throw new Error(`${label} did not become ready${lastError ? `: ${lastError.message}` : ''}`);
+};
+
+const staticServer = async (directory, port) => {
+  const server = createServer(async (req, res) => {
+    const pathname = decodeURIComponent(new URL(req.url || '/', `http://${host}`).pathname);
+    const relative = pathname === '/' || !extname(pathname) ? 'index.html' : pathname.replace(/^\/+/, '');
+    const file = normalize(join(directory, relative));
+    if (!file.startsWith(normalize(directory))) { res.statusCode = 400; return res.end('Bad path'); }
+    try {
+      const body = await readFile(file);
+      const contentTypes = { '.html': 'text/html; charset=utf-8', '.js': 'application/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml' };
+      res.setHeader('Content-Type', contentTypes[extname(file)] || 'application/octet-stream');
+      res.end(body);
+    } catch { res.statusCode = 404; res.end('Not found'); }
+  });
+  await new Promise((resolve, reject) => { server.once('error', reject); server.listen(port, host, resolve); });
+  servers.push(server);
+};
+
+const stop = async () => {
+  for (const child of processes) { if (!child.killed) child.kill('SIGTERM'); }
+  await Promise.all(processes.map((child) => new Promise((resolve) => {
+    const timer = setTimeout(() => { if (!child.killed) child.kill('SIGKILL'); resolve(); }, 5_000);
+    child.once('exit', () => { clearTimeout(timer); resolve(); });
+  })));
+  await Promise.all(servers.map((server) => new Promise((resolve) => server.close(() => resolve()))));
+  if (mongoClient) await mongoClient.close();
+  if (replSet) await replSet.stop();
+};
+
+try {
+  if (!existsSync('server/dist/index.js') || !existsSync('client/dist/index.html') || !existsSync('client/dist-admin/index.html')) {
+    throw new Error('Build artifacts missing; run npm run build, npm run build:public, and npm run build:admin first');
+  }
+  const [apiPort, publicPort, adminPort] = await Promise.all([freePort(), freePort(), freePort()]);
+  replSet = await MongoMemoryReplSet.create({ replSet: { count: 1, storageEngine: 'wiredTiger' } });
+  const mongoUri = replSet.getUri('phase1_launcher');
+  mongoClient = new MongoClient(mongoUri);
+  await mongoClient.connect();
+  const db = mongoClient.db('phase1_launcher');
+  const userId = new ObjectId();
+  await db.collection('users').insertOne({ _id: userId, username: 'phase1-launcher-admin', password: await bcrypt.hash(password, 12), role: 'admin', createdAt: new Date(), updatedAt: new Date() });
+
+  const env = { ...process.env, NODE_ENV: 'test', PORT: String(apiPort), DATABASE_URL: mongoUri, SESSION_SECRET: 'phase1-launcher-session-secret-1234567890', JWT_SECRET: 'phase1-launcher-jwt-secret', CORS_ALLOWED_ORIGINS: `http://${host}:${publicPort},http://${host}:${adminPort}`, LEGACY_STARTUP_SEEDING: 'false', SEED_DEMO_DATA: 'false', MONGO_AUTO_INDEX: 'false', ROLE: 'all', ENABLE_DEPOSIT_EXPIRATION: 'false', SMTP_HOST: '', SMTP_USER: '', SMTP_PASS: '' };
+  const child = spawn(process.execPath, ['server/dist/index.js'], { cwd: root, env, stdio: ['ignore', 'pipe', 'pipe'] });
+  processes.push(child);
+  let output = '';
+  child.stdout.on('data', (chunk) => { output += chunk.toString(); });
+  child.stderr.on('data', (chunk) => { output += chunk.toString(); });
+  await waitFor(async () => (await fetch(`http://${host}:${apiPort}/api/health/live`)).ok, 'API health', 90_000);
+  await staticServer(join(root, 'client', 'dist'), publicPort);
+  await staticServer(join(root, 'client', 'dist-admin'), adminPort);
+  const session = await fetch(`http://${host}:${apiPort}/api/session/init`);
+  if (!session.ok) throw new Error(`session init failed: ${session.status}`);
+  const csrf = (await session.json()).csrfToken;
+  const cookies = session.headers.get('set-cookie')?.split(';')[0] || '';
+  const login = await fetch(`http://${host}:${apiPort}/api/auth/login`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-csrf-token': csrf, cookie: cookies }, body: JSON.stringify({ username: 'phase1-launcher-admin', password }) });
+  if (!login.ok) throw new Error(`admin login failed: ${login.status} ${await login.text()}`);
+  if (!(await fetch(`http://${host}:${publicPort}/`).then((response) => response.ok))) throw new Error('public frontend was not reachable');
+  if (!(await fetch(`http://${host}:${adminPort}/admin/login`).then((response) => response.ok))) throw new Error('admin frontend was not reachable');
+  console.log(`Phase 1 isolated launcher: PASS (api=${apiPort}, public=${publicPort}, admin=${adminPort})`);
+} catch (error) {
+  console.error(error instanceof Error ? error.stack : error);
+  process.exitCode = 1;
+} finally {
+  await stop();
+}

@@ -130,6 +130,7 @@ jobs:
       - run: npm run build:admin
         env:
           VITE_API_URL: http://127.0.0.1:18080/api
+      - run: npm run test:phase1-launcher
       - run: npm run test:phase1-reservation
       - run: npm run test:browser-hardening
       - run: npm run test:non-storage-integration

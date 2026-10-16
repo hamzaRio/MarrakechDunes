@@ -45,7 +45,8 @@
     "test:transaction-capability": "node scripts/transaction-capability-harness.mjs",
     "test:booking-history": "tsx scripts/booking-history-integrity-harness.ts",
     "test:admin-financial-market": "tsx scripts/admin-financial-market-integrity-harness.ts",
-    "test:phase1-reservation": "tsx scripts/phase1-reservation-workflow-harness.ts"
+    "test:phase1-reservation": "tsx scripts/phase1-reservation-workflow-harness.ts",
+    "test:phase1-launcher": "node scripts/phase1-isolated-launcher.mjs"
   },
   "dependencies": {
     "node-fetch": "^3.3.2"
