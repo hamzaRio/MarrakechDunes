@@ -10,6 +10,10 @@ import { formatBookingDateOnly } from '../utils/booking-date.js';
 import { getCasablancaCalendarDate } from '../utils/booking-query.js';
 import { acquireSchedulerLease, releaseSchedulerLease, schedulerOwner } from '../services/scheduler-lease.js';
 
+export function depositExpirationEnabled(value = process.env.ENABLE_DEPOSIT_EXPIRATION): boolean {
+  return String(value || '').trim() === 'true';
+}
+
 // Simple scheduler using setInterval (can be replaced with node-cron later)
 class NotificationScheduler {
   private intervalId: NodeJS.Timeout | null = null;
@@ -75,7 +79,8 @@ class NotificationScheduler {
       if (!(await acquireSchedulerLease('notification-reminders', this.owner))) return;
       this.leaseHeld = true;
       const now = new Date();
-      const expired = await storage.expirePendingDepositDeadlines(now);
+      const expirationEnabled = depositExpirationEnabled();
+      const expired = expirationEnabled ? await storage.expirePendingDepositDeadlines(now) : [];
       if (expired.length > 0) {
         console.log(`[SCHEDULER] Expired ${expired.length} unpaid pending booking(s) after deposit deadline`);
         const { freeNotificationQueue } = await import('../services/free-notification-queue.js');

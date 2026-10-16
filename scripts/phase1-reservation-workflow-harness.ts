@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { depositDeadlineFor, isBelowRequiredDeposit, parseCasablancaDateTime } from '../server/src/utils/booking-deadline.js';
+import { depositExpirationEnabled } from '../server/src/jobs/notification-scheduler.js';
 
 const start = parseCasablancaDateTime('2035-06-15', '12:00');
 assert(start, 'valid Casablanca start time should parse');
@@ -14,4 +15,6 @@ assert.equal(isBelowRequiredDeposit('100', 49), true);
 assert.equal(isBelowRequiredDeposit('100', 50), false);
 assert.equal(isBelowRequiredDeposit('100', 100), false);
 assert.equal(isBelowRequiredDeposit('100', Number.NaN), true, 'invalid paid amount is treated as unpaid');
+for (const value of [undefined, '', 'false', 'TRUE', '1']) assert.equal(depositExpirationEnabled(value), false, `expiration must be disabled for ${String(value)}`);
+assert.equal(depositExpirationEnabled('true'), true, 'exact true enables expiration');
 console.log('Phase 1 reservation deadline harness: PASS');

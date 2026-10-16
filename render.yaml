@@ -35,6 +35,10 @@ services:
       # H2: explicit - do not run destructive legacy startup seeding.
       - key: LEGACY_STARTUP_SEEDING
         value: "false"
+      # Deposit-deadline cancellation is opt-in and remains disabled until
+      # production operations explicitly approve and enable it.
+      - key: ENABLE_DEPOSIT_EXPIRATION
+        value: "false"
       # M12: owner-identifying links shown to customers/admins. Unset by
       # default (messages omit the link/number) until the deploying owner
       # fills these in.
