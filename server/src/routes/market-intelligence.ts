@@ -6,6 +6,10 @@ import { requireAdmin, requireSuperAdmin } from '../middleware/admin-auth.js';
 import { calculateVerifiedMetrics, normalizeGYGOffer, type GYGTrustSource } from '../services/gyg-comparison.js';
 import { consumeGYGRateLimit } from '../services/gyg-rate-limits.js';
 import { gygRequestKey, gygResilience } from '../services/gyg-resilience.js';
+import {
+  GYG_LIVE_INTEGRATION_DISABLED_MESSAGE,
+  isGYGLiveIntegrationEnabled,
+} from '../services/gyg-live-integration.js';
 import { viatorProviderStatus } from './viator.js';
 
 const router = express.Router();
@@ -18,10 +22,12 @@ router.get('/providers', requireAdmin, (_req: Request, res: Response) => {
       viator: viatorProviderStatus(),
       getyourguide: {
         provider: 'GETYOURGUIDE',
-        active: false,
-        configured: Boolean(process.env.GYG_PARTNER_API_TOKEN),
+        active: isGYGLiveIntegrationEnabled(),
+        configured: isGYGLiveIntegrationEnabled() && Boolean(process.env.GYG_PARTNER_API_TOKEN),
         source: 'OFFICIAL_API',
-        message: 'GetYourGuide Partner API access is required for live search.',
+        message: isGYGLiveIntegrationEnabled()
+          ? 'GetYourGuide live integration is enabled.'
+          : GYG_LIVE_INTEGRATION_DISABLED_MESSAGE,
       },
     },
   });
@@ -29,6 +35,13 @@ router.get('/providers', requireAdmin, (_req: Request, res: Response) => {
 
 const isTrueQueryValue = (value: unknown) =>
   value === 'true' || value === '1' || value === true;
+
+const sendLiveIntegrationDisabled = (res: Response) =>
+  res.status(503).json({
+    status: 'error',
+    code: 'GYG_LIVE_INTEGRATION_DISABLED',
+    message: GYG_LIVE_INTEGRATION_DISABLED_MESSAGE,
+  });
 
 const requireSuperAdminForLiveRefresh = (req: Request, res: Response, next: express.NextFunction) => {
   if (!isTrueQueryValue(req.query.forceRefresh) && !isTrueQueryValue(req.query.live)) {
@@ -111,6 +124,8 @@ const marketSearchSchema = z.object({
  * GET /api/market/debug/gyg?q=desert&city=marrakech
  */
 router.get('/debug/gyg', requireSuperAdmin, async (req: Request, res: Response) => {
+  if (!isGYGLiveIntegrationEnabled()) return sendLiveIntegrationDisabled(res);
+
   const query = typeof req.query.q === 'string' ? req.query.q : 'desert';
   const city = typeof req.query.city === 'string' ? req.query.city : 'marrakech';
   if (!consumeGYGRateLimit(req, res, 'adminAction')) return;
@@ -185,6 +200,14 @@ router.get('/debug/gyg', requireSuperAdmin, async (req: Request, res: Response) 
 router.get('/search', requireAdmin, requireSuperAdminForLiveRefresh, async (req: Request, res: Response) => {
   const provider = typeof req.query.provider === 'string' ? req.query.provider.toLowerCase() : undefined;
 
+  // The generic search path historically scraped GetYourGuide as part of its
+  // default "all providers" flow. Do not substitute generated or stale data
+  // while the live integration is disabled; stored/manual comparisons use the
+  // dedicated /api/gyg workspace routes instead.
+  if (!isGYGLiveIntegrationEnabled() && provider !== 'viator' && provider !== 'tripadvisor') {
+    return sendLiveIntegrationDisabled(res);
+  }
+
   if (provider === 'gyg') {
     if (!consumeGYGRateLimit(req, res, 'cachedRead')) return;
     const query = typeof req.query.q === 'string' ? req.query.q : '';
@@ -255,11 +278,14 @@ router.get('/search', requireAdmin, requireSuperAdminForLiveRefresh, async (req:
 
     if (!consumeGYGRateLimit(req, res, 'normalSearch')) return;
 
+    const getyourguideSearch = isGYGLiveIntegrationEnabled()
+      ? gygResilience.run(
+          gygRequestKey('market-search', `${searchQuery}:${searchLocation}`),
+          () => searchGetYourGuide(searchQuery, searchLocation),
+        )
+      : Promise.resolve([] as CompetitorActivity[]);
     const [getyourguideResults, viatorResults, tripadvisorResults] = await Promise.allSettled([
-      gygResilience.run(
-        gygRequestKey('market-search', `${searchQuery}:${searchLocation}`),
-        () => searchGetYourGuide(searchQuery, searchLocation),
-      ),
+      getyourguideSearch,
       searchViator(searchQuery, searchLocation),
       searchTripAdvisor(searchQuery, searchLocation)
     ]);

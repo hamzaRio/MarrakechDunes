@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 import { randomBytes } from 'crypto';
 import { cacheService } from './services/cache-service.js';
 import { loggingService } from './services/logging-service.js';
-import { normalizeBookingPagination } from './utils/booking-query.js';
+import { calculateBookingSummary, normalizeBookingPagination } from './utils/booking-query.js';
 import { capacityDateKey, isCapacityConsumingStatus } from './utils/booking-capacity.js';
 import { hashPasswordForPersistence, prepareUserUpdateForPersistence } from './utils/password-hashing.js';
 import { runDemoSeed, type StaffBootstrapState } from './bootstrap/bootstrap-policy.js';
@@ -1304,16 +1304,19 @@ class MongoStorage implements IStorage {
     })}`, 20, 30);
     
     // Add summary statistics
-    const totalRevenue = bookings.reduce((sum, booking) => sum + (Number(booking.totalAmount) || 0), 0);
+    // Keep exports aligned with the dashboard: cancelled bookings are not
+    // active gross value or outstanding receivables, while recorded cash is
+    // still reported until a separately persisted refund exists.
+    const financialSummary = calculateBookingSummary(bookings);
     const confirmedBookings = bookings.filter(b => b.status === 'CONFIRMED').length;
     const pendingBookings = bookings.filter(b => b.status === 'PENDING').length;
     const paidBookings = bookings.filter(b => b.paymentStatus === 'fully_paid').length;
-    const totalPaid = bookings.reduce((sum, booking) => sum + (Number(booking.paidAmount) || 0), 0);
+    const totalPaid = financialSummary.collectedPayments;
     
     doc.text(`Total Bookings: ${bookings.length}`, 20, 40);
-    doc.text(`Total Revenue: ${totalRevenue.toLocaleString()} MAD`, 20, 47);
-    doc.text(`Total Paid: ${totalPaid.toLocaleString()} MAD`, 20, 54);
-    doc.text(`Outstanding: ${(totalRevenue - totalPaid).toLocaleString()} MAD`, 20, 61);
+    doc.text(`Gross Active Value: ${financialSummary.grossBookingValue.toLocaleString()} MAD`, 20, 47);
+    doc.text(`Recorded Payments (before refunds): ${totalPaid.toLocaleString()} MAD`, 20, 54);
+    doc.text(`Outstanding: ${financialSummary.outstandingAmount.toLocaleString()} MAD`, 20, 61);
     doc.text(`Status: Confirmed: ${confirmedBookings} | Pending: ${pendingBookings} | Paid: ${paidBookings}`, 20, 68);
     
     // Add bookings table with better structure

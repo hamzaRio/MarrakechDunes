@@ -344,68 +344,6 @@ function AdminDashboardContent() {
     }
   };
 
-  const handleUpdateGetYourGuidePrice = async (activity: ActivityType, forceScrape: boolean = false) => {
-    try {
-      toast({
-        title: "Mise à jour du prix concurrent",
-        description: forceScrape 
-          ? "Scraping en temps réel du site GetYourGuide (5-10 secondes)..."
-          : "Recherche du prix GetYourGuide en cours...",
-      });
-      
-      // Fetch real price from GetYourGuide (with optional force scrape)
-      const priceResponse = await api.get(`/admin/activities/${activity._id || activity.id}/getyourguide-price`, {
-        params: { forceScrape: forceScrape ? 'true' : 'false' }
-      });
-      
-      if (priceResponse.data && priceResponse.data.status === 'success') {
-        const comparison = priceResponse.data.comparison;
-        const gygPrice = comparison?.price ?? priceResponse.data.price;
-        const sourceType = comparison?.sourceType ?? priceResponse.data.sourceType ?? 'LEGACY_UNVERIFIED';
-        const activityMatch = priceResponse.data.activity;
-        
-        if (gygPrice && sourceType === 'LIVE_VERIFIED') {
-          // The server performs the verified persistence, so the client never
-          // turns a numeric reference into a GetYourGuide value on its own.
-          await queryClient.invalidateQueries({ queryKey: ["/admin/activities"] });
-
-          toast({
-            title: "Prix mis à jour",
-            description: activityMatch?.title
-              ? `Prix GetYourGuide vérifié: ${gygPrice} ${priceResponse.data.currency || 'MAD'} - ${activityMatch.title}`
-              : `Prix GetYourGuide vérifié: ${gygPrice} ${priceResponse.data.currency || 'MAD'}`,
-          });
-
-          if (activityMatch?.url) {
-            console.log('[GYG] Activity found on GetYourGuide:', {
-              title: activityMatch.title,
-              url: activityMatch.url,
-              price: gygPrice,
-              ourPrice: activity.price,
-              sourceType,
-            });
-          }
-        } else if (gygPrice) {
-          toast({
-            title: 'Référence non enregistrée',
-            description: 'Seuls les résultats GetYourGuide vérifiés en direct peuvent être enregistrés.',
-          });
-        } else {
-          throw new Error('Prix GetYourGuide non trouvé');
-        }
-      } else {
-        throw new Error('Impossible de récupérer le prix GetYourGuide');
-      }
-    } catch (error: any) {
-      console.error('[DASHBOARD] Failed to update GetYourGuide price:', error);
-      toast({
-        title: "Erreur",
-        description: error?.response?.data?.message || "Impossible de mettre à jour le prix GetYourGuide",
-        variant: "destructive",
-      });
-    }
-  };
-
   const handleViewActivityBookings = (activity: ActivityType) => {
     toast({
       title: `Réservations: ${activity.name}`,
@@ -586,9 +524,9 @@ function AdminDashboardContent() {
                           </div>
                         </div>
                         
-                        {/* Price Comparison Section */}
+                        {/* Stored market references are informational only. */}
                         <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                          <h4 className="font-semibold text-moroccan-blue mb-3">Price Comparison Analysis</h4>
+                          <h4 className="font-semibold text-moroccan-blue mb-3">Pricing and market reference</h4>
                           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                             <div className="bg-white p-3 rounded border">
                               <div className="text-sm font-medium text-green-700">Our Price</div>
@@ -596,9 +534,9 @@ function AdminDashboardContent() {
                               <div className="text-xs text-gray-600">Current Rate</div>
                             </div>
                             <div className="bg-white p-3 rounded border">
-                              <div className="text-sm font-medium text-orange-700">Market reference</div>
+                              <div className="text-sm font-medium text-orange-700">Stored market reference</div>
                               <div className="text-xl font-bold text-orange-600">{activity.getyourguidePrice ? `${activity.getyourguidePrice} MAD` : 'N/A'}</div>
-                              <div className="text-xs text-gray-600">Stored source requires verification</div>
+                              <div className="text-xs text-gray-600">Historical reference — not a live quote</div>
                             </div>
                             <div className="bg-white p-3 rounded border">
                               <div className="text-sm font-medium text-blue-700">Pricing decision</div>
@@ -608,7 +546,7 @@ function AdminDashboardContent() {
                             <div className="bg-white p-3 rounded border">
                               <div className="text-sm font-medium text-purple-700">Market position</div>
                               <div className="text-lg font-bold text-purple-600">To verify</div>
-                              <div className="text-xs text-gray-600">Requires comparable verified offers</div>
+                              <div className="text-xs text-gray-600">Compare only with verified manual references</div>
                             </div>
                           </div>
                         </div>
@@ -646,23 +584,6 @@ function AdminDashboardContent() {
                               >
                                 <Settings className="w-4 h-4 mr-1" />
                                 Edit Pricing
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleUpdateGetYourGuidePrice(activity, false)}
-                                title="Mise à jour rapide depuis la base de données"
-                              >
-                                Update GYG Price (DB)
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleUpdateGetYourGuidePrice(activity, true)}
-                                title="Scraping en temps réel du site GetYourGuide (plus lent mais plus précis)"
-                                className="bg-blue-50 hover:bg-blue-100"
-                              >
-                                🔄 Scrape Live GYG
                               </Button>
                             </>
                           ) : null}
@@ -704,7 +625,7 @@ function AdminDashboardContent() {
               </Card>
             </TabsContent>
 
-            {/* GYG Reference Tab - Search GetYourGuide website */}
+            {/* Stored/manual comparisons only; live GetYourGuide refresh is disabled. */}
             <TabsContent value="gyg-reference" className="space-y-4">
               <Card>
                 <CardHeader>

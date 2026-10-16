@@ -144,14 +144,9 @@ class NotificationScheduler {
    * Send reminder notification using Twilio WhatsApp
    */
   private async sendReminder(booking: BookingWithActivity, type: '24h' | '2h'): Promise<void> {
-    if (!booking.activity) {
-      console.warn(`[SCHEDULER] Cannot send reminder - booking ${booking._id || booking.id} has no activity`);
-      return;
-    }
-
     // Use FREE notification queue (Twilio removed)
     const { freeNotificationQueue } = await import('../services/free-notification-queue.js');
-    const activityName = booking.activity.name || 'Activity';
+    const activityName = booking.activity?.name || booking.activitySnapshot?.name || 'Activité supprimée ou indisponible';
     const date = formatBookingDateOnly(new Date(booking.preferredDate));
 
     const paymentReminder = booking.paymentStatus === 'unpaid' 

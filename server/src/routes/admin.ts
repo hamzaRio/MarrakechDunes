@@ -5,6 +5,7 @@ import { normalizeGYGOffer, type GYGTrustSource } from '../services/gyg-comparis
 import { consumeGYGRateLimit } from '../services/gyg-rate-limits.js';
 import { gygRequestKey, gygResilience, isGYGServiceUnavailable } from '../services/gyg-resilience.js';
 import { rankCandidateMatches, isComparableValidationState, type MatchableActivity, type ManualOverrideDecision } from '../services/gyg-matching.js';
+import { GYG_LIVE_INTEGRATION_DISABLED_MESSAGE, isGYGLiveIntegrationEnabled } from '../services/gyg-live-integration.js';
 import { parseBookingDateOnly } from '../utils/booking-query.js';
 import { BOOKING_STATUSES, BookingStatusAuditError, evaluateBookingStatusChange, hasAuthorizedSuperadminOverride, normalizeOverrideReason, MAX_OVERRIDE_REASON_LENGTH } from '../utils/booking-status-override.js';
 import type { BookingType } from 'marrakechdunes-shared/schema';
@@ -593,6 +594,13 @@ router.post('/activities/:id/image', requireSuperAdmin, async (req: Request, res
  */
 router.get('/activities/:id/getyourguide-price', requireSuperAdminForForceScrape, async (req: Request, res: Response) => {
   try {
+    if (!isGYGLiveIntegrationEnabled()) {
+      return res.status(503).json({
+        status: 'error',
+        code: 'GYG_LIVE_INTEGRATION_DISABLED',
+        message: GYG_LIVE_INTEGRATION_DISABLED_MESSAGE,
+      });
+    }
     if (!consumeGYGRateLimit(req, res, 'cachedRead')) return;
     const { id } = req.params;
     const activity = await storage.getActivity(id);

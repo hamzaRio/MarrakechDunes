@@ -60,10 +60,10 @@ Email: ${booking.customerEmail || 'N/A'}
 BOOKING DETAILS
 =====================================
 Activity: ${booking.activity?.name || booking.activitySnapshot?.name || 'Activité supprimée ou indisponible'}
-Category: ${booking.activity.category}
+Category: ${booking.activity?.category || 'N/A'}
 Date: ${new Date(booking.preferredDate).toLocaleDateString()}
 Participants: ${booking.numberOfPeople} people
-Duration: ${booking.activity.duration}
+Duration: ${booking.activity?.duration || 'N/A'}
 
 =====================================
 PAYMENT INFORMATION

@@ -76,7 +76,9 @@ export default function BookingDetailDrawer({
   const bookingStatus = normalizeBookingStatus(booking.status);
   const { paymentStatus, totalAmount, paidAmount, remainingAmount, depositAmount, paymentMethod, progress } = getBookingPaymentSummary(booking);
   const bookingDate = getBookingDateOnly(booking.preferredDate);
-  const activityPrice = Number(booking.activity?.price) || 0;
+  // A booking snapshot is the commercial record.  Never present a later
+  // activity-price edit as though it were this customer's booked price.
+  const activityPrice = Number(booking.activitySnapshot?.price ?? booking.activity?.price) || 0;
   const marketReferencePrice = Number(booking.activity?.getyourguidePrice) || 0;
   const internalBookingId = String(booking._id || booking.id || '');
   const bookingReference = internalBookingId ? internalBookingId.slice(-8).toUpperCase() : 'Unavailable';
@@ -253,7 +255,7 @@ export default function BookingDetailDrawer({
             </CardHeader>
             <CardContent className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-3">
               <div className="rounded-lg border-2 border-green-200 bg-white p-3">
-                <div className="font-medium text-green-700">Notre Prix</div>
+                <div className="font-medium text-green-700">Prix à la réservation</div>
                 <div className="text-lg font-bold text-green-600">{activityPrice ? activityPrice.toLocaleString() : "N/A"} MAD</div>
                 <div className="text-xs text-gray-500">Par personne</div>
               </div>
