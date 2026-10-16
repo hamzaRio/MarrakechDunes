@@ -6,6 +6,7 @@ import { loggingService } from './services/logging-service.js';
 import { calculateBookingSummary, normalizeBookingPagination } from './utils/booking-query.js';
 import { capacityDateKey, isCapacityConsumingStatus } from './utils/booking-capacity.js';
 import { hashPasswordForPersistence, prepareUserUpdateForPersistence } from './utils/password-hashing.js';
+import { isBelowRequiredDeposit } from './utils/booking-deadline.js';
 import { runDemoSeed, type StaffBootstrapState } from './bootstrap/bootstrap-policy.js';
 import type {
   UserType,
@@ -359,13 +360,17 @@ class MongoStorage implements IStorage {
   }
 
   async expirePendingDepositDeadlines(now = new Date()): Promise<BookingType[]> {
-    const candidates = await Booking.find({ status: 'PENDING', depositDeadline: { $lte: now }, $or: [{ paymentStatus: 'unpaid' }, { paymentStatus: { $exists: false } }] }).select({ _id: 1, totalAmount: 1, paidAmount: 1 });
+    const belowDeposit = { $expr: { $lt: [
+      { $convert: { input: '$paidAmount', to: 'double', onError: 0, onNull: 0 } },
+      { $multiply: [{ $convert: { input: '$totalAmount', to: 'double', onError: null, onNull: null } }, 0.5] },
+    ] } };
+    const candidates = await Booking.find({ status: 'PENDING', depositDeadline: { $lte: now }, ...belowDeposit }).select({ _id: 1, totalAmount: 1, paidAmount: 1, depositDeadline: 1 });
     const expired: BookingType[] = [];
     for (const candidate of candidates) {
       const total = Number(candidate.totalAmount);
       const paid = Number(candidate.paidAmount) || 0;
-      if (!Number.isFinite(total) || paid >= total * 0.5) continue;
-      const result = await Booking.updateOne({ _id: candidate._id, status: 'PENDING', paidAmount: { $lt: total * 0.5 } }, { $set: { status: 'CANCELLED', cancellationReason: 'DEPOSIT_DEADLINE_EXPIRED', cancellationDate: now, refundStatus: paid > 0 ? 'partial' : 'none' } });
+      if (!isBelowRequiredDeposit(total, paid)) continue;
+      const result = await Booking.updateOne({ _id: candidate._id, status: 'PENDING', depositDeadline: { $lte: now }, ...belowDeposit }, { $set: { status: 'CANCELLED', cancellationReason: 'DEPOSIT_DEADLINE_EXPIRED', cancellationDate: now } });
       if (result.modifiedCount === 1) {
         const updated = await Booking.findById(candidate._id);
         if (updated) expired.push(this.transformDocument(updated));
