@@ -1433,7 +1433,7 @@ class MongoStorage implements IStorage {
     
     // Executive Summary with better formatting
     doc.setFillColor(240, 240, 240);
-    doc.rect(15, 40, 260, 25, 'F');
+    doc.rect(15, 40, 260, 32, 'F');
     doc.setFontSize(16);
     doc.setTextColor(0, 0, 0);
     doc.setFont('helvetica', 'bold');
@@ -1442,9 +1442,11 @@ class MongoStorage implements IStorage {
     doc.setFontSize(11);
     doc.setFont('helvetica', 'normal');
     doc.text(`Total Bookings: ${reportData.summary.totalBookings}`, 20, 58);
-    doc.text(`Total Revenue: ${Number(reportData.summary.totalRevenue).toLocaleString()} MAD`, 20, 63);
-    doc.text(`Average Booking Value: ${Number(reportData.summary.averageBookingValue).toFixed(2)} MAD`, 20, 68);
-    doc.text(`Average Rating: ${Number(reportData.summary.averageRating).toFixed(1)}/5`, 20, 73);
+    doc.text(`Gross Active Booking Value: ${Number(reportData.summary.grossActiveBookingValue ?? reportData.summary.totalRevenue).toLocaleString()} MAD`, 20, 63);
+    doc.text(`Recorded Payments: ${Number(reportData.summary.recordedPayments || 0).toLocaleString()} MAD`, 20, 68);
+    doc.text(`Outstanding Balance: ${Number(reportData.summary.outstandingAmount || 0).toLocaleString()} MAD`, 20, 73);
+    doc.text(`Average Active Booking Value: ${Number(reportData.summary.averageBookingValue).toFixed(2)} MAD`, 20, 78);
+    doc.text(`Average Rating: ${Number(reportData.summary.averageRating).toFixed(1)}/5`, 20, 83);
     
     // Top Performing Activities with table format
     doc.setFontSize(16);
@@ -1459,7 +1461,7 @@ class MongoStorage implements IStorage {
     doc.text('Rank', 20, 101);
     doc.text('Activity Name', 40, 101);
     doc.text('Bookings', 120, 101);
-    doc.text('Revenue (MAD)', 150, 101);
+    doc.text('Gross Active Value', 150, 101);
     doc.text('Rating', 200, 101);
     doc.text('Popularity %', 230, 101);
     
@@ -1495,7 +1497,7 @@ class MongoStorage implements IStorage {
       doc.text(`${index + 1}`, 20, yPos);
       doc.text(activity.name.length > 25 ? activity.name.substring(0, 25) + '...' : activity.name, 40, yPos);
       doc.text(String(activity.bookings), 120, yPos);
-      doc.text(Number(activity.revenue).toLocaleString(), 150, yPos);
+      doc.text(Number(activity.grossActiveBookingValue ?? activity.revenue).toLocaleString(), 150, yPos);
       doc.text(Number(activity.rating).toFixed(1), 200, yPos);
       doc.text(Number(activity.popularity).toFixed(1) + '%', 230, yPos);
       
@@ -1514,7 +1516,7 @@ class MongoStorage implements IStorage {
     doc.setFont('helvetica', 'bold');
     doc.text('Month', 20, yPos + 26);
     doc.text('Bookings', 80, yPos + 26);
-    doc.text('Revenue (MAD)', 120, yPos + 26);
+    doc.text('Gross Active Value', 120, yPos + 26);
     doc.text('Avg per Booking', 180, yPos + 26);
     doc.text('Growth %', 230, yPos + 26);
     
@@ -1540,7 +1542,7 @@ class MongoStorage implements IStorage {
         doc.setFont('helvetica', 'normal');
       }
       
-      const avgPerBooking = month.bookings > 0 ? (month.revenue / month.bookings).toFixed(2) : '0.00';
+      const avgPerBooking = month.bookings > 0 ? (Number(month.grossActiveBookingValue ?? month.revenue) / month.bookings).toFixed(2) : '0.00';
       const prevMonth = reportData.monthlyTrends[reportData.monthlyTrends.indexOf(month) - 1];
       const growth = prevMonth && prevMonth.bookings > 0 ? 
         (((month.bookings - prevMonth.bookings) / prevMonth.bookings) * 100).toFixed(1) : '0.0';
@@ -1553,7 +1555,7 @@ class MongoStorage implements IStorage {
       
       doc.text(month.month, 20, yPos);
       doc.text(String(month.bookings), 80, yPos);
-      doc.text(Number(month.revenue).toLocaleString(), 120, yPos);
+      doc.text(Number(month.grossActiveBookingValue ?? month.revenue).toLocaleString(), 120, yPos);
       doc.text(avgPerBooking, 180, yPos);
       doc.text(growth + '%', 230, yPos);
       
