@@ -75,6 +75,8 @@ jobs:
       - run: npx tsx server/src/scripts/capacity-concurrency-harness.ts
       - run: npx tsx server/src/scripts/capacity-legacy-lifecycle-harness.ts
       - run: npx tsx server/src/scripts/capacity-override-rollback-harness.ts
+      - run: npm run test:admin-financial-market
+      - run: npm run test:booking-history
       - run: npm run test:non-storage-integration
       - run: npm run test:transaction-capability
       - name: Download pinned MongoDB Database Tools

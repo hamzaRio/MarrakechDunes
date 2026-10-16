@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import express from 'express';
 import request from 'supertest';
-import { calculateBookingSummary } from '../server/src/utils/booking-query.js';
+import { calculateBookingSummary, calculateOperationsFinancials } from '../server/src/utils/booking-query.js';
 import { calculateDynamicPricing } from '../server/src/utils/dynamic-pricing.js';
 import { isGYGLiveIntegrationEnabled } from '../server/src/services/gyg-live-integration.js';
 import { storage } from '../server/src/storage.js';
@@ -30,6 +30,8 @@ try {
   assert.equal(financial.grossBookingValue, 200);
   assert.equal(financial.outstandingAmount, 100);
   assert.equal(financial.cancelledBookings, 1);
+  const operations = calculateOperationsFinancials([{ status: 'CANCELLED', totalAmount: '450', paidAmount: 450 }, { status: 'COMPLETED', totalAmount: '200', paidAmount: 100 }]);
+  assert.equal(operations.grossActiveBookingValue, 200); assert.equal(operations.recordedPayments, 550); assert.equal(operations.outstandingAmount, 100);
 
   const lowSeasonQuote = calculateDynamicPricing({
     activityId: 'activity',

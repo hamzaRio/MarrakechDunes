@@ -72,3 +72,8 @@ export function calculateBookingSummary(bookings: BookingSummaryInput[]) {
   }
   return summary;
 }
+
+export interface OperationsBookingInput { status?: string | null; totalAmount?: number | string | null; paidAmount?: number | string | null; }
+export interface OperationsFinancialTotals { grossActiveBookingValue:number; recordedPayments:number; outstandingAmount:number; activeBookingCount:number; }
+const toMoney=(value:number|string|null|undefined)=>{const n=Number(value??0);return Number.isFinite(n)?n:0;};
+export function calculateOperationsFinancials(bookings:OperationsBookingInput[]):OperationsFinancialTotals{return bookings.reduce<OperationsFinancialTotals>((t,b)=>{const total=toMoney(b.totalAmount),paid=toMoney(b.paidAmount);t.recordedPayments+=paid;if(String(b.status||'').toUpperCase()!=='CANCELLED'){t.grossActiveBookingValue+=total;t.outstandingAmount+=Math.max(total-paid,0);t.activeBookingCount+=1;}return t;},{grossActiveBookingValue:0,recordedPayments:0,outstandingAmount:0,activeBookingCount:0});}

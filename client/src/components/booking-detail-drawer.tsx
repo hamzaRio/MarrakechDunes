@@ -78,7 +78,7 @@ export default function BookingDetailDrawer({
   const bookingDate = getBookingDateOnly(booking.preferredDate);
   // A booking snapshot is the commercial record.  Never present a later
   // activity-price edit as though it were this customer's booked price.
-  const activityPrice = Number(booking.activitySnapshot?.price ?? booking.activity?.price) || 0;
+  const activityPrice = booking.activitySnapshot?.price != null ? Number(booking.activitySnapshot.price) : null;
   const marketReferencePrice = Number(booking.activity?.getyourguidePrice) || 0;
   const internalBookingId = String(booking._id || booking.id || '');
   const bookingReference = internalBookingId ? internalBookingId.slice(-8).toUpperCase() : 'Unavailable';
