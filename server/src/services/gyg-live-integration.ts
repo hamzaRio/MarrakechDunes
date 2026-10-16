@@ -9,4 +9,3 @@ export const isGYGLiveIntegrationEnabled = (): boolean =>
 
 export const GYG_LIVE_INTEGRATION_DISABLED_MESSAGE =
   'GetYourGuide live integration is disabled. Stored market references remain available.';
-

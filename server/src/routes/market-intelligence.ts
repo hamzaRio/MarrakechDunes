@@ -612,4 +612,3 @@ function calculatePricingStrategy(ourPrice: number, competitors: CompetitorActiv
 }
 
 export default router;
-

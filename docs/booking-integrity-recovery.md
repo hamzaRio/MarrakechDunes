@@ -25,4 +25,3 @@ Treat the database password shown in the earlier screenshot as exposed. The owne
 ## Legacy booking activity recovery
 
 An activity name may be restored only when a trustworthy source already contains the original relationship, such as an immutable booking snapshot or an access-controlled audit/backup record that identifies the same booking ID. Never infer it from price, date, customer, or a similarly named current activity. Run any proposed recovery as a dry run first, record the evidence and intended before/after values in an access-controlled operator artifact, and require explicit approval before changing production. When no evidence exists, retain the booking intact with the `Activité supprimée ou indisponible` historical fallback.
-

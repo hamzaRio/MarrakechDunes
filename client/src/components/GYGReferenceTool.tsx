@@ -1232,4 +1232,3 @@ export default function GYGReferenceTool({ onActivitySelect }: GYGReferenceToolP
     </div>
   );
 }
-

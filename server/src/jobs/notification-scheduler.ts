@@ -183,4 +183,3 @@ See you soon! 🏜️`.trim();
 // Export singleton instance
 export const notificationScheduler = new NotificationScheduler();
 
-

@@ -84,4 +84,3 @@ try {
   if (originalLiveFlag === undefined) delete process.env.GYG_LIVE_INTEGRATION_ENABLED;
   else process.env.GYG_LIVE_INTEGRATION_ENABLED = originalLiveFlag;
 }
-
