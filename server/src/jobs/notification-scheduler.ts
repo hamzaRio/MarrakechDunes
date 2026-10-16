@@ -75,6 +75,20 @@ class NotificationScheduler {
       if (!(await acquireSchedulerLease('notification-reminders', this.owner))) return;
       this.leaseHeld = true;
       const now = new Date();
+      const expired = await storage.expirePendingDepositDeadlines(now);
+      if (expired.length > 0) {
+        console.log(`[SCHEDULER] Expired ${expired.length} unpaid pending booking(s) after deposit deadline`);
+        const { freeNotificationQueue } = await import('../services/free-notification-queue.js');
+        for (const booking of expired) {
+          const message = `Your MarrakechDunes booking request ${booking.bookingReference || ''} was cancelled because the required 50% deposit was not recorded before the deadline.`.trim();
+          await freeNotificationQueue.addNotificationDurable({
+            type: 'cancellation', customerPhone: booking.customerPhone, customerName: booking.customerName,
+            message, whatsappLink: freeNotificationQueue.generateWhatsAppLink(booking.customerPhone, message),
+            priority: 'high', bookingId: booking._id || booking.id,
+            dedupeKey: `${booking._id || booking.id}:deposit-deadline-expired`,
+          });
+        }
+      }
       // Bookings carry a calendar date, not an appointment time. Queue one
       // reminder for tomorrow instead of manufacturing 24h/2h precision.
       const tomorrow = getCasablancaCalendarDate(now, 1);

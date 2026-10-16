@@ -1,5 +1,7 @@
 import EmailModal from "@/components/EmailModal";
 import { useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -71,6 +73,14 @@ export default function BookingDetailDrawer({
   onManagePayment,
   onStatusChange,
 }: BookingDetailDrawerProps) {
+  const queryClient = useQueryClient();
+  const [operationsMessage, setOperationsMessage] = useState<string | null>(null);
+  const { data: partners = [] } = useQuery<Array<{ _id: string; name: string; contactName?: string; phone?: string; email?: string }>>({ queryKey: ["/admin/partners"], enabled: isOpen });
+  const updateOperations = useMutation({
+    mutationFn: async (data: Record<string, unknown>) => apiRequest(`/admin/bookings/${booking._id || booking.id}/operations`, { method: "PATCH", body: JSON.stringify(data) }),
+    onSuccess: () => { setOperationsMessage("Operational details saved"); queryClient.invalidateQueries({ queryKey: ["/admin/bookings"] }); queryClient.invalidateQueries({ queryKey: ["/admin/bookings/action-required"] }); },
+    onError: () => setOperationsMessage("Could not save operational details"),
+  });
   const [copied, setCopied] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
   const bookingStatus = normalizeBookingStatus(booking.status);
@@ -83,6 +93,10 @@ export default function BookingDetailDrawer({
   const internalBookingId = String(booking._id || booking.id || '');
   const bookingReference = internalBookingId ? internalBookingId.slice(-8).toUpperCase() : 'Unavailable';
   const nextStatuses = getNextPossibleStatuses(bookingStatus) as Array<"PENDING" | "CONFIRMED" | "COMPLETED" | "CANCELLED">;
+  const partnerId = booking.partnerId || booking.activity?.partnerId;
+  const partner = partners.find((item) => String(item._id) === String(partnerId));
+  const requiredDeposit = Math.ceil(totalAmount * 0.5);
+  const confirmationBlockedReason = paidAmount < requiredDeposit ? "50% deposit required" : booking.partnerAvailability !== "AVAILABLE" ? "Partner availability must be confirmed" : null;
   const copyInternalId = async () => {
     if (!internalBookingId) return;
     await navigator.clipboard.writeText(internalBookingId);
@@ -149,8 +163,9 @@ export default function BookingDetailDrawer({
                 {nextStatuses.map((nextStatus) => nextStatus === "CANCELLED" ? (
                   <Button key={nextStatus} variant="destructive" size="sm" onClick={() => setCancelOpen(true)}>Annuler la réservation</Button>
                 ) : (
-                  <Button key={nextStatus} size="sm" onClick={() => onStatusChange(nextStatus)}>{nextStatus === "CONFIRMED" ? "Confirmer" : "Marquer terminée"}</Button>
+                  <Button key={nextStatus} size="sm" disabled={nextStatus === "CONFIRMED" && Boolean(confirmationBlockedReason)} onClick={() => onStatusChange(nextStatus)}>{nextStatus === "CONFIRMED" ? "Confirmer" : "Marquer terminée"}</Button>
                 ))}
+                {confirmationBlockedReason ? <p className="w-full text-xs text-amber-700">Confirmation blocked: {confirmationBlockedReason}</p> : null}
               </CardContent>
             </Card>
           ) : null}
@@ -243,6 +258,25 @@ export default function BookingDetailDrawer({
                 </div>
               ) : null}
               <Button variant="outline" size="sm" onClick={onManagePayment}>Gérer le paiement</Button>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white">
+            <CardHeader className="pb-3"><CardTitle className="text-lg text-gray-900">Partner coordination</CardTitle></CardHeader>
+            <CardContent className="space-y-3 text-sm">
+              <div className="grid gap-2 sm:grid-cols-2">
+                <div><div className="text-gray-500">Agency</div><div className="font-medium">{partner?.name || "No partner assigned"}</div></div>
+                <div><div className="text-gray-500">Contact</div><div>{partner?.phone || partner?.email || "Not available"}</div></div>
+              </div>
+              <select aria-label="Partner availability" className="h-9 w-full rounded-md border px-2" value={booking.partnerAvailability || "NOT_CHECKED"} onChange={(event) => updateOperations.mutate({ partnerAvailability: event.target.value })}>
+                <option value="NOT_CHECKED">Not checked</option><option value="AWAITING_RESPONSE">Awaiting response</option><option value="AVAILABLE">Available</option><option value="UNAVAILABLE">Unavailable</option>
+              </select>
+              <input aria-label="Supplier confirmation reference" className="h-9 w-full rounded-md border px-2" placeholder="Supplier confirmation reference" defaultValue={booking.supplierConfirmationReference || ""} onBlur={(event) => updateOperations.mutate({ supplierConfirmationReference: event.target.value })} />
+              <div className="grid gap-2 sm:grid-cols-2"><input aria-label="Pickup location" className="h-9 rounded-md border px-2" placeholder="Pickup location" defaultValue={booking.pickupLocation || ""} onBlur={(event) => updateOperations.mutate({ pickupLocation: event.target.value })} /><input aria-label="Pickup time" className="h-9 rounded-md border px-2" placeholder="Pickup time" defaultValue={booking.pickupTime || ""} onBlur={(event) => updateOperations.mutate({ pickupTime: event.target.value })} /></div>
+              <textarea aria-label="Return arrangements" className="min-h-16 w-full rounded-md border px-2 py-1" placeholder="Return arrangements" defaultValue={booking.returnArrangements || ""} onBlur={(event) => updateOperations.mutate({ returnArrangements: event.target.value })} />
+              <div className="rounded border bg-slate-50 p-2">Required deposit: <strong>{requiredDeposit.toLocaleString()} MAD</strong> · Received: <strong>{paidAmount.toLocaleString()} MAD</strong> · Remaining: <strong>{remainingAmount.toLocaleString()} MAD</strong></div>
+              {booking.depositDeadline ? <div className="text-xs text-slate-600">Deposit deadline: {getBookingDate(booking.depositDeadline)?.toLocaleString("fr-FR")}</div> : <div className="text-xs text-amber-700">Deposit deadline unavailable until an activity start time is recorded.</div>}
+              {operationsMessage ? <div className="text-xs text-slate-600" role="status">{operationsMessage}</div> : null}
             </CardContent>
           </Card>
 

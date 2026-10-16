@@ -4,11 +4,12 @@ import { bookingCreationLimiter } from '../rate-limiters.js';
 import { formatBookingDateOnly, isBookingDateInPast, parseBookingDateOnly } from '../utils/booking-date.js';
 import { hasCapacityForBooking } from '../utils/booking-capacity.js';
 import { hashIdempotencyKey, resolveIdempotentCreate, toPublicBookingResult } from '../utils/booking-idempotency.js';
+import { depositDeadlineFor } from '../utils/booking-deadline.js';
 // Twilio removed - using free notification queue only
 
 const router = express.Router();
 
-const DEPOSIT_PERCENTAGE = 0.3;
+const DEPOSIT_PERCENTAGE = 0.5;
 const MIN_DEPOSIT_MAD = 100;
 
 const isNonEmptyString = (value: unknown): value is string =>
@@ -142,12 +143,16 @@ router.post('/', bookingCreationLimiter, async (req, res) => {
       customerPhone: customerPhone.trim(),
       numberOfPeople: people,
       preferredDate: requestedDate,
+      ...(isNonEmptyString(req.body.preferredTime) ? { preferredTime: String(req.body.preferredTime).trim() } : {}),
       status: 'PENDING',
       totalAmount: String(totalAmount),
       depositAmount,
       paymentMethod: 'cash_deposit',
       paymentStatus: 'unpaid',
       paidAmount: 0,
+      ...(activity.partnerId ? { partnerId: activity.partnerId } : {}),
+      partnerAvailability: 'NOT_CHECKED',
+      ...(isNonEmptyString(req.body.preferredTime) ? { depositDeadline: depositDeadlineFor(requestedDate.toISOString().slice(0, 10), String(req.body.preferredTime).trim()) || undefined } : {}),
       ...(idempotencyKeyHash ? { idempotencyKeyHash } : {}),
     };
     if (isNonEmptyString(customerEmail)) bookingData.customerEmail = customerEmail.trim();

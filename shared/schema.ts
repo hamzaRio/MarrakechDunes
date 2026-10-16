@@ -30,6 +30,7 @@ export interface ActivityType {
   duration?: string;
   location?: string;
   maxParticipants?: number;
+  partnerId?: string;
   difficulty?: string;
   rating?: number;
   // Capacity management
@@ -58,6 +59,7 @@ export interface BookingType {
   activitySnapshot?: { name: string; price: string; currency: string };
   numberOfPeople: number;
   preferredDate: Date;
+  preferredTime?: string;
   participantNames?: string[];
   status: BookingStatus;
   totalAmount: string;
@@ -88,6 +90,16 @@ export interface BookingType {
   cancellationDate?: Date;
   refundAmount?: number;
   refundStatus?: 'none' | 'partial' | 'full';
+  partnerId?: string;
+  partnerAvailability?: 'NOT_CHECKED' | 'AWAITING_RESPONSE' | 'AVAILABLE' | 'UNAVAILABLE';
+  partnerAvailabilityCheckedBy?: string;
+  partnerAvailabilityCheckedAt?: Date;
+  supplierConfirmationReference?: string;
+  pickupLocation?: string;
+  pickupTime?: string;
+  returnArrangements?: string;
+  internalOperationalNotes?: string;
+  depositDeadline?: Date;
   // Audit trail
   statusHistory?: Array<{
     status: BookingStatus;
@@ -257,6 +269,7 @@ export const insertActivitySchema = z.object({
   getyourguidePrice: z.number().optional(),
   availability: z.string().optional(),
   duration: z.string().optional(),
+  partnerId: z.string().optional(),
 });
 
 export const insertBookingSchema = z.object({
@@ -266,6 +279,7 @@ export const insertBookingSchema = z.object({
   activityId: z.string().min(1),
   numberOfPeople: z.number().min(1),
   preferredDate: z.date(),
+  preferredTime: z.string().optional(),
   participantNames: z.array(z.string()).optional(),
   status: z.enum(['PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED']).default('PENDING'),
   totalAmount: z.string().min(1),
@@ -296,6 +310,16 @@ export const insertBookingSchema = z.object({
   cancellationDate: z.date().optional(),
   refundAmount: z.number().optional(),
   refundStatus: z.enum(['none', 'partial', 'full']).optional(),
+  partnerId: z.string().optional(),
+  partnerAvailability: z.enum(['NOT_CHECKED', 'AWAITING_RESPONSE', 'AVAILABLE', 'UNAVAILABLE']).optional(),
+  partnerAvailabilityCheckedBy: z.string().optional(),
+  partnerAvailabilityCheckedAt: z.date().optional(),
+  supplierConfirmationReference: z.string().optional(),
+  pickupLocation: z.string().optional(),
+  pickupTime: z.string().optional(),
+  returnArrangements: z.string().optional(),
+  internalOperationalNotes: z.string().optional(),
+  depositDeadline: z.date().optional(),
   // Audit trail
   statusHistory: z.array(z.object({
     status: z.enum(['PENDING', 'CONFIRMED', 'COMPLETED', 'CANCELLED']),
