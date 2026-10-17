@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { chromium } from '@playwright/test';
+import { chromium, expect } from '@playwright/test';
 
 const launcher = spawn(process.execPath, ['scripts/phase1-isolated-launcher.mjs', '--keep-alive'], { stdio: ['ignore', 'pipe', 'pipe'] });
 let output = '';
@@ -40,11 +40,23 @@ try {
   await page.getByLabel('Contact name', { exact: true }).fill('Phase 1 Contact');
   await page.getByLabel('Phone', { exact: true }).fill('+212600000099');
   await page.getByLabel('Email', { exact: true }).fill('partner@example.invalid');
+  const partnerCreate = page.waitForResponse((response) => response.request().method() === 'POST' && response.url().endsWith('/api/admin/partners'));
   await page.getByRole('button', { name: /^create partner$/i }).click();
-  await page.getByRole('button', { name: /add partner/i }).waitFor();
+  const partnerResponse = await partnerCreate;
+  const partnerBody = await partnerResponse.text();
+  if (partnerResponse.status() !== 201) throw new Error(`partner creation failed (${partnerResponse.status()}): ${partnerBody.slice(0, 500)}`);
+  let partnerPayload; try { partnerPayload = JSON.parse(partnerBody); } catch { throw new Error(`partner creation returned non-JSON: ${partnerBody.slice(0, 500)}`); }
+  const partnerId = partnerPayload?._id || partnerPayload?.id;
+  if (!partnerId) throw new Error(`partner creation did not return an id: ${partnerBody.slice(0, 500)}`);
   const partnerSelect = page.getByLabel(/Partner for Phase 1 Test Desert Tour/i);
-  await partnerSelect.selectOption({ label: 'Phase 1 Browser Partner' });
-  await page.waitForTimeout(400);
+  await expect(partnerSelect.locator(`option[value="${partnerId}"]`)).toHaveText('Phase 1 Browser Partner', { timeout: 20_000 });
+  const association = page.waitForResponse((response) => response.request().method() === 'PATCH' && response.url().includes('/api/admin/activities/'));
+  await partnerSelect.selectOption(String(partnerId));
+  const associationResponse = await association;
+  if (!associationResponse.ok()) throw new Error(`partner association failed (${associationResponse.status()}): ${(await associationResponse.text()).slice(0, 500)}`);
+  await page.reload({ waitUntil: 'networkidle' });
+  await page.getByRole('tab', { name: /activités/i }).click();
+  await expect(page.getByLabel(/Partner for Phase 1 Test Desert Tour/i)).toHaveValue(String(partnerId), { timeout: 20_000 });
 
   // Exercise the real public booking form against the same disposable API.
   const publicPage = await context.newPage();
