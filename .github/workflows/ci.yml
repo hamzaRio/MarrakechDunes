@@ -106,6 +106,7 @@ jobs:
   phase1-acceptance:
     name: Phase 1 acceptance (isolated)
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     env:
       NODE_ENV: test
       ROLE: all

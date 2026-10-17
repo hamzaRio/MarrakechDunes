@@ -14,6 +14,9 @@ const processes = [];
 const servers = [];
 let replSet;
 let mongoClient;
+const startedAt = Date.now();
+const timestamp = () => `[launcher +${Date.now() - startedAt}ms]`;
+const log = (message) => console.log(`${timestamp()} ${message}`);
 
 const freePort = async () => new Promise((resolve, reject) => {
   const probe = createServer();
@@ -36,10 +39,13 @@ const fetchWithTimeout = async (url, options = {}, timeout = 5_000) => {
   return fetch(url, { ...options, signal });
 };
 
-const withTimeout = (promise, label, timeout = 120_000) => Promise.race([
-  promise,
-  new Promise((_, reject) => setTimeout(() => reject(new Error(`${label} timed out after ${timeout}ms`)), timeout)),
-]);
+const withTimeout = (promise, label, timeout = 120_000) => {
+  let timer;
+  const deadline = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`${label} timed out after ${timeout}ms`)), timeout);
+  });
+  return Promise.race([promise, deadline]).finally(() => clearTimeout(timer));
+};
 
 const staticServer = async (directory, port) => {
   const server = createServer(async (req, res) => {
@@ -58,15 +64,42 @@ const staticServer = async (directory, port) => {
   servers.push(server);
 };
 
+const waitForChildExit = (child, timeout = 5_000) => {
+  if (child.exitCode !== null || child.signalCode !== null) return Promise.resolve();
+  return withTimeout(new Promise((resolve) => child.once('exit', resolve)), 'API process exit', timeout)
+    .catch((error) => { child.kill('SIGKILL'); return withTimeout(new Promise((resolve) => child.once('exit', resolve)), 'API process SIGKILL exit', 2_000).catch(() => { throw error; }); });
+};
+
 const stop = async () => {
-  for (const child of processes) { if (!child.killed) child.kill('SIGTERM'); }
-  await Promise.all(processes.map((child) => new Promise((resolve) => {
-    const timer = setTimeout(() => { if (!child.killed) child.kill('SIGKILL'); resolve(); }, 5_000);
-    child.once('exit', () => { clearTimeout(timer); resolve(); });
-  })));
-  await Promise.all(servers.map((server) => new Promise((resolve) => server.close(() => resolve()))));
-  if (mongoClient) await mongoClient.close();
-  if (replSet) await replSet.stop();
+  const failures = [];
+  log('cleanup: API child termination starting');
+  for (const child of processes) {
+    if (child.exitCode === null && child.signalCode === null) child.kill('SIGTERM');
+  }
+  await Promise.all(processes.map((child) => waitForChildExit(child).catch((error) => failures.push(`API child: ${error.message}`))));
+  log('cleanup: API child termination complete');
+
+  log('cleanup: static HTTP server shutdown starting');
+  await Promise.all(servers.map((server) => withTimeout(new Promise((resolve, reject) => {
+    if (typeof server.closeAllConnections === 'function') server.closeAllConnections();
+    server.close((error) => error ? reject(error) : resolve());
+  }), 'static server shutdown', 5_000).catch((error) => failures.push(`static server: ${error.message}`))));
+  log('cleanup: static HTTP server shutdown complete');
+
+  if (mongoClient) {
+    log('cleanup: MongoClient.close() starting');
+    await withTimeout(mongoClient.close(), 'MongoClient.close()', 5_000).catch((error) => failures.push(`MongoClient.close(): ${error.message}`));
+    log('cleanup: MongoClient.close() complete');
+  }
+  if (replSet) {
+    log('cleanup: MongoMemoryReplSet.stop() starting');
+    await withTimeout(replSet.stop(), 'MongoMemoryReplSet.stop()', 10_000).catch((error) => failures.push(`MongoMemoryReplSet.stop(): ${error.message}`));
+    log('cleanup: MongoMemoryReplSet.stop() complete');
+  }
+  if (failures.length) {
+    for (const failure of failures) console.error(`${timestamp()} cleanup failure: ${failure}`);
+    process.exitCode = 1;
+  }
 };
 
 try {
@@ -74,9 +107,9 @@ try {
     throw new Error('Build artifacts missing; run npm run build, npm run build:public, and npm run build:admin first');
   }
   const [apiPort, publicPort, adminPort] = await Promise.all([freePort(), freePort(), freePort()]);
-  console.log('Phase 1 isolated launcher: starting disposable Mongo replica set');
+  log('starting disposable Mongo replica set');
   replSet = await withTimeout(MongoMemoryReplSet.create({ replSet: { count: 1, storageEngine: 'wiredTiger' } }), 'MongoMemoryReplSet startup');
-  console.log('Phase 1 isolated launcher: Mongo replica set ready');
+  log('Mongo replica set ready');
   const mongoUri = replSet.getUri('phase1_launcher');
   mongoClient = new MongoClient(mongoUri);
   await mongoClient.connect();
@@ -106,7 +139,7 @@ try {
   if (!login.ok) throw new Error(`admin login failed: ${login.status} ${await login.text()}`);
   if (!(await fetchWithTimeout(`http://${host}:${publicPort}/`)).ok) throw new Error('public frontend was not reachable');
   if (!(await fetchWithTimeout(`http://${host}:${adminPort}/admin/login`)).ok) throw new Error('admin frontend was not reachable');
-  console.log(`Phase 1 isolated launcher: PASS (api=${apiPort}, public=${publicPort}, admin=${adminPort})`);
+  log(`PASS (api=${apiPort}, public=${publicPort}, admin=${adminPort})`);
 } catch (error) {
   console.error(error instanceof Error ? error.stack : error);
   process.exitCode = 1;
