@@ -27,6 +27,8 @@ try {
   ]);
   process.env.DATABASE_URL = uri;
   process.env.MONGO_AUTO_INDEX = 'false';
+  const { connectToDatabase } = await import('../server/dist/db.js');
+  await connectToDatabase();
   const { storage } = await import('../server/dist/storage.js');
   const expired = await storage.expirePendingDepositDeadlines(now);
   assert.equal(expired.length, 1);
@@ -37,6 +39,8 @@ try {
   assert.equal(states.find((b) => b.bookingReference === 'SCHED-COMPLETED').status, 'COMPLETED');
   console.log('Phase 1 scheduler integration: PASS (role gating, opt-in, expiry eligibility, protected states, replica-set lease source)');
 } finally {
+  const { default: mongoose } = await import('mongoose');
+  await mongoose.disconnect();
   await client.close();
   await repl.stop();
 }
