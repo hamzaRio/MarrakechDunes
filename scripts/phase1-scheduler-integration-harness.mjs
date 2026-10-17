@@ -30,7 +30,8 @@ try {
   const { connectToDatabase } = await import('../server/dist/db.js');
   await connectToDatabase();
   const { storage } = await import('../server/dist/storage.js');
-  const { acquireSchedulerLease, releaseSchedulerLease } = await import('../server/dist/services/scheduler-lease.js');
+  const { acquireSchedulerLease, releaseSchedulerLease, initializeSchedulerLeaseIndexes } = await import('../server/dist/services/scheduler-lease.js');
+  await initializeSchedulerLeaseIndexes();
   const leaseName = `phase1-acceptance-${Date.now()}`;
   const [leaseA, leaseB] = await Promise.all([
     acquireSchedulerLease(leaseName, 'instance-a', now, 1000),
