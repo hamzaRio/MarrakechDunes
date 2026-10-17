@@ -53,7 +53,7 @@ try {
   await publicPage.locator('input[name="customerEmail"]').fill('phase1@example.invalid');
   await publicPage.locator('input[name^="participantNames"]').first().fill('Phase One Customer');
   await publicPage.getByRole('button', { name: /continue|next|suivant|continuer/i }).last().click();
-  await publicPage.getByRole('button', { name: /submit|book|reserve|réserver|confirmer/i }).last().click();
+  await publicPage.locator('form button[type="submit"]').last().click();
   await publicPage.waitForTimeout(500);
   if (!(await publicPage.locator('body').innerText()).match(/pending|submitted|confirmation|booking/i)) throw new Error('public booking submission did not produce a confirmation state');
   console.log('Phase 1 Admin/public browser workflow: PASS (login, booking UI, dashboard refresh, mobile viewport)');
