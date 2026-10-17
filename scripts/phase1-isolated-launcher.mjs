@@ -61,7 +61,7 @@ const staticServer = async (directory, port, apiUrl) => {
     try {
       let body = await readFile(file);
       if (extname(file) === '.html' && apiUrl) {
-        body = body.toString().replaceAll('http://127.0.0.1:18080', apiUrl);
+        body = body.toString().replaceAll('http://127.0.0.1:18080', new URL(apiUrl).origin);
       }
       const contentTypes = { '.html': 'text/html; charset=utf-8', '.js': 'application/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml' };
       res.setHeader('Content-Type', contentTypes[extname(file)] || 'application/octet-stream');
