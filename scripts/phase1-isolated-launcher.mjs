@@ -48,9 +48,13 @@ const withTimeout = (promise, label, timeout = 120_000) => {
   return Promise.race([promise, deadline]).finally(() => clearTimeout(timer));
 };
 
-const staticServer = async (directory, port) => {
+const staticServer = async (directory, port, apiUrl) => {
   const server = createServer(async (req, res) => {
     const pathname = decodeURIComponent(new URL(req.url || '/', `http://${host}`).pathname);
+    if (pathname === '/config.js' && apiUrl) {
+      res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
+      return res.end(`window.__API_URL__ = ${JSON.stringify(apiUrl)};`);
+    }
     const relative = pathname === '/' || !extname(pathname) ? 'index.html' : pathname.replace(/^\/+/, '');
     const file = normalize(join(directory, relative));
     if (!file.startsWith(normalize(directory))) { res.statusCode = 400; return res.end('Bad path'); }
@@ -130,8 +134,9 @@ try {
     if (childExit) throw new Error(`API exited (${childExit})${output ? `: ${output.slice(-2000)}` : ''}`);
     return (await fetchWithTimeout(`http://${host}:${apiPort}/api/health/live`)).ok;
   }, 'API health', 90_000);
-  await staticServer(join(root, 'client', 'dist'), publicPort);
-  await staticServer(join(root, 'client', 'dist-admin'), adminPort);
+  const apiUrl = `http://${host}:${apiPort}/api`;
+  await staticServer(join(root, 'client', 'dist'), publicPort, apiUrl);
+  await staticServer(join(root, 'client', 'dist-admin'), adminPort, apiUrl);
   const session = await fetchWithTimeout(`http://${host}:${apiPort}/api/session/init`);
   if (!session.ok) throw new Error(`session init failed: ${session.status}`);
   const csrf = (await session.json()).csrfToken;
