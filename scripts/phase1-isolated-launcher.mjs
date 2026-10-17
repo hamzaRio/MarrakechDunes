@@ -10,6 +10,7 @@ import bcrypt from 'bcrypt';
 const host = '127.0.0.1';
 const root = process.cwd();
 const password = 'Phase1-launcher-password-123!';
+const keepAlive = process.argv.includes('--keep-alive');
 const processes = [];
 const servers = [];
 let replSet;
@@ -140,6 +141,7 @@ try {
   if (!(await fetchWithTimeout(`http://${host}:${publicPort}/`)).ok) throw new Error('public frontend was not reachable');
   if (!(await fetchWithTimeout(`http://${host}:${adminPort}/admin/login`)).ok) throw new Error('admin frontend was not reachable');
   log(`PASS (api=${apiPort}, public=${publicPort}, admin=${adminPort})`);
+  if (keepAlive) await new Promise((resolve) => { process.once('SIGTERM', resolve); process.once('SIGINT', resolve); });
 } catch (error) {
   console.error(error instanceof Error ? error.stack : error);
   process.exitCode = 1;
