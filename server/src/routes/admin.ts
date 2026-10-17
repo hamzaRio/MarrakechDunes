@@ -27,6 +27,48 @@ const normalizePaymentMethod = (paymentMethod: unknown): 'cash' | 'cash_deposit'
 // Apply admin authentication middleware to all routes
 router.use(requireAdmin);
 
+// Partner coordination remains an internal staff workflow. Partner contact
+// details are never returned through public booking endpoints.
+router.get('/partners', async (_req: Request, res: Response) => {
+  try { return res.json(await storage.listPartners(true)); }
+  catch { return res.status(500).json({ status: 'error', message: 'Failed to fetch partners' }); }
+});
+
+router.post('/partners', requireSuperAdmin, async (req: Request, res: Response) => {
+  try {
+    const { name, contactName, phone, email, notes } = req.body || {};
+    if (typeof name !== 'string' || name.trim().length < 1 || name.trim().length > 160) {
+      return res.status(400).json({ status: 'error', message: 'Partner name is required' });
+    }
+    return res.status(201).json(await storage.createPartner({ name, contactName, phone, email, notes }));
+  } catch { return res.status(500).json({ status: 'error', message: 'Failed to create partner' }); }
+});
+
+router.patch('/activities/:id/partner', async (req: Request, res: Response) => {
+  try {
+    const partnerId = req.body?.partnerId === null || req.body?.partnerId === '' ? undefined : String(req.body?.partnerId || '');
+    if (partnerId) {
+      const partners = await storage.listPartners(false);
+      if (!partners.some((partner) => String(partner._id) === partnerId)) return res.status(400).json({ status: 'error', message: 'Partner not found' });
+    }
+    const updated = await storage.updateActivity(String(req.params.id), { partnerId } as any);
+    return updated ? res.json(updated) : res.status(404).json({ status: 'error', message: 'Activity not found' });
+  } catch { return res.status(500).json({ status: 'error', message: 'Failed to associate partner' }); }
+});
+
+router.patch('/bookings/:id/operations', async (req: Request, res: Response) => {
+  try {
+    const allowed = ['partnerId', 'partnerAvailability', 'supplierConfirmationReference', 'pickupLocation', 'pickupTime', 'returnArrangements', 'internalOperationalNotes'];
+    const data: Record<string, unknown> = {};
+    for (const key of allowed) if (req.body?.[key] !== undefined) data[key] = req.body[key];
+    if (data.partnerAvailability !== undefined && !['NOT_CHECKED', 'AWAITING_RESPONSE', 'AVAILABLE', 'UNAVAILABLE'].includes(String(data.partnerAvailability))) {
+      return res.status(400).json({ status: 'error', message: 'Invalid partner availability state' });
+    }
+    const booking = await storage.updateBookingOperations(String(req.params.id), data as any, String((req.session as any)?.userId || 'unknown'));
+    return booking ? res.json(booking) : res.status(404).json({ status: 'error', message: 'Booking not found' });
+  } catch { return res.status(500).json({ status: 'error', message: 'Failed to update booking operations' }); }
+});
+
 const requireSuperAdminForForceScrape = (req: Request, res: Response, next: NextFunction) => {
   if (req.query.forceScrape !== 'true') {
     return next();
@@ -234,6 +276,14 @@ router.patch('/bookings/:id/status', async (req: Request, res: Response) => {
     let capacityOverridden = false;
     let updatedBooking: BookingType | null = null;
     if (normalizedStatus === 'CONFIRMED' && !wasConfirmed) {
+      const total = Number(booking.totalAmount);
+      const paid = Number(booking.paidAmount) || 0;
+      if (!Number.isFinite(total) || total <= 0 || paid < total * 0.5) {
+        return res.status(409).json({ status: 'error', code: 'DEPOSIT_REQUIRED', message: 'At least a 50% deposit must be recorded before confirmation.' });
+      }
+      if (String((booking as any).partnerAvailability || 'NOT_CHECKED') !== 'AVAILABLE') {
+        return res.status(409).json({ status: '409', code: 'PARTNER_AVAILABILITY_REQUIRED', message: 'Partner availability must be confirmed before booking confirmation.' });
+      }
       const activity = await storage.getActivity(booking.activityId);
       const settings = (activity as any)?.capacitySettings;
       const capacityLimit = typeof settings?.maxParticipants === 'number'

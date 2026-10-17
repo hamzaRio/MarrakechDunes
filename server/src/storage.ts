@@ -6,6 +6,7 @@ import { loggingService } from './services/logging-service.js';
 import { calculateBookingSummary, normalizeBookingPagination } from './utils/booking-query.js';
 import { capacityDateKey, isCapacityConsumingStatus } from './utils/booking-capacity.js';
 import { hashPasswordForPersistence, prepareUserUpdateForPersistence } from './utils/password-hashing.js';
+import { isBelowRequiredDeposit } from './utils/booking-deadline.js';
 import { runDemoSeed, type StaffBootstrapState } from './bootstrap/bootstrap-policy.js';
 import type {
   UserType,
@@ -65,6 +66,7 @@ const activitySchema = new mongoose.Schema({
   availability: { type: String },
   duration: { type: String },
   maxParticipants: { type: Number },
+  partnerId: { type: mongoose.Schema.Types.ObjectId, ref: 'Partner' },
   capacitySettings: { type: mongoose.Schema.Types.Mixed },
   bookingCreateFence: { type: Number, default: 0 }
 }, { timestamps: true });
@@ -81,6 +83,7 @@ const bookingSchema = new mongoose.Schema({
   },
   numberOfPeople: { type: Number, required: true },
   preferredDate: { type: Date, required: true },
+  preferredTime: { type: String },
   participantNames: { type: [String], default: [] },
   status: { type: String, default: 'pending' },
   totalAmount: { type: String, required: true },
@@ -91,6 +94,20 @@ const bookingSchema = new mongoose.Schema({
   depositAmount: { type: Number },
   bookingReference: { type: String },
   idempotencyKeyHash: { type: String },
+  partnerId: { type: mongoose.Schema.Types.ObjectId, ref: 'Partner' },
+  partnerAvailability: { type: String, enum: ['NOT_CHECKED', 'AWAITING_RESPONSE', 'AVAILABLE', 'UNAVAILABLE'], default: 'NOT_CHECKED' },
+  partnerAvailabilityCheckedBy: { type: String },
+  partnerAvailabilityCheckedAt: { type: Date },
+  supplierConfirmationReference: { type: String },
+  pickupLocation: { type: String },
+  pickupTime: { type: String },
+  returnArrangements: { type: String },
+  internalOperationalNotes: { type: String },
+  depositDeadline: { type: Date },
+  cancellationReason: { type: String },
+  cancellationDate: { type: Date },
+  refundAmount: { type: Number },
+  refundStatus: { type: String, enum: ['none', 'partial', 'full'] },
   // M4: seats actually reserved against the capacity counter for this
   // booking while CONFIRMED, so releaseBookingCapacity can decrement the
   // exact amount even if numberOfPeople is edited afterwards.
@@ -171,6 +188,16 @@ const Activity = mongoose.model('Activity', activitySchema);
 const Booking = mongoose.model('Booking', bookingSchema);
 const AuditLog = mongoose.model('AuditLog', auditLogSchema);
 const Review = mongoose.model('Review', reviewSchema);
+const partnerSchema = new mongoose.Schema({
+  name: { type: String, required: true, trim: true },
+  contactName: { type: String, trim: true },
+  phone: { type: String, trim: true },
+  email: { type: String, trim: true },
+  active: { type: Boolean, default: true },
+  notes: { type: String },
+}, { timestamps: true });
+partnerSchema.index({ name: 1, active: 1 });
+const Partner = mongoose.model('Partner', partnerSchema);
 const CapacityCounter = mongoose.model('CapacityCounter', capacityCounterSchema);
 
 async function ensureCapacityCounter(session: mongoose.ClientSession, activityId: string, dateKey: string): Promise<any> {
@@ -298,12 +325,58 @@ export interface IStorage {
   getBookingAnalytics(): Promise<any>;
   getGetYourGuidePriceComparison(): Promise<any>;
   updateActivityGetYourGuidePrice(id: string, price: number): Promise<ActivityType | null>;
+  listPartners(activeOnly?: boolean): Promise<any[]>;
+  createPartner(data: { name: string; contactName?: string; phone?: string; email?: string; notes?: string }): Promise<any>;
+  updateBookingOperations(id: string, data: Partial<Pick<BookingType, 'partnerId' | 'partnerAvailability' | 'supplierConfirmationReference' | 'pickupLocation' | 'pickupTime' | 'returnArrangements' | 'internalOperationalNotes'>>, actor: string): Promise<BookingType | null>;
+  expirePendingDepositDeadlines(now?: Date): Promise<BookingType[]>;
 }
 
 class MongoStorage implements IStorage {
   constructor() {
     // Database connection is handled separately in db.ts
     // This class assumes MongoDB is already connected
+  }
+
+  async listPartners(activeOnly = true): Promise<any[]> {
+    const filter = activeOnly ? { active: true } : {};
+    return Partner.find(filter).sort({ name: 1 }).lean();
+  }
+
+  async createPartner(data: { name: string; contactName?: string; phone?: string; email?: string; notes?: string }): Promise<any> {
+    const name = String(data.name || '').trim();
+    if (!name) throw new Error('Partner name is required');
+    return Partner.create({ ...data, name });
+  }
+
+  async updateBookingOperations(id: string, data: Partial<Pick<BookingType, 'partnerId' | 'partnerAvailability' | 'supplierConfirmationReference' | 'pickupLocation' | 'pickupTime' | 'returnArrangements' | 'internalOperationalNotes'>>, actor: string): Promise<BookingType | null> {
+    const update: Record<string, unknown> = { ...data };
+    if (data.partnerAvailability) {
+      update.partnerAvailabilityCheckedBy = actor;
+      update.partnerAvailabilityCheckedAt = new Date();
+    }
+    const updated = await Booking.findByIdAndUpdate(id, { $set: update }, { new: true });
+    if (updated) await cacheService.invalidateRelated('booking', id);
+    return this.transformDocument(updated);
+  }
+
+  async expirePendingDepositDeadlines(now = new Date()): Promise<BookingType[]> {
+    const belowDeposit = { $expr: { $lt: [
+      { $convert: { input: '$paidAmount', to: 'double', onError: 0, onNull: 0 } },
+      { $multiply: [{ $convert: { input: '$totalAmount', to: 'double', onError: null, onNull: null } }, 0.5] },
+    ] } };
+    const candidates = await Booking.find({ status: 'PENDING', depositDeadline: { $lte: now }, ...belowDeposit }).select({ _id: 1, totalAmount: 1, paidAmount: 1, depositDeadline: 1 });
+    const expired: BookingType[] = [];
+    for (const candidate of candidates) {
+      const total = Number(candidate.totalAmount);
+      const paid = Number(candidate.paidAmount) || 0;
+      if (!isBelowRequiredDeposit(total, paid)) continue;
+      const result = await Booking.updateOne({ _id: candidate._id, status: 'PENDING', depositDeadline: { $lte: now }, ...belowDeposit }, { $set: { status: 'CANCELLED', cancellationReason: 'DEPOSIT_DEADLINE_EXPIRED', cancellationDate: now } });
+      if (result.modifiedCount === 1) {
+        const updated = await Booking.findById(candidate._id);
+        if (updated) expired.push(this.transformDocument(updated));
+      }
+    }
+    return expired;
   }
 
   private transformDocument(doc: any): any {

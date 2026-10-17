@@ -360,15 +360,15 @@ function AdminDashboardContent() {
       />
       {/* Force redeploy - v1.3.0 - Fixed auth loop and API calls after logout */}
       
-      <div className="min-h-screen bg-gray-50 p-6">
+      <div className="min-h-screen bg-gray-50 p-3 sm:p-6 overflow-x-hidden">
         <div className="max-w-7xl mx-auto">
           <div className="mb-8">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                         <h1 className="text-3xl font-bold text-moroccan-blue">🏛️ Tableau de Bord Administrateur</h1>
                         <p className="text-gray-600">Bienvenue, {user?.username} 👋</p>
               </div>
-              <div className="flex gap-3">
+              <div className="flex flex-wrap gap-3 sm:justify-end">
                 <Link href="/">
                   <Button 
                     variant="outline" 
