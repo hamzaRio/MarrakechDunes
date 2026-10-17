@@ -21,8 +21,8 @@ try {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
   const page = await context.newPage();
   await page.goto(`http://127.0.0.1:${ports.admin}/admin/login`, { waitUntil: 'networkidle' });
-  await page.getByLabel(/username/i).fill('phase1-launcher-admin');
-  await page.getByLabel(/password/i).fill('Phase1-launcher-password-123!');
+  await page.locator('input[name="username"], input[type="text"]').first().fill('phase1-launcher-admin');
+  await page.locator('input[name="password"], input[type="password"]').first().fill('Phase1-launcher-password-123!');
   await page.getByRole('button', { name: /sign in|login/i }).click();
   await page.waitForURL(/\/admin\/(dashboard|$)/, { timeout: 15_000 });
   if (!(await page.getByText(/dashboard|bookings/i).first().isVisible())) throw new Error('admin dashboard shell not visible');
