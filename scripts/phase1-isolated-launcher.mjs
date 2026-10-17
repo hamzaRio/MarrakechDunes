@@ -59,7 +59,10 @@ const staticServer = async (directory, port, apiUrl) => {
     const file = normalize(join(directory, relative));
     if (!file.startsWith(normalize(directory))) { res.statusCode = 400; return res.end('Bad path'); }
     try {
-      const body = await readFile(file);
+      let body = await readFile(file);
+      if (extname(file) === '.html' && apiUrl) {
+        body = body.toString().replaceAll('http://127.0.0.1:18080', apiUrl);
+      }
       const contentTypes = { '.html': 'text/html; charset=utf-8', '.js': 'application/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml' };
       res.setHeader('Content-Type', contentTypes[extname(file)] || 'application/octet-stream');
       res.end(body);
