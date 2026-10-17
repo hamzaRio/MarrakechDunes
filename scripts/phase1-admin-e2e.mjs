@@ -37,6 +37,7 @@ try {
 
   // Exercise the real public booking form against the same disposable API.
   const publicPage = await context.newPage();
+  publicPage.on('response', (response) => { if (response.url().includes('/api/')) console.log(`[public:response] ${response.status()} ${response.url()}`); });
   const activitiesResponse = await publicPage.request.get(`http://127.0.0.1:${ports.api}/api/activities`);
   if (!activitiesResponse.ok()) throw new Error(`public activities request failed: ${activitiesResponse.status()}`);
   const activities = await activitiesResponse.json();
@@ -54,7 +55,7 @@ try {
   await publicPage.locator('input[name^="participantNames"]').first().fill('Phase One Customer');
   await publicPage.getByRole('button', { name: /continue|next|suivant|continuer/i }).last().click();
   await publicPage.locator('form button[type="submit"]').last().click();
-  await publicPage.waitForTimeout(500);
+  await publicPage.waitForURL(/confirmation-and-pay/, { timeout: 20_000 });
   if (!(await publicPage.locator('body').innerText()).match(/pending|submitted|confirmation|booking/i)) throw new Error('public booking submission did not produce a confirmation state');
   // Re-open the booking in the real Admin reservations UI and exercise the
   // operational controls that are available to staff.
