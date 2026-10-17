@@ -45,8 +45,8 @@ try {
   const activityId = activity.id || activity._id;
   await publicPage.goto(`http://127.0.0.1:${ports.public}/booking?activity=${activityId}`, { waitUntil: 'networkidle' });
   await publicPage.getByRole('button', { name: /continue|next|suivant|continuer/i }).last().click();
-  const day = publicPage.locator('button:not([disabled])').filter({ has: publicPage.locator('svg') }).first();
-  if (await day.count()) await day.click();
+  const day = publicPage.locator('button.rdp-day:not([disabled])').first();
+  await day.click();
   await publicPage.getByRole('button', { name: /continue|next|suivant|continuer/i }).last().click();
   await publicPage.locator('input[name="customerName"]').fill('Phase One Customer');
   await publicPage.locator('input[name="customerPhone"]').fill('+212600000001');
