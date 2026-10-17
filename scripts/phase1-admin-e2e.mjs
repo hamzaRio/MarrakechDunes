@@ -24,7 +24,7 @@ try {
   page.on('requestfailed', (request) => console.log(`[browser:requestfailed] ${request.method()} ${request.url()} ${request.failure()?.errorText || ''}`));
   page.on('response', (response) => { if (response.url().includes('/api/')) console.log(`[browser:response] ${response.status()} ${response.url()}`); });
   await page.goto(`http://127.0.0.1:${ports.admin}/admin/login`, { waitUntil: 'networkidle' });
-  await page.locator('input[name="username"], input[type="text"]').first().fill('phase1-launcher-admin');
+  await page.locator('input[name="username"], input[type="text"]').first().fill('phase1-launcher-superadmin');
   await page.locator('input[name="password"], input[type="password"]').first().fill('Phase1-launcher-password-123!');
   await page.locator('form button[type="submit"]').click();
   await page.waitForFunction(() => /\/admin\/(dashboard|$)/.test(window.location.pathname), null, { timeout: 20_000 }).catch(async (error) => {
@@ -34,6 +34,17 @@ try {
   if (!page.url().includes('/admin/dashboard')) throw new Error(`admin dashboard route not reached: ${page.url()}`);
   await page.reload({ waitUntil: 'networkidle' });
   if (await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)) throw new Error('admin mobile layout overflows viewport');
+  await page.getByRole('tab', { name: /activités/i }).click();
+  await page.getByRole('button', { name: /add partner/i }).click();
+  await page.getByLabel('Name', { exact: true }).fill('Phase 1 Browser Partner');
+  await page.getByLabel('Contact name', { exact: true }).fill('Phase 1 Contact');
+  await page.getByLabel('Phone', { exact: true }).fill('+212600000099');
+  await page.getByLabel('Email', { exact: true }).fill('partner@example.invalid');
+  await page.getByRole('button', { name: /^create partner$/i }).click();
+  await page.getByRole('button', { name: /add partner/i }).waitFor();
+  const partnerSelect = page.getByLabel(/Partner for Phase 1 Test Desert Tour/i);
+  await partnerSelect.selectOption({ label: 'Phase 1 Browser Partner' });
+  await page.waitForTimeout(400);
 
   // Exercise the real public booking form against the same disposable API.
   const publicPage = await context.newPage();
@@ -54,8 +65,15 @@ try {
   await publicPage.locator('input[name="customerEmail"]').fill('phase1@example.invalid');
   await publicPage.locator('input[name^="participantNames"]').first().fill('Phase One Customer');
   await publicPage.getByRole('button', { name: /continue|next|suivant|continuer/i }).last().click();
+  const bookingPost = publicPage.waitForResponse((response) => response.request().method() === 'POST' && response.url().endsWith('/api/bookings'));
   await publicPage.locator('form button[type="submit"]').last().click();
-  await publicPage.waitForURL(/confirmation-and-pay/, { timeout: 20_000 });
+  const bookingResponse = await bookingPost;
+  const bookingBody = await bookingResponse.text();
+  if (!bookingResponse.ok()) throw new Error(`booking POST failed (${bookingResponse.status()}): ${bookingBody.slice(0, 500)}`);
+  let bookingPayload; try { bookingPayload = JSON.parse(bookingBody); } catch { throw new Error(`booking POST returned non-JSON: ${bookingBody.slice(0, 500)}`); }
+  const bookingId = bookingPayload?.booking?._id || bookingPayload?.booking?.id || bookingPayload?._id || bookingPayload?.id;
+  if (!bookingId) throw new Error(`booking POST did not return a booking id: ${bookingBody.slice(0, 500)}`);
+  await publicPage.waitForURL(/confirmation-and-pay/, { timeout: 20_000 }).catch(async (error) => { throw new Error(`booking created (${bookingId}) but confirmation navigation failed at ${publicPage.url()}: ${(await publicPage.locator('body').innerText()).slice(0, 800)}; ${error.message}`); });
   if (!(await publicPage.locator('body').innerText()).match(/pending|submitted|confirmation|booking/i)) throw new Error('public booking submission did not produce a confirmation state');
   // Re-open the booking in the real Admin reservations UI and exercise the
   // operational controls that are available to staff.

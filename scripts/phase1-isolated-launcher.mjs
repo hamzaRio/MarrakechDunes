@@ -124,6 +124,7 @@ try {
   const db = mongoClient.db('phase1_launcher');
   const userId = new ObjectId();
   await db.collection('users').insertOne({ _id: userId, username: 'phase1-launcher-admin', password: await bcrypt.hash(password, 12), role: 'admin', createdAt: new Date(), updatedAt: new Date() });
+  await db.collection('users').insertOne({ _id: new ObjectId(), username: 'phase1-launcher-superadmin', password: await bcrypt.hash(password, 12), role: 'superadmin', createdAt: new Date(), updatedAt: new Date() });
   const partnerId = new ObjectId();
   await db.collection('partners').insertOne({ _id: partnerId, name: 'Phase 1 Test Partner', createdAt: new Date(), updatedAt: new Date() });
   await db.collection('activities').insertOne({ _id: new ObjectId(), name: 'Phase 1 Test Desert Tour', description: 'Disposable acceptance-test activity', price: '200', currency: 'MAD', imageUrls: [], category: 'desert', duration: '1 day', isActive: true, approvalStatus: 'approved', partnerId, createdAt: new Date(), updatedAt: new Date() });
