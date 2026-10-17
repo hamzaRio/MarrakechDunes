@@ -30,6 +30,16 @@ try {
   const { connectToDatabase } = await import('../server/dist/db.js');
   await connectToDatabase();
   const { storage } = await import('../server/dist/storage.js');
+  const { acquireSchedulerLease, releaseSchedulerLease } = await import('../server/dist/services/scheduler-lease.js');
+  const leaseName = `phase1-acceptance-${Date.now()}`;
+  const [leaseA, leaseB] = await Promise.all([
+    acquireSchedulerLease(leaseName, 'instance-a', now, 1000),
+    acquireSchedulerLease(leaseName, 'instance-b', now, 1000),
+  ]);
+  assert.equal([leaseA, leaseB].filter(Boolean).length, 1, 'only one scheduler instance may hold the lease');
+  await new Promise((resolve) => setTimeout(resolve, 1100));
+  assert.equal(await acquireSchedulerLease(leaseName, 'instance-recovered', new Date(now.getTime() + 1101), 1000), true, 'expired lease must be recoverable');
+  await releaseSchedulerLease(leaseName, 'instance-recovered');
   const expired = await storage.expirePendingDepositDeadlines(now);
   assert.equal(expired.length, 1);
   const states = await bookings.find({ bookingReference: /^SCHED-/ }).sort({ bookingReference: 1 }).toArray();

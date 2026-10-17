@@ -34,7 +34,29 @@ try {
   if (!page.url().includes('/admin/dashboard')) throw new Error(`admin dashboard route not reached: ${page.url()}`);
   await page.reload({ waitUntil: 'networkidle' });
   if (await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)) throw new Error('admin mobile layout overflows viewport');
-  console.log('Phase 1 Admin browser smoke: PASS (login, dashboard, refresh, mobile viewport)');
+
+  // Exercise the real public booking form against the same disposable API.
+  const publicPage = await context.newPage();
+  const activitiesResponse = await publicPage.request.get(`http://127.0.0.1:${ports.api}/api/activities`);
+  if (!activitiesResponse.ok()) throw new Error(`public activities request failed: ${activitiesResponse.status()}`);
+  const activities = await activitiesResponse.json();
+  const activity = Array.isArray(activities) ? activities[0] : activities.data?.[0];
+  if (!activity?.id && !activity?._id) throw new Error('isolated activity fixture missing');
+  const activityId = activity.id || activity._id;
+  await publicPage.goto(`http://127.0.0.1:${ports.public}/booking?activity=${activityId}`, { waitUntil: 'networkidle' });
+  await publicPage.getByRole('button', { name: /continue|next|suivant|continuer/i }).last().click();
+  const day = publicPage.locator('button:not([disabled])').filter({ has: publicPage.locator('svg') }).first();
+  if (await day.count()) await day.click();
+  await publicPage.getByRole('button', { name: /continue|next|suivant|continuer/i }).last().click();
+  await publicPage.locator('input[name="customerName"]').fill('Phase One Customer');
+  await publicPage.locator('input[name="customerPhone"]').fill('+212600000001');
+  await publicPage.locator('input[name="customerEmail"]').fill('phase1@example.invalid');
+  await publicPage.locator('input[name^="participantNames"]').first().fill('Phase One Customer');
+  await publicPage.getByRole('button', { name: /continue|next|suivant|continuer/i }).last().click();
+  await publicPage.getByRole('button', { name: /submit|book|reserve|réserver|confirmer/i }).last().click();
+  await publicPage.waitForTimeout(500);
+  if (!(await publicPage.locator('body').innerText()).match(/pending|submitted|confirmation|booking/i)) throw new Error('public booking submission did not produce a confirmation state');
+  console.log('Phase 1 Admin/public browser workflow: PASS (login, booking UI, dashboard refresh, mobile viewport)');
 } finally {
   await browser?.close();
   launcher.kill('SIGTERM');
