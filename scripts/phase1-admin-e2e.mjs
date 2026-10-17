@@ -56,7 +56,39 @@ try {
   await publicPage.locator('form button[type="submit"]').last().click();
   await publicPage.waitForTimeout(500);
   if (!(await publicPage.locator('body').innerText()).match(/pending|submitted|confirmation|booking/i)) throw new Error('public booking submission did not produce a confirmation state');
-  console.log('Phase 1 Admin/public browser workflow: PASS (login, booking UI, dashboard refresh, mobile viewport)');
+  // Re-open the booking in the real Admin reservations UI and exercise the
+  // operational controls that are available to staff.
+  await page.goto(`http://127.0.0.1:${ports.admin}/admin/dashboard`, { waitUntil: 'networkidle' });
+  await page.getByRole('tab', { name: /réservations/i }).click();
+  await page.getByText('Phase One Customer', { exact: true }).waitFor({ timeout: 20_000 });
+  const bookingCard = page.getByText('Phase One Customer', { exact: true }).locator('xpath=ancestor::div[contains(@class,"rounded-lg")][1]');
+  await bookingCard.getByRole('button', { name: /détails/i }).click();
+  await page.getByText('Partner coordination', { exact: true }).waitFor();
+  const availability = page.getByLabel('Partner availability');
+  if (!(await availability.count())) throw new Error('partner availability control missing from booking drawer');
+  await availability.selectOption('AVAILABLE');
+  const confirmation = page.getByRole('button', { name: /^Confirmer$/i }).first();
+  if (!(await confirmation.isDisabled())) throw new Error('confirmation was enabled before payment');
+  await page.getByRole('button', { name: /gérer le paiement/i }).click();
+  await page.getByText('Type de Paiement').waitFor();
+  await page.getByRole('combobox').first().click();
+  await page.getByRole('option', { name: /acompte/i }).click();
+  await page.getByLabel('Montant (MAD)').fill('100');
+  await page.getByRole('button', { name: /mettre à jour le paiement/i }).click();
+  await page.getByText('Partner coordination', { exact: true }).waitFor();
+  await page.getByRole('button', { name: /^Confirmer$/i }).first().click();
+  await page.getByText('CONFIRMED', { exact: true }).waitFor();
+  await page.getByLabel('Pickup location').fill('Marrakech Medina');
+  await page.getByLabel('Pickup location').blur();
+  await page.getByLabel('Return arrangements').fill('Return to hotel');
+  await page.getByLabel('Return arrangements').blur();
+  await page.reload({ waitUntil: 'networkidle' });
+  await page.getByText('Phase One Customer', { exact: true }).waitFor();
+  await page.getByRole('button', { name: /détails/i }).click();
+  await page.getByLabel('Pickup location').waitFor();
+  if (await page.getByLabel('Pickup location').inputValue() !== 'Marrakech Medina') throw new Error('pickup detail did not persist');
+  if (await page.getByLabel('Return arrangements').inputValue() !== 'Return to hotel') throw new Error('return detail did not persist');
+  console.log('Phase 1 Admin/public browser workflow: PASS (login, booking UI, reservation drawer, partner availability, payment gate, confirmation, transport persistence, mobile viewport)');
 } finally {
   await browser?.close();
   launcher.kill('SIGTERM');

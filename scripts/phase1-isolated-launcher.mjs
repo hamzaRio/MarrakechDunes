@@ -124,7 +124,9 @@ try {
   const db = mongoClient.db('phase1_launcher');
   const userId = new ObjectId();
   await db.collection('users').insertOne({ _id: userId, username: 'phase1-launcher-admin', password: await bcrypt.hash(password, 12), role: 'admin', createdAt: new Date(), updatedAt: new Date() });
-  await db.collection('activities').insertOne({ _id: new ObjectId(), name: 'Phase 1 Test Desert Tour', description: 'Disposable acceptance-test activity', price: '200', currency: 'MAD', imageUrls: [], category: 'desert', duration: '1 day', isActive: true, approvalStatus: 'approved', createdAt: new Date(), updatedAt: new Date() });
+  const partnerId = new ObjectId();
+  await db.collection('partners').insertOne({ _id: partnerId, name: 'Phase 1 Test Partner', createdAt: new Date(), updatedAt: new Date() });
+  await db.collection('activities').insertOne({ _id: new ObjectId(), name: 'Phase 1 Test Desert Tour', description: 'Disposable acceptance-test activity', price: '200', currency: 'MAD', imageUrls: [], category: 'desert', duration: '1 day', isActive: true, approvalStatus: 'approved', partnerId, createdAt: new Date(), updatedAt: new Date() });
 
   const env = { ...process.env, NODE_ENV: 'test', PORT: String(apiPort), DATABASE_URL: mongoUri, SESSION_SECRET: 'phase1-launcher-session-secret-1234567890', JWT_SECRET: 'phase1-launcher-jwt-secret', CORS_ALLOWED_ORIGINS: `http://${host}:${publicPort},http://${host}:${adminPort}`, LEGACY_STARTUP_SEEDING: 'false', SEED_DEMO_DATA: 'false', MONGO_AUTO_INDEX: 'false', ROLE: 'all', ENABLE_DEPOSIT_EXPIRATION: 'false', SMTP_HOST: '', SMTP_USER: '', SMTP_PASS: '' };
   const child = spawn(process.execPath, ['server/dist/index.js'], { cwd: root, env, stdio: ['ignore', 'pipe', 'pipe'] });
