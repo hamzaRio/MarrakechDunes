@@ -20,6 +20,9 @@ try {
   browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
   const page = await context.newPage();
+  page.on('console', (message) => console.log(`[browser:${message.type()}] ${message.text()}`));
+  page.on('requestfailed', (request) => console.log(`[browser:requestfailed] ${request.method()} ${request.url()} ${request.failure()?.errorText || ''}`));
+  page.on('response', (response) => { if (response.url().includes('/api/')) console.log(`[browser:response] ${response.status()} ${response.url()}`); });
   await page.goto(`http://127.0.0.1:${ports.admin}/admin/login`, { waitUntil: 'networkidle' });
   await page.locator('input[name="username"], input[type="text"]').first().fill('phase1-launcher-admin');
   await page.locator('input[name="password"], input[type="password"]').first().fill('Phase1-launcher-password-123!');
