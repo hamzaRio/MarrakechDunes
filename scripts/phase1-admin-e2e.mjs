@@ -84,7 +84,7 @@ try {
   const day = publicPage.locator('button.rdp-day_button:not([disabled])').first();
   await expect(day).toBeVisible();
   await day.click();
-  await expect(publicPage.getByRole('heading', { name: /vos détails|your details/i })).toBeVisible();
+  await expect(publicPage.getByRole('heading', { name: /vos informations|your information/i })).toBeVisible();
   await publicPage.locator('input[name="customerName"]').fill(testCustomerName);
   await publicPage.locator('input[name="customerPhone"]').fill('+212600000001');
   await publicPage.locator('input[name="customerEmail"]').fill(testCustomerEmail);
