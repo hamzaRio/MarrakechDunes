@@ -68,6 +68,7 @@ try {
 
   // Exercise the real public booking form against the same disposable API.
   const publicPage = await context.newPage();
+  publicPage.on('console', (message) => console.log(`[public:${message.type()}] ${message.text()}`));
   publicPage.on('response', (response) => { if (response.url().includes('/api/')) console.log(`[public:response] ${response.status()} ${response.url()}`); });
   const activitiesResponse = await publicPage.request.get(`http://127.0.0.1:${ports.api}/api/activities`);
   if (!activitiesResponse.ok()) throw new Error(`public activities request failed: ${activitiesResponse.status()}`);
@@ -86,7 +87,10 @@ try {
   await publicPage.locator('input[name^="participantNames"]').first().fill('Phase One Customer');
   await publicPage.getByRole('button', { name: /continue|next|suivant|continuer/i }).last().click();
   const bookingPost = publicPage.waitForResponse((response) => response.request().method() === 'POST' && response.url().endsWith('/api/bookings'));
-  await publicPage.locator('form button[type="submit"]').last().click();
+  const bookingSubmit = publicPage.locator('form button[type="submit"]:visible').last();
+  await expect(bookingSubmit).toBeVisible();
+  await expect(bookingSubmit).toBeEnabled();
+  await bookingSubmit.click();
   const bookingResponse = await bookingPost.catch(async (error) => {
     const diagnostics = (await publicPage.locator('body').innerText()).slice(0, 2000);
     await publicPage.screenshot({ path: 'phase1-admin-e2e-booking-failure.png', fullPage: true }).catch(() => {});
