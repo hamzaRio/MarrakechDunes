@@ -133,8 +133,10 @@ try {
   // operational controls that are available to staff.
   await page.goto(`http://127.0.0.1:${ports.admin}/admin/dashboard`, { waitUntil: 'networkidle' });
   await page.getByRole('tab', { name: /réservations/i }).click();
-  await page.getByText(testCustomerName, { exact: true }).waitFor({ timeout: 20_000 });
-  const bookingCard = page.getByText(testCustomerName, { exact: true }).locator('xpath=ancestor::div[contains(@class,"rounded-lg")][1]');
+  const bookingNameMatches = page.getByText(testCustomerName, { exact: true });
+  await expect(bookingNameMatches.first()).toBeVisible({ timeout: 20_000 });
+  if (await bookingNameMatches.count() < 1) throw new Error(`Admin UI did not render booking ${bookingId}`);
+  const bookingCard = bookingNameMatches.first().locator('xpath=ancestor::div[contains(@class,"rounded-lg")][1]');
   await bookingCard.getByRole('button', { name: /détails/i }).click();
   await page.getByText('Partner coordination', { exact: true }).waitFor();
   const availability = page.getByLabel('Partner availability');
@@ -156,7 +158,7 @@ try {
   await page.getByLabel('Return arrangements').fill('Return to hotel');
   await page.getByLabel('Return arrangements').blur();
   await page.reload({ waitUntil: 'networkidle' });
-  await page.getByText(testCustomerName, { exact: true }).waitFor();
+  await expect(page.getByText(testCustomerName, { exact: true }).first()).toBeVisible();
   await page.getByRole('button', { name: /détails/i }).click();
   await page.getByLabel('Pickup location').waitFor();
   if (await page.getByLabel('Pickup location').inputValue() !== 'Marrakech Medina') throw new Error('pickup detail did not persist');
