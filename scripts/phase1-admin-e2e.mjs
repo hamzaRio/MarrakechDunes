@@ -87,7 +87,11 @@ try {
   await publicPage.getByRole('button', { name: /continue|next|suivant|continuer/i }).last().click();
   const bookingPost = publicPage.waitForResponse((response) => response.request().method() === 'POST' && response.url().endsWith('/api/bookings'));
   await publicPage.locator('form button[type="submit"]').last().click();
-  const bookingResponse = await bookingPost;
+  const bookingResponse = await bookingPost.catch(async (error) => {
+    const diagnostics = (await publicPage.locator('body').innerText()).slice(0, 2000);
+    await publicPage.screenshot({ path: 'phase1-admin-e2e-booking-failure.png', fullPage: true }).catch(() => {});
+    throw new Error(`booking POST was not observed at ${publicPage.url()}; visible state: ${diagnostics}; ${error.message}`);
+  });
   const bookingBody = await bookingResponse.text();
   if (!bookingResponse.ok()) throw new Error(`booking POST failed (${bookingResponse.status()}): ${bookingBody.slice(0, 500)}`);
   let bookingPayload; try { bookingPayload = JSON.parse(bookingBody); } catch { throw new Error(`booking POST returned non-JSON: ${bookingBody.slice(0, 500)}`); }
