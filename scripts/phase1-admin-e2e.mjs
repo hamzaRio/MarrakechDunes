@@ -68,6 +68,8 @@ try {
 
   // Exercise the real public booking form against the same disposable API.
   const publicPage = await context.newPage();
+  const testCustomerName = `Phase One Customer ${Date.now()}`;
+  const testCustomerEmail = `phase1-${Date.now()}@example.invalid`;
   publicPage.on('console', (message) => console.log(`[public:${message.type()}] ${message.text()}`));
   publicPage.on('response', (response) => { if (response.url().includes('/api/')) console.log(`[public:response] ${response.status()} ${response.url()}`); });
   const activitiesResponse = await publicPage.request.get(`http://127.0.0.1:${ports.api}/api/activities`);
@@ -81,24 +83,16 @@ try {
   const day = publicPage.locator('button.rdp-day_button:not([disabled])').first();
   if (await day.count()) await day.click();
   await publicPage.getByRole('button', { name: /continue|next|suivant|continuer/i }).last().click();
-  await publicPage.locator('input[name="customerName"]').fill('Phase One Customer');
+  await publicPage.locator('input[name="customerName"]').fill(testCustomerName);
   await publicPage.locator('input[name="customerPhone"]').fill('+212600000001');
-  await publicPage.locator('input[name="customerEmail"]').fill('phase1@example.invalid');
-  await publicPage.locator('input[name^="participantNames"]').first().fill('Phase One Customer');
+  await publicPage.locator('input[name="customerEmail"]').fill(testCustomerEmail);
+  await publicPage.locator('input[name^="participantNames"]').first().fill(testCustomerName);
   await publicPage.getByRole('button', { name: /continue|next|suivant|continuer/i }).last().click();
   const bookingPost = new Promise((resolve, reject) => {
     const onResponse = async (response) => {
       if (response.request().method() !== 'POST' || !response.url().endsWith('/api/bookings')) return;
       publicPage.off('response', onResponse);
-      const result = { status: response.status(), ok: response.ok(), url: response.url(), body: '' };
-      try {
-        // Consume the body in the response event before the confirmation navigation
-        // can dispose the underlying CDP resource.
-        result.body = await response.text();
-        resolve(result);
-      } catch (error) {
-        reject(new Error(`booking response body unavailable (${result.status} ${result.url}): ${error.message}`));
-      }
+      resolve({ status: response.status(), ok: response.ok(), url: response.url() });
     };
     publicPage.on('response', onResponse);
     setTimeout(() => {
@@ -118,19 +112,24 @@ try {
     await publicPage.screenshot({ path: 'phase1-admin-e2e-booking-failure.png', fullPage: true }).catch(() => {});
     throw new Error(`booking POST was not observed at ${publicPage.url()}; visible state: ${diagnostics}; ${error.message}`);
   });
-  const bookingBody = bookingResponse.body;
-  if (!bookingResponse.ok) throw new Error(`booking POST failed (${bookingResponse.status}): ${bookingBody.slice(0, 500)}`);
-  let bookingPayload; try { bookingPayload = JSON.parse(bookingBody); } catch { throw new Error(`booking POST returned non-JSON: ${bookingBody.slice(0, 500)}`); }
-  const bookingId = bookingPayload?.booking?._id || bookingPayload?.booking?.id || bookingPayload?._id || bookingPayload?.id;
-  if (!bookingId) throw new Error(`booking POST did not return a booking id: ${bookingBody.slice(0, 500)}`);
-  await publicPage.waitForURL(/confirmation-and-pay/, { timeout: 20_000 }).catch(async (error) => { throw new Error(`booking created (${bookingId}) but confirmation navigation failed at ${publicPage.url()}: ${(await publicPage.locator('body').innerText()).slice(0, 800)}; ${error.message}`); });
+  if (!bookingResponse.ok) throw new Error(`booking POST failed (${bookingResponse.status}) at ${bookingResponse.url}`);
+  await publicPage.waitForURL(/confirmation-and-pay/, { timeout: 20_000 }).catch(async (error) => { throw new Error(`booking POST returned 201 but confirmation navigation failed at ${publicPage.url()}: ${(await publicPage.locator('body').innerText()).slice(0, 800)}; ${error.message}`); });
   if (!(await publicPage.locator('body').innerText()).match(/pending|submitted|confirmation|booking/i)) throw new Error('public booking submission did not produce a confirmation state');
+  const lookupResponse = await page.request.get(`http://127.0.0.1:${ports.api}/api/admin/bookings?page=1&limit=50&search=${encodeURIComponent(testCustomerName)}`);
+  if (!lookupResponse.ok()) throw new Error(`Admin booking lookup failed (${lookupResponse.status()}) for ${testCustomerName}`);
+  const lookupPayload = await lookupResponse.json();
+  const matchingBookings = Array.isArray(lookupPayload) ? lookupPayload : (lookupPayload.bookings || lookupPayload.data || []);
+  if (matchingBookings.length !== 1) throw new Error(`expected exactly one persisted booking for ${testCustomerName}, found ${matchingBookings.length}`);
+  const booking = matchingBookings[0];
+  const bookingId = String(booking._id || booking.id || '');
+  if (!bookingId || booking.customerName !== testCustomerName) throw new Error(`persisted booking identity mismatch: ${JSON.stringify({ bookingId, customerName: booking.customerName })}`);
+  console.log(`Booking identity verified: POST 201, confirmation route, exactly one Admin booking ${bookingId} for ${testCustomerName}`);
   // Re-open the booking in the real Admin reservations UI and exercise the
   // operational controls that are available to staff.
   await page.goto(`http://127.0.0.1:${ports.admin}/admin/dashboard`, { waitUntil: 'networkidle' });
   await page.getByRole('tab', { name: /réservations/i }).click();
-  await page.getByText('Phase One Customer', { exact: true }).waitFor({ timeout: 20_000 });
-  const bookingCard = page.getByText('Phase One Customer', { exact: true }).locator('xpath=ancestor::div[contains(@class,"rounded-lg")][1]');
+  await page.getByText(testCustomerName, { exact: true }).waitFor({ timeout: 20_000 });
+  const bookingCard = page.getByText(testCustomerName, { exact: true }).locator('xpath=ancestor::div[contains(@class,"rounded-lg")][1]');
   await bookingCard.getByRole('button', { name: /détails/i }).click();
   await page.getByText('Partner coordination', { exact: true }).waitFor();
   const availability = page.getByLabel('Partner availability');
@@ -152,7 +151,7 @@ try {
   await page.getByLabel('Return arrangements').fill('Return to hotel');
   await page.getByLabel('Return arrangements').blur();
   await page.reload({ waitUntil: 'networkidle' });
-  await page.getByText('Phase One Customer', { exact: true }).waitFor();
+  await page.getByText(testCustomerName, { exact: true }).waitFor();
   await page.getByRole('button', { name: /détails/i }).click();
   await page.getByLabel('Pickup location').waitFor();
   if (await page.getByLabel('Pickup location').inputValue() !== 'Marrakech Medina') throw new Error('pickup detail did not persist');
