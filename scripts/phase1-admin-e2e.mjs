@@ -41,6 +41,7 @@ try {
   await page.getByLabel('Phone', { exact: true }).fill('+212600000099');
   await page.getByLabel('Email', { exact: true }).fill('partner@example.invalid');
   const partnerCreate = page.waitForResponse((response) => response.request().method() === 'POST' && response.url().endsWith('/api/admin/partners'));
+  const partnerListRefresh = page.waitForResponse((response) => response.request().method() === 'GET' && response.url().endsWith('/api/admin/partners'), { timeout: 25_000 });
   await page.getByRole('button', { name: /^create partner$/i }).click();
   const partnerResponse = await partnerCreate;
   const partnerBody = await partnerResponse.text();
@@ -48,6 +49,13 @@ try {
   let partnerPayload; try { partnerPayload = JSON.parse(partnerBody); } catch { throw new Error(`partner creation returned non-JSON: ${partnerBody.slice(0, 500)}`); }
   const partnerId = partnerPayload?._id || partnerPayload?.id;
   if (!partnerId) throw new Error(`partner creation did not return an id: ${partnerBody.slice(0, 500)}`);
+  const refreshedPartnersResponse = await partnerListRefresh;
+  if (!refreshedPartnersResponse.ok()) throw new Error(`partner list refresh failed (${refreshedPartnersResponse.status()})`);
+  const refreshedPartners = await refreshedPartnersResponse.json();
+  const refreshedPartner = (Array.isArray(refreshedPartners) ? refreshedPartners : refreshedPartners?.data || [])
+    .find((partner) => String(partner._id || partner.id) === String(partnerId));
+  if (!refreshedPartner) throw new Error(`created partner ${partnerId} missing from refreshed partner list`);
+  if (refreshedPartner.name !== 'Phase 1 Browser Partner') throw new Error(`partner list returned unexpected name for ${partnerId}`);
   const partnerSelect = page.getByLabel(/Partner for Phase 1 Test Desert Tour/i);
   await expect(partnerSelect.locator(`option[value="${partnerId}"]`)).toHaveText('Phase 1 Browser Partner', { timeout: 20_000 });
   const association = page.waitForResponse((response) => response.request().method() === 'PATCH' && response.url().includes('/api/admin/activities/'));

@@ -69,10 +69,25 @@ function AdminDashboardContent() {
   const createPartnerMutation = useMutation({
     mutationFn: async () => {
       const response = await apiRequest("/admin/partners", { method: "POST", body: JSON.stringify(partnerForm) });
-      if (!response.ok) throw new Error((await response.json().catch(() => ({})))?.message || "Failed to create partner");
-      return response.json();
+      if (response.status < 200 || response.status >= 300) {
+        throw new Error(response.data?.message || "Failed to create partner");
+      }
+      return response.data;
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["/admin/partners"] }); setPartnerDialogOpen(false); setPartnerForm({ name: "", contactName: "", phone: "", email: "" }); toast({ title: "Partner created" }); },
+    onSuccess: async (createdPartner) => {
+      // Update the active selector immediately, then revalidate the canonical list.
+      // This avoids leaving the editor open with a stale, infinitely-fresh query.
+      if (createdPartner?._id || createdPartner?.id) {
+        const partner = { _id: String(createdPartner._id || createdPartner.id), name: createdPartner.name };
+        queryClient.setQueryData<Array<{ _id: string; name: string }>>(["/admin/partners"], (current = []) =>
+          current.some((item) => item._id === partner._id) ? current : [...current, partner],
+        );
+      }
+      setPartnerDialogOpen(false);
+      setPartnerForm({ name: "", contactName: "", phone: "", email: "" });
+      await queryClient.invalidateQueries({ queryKey: ["/admin/partners"] });
+      toast({ title: "Partner created" });
+    },
     onError: (error: Error) => toast({ title: "Partner creation failed", description: error.message, variant: "destructive" }),
   });
   
