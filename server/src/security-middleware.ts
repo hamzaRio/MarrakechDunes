@@ -422,6 +422,10 @@ export const sessionSecurity = {
   cookie: {
     sameSite: runtimeConfig.cookie.sameSite,
     secure: runtimeConfig.cookie.secure,
+    // Required for cross-site Vercel/Admin -> Render sessions in browsers
+    // that block unpartitioned third-party cookies. This is only enabled for
+    // the Secure cross-site production cookie configuration.
+    partitioned: runtimeConfig.cookie.secure && runtimeConfig.cookie.sameSite === 'none',
     httpOnly: true,
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days for better persistence
     path: "/",
