@@ -68,7 +68,7 @@ function AdminDashboardContent() {
   const [partnerForm, setPartnerForm] = useState({ name: "", contactName: "", phone: "", email: "" });
   const createPartnerMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest("/admin/partners", { method: "POST", body: JSON.stringify(partnerForm) });
+      const response = await api.post("/admin/partners", partnerForm);
       if (response.status < 200 || response.status >= 300) {
         throw new Error(response.data?.message || "Failed to create partner");
       }
