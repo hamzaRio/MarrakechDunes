@@ -86,7 +86,26 @@ try {
   await publicPage.locator('input[name="customerEmail"]').fill('phase1@example.invalid');
   await publicPage.locator('input[name^="participantNames"]').first().fill('Phase One Customer');
   await publicPage.getByRole('button', { name: /continue|next|suivant|continuer/i }).last().click();
-  const bookingPost = publicPage.waitForResponse((response) => response.request().method() === 'POST' && response.url().endsWith('/api/bookings'));
+  const bookingPost = new Promise((resolve, reject) => {
+    const onResponse = async (response) => {
+      if (response.request().method() !== 'POST' || !response.url().endsWith('/api/bookings')) return;
+      publicPage.off('response', onResponse);
+      const result = { status: response.status(), ok: response.ok(), url: response.url(), body: '' };
+      try {
+        // Consume the body in the response event before the confirmation navigation
+        // can dispose the underlying CDP resource.
+        result.body = await response.text();
+        resolve(result);
+      } catch (error) {
+        reject(new Error(`booking response body unavailable (${result.status} ${result.url}): ${error.message}`));
+      }
+    };
+    publicPage.on('response', onResponse);
+    setTimeout(() => {
+      publicPage.off('response', onResponse);
+      reject(new Error('timed out waiting for booking POST response'));
+    }, 30_000).unref?.();
+  });
   const bookingSubmit = publicPage.locator('form button[type="submit"]:visible').last();
   await expect(bookingSubmit).toBeVisible();
   await expect(bookingSubmit).toBeEnabled();
@@ -99,8 +118,8 @@ try {
     await publicPage.screenshot({ path: 'phase1-admin-e2e-booking-failure.png', fullPage: true }).catch(() => {});
     throw new Error(`booking POST was not observed at ${publicPage.url()}; visible state: ${diagnostics}; ${error.message}`);
   });
-  const bookingBody = await bookingResponse.text();
-  if (!bookingResponse.ok()) throw new Error(`booking POST failed (${bookingResponse.status()}): ${bookingBody.slice(0, 500)}`);
+  const bookingBody = bookingResponse.body;
+  if (!bookingResponse.ok) throw new Error(`booking POST failed (${bookingResponse.status}): ${bookingBody.slice(0, 500)}`);
   let bookingPayload; try { bookingPayload = JSON.parse(bookingBody); } catch { throw new Error(`booking POST returned non-JSON: ${bookingBody.slice(0, 500)}`); }
   const bookingId = bookingPayload?.booking?._id || bookingPayload?.booking?.id || bookingPayload?._id || bookingPayload?.id;
   if (!bookingId) throw new Error(`booking POST did not return a booking id: ${bookingBody.slice(0, 500)}`);
