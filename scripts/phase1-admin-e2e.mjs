@@ -91,6 +91,9 @@ try {
   await expect(bookingSubmit).toBeVisible();
   await expect(bookingSubmit).toBeEnabled();
   await bookingSubmit.click();
+  const cashSubmit = publicPage.getByRole('button', { name: /submit booking/i });
+  await expect(cashSubmit).toBeVisible();
+  await cashSubmit.click();
   const bookingResponse = await bookingPost.catch(async (error) => {
     const diagnostics = (await publicPage.locator('body').innerText()).slice(0, 2000);
     await publicPage.screenshot({ path: 'phase1-admin-e2e-booking-failure.png', fullPage: true }).catch(() => {});
