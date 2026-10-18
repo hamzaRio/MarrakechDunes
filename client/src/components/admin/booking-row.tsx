@@ -92,9 +92,12 @@ export default function BookingRow({
   const statusSelectValue = BOOKING_STATUSES.includes(normalizedStatus as BookingLifecycleStatus)
     ? normalizedStatus
     : undefined;
+  const bookingId = booking._id || booking.id || "unknown";
 
   return (
     <div
+      data-testid={`booking-row-${bookingId}`}
+      data-booking-id={bookingId}
       className={`rounded-lg border p-4 transition-colors ${
         isSelected ? "border-blue-300 bg-blue-50" : "border-gray-200 bg-white hover:border-gray-300"
       }`}

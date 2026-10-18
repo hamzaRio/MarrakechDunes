@@ -136,7 +136,8 @@ try {
   const bookingNameMatches = page.getByText(testCustomerName, { exact: true });
   await expect(bookingNameMatches.first()).toBeVisible({ timeout: 20_000 });
   if (await bookingNameMatches.count() < 1) throw new Error(`Admin UI did not render booking ${bookingId}`);
-  const bookingCard = bookingNameMatches.first().locator('xpath=ancestor::div[contains(@class,"rounded-lg")][1]');
+  const bookingCard = page.getByTestId(`booking-row-${bookingId}`);
+  await expect(bookingCard).toHaveAttribute('data-booking-id', bookingId);
   await bookingCard.getByRole('button', { name: /détails/i }).click();
   await page.getByText('Partner coordination', { exact: true }).waitFor();
   const availability = page.getByLabel('Partner availability');
