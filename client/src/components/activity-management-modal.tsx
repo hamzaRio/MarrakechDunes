@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLanguage } from "@/hooks/use-language";
 import {
   Dialog,
@@ -52,6 +52,7 @@ const createActivityFormSchema = (t: (key: string) => string) => z.object({
   imageUrls: z.array(z.string().min(1, t("admin.imageUrlRequired"))).min(1, t("admin.atLeastOneImageRequired")),
   isActive: z.boolean().default(true),
   getyourguidePrice: z.string().optional(),
+  partnerId: z.string().optional(),
 });
 
 type ActivityFormData = z.infer<ReturnType<typeof createActivityFormSchema>>;
@@ -74,6 +75,7 @@ export default function ActivityManagementModal({
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { t } = useLanguage();
+  const { data: partners = [] } = useQuery<Array<{ _id: string; name: string }>>({ queryKey: ["/admin/partners"], enabled: isOpen });
 
   const form = useForm<ActivityFormData>({
     resolver: zodResolver(createActivityFormSchema(t)),
@@ -86,6 +88,7 @@ export default function ActivityManagementModal({
       availability: activity?.availability || "",
       imageUrls: activity?.imageUrls ?? ((activity as any)?.photos ?? ((activity as any)?.image ? [(activity as any).image] : [])),
       isActive: activity?.isActive ?? true,
+      partnerId: activity?.partnerId || "",
     },
   });
 
@@ -282,10 +285,11 @@ export default function ActivityManagementModal({
   });
 
   const onSubmit = (data: ActivityFormData) => {
+    const normalizedData = { ...data, partnerId: data.partnerId === "none" ? undefined : data.partnerId };
     if (mode === "create") {
-      createActivityMutation.mutate(data);
+      createActivityMutation.mutate(normalizedData);
     } else if (mode === "edit") {
-      updateActivityMutation.mutate(data);
+      updateActivityMutation.mutate(normalizedData);
     }
   };
 
@@ -693,6 +697,21 @@ export default function ActivityManagementModal({
                       <FormControl>
                         <Input placeholder="e.g., Daily at sunrise" {...field} />
                       </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="partnerId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Fulfilment partner</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value || "none"}>
+                        <FormControl><SelectTrigger><SelectValue placeholder="Select partner" /></SelectTrigger></FormControl>
+                        <SelectContent><SelectItem value="none">No partner assigned</SelectItem>{partners.map((partner) => <SelectItem key={partner._id} value={partner._id}>{partner.name}</SelectItem>)}</SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}

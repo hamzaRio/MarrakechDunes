@@ -60,6 +60,10 @@ export class CSRFProtection {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      // The Admin preview and test API are on different sites. Partitioning
+      // keeps these Secure cross-site cookies available to the embedding
+      // top-level site without making them globally third-party readable.
+      partitioned: process.env.NODE_ENV === 'production',
       path: '/',
       maxAge: 24 * 60 * 60 * 1000 // 24 hours
     });

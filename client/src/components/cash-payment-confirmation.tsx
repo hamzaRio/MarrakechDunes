@@ -31,7 +31,7 @@ export default function CashPaymentConfirmation({
   const [selectedPaymentOption, setSelectedPaymentOption] = useState<'full' | 'deposit'>('deposit');
   
   const totalAmount = Number(activity.price) * numberOfPeople;
-  const depositAmount = Math.round(totalAmount * 0.3); // 30% deposit
+  const depositAmount = Math.round(totalAmount * 0.5); // required 50% deposit
   const remainingAmount = totalAmount - depositAmount;
 
   const handleConfirm = async () => {
@@ -165,7 +165,7 @@ export default function CashPaymentConfirmation({
                     />
                     <h4 className="font-medium text-orange-800">Deposit + Balance</h4>
                   </div>
-                  <p className="text-sm text-orange-700 mb-3">Secure your booking with a deposit</p>
+                      <p className="text-sm text-orange-700 mb-3">A 50% deposit is required for confirmation</p>
                   <div className="space-y-1">
                     <div className="text-sm">
                       <span className="text-orange-600">Deposit now:</span>

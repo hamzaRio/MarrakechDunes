@@ -28,6 +28,7 @@ import GYGReferenceTool from "@/components/GYGReferenceTool";
 // Removed duplicate cash analytics dashboard import
 import CashBookingReminders from "@/components/cash-booking-reminders";
 import { apiFetch, logout, api } from "@/lib/api";
+import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import SEOHead from "@/components/seo-head";
 import PerformanceMonitor from "@/components/analytics/performance-monitor";
@@ -63,6 +64,32 @@ function AdminDashboardContent() {
   
   const [deleteActivityDialogOpen, setDeleteActivityDialogOpen] = useState(false);
   const [activityToDelete, setActivityToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [partnerDialogOpen, setPartnerDialogOpen] = useState(false);
+  const [partnerForm, setPartnerForm] = useState({ name: "", contactName: "", phone: "", email: "" });
+  const createPartnerMutation = useMutation({
+    mutationFn: async () => {
+      const response = await api.post("/admin/partners", partnerForm);
+      if (response.status < 200 || response.status >= 300) {
+        throw new Error(response.data?.message || "Failed to create partner");
+      }
+      return response.data;
+    },
+    onSuccess: async (createdPartner) => {
+      // Update the active selector immediately, then revalidate the canonical list.
+      // This avoids leaving the editor open with a stale, infinitely-fresh query.
+      if (createdPartner?._id || createdPartner?.id) {
+        const partner = { _id: String(createdPartner._id || createdPartner.id), name: createdPartner.name };
+        queryClient.setQueryData<Array<{ _id: string; name: string }>>(["/admin/partners"], (current = []) =>
+          current.some((item) => item._id === partner._id) ? current : [...current, partner],
+        );
+      }
+      setPartnerDialogOpen(false);
+      setPartnerForm({ name: "", contactName: "", phone: "", email: "" });
+      await queryClient.invalidateQueries({ queryKey: ["/admin/partners"] });
+      toast({ title: "Partner created" });
+    },
+    onError: (error: Error) => toast({ title: "Partner creation failed", description: error.message, variant: "destructive" }),
+  });
   
   // Reports date range state
   const [reportsDateRange, setReportsDateRange] = useState<{ from?: Date; to?: Date }>({});
@@ -73,6 +100,8 @@ function AdminDashboardContent() {
     queryFn: async () => (await api.get("/admin/bookings/summary")).data,
     staleTime: 60_000,
   });
+  const { data: partners = [] } = useQuery<Array<{ _id: string; name: string }>>({ queryKey: ["/admin/partners"], enabled: isSuperAdmin });
+  const assignPartnerMutation = useMutation({ mutationFn: async ({ activityId, partnerId }: { activityId: string; partnerId: string }) => apiRequest(`/admin/activities/${activityId}/partner`, { method: "PATCH", body: JSON.stringify({ partnerId: partnerId || null }) }), onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/activities"] }), onError: (error: Error) => toast({ title: "Partner assignment failed", description: error.message, variant: "destructive" }) });
 
   const actionFrom = formatCasablancaDateOnly();
   const actionToDate = new Date(`${actionFrom}T00:00:00`);
@@ -360,15 +389,15 @@ function AdminDashboardContent() {
       />
       {/* Force redeploy - v1.3.0 - Fixed auth loop and API calls after logout */}
       
-      <div className="min-h-screen bg-gray-50 p-6">
+      <div className="min-h-screen bg-gray-50 p-3 sm:p-6 overflow-x-hidden">
         <div className="max-w-7xl mx-auto">
           <div className="mb-8">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                         <h1 className="text-3xl font-bold text-moroccan-blue">🏛️ Tableau de Bord Administrateur</h1>
                         <p className="text-gray-600">Bienvenue, {user?.username} 👋</p>
               </div>
-              <div className="flex gap-3">
+              <div className="flex flex-wrap gap-3 sm:justify-end">
                 <Link href="/">
                   <Button 
                     variant="outline" 
@@ -503,6 +532,7 @@ function AdminDashboardContent() {
                   <CardTitle>{isSuperAdmin ? 'Activity Management & Pricing' : 'Activities'}</CardTitle>
                   {isSuperAdmin ? (
                     <div className="flex gap-2">
+                      <Button variant="outline" onClick={() => setPartnerDialogOpen(true)}>Add partner</Button>
                       <SimpleActivityForm mode="create" />
                     </div>
                   ) : null}
@@ -575,6 +605,7 @@ function AdminDashboardContent() {
                         ) : null}
 
                         <div className="flex gap-2">
+                          {isSuperAdmin ? <select aria-label={`Partner for ${activity.name}`} className="h-9 rounded-md border px-2 text-sm" value={String(activity.partnerId || "")} onChange={(event) => assignPartnerMutation.mutate({ activityId: String(activity._id || activity.id), partnerId: event.target.value })}><option value="">No partner</option>{partners.map((partner) => <option key={partner._id} value={partner._id}>{partner.name}</option>)}</select> : null}
                           {isSuperAdmin ? (
                             <>
                               <Button
@@ -611,6 +642,15 @@ function AdminDashboardContent() {
                   </div>
                 </CardContent>
               </Card>
+              <Dialog open={partnerDialogOpen} onOpenChange={setPartnerDialogOpen}>
+                <DialogContent className="max-w-md">
+                  <DialogHeader><DialogTitle>Create fulfilment partner</DialogTitle><DialogDescription>Partner agencies can be assigned to activities and bookings.</DialogDescription></DialogHeader>
+                  <div className="space-y-3">
+                    {([['name', 'Name'], ['contactName', 'Contact name'], ['phone', 'Phone'], ['email', 'Email']] as const).map(([key, label]) => <div key={key}><Label htmlFor={`partner-${key}`}>{label}</Label><Input id={`partner-${key}`} value={partnerForm[key]} onChange={(event) => setPartnerForm((current) => ({ ...current, [key]: event.target.value }))} /></div>)}
+                    <Button className="w-full" disabled={!partnerForm.name.trim() || createPartnerMutation.isPending} onClick={() => createPartnerMutation.mutate()}>{createPartnerMutation.isPending ? "Saving..." : "Create partner"}</Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
             </TabsContent>
 
             {/* Market Intelligence Tab */}
