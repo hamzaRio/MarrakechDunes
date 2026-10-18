@@ -80,17 +80,19 @@ try {
   if (!activity?.id && !activity?._id) throw new Error('isolated activity fixture missing');
   const activityId = activity.id || activity._id;
   await publicPage.goto(`http://127.0.0.1:${ports.public}/booking?activity=${activityId}`, { waitUntil: 'networkidle' });
-  const reviewButton = publicPage.getByRole('button', { name: /continue to review|vérifier et envoyer/i });
-  await expect(reviewButton).toBeVisible();
-  await reviewButton.click();
+  await expect(publicPage.getByRole('heading', { name: /sélectionnez votre date|select date/i })).toBeVisible();
   const day = publicPage.locator('button.rdp-day_button:not([disabled])').first();
-  if (await day.count()) await day.click();
-  await publicPage.getByRole('button', { name: /continue|next|suivant|continuer/i }).last().click();
+  await expect(day).toBeVisible();
+  await day.click();
+  await expect(publicPage.getByRole('heading', { name: /vos détails|your details/i })).toBeVisible();
   await publicPage.locator('input[name="customerName"]').fill(testCustomerName);
   await publicPage.locator('input[name="customerPhone"]').fill('+212600000001');
   await publicPage.locator('input[name="customerEmail"]').fill(testCustomerEmail);
   await publicPage.locator('input[name^="participantNames"]').first().fill(testCustomerName);
-  await publicPage.getByRole('button', { name: /continue|next|suivant|continuer/i }).last().click();
+  const reviewButton = publicPage.getByRole('button', { name: /continue to review|vérifier et envoyer/i });
+  await expect(reviewButton).toBeVisible();
+  await reviewButton.click();
+  await expect(publicPage.getByRole('heading', { name: /vérifier votre demande|review your booking/i })).toBeVisible();
   const bookingPost = new Promise((resolve, reject) => {
     const onResponse = async (response) => {
       if (response.request().method() !== 'POST' || !response.url().endsWith('/api/bookings')) return;
