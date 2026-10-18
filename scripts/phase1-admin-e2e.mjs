@@ -68,7 +68,8 @@ try {
 
   // Exercise the real public booking form against the same disposable API.
   const publicPage = await context.newPage();
-  const testCustomerName = `Phase One Customer ${Date.now()}`;
+  const uniqueLetters = crypto.randomUUID().replace(/[^a-z]/gi, '').slice(0, 8);
+  const testCustomerName = `Phase One Customer ${uniqueLetters}`;
   const testCustomerEmail = `phase1-${Date.now()}@example.invalid`;
   publicPage.on('console', (message) => console.log(`[public:${message.type()}] ${message.text()}`));
   publicPage.on('response', (response) => { if (response.url().includes('/api/')) console.log(`[public:response] ${response.status()} ${response.url()}`); });
@@ -79,7 +80,9 @@ try {
   if (!activity?.id && !activity?._id) throw new Error('isolated activity fixture missing');
   const activityId = activity.id || activity._id;
   await publicPage.goto(`http://127.0.0.1:${ports.public}/booking?activity=${activityId}`, { waitUntil: 'networkidle' });
-  await publicPage.getByRole('button', { name: /continue|next|suivant|continuer/i }).last().click();
+  const reviewButton = publicPage.getByRole('button', { name: /continue to review|vérifier et envoyer/i });
+  await expect(reviewButton).toBeVisible();
+  await reviewButton.click();
   const day = publicPage.locator('button.rdp-day_button:not([disabled])').first();
   if (await day.count()) await day.click();
   await publicPage.getByRole('button', { name: /continue|next|suivant|continuer/i }).last().click();
@@ -100,7 +103,7 @@ try {
       reject(new Error('timed out waiting for booking POST response'));
     }, 30_000).unref?.();
   });
-  const bookingSubmit = publicPage.locator('form button[type="submit"]:visible').last();
+  const bookingSubmit = publicPage.getByRole('button', { name: /submit booking request|envoyer la demande de réservation/i });
   await expect(bookingSubmit).toBeVisible();
   await expect(bookingSubmit).toBeEnabled();
   await bookingSubmit.click();
